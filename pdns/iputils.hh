@@ -32,6 +32,7 @@
 #include <netdb.h>
 #include <sstream>
 #include <sys/un.h>
+#include <variant>
 
 #include "namespaces.hh"
 
@@ -2077,7 +2078,52 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* timeval);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 int sendOnNBSocket(int fileDesc, const struct msghdr* msgh);
-size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
+
+// A poor man's std::expected, which only becomes available for real with C++23
+namespace pdns
+{
+template <class E>
+class unexpected
+{
+public:
+  unexpected(const E& arg) :
+    err(arg) {}
+  const E& error() const
+  {
+    return err;
+  }
+
+private:
+  E err;
+};
+
+template <class T, class E>
+class expected : private std::variant<T, E>
+{
+public:
+  expected(const T& arg) :
+    std::variant<T, E>(arg) {}
+
+  expected(const unexpected<E>& arg) :
+    std::variant<T, E>(arg.error()) {}
+
+  [[nodiscard]] bool has_value() const
+  {
+    return std::holds_alternative<T>(*this);
+  }
+
+  const T& value() const
+  {
+    return std::get<T>(*this);
+  }
+  const E& error() const
+  {
+    return std::get<E>(*this);
+  }
+};
+}
+
+[[nodiscard]] pdns::expected<size_t, int> sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
 
 /* requires a non-blocking, connected TCP socket */
 bool isTCPSocketUsable(int sock);

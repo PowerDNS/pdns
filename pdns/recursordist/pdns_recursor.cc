@@ -360,7 +360,14 @@ LWResult::Result asendto(const void* data, size_t len,
     // fatals (with calling exit!) on some error conditions.  This all looks fragile, but there are
     // existing callers, changing sendMsgWithOption() to return ssize_t to mkae it more sned(2) like
     // needs to be done with extra care.
-    sent = sendMsgWithOptions(*fileDesc, data, len, nullptr, &local, interface->d_index, 0);
+
+    auto sendRet = sendMsgWithOptions(*fileDesc, data, len, nullptr, &local, interface->d_index, 0);
+    if (sendRet.has_value()) {
+      sent = static_cast<ssize_t>(sendRet.value());
+    }
+    else {
+      sent = sendRet.error();
+    }
   }
   if (sent < 0) {
     int tmp = errno;

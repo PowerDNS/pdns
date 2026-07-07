@@ -690,7 +690,7 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
     if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
       continue;
     }
-    auto local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
+    auto local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0).d_address;
     ctx.sock = makeQuerySocket(local, false); // create TCP socket. RFC2136 section 6.2 seems to be ok with this.
     if (ctx.sock < 0) {
       SLOG(g_log << Logger::Error << ctx.msgPrefix << "Error creating socket: " << stringerror() << endl,

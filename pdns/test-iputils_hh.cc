@@ -968,4 +968,22 @@ BOOST_AUTO_TEST_CASE(test_unspecified)
   }
 }
 
+// Check the tricky case: two somewhat compatibe types
+BOOST_AUTO_TEST_CASE(test_expected)
+{
+  pdns::expected<size_t, int> test(0);
+
+  test = static_cast<size_t>(1);
+  BOOST_ASSERT(test.has_value());
+  BOOST_CHECK_EQUAL(test.value(), 1U);
+
+  test = 2;
+  BOOST_ASSERT(test.has_value());
+  BOOST_CHECK_EQUAL(test.value(), 2U);
+
+  test = pdns::unexpected(3);
+  BOOST_ASSERT(!test.has_value());
+  BOOST_CHECK_EQUAL(test.error(), 3);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

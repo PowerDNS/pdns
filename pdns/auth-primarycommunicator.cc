@@ -389,13 +389,13 @@ bool CommunicatorClass::justNotified(const ZoneName& domain, const string& ipAdd
 void CommunicatorClass::makeNotifySockets()
 {
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
-    d_nsock4 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, ::arg().mustDo("non-local-bind"));
+    d_nsock4 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0).d_address, true, ::arg().mustDo("non-local-bind"));
   }
   else {
     d_nsock4 = -1;
   }
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
-    d_nsock6 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, ::arg().mustDo("non-local-bind"));
+    d_nsock6 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0).d_address, true, ::arg().mustDo("non-local-bind"));
   }
   else {
     d_nsock6 = -1;

@@ -154,12 +154,11 @@ static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddres
     return;
   }
 
-  try {
-    sendMsgWithOptions(sock.getHandle(), buffer.data(), buffer.size(), &peer, &local, 0, 0);
-  }
-  catch (const std::exception& exp) {
-    VERBOSESLOG(infolog("Error while sending QUIC datagram of size %d from %s to %s: %s", buffer.size(), local.toStringWithPort(), peer.toStringWithPort(), exp.what()),
-                dnsdist::logging::getTopLogger("quic-send-from-to")->error(Logr::Info, exp.what(), "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "source.address", Logging::Loggable(local), "client.address", Logging::Loggable(peer)));
+  auto ret = sendMsgWithOptions(sock.getHandle(), buffer.data(), buffer.size(), &peer, &local, 0, 0);
+
+  if (!ret.has_value()) {
+    VERBOSESLOG(infolog("Error while sending QUIC datagram of size %d from %s to %s: %s", buffer.size(), local.toStringWithPort(), peer.toStringWithPort(), stringerror(ret.error())),
+                dnsdist::logging::getTopLogger("quic-send-from-to")->error(Logr::Info, ret.error(), "Error while sending QUIC datagram", "datagram_size", Logging::Loggable(buffer.size()), "source.address", Logging::Loggable(local), "client.address", Logging::Loggable(peer)));
   }
 }
 

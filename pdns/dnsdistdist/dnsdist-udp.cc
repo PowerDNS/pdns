@@ -118,12 +118,10 @@ void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, 
     return;
   }
 
-  try {
-    sendMsgWithOptions(sock, buffer.data(), buffer.size(), &dest, &from, 0, 0);
-  }
-  catch (const std::exception& exp) {
-    VERBOSESLOG(infolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what()),
-                dnsdist::logging::getTopLogger("sendfromto")->error(Logr::Info, exp.what(), "Error sending UDP response", "source.address", Logging::Loggable(from), "client.address", Logging::Loggable(dest)));
+  auto ret = sendMsgWithOptions(sock, buffer.data(), buffer.size(), &dest, &from, 0, 0);
+  if (!ret.has_value()) {
+    VERBOSESLOG(infolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), stringerror(ret.error())),
+                dnsdist::logging::getTopLogger("sendfromto")->error(Logr::Info, ret.error(), "Error sending UDP response", "source.address", Logging::Loggable(from), "client.address", Logging::Loggable(dest)));
   }
 }
 

@@ -851,7 +851,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
              ctx.slog->info(Logr::Warning, "XFR: unable to xfr, address family is not enabled for outgoing traffic (query-local-address)", "address family", Logging::Loggable(isV6 ? "IPv6" : "IPv4")));
         return;
       }
-      laddr = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
+      laddr = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0).d_address;
     }
 
     bool hadDnssecZone = false;

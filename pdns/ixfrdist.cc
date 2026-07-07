@@ -378,8 +378,8 @@ static void communicatorSendNotifications(const int sock4, const int sock6)
 static void communicatorThread()
 {
   setThreadName("ixfrdist/communicator");
-  auto sock4 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true);
-  auto sock6 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true);
+  auto sock4 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0).d_address, true);
+  auto sock6 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0).d_address, true);
 
   if (sock4 < 0) {
     throw std::runtime_error("Unable to create local query socket");
