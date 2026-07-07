@@ -762,7 +762,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   /* 13 NS + 1 RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
-  BOOST_CHECK_EQUAL(queriesCount, 3U); // FIXME!
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   /* again, to test the cache */
   ret.clear();
@@ -770,7 +770,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusMissingNegativeIndication);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
-  BOOST_CHECK_EQUAL(queriesCount, 3U); // FIXME!
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_without_zone_flag)
