@@ -206,6 +206,13 @@
                             <div id="recursor-plexus-versions"></div>
                         </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="product-card">
+                            <h3><a href="/platform-filter">PowerDNS Platform Filter</a></h3>
+                            <p>Carrier-grade internet filtering solution.</p>
+                            <div id="platform-filter-versions"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -307,6 +314,12 @@
             loadVersionSelector(
                 '/recursor-plexus',
                 'recursor-plexus-versions'
+            );
+
+            // Platform Filter
+            loadVersionSelector(
+                '/platform-filter',
+                'platform-filter-versions'
             );
         });
     </script>
