@@ -21,6 +21,11 @@
 #endif
 
 bool g_slogStructured{false};
+ArgvMap &arg()
+{
+  static ArgvMap theArg;
+  return theArg;
+}
 
 #ifndef RECURSOR
 #include "statbag.hh"

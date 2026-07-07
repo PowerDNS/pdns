@@ -44,6 +44,8 @@
 #include <boost/assign/list_inserter.hpp>
 #include "base64.hh"
 #include "namespaces.hh"
+#include "arguments.hh"
+#include "pdnsexception.hh"
 #ifdef HAVE_P11KIT1
 #include "pkcs11signers.hh"
 #endif
@@ -157,6 +159,9 @@ std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCString(Logr::
 
   if (stormap.count("engine")) {
 #ifdef HAVE_P11KIT1
+    if (!::arg().mustDo("pkcs11")) {
+      throw PDNSException("PKCS#11 key requested, but pkcs11 is not enabled in the configuration");
+    }
     if (stormap.count("slot") == 0) {
       throw PDNSException("Cannot load PKCS#11 key, no Slot specified");
     }
