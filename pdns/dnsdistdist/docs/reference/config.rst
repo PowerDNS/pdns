@@ -82,7 +82,7 @@ Listen Sockets
   .. versionchanged:: 1.9.0
     Added the ``enableProxyProtocol`` parameter, which was always ``true`` before 1.9.0, and  the``xskSocket`` one.
 
-  .. versionchanged:: 1.9.0
+  .. versionchanged:: 2.2.0
     Added ``randomReusePortPolicy`` parameter.
 
   Add to the list of listen addresses. Note that for IPv6 link-local addresses, it might be necessary to specify the interface to use: ``fe80::1%eth0``. On recent Linux versions specifying the interface via the ``interface`` parameter should work as well.
@@ -103,7 +103,7 @@ Listen Sockets
   * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
   * ``enableProxyProtocol=true``: str - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
   * ``xskSocket``: :class:`XskSocket` - A socket to enable ``XSK`` / ``AF_XDP`` support for this frontend. See :doc:`../advanced/xsk` for more information.
-  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport`` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
   .. code-block:: lua
 
@@ -170,7 +170,7 @@ Listen Sockets
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
   * ``enableProxyProtocol=true``: bool - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
-  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport`` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
 .. function:: addDOH3Local(address, certFile(s), keyFile(s) [, options])
 
@@ -203,7 +203,7 @@ Listen Sockets
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
   * ``qLogDir``: str - Path to directory to store QLOG (QUIC logs) files in. By default QLOG is disabled.
-  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport`` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
 .. function:: addDOQLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -237,7 +237,7 @@ Listen Sockets
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
   * ``qLogDir``: str - Path to directory to store QLOG (QUIC logs) files in. By default QLOG is disabled.
-  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport`` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -288,7 +288,7 @@ Listen Sockets
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
   * ``enableProxyProtocol=true``: str - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
-  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport`` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
 .. function:: setLocal(address[, options])
 
