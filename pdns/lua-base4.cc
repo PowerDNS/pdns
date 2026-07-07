@@ -36,41 +36,9 @@ void BaseLua4::loadString(const std::string &script) {
 };
 
 void BaseLua4::includePath(const std::string& directory) {
-  std::vector<std::string> vec;
   const std::string& suffix = "lua";
-  auto directoryError = pdns::visit_directory(directory, [this, &directory, &suffix, &vec]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
-    (void)this;
-    if (boost::starts_with(name, ".")) {
-      return true; // skip any dots
-    }
-    if (boost::ends_with(name, suffix)) {
-      // build name
-      string fullName = directory + "/" + std::string(name);
-      // ensure it's readable file
-      struct stat statInfo
-      {
-      };
-      if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
-        string msg = fullName + " is not a regular file";
-        SLOG(g_log << Logger::Error << msg << std::endl,
-             g_slog->withName("lua")->info(Logr::Error, "include file is not a regular file", "file", Logging::Loggable(fullName)));
-        throw PDNSException(std::move(msg));
-      }
-      vec.emplace_back(fullName);
-    }
-    return true;
-  });
-
-  if (directoryError) {
-    int err = errno;
-    string msg = directory + " is not accessible: " + stringerror(err);
-    SLOG(g_log << Logger::Error << msg << std::endl,
-         g_slog->withName("lua")->error(Logr::Error, err, "Error trying to walk directory", "directory", Logging::Loggable(directory)));
-    throw PDNSException(std::move(msg));
-  }
-
+  std::vector<std::string> vec = pdns::list_directory(directory, suffix, g_slog->withName("lua"));
   std::sort(vec.begin(), vec.end(), CIStringComparePOSIX());
-
   for(const auto& file: vec) {
     loadFile(file, false);
   }

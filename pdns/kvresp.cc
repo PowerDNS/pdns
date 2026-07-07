@@ -30,6 +30,8 @@
    What it does is provide answers to queries from the Lua generic UDP Question/Answer
    stuff in kv-example-script.lua */
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 int main(int argc, char** argv)
