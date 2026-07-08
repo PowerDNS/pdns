@@ -63,6 +63,39 @@ ccounts
 
 Show the content of the cache.
 
+cookie-secret *COMMAND* [*OPTIONS*]
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Manage EDNS Cookie secrets.
+
+COMMAND is one of ``list``, ``add``, or ``delete``.
+
+cookie-secret list
+~~~~~~~~~~~~~~~~~~
+
+List all the existing EDNS Cookie secrets.
+The active secret is marked with a ``*``.
+
+cookie-secret add SECRET|random
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add a new Cookie secret. This will become the active secret.
+
+SECRET must be 32 hexadecimal characters, or the word "random" to have the server generate a key.
+
+Note that this secret will not be written to the configuration file.
+
+cookie-secret delete SECRET|last
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Delete an inactive Cookie secret.
+
+SECRET must be 32 hexadecimal characters, matching an inactive secret.
+Alternatively, the "last" keyword can be used to remove the last secret.
+This will be the secret listed at the bottom of ``cookie-secret list``.
+
+Note that this secret will not be removed from the configuration file.
+
 current-config [diff]
 ^^^^^^^^^^^^^^^^^^^^^
 

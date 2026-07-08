@@ -22,6 +22,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <exception>
+#include <sstream>
 #include "auth-caches.hh"
 #include "auth-querycache.hh"
 #include "auth-packetcache.hh"
@@ -30,6 +32,7 @@
 #include "statbag.hh"
 #include "logger.hh"
 #include "dns.hh"
+#include "misc.hh"
 #include "arguments.hh"
 #include <csignal>
 #include "misc.hh"
@@ -39,6 +42,7 @@
 #include "responsestats.hh"
 #include "ueberbackend.hh"
 #include "auth-main.hh"
+#include "dnspacket.hh"
 
 extern ResponseStats g_rs;
 
@@ -114,6 +118,92 @@ string DLShowHandler(const vector<string>& parts, Utility::pid_t /* ppid */, Log
 void setStatus(const string &str)
 {
   d_status=str;
+}
+
+
+string DLManageCookieSecret(const vector<string>& parts, [[maybe_unused]] Utility::pid_t ppid, [[maybe_unused]] Logr::log_t slog)
+{
+  std::ostringstream oss;
+#ifdef HAVE_CRYPTO_SHORTHASH
+  static string cookieUsage = "Usage: cookie-secret COMMAND [OPTIONS]\n    Where COMMAND is 'list', 'add', or 'delete'";
+  if (parts.size() == 1) {
+    return cookieUsage;
+  }
+
+  const auto &command = parts.at(1);
+  if (command == "add") {
+    if (parts.size() != 3) {
+      return "Usage: cookie-secret add <SECRET|random>";
+    }
+    auto oldSecret = DNSPacket::s_EDNSCookieKey;
+    std::array<char, EDNSCookiesOpt::EDNSCookieSecretSize / 2> key{};
+    const auto &newSecret = parts.at(2);
+    if (newSecret == "random") {
+      dns_random(key.data(), key.size());
+      DNSPacket::s_EDNSCookieKey = std::string(key.data(), key.size());
+    } else {
+      if (newSecret.size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
+        return "wrong size for new secret (" + std::to_string(newSecret.size()) + "), must be " + std::to_string(EDNSCookiesOpt::EDNSCookieSecretSize);
+      }
+      try {
+        auto secretBytes = makeBytesFromHex(newSecret);
+        DNSPacket::s_EDNSCookieKey = std::move(secretBytes);
+      } catch (const std::exception& exc) {
+        return "Can not convert " + newSecret + " to bytes: " + exc.what();
+      }
+    }
+    if (!oldSecret.empty()) {
+      DNSPacket::s_OldEDNSCookieKeys.insert(DNSPacket::s_OldEDNSCookieKeys.begin(), oldSecret);
+    }
+    DNSPacket::s_doEDNSCookieProcessing = true;
+    return "COOKIE secret set to " + makeHexDump(DNSPacket::s_EDNSCookieKey, "");
+  }
+
+  if (command == "delete") {
+    if (parts.size() != 3) {
+      return "Usage: cookie-secret delete <SECRET|last>";
+    }
+    const auto &secret = parts.at(2);
+    if (secret == "last") {
+      if (DNSPacket::s_OldEDNSCookieKeys.empty()) {
+        return "No inactive keys, nothing removed";
+      }
+      auto removedSecret = DNSPacket::s_OldEDNSCookieKeys.back();
+      DNSPacket::s_OldEDNSCookieKeys.pop_back();
+      return "COOKIE secret " + makeHexDump(removedSecret, "") +" removed";
+    }
+    if (secret.size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
+      return "wrong size for old secret (" + std::to_string(secret.size()) + "), must be " + std::to_string(EDNSCookiesOpt::EDNSCookieSecretSize);
+    }
+    try {
+      auto secretBytes = makeBytesFromHex(secret);
+      if (secretBytes == DNSPacket::s_EDNSCookieKey) {
+        return "COOKIE secret " + makeHexDump(secretBytes, "") +" is the active secret, refusing to remove";
+      }
+      auto it = std::find(DNSPacket::s_OldEDNSCookieKeys.begin(), DNSPacket::s_OldEDNSCookieKeys.end(), secretBytes); // NOLINT(readability-identifier-length)
+      if (it != DNSPacket::s_OldEDNSCookieKeys.end()) {
+        DNSPacket::s_OldEDNSCookieKeys.erase(it);
+        return "COOKIE secret " + secret +" removed";
+      }
+    } catch (const std::exception& exc) {
+        return "Can not convert " + secret + " to bytes: " + exc.what();
+    }
+    return "COOKIE secret " + secret +" not found";
+  }
+  if (command == "list") {
+    if (DNSPacket::s_EDNSCookieKey.empty()) {
+      return "No EDNS Cookie secrets";
+    }
+    oss << makeHexDump(DNSPacket::s_EDNSCookieKey, "") << " *";
+    for (const auto& secret : DNSPacket::s_OldEDNSCookieKeys) {
+      oss << std::endl << makeHexDump(secret, "");
+    }
+    return oss.str();
+  }
+  return cookieUsage;
+#else
+  return "COOKIEs are not supported as the required crypto library is not available";
+#endif
 }
 
 string DLStatusHandler(const vector<string>& /* parts */, Utility::pid_t ppid, Logr::log_t /* slog */)
