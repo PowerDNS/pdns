@@ -1778,6 +1778,7 @@ int main(int argc, char** argv)
     DynListener::registerFunc("UPTIME", &DLUptimeHandler, "get instance uptime");
     DynListener::registerFunc("VERSION", &DLVersionHandler, "get instance version");
     DynListener::registerFunc("XFR-QUEUE", &DLSuckRequests, "Get all requests for XFR in queue");
+    DynListener::registerFunc("COOKIE-SECRET", &DLManageCookieSecret, "Manage EDNS Cookie secrets", "<COMMAND>");
 
     if (!::arg()["tcp-control-address"].empty()) {
       auto* dlTCP = new DynListener(g_slog, ComboAddress(::arg()["tcp-control-address"], ::arg().asNum<uint16_t>("tcp-control-port")));
