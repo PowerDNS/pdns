@@ -358,7 +358,7 @@ LWResult::Result asendto(const void* data, size_t len,
     }
     // sendMsgWithOptions returns size_t while send(2) returns ssize_t. sendMsgWithOption also
     // fatals (with calling exit!) on some error conditions.  This all looks fragile, but there are
-    // existing callers, changing sendMsgWithOption() to return ssize_t to mkae it more sned(2) like
+    // existing callers, changing sendMsgWithOption() to return ssize_t to make it more send(2) like
     // needs to be done with extra care.
 
     auto sendRet = sendMsgWithOptions(*fileDesc, data, len, nullptr, &local, interface->d_index, 0);

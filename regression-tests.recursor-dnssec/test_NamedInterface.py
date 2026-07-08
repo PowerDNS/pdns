@@ -8,7 +8,7 @@ class NamedInterfaceTest(RecursorTest):
     """A simple use of a named interface.
 
     We do not test the case of the kernel derived interface != the named interface, as it requires a
-    funny network config. But at least the mechanism of naming an expliti interface is exercised.
+    funny network config. But at least the mechanism of naming an explicit interface is exercised.
     """
 
     _confdir = "NamedInterface"
@@ -38,11 +38,12 @@ outgoing:
         self.assertRRsetInAnswer(res, expected)
         self.assertMatchingRRSIGInAnswer(res, expected)
 
+
 class NamedInterfaceWithCookiesTest(RecursorTest):
     """A simple use of a named interface with cookies (and auth does not support them).
 
     As the source address (including interface) must be remembered and re-used with a specific
-    cookie, it makes sense to test a named intercace together with outgoing cookies.
+    cookie, it makes sense to test a named interface together with outgoing cookies.
     """
 
     _confdir = "NamedInterfaceWithCookies"
@@ -188,7 +189,7 @@ class NamedInterfaceWithCookiesAuthEnabledTest(NamedInterfaceWithCookiesTest):
     """A simple use of a named interface with cookies (auth does not support them).
 
     As the source address (including interface) must be remembered and re-used with a specific
-    cookie, it makes sense to test a named intercace together with outgoing cookies.
+    cookie, it makes sense to test a named interface together with outgoing cookies.
     """
 
     _confdir = "NamedInterfaceWithCookiesAuthEnabled"
@@ -219,4 +220,3 @@ class NamedInterfaceWithCookiesAuthEnabledTest(NamedInterfaceWithCookiesTest):
         # Be careful here, we don't want the overridden secureZone(), so call RecursorTest explicitly
         RecursorTest.generateAllAuthConfig(confdir)
         RecursorTest.startAllAuth(confdir)
-

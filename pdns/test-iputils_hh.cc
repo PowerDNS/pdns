@@ -968,7 +968,7 @@ BOOST_AUTO_TEST_CASE(test_unspecified)
   }
 }
 
-// Check the tricky case: two somewhat compatibe types
+// Check the tricky case: two somewhat compatible types
 BOOST_AUTO_TEST_CASE(test_expected)
 {
   pdns::expected<size_t, int> test(0);
