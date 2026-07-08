@@ -135,4 +135,4 @@ EXPOSE 8082/tcp
 
 USER pdns
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_recursor-startup"]
-HEALTHCHECK --interval=10s --timeout=5s --start-period=1s --start-interval=1s --retries=3 CMD ["rec_control", "ping"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=1s --start-interval=1s --retries=3 CMD ["rec_control", "pingsilent"]

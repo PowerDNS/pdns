@@ -2431,7 +2431,12 @@ static void handleRCC(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
       throw PDNSException("accept failed");
     }
     string msg = RecursorControlChannel::recv(clientfd).d_str;
-    log->info(Logr::Info, "Received rec_control command via control socket", "command", Logging::Loggable(msg));
+    if (msg == "pingsilent") {
+      msg = "ping";
+    }
+    else {
+      log->info(Logr::Info, "Received rec_control command via control socket", "command", Logging::Loggable(msg));
+    }
 
     RecursorControlParser::func_t* command = nullptr;
     auto answer = RecursorControlParser::getAnswer(clientfd, msg, &command);
