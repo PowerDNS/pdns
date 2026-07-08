@@ -572,7 +572,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   }
   boost::trim_if(rr.content, boost::is_any_of(" \r\n\t\x1a"));
 
-  if (d_upgradeContent && DNSRecordContent::isUnknownType(qtypeString)) {
+  if (DNSRecordContent::isUnknownType(qtypeString)) {
+    if (!d_upgradeContent) {
+      // If the record has been read as TYPE##, then rr.content should be of
+      // the form \# len hex bytes, and it doesn't make any sense to perform
+      // further changes to it.
+      return true;
+    }
     rr.content = DNSRecordContent::upgradeContent(rr.qname, rr.qtype, rr.content);
   }
 
@@ -672,7 +678,8 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
         rr.content+=recparts[n];
     }
     break;
-  default:;
+  default:
+    break;
   }
   return true;
 }
