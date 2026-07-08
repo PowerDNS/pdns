@@ -40,14 +40,27 @@ namespace YAML
 class Node;
 };
 
-struct GeoIPDomain;
-
 class GeoIPInterface;
 
 struct GeoIPNetmask
 {
   int netmask;
 };
+
+struct GeoIPService;
+struct GeoIPDNSResourceRecord;
+
+struct GeoIPDomain
+{
+  domainid_t id{};
+  ZoneName domain;
+  int ttl{};
+  map<DNSName, GeoIPService> services;
+  map<DNSName, vector<GeoIPDNSResourceRecord>> records;
+  vector<string> mapping_lookup_formats;
+  map<std::string, std::string> custom_mapping;
+};
+
 
 class GeoIPBackend : public DNSBackend
 {
@@ -56,7 +69,7 @@ public:
   ~GeoIPBackend() override;
 
   using filevec_t = std::vector<std::unique_ptr<GeoIPInterface>>;
-  using state_t = struct
+  using state_t = struct State
   {
     unsigned int instance_count{0};
     std::vector<GeoIPDomain> domains;

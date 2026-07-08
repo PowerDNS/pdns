@@ -56,17 +56,6 @@ struct GeoIPService
   unsigned int netmask6;
 };
 
-struct GeoIPDomain
-{
-  domainid_t id{};
-  ZoneName domain;
-  int ttl{};
-  map<DNSName, GeoIPService> services;
-  map<DNSName, vector<GeoIPDNSResourceRecord>> records;
-  vector<string> mapping_lookup_formats;
-  map<std::string, std::string> custom_mapping;
-};
-
 const static std::array<string, 7> GeoIP_WEEKDAYS = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"};
 const static std::array<string, 12> GeoIP_MONTHS = {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"};
 

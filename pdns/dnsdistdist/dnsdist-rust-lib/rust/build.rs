@@ -5,7 +5,7 @@ use std::env;
 fn main() {
     let mut bridge = cxx_build::bridge("src/lib.rs");
     let mut build = bridge
-            .std("c++17")
+            .std("gnu++20")
             .flag("-Isrc")
             .flag("-I.")
             .flag("-I..")
