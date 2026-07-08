@@ -2226,7 +2226,7 @@ static std::vector<DNSRecord>fillTempZoneFile(int& tmpfd, const char* tmpnam, Do
 static bool parseZoneFile(const char* tmpnam, int& errorline, std::vector<DNSRecord>& records)
 {
   records.clear();
-  ZoneParserTNG zpt(tmpnam, g_rootzonename);
+  ZoneParserTNG zpt(tmpnam, g_rootzonename, "", ::arg().mustDo("upgrade-unknown-types"));
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
   DNSResourceRecord zrr;
@@ -2675,7 +2675,7 @@ static int loadZone(const ZoneName& zone, const string& fname) {
     }
   }
   DNSBackend* db = di.backend;
-  ZoneParserTNG zpt(fname, zone);
+  ZoneParserTNG zpt(fname, zone, "", ::arg().mustDo("upgrade-unknown-types"));
   zpt.setDefaultTTL(::arg().asNum("default-ttl"));
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
 
