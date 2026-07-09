@@ -65,8 +65,8 @@ void nsspeeds_t::getPBEntry(T& message, U& entry)
   for (const auto& [address, collection] : entry.d_collection) {
     protozero::pbf_builder<PBNSSpeedMap> map(message, PBNSSpeedEntry::repeated_message_map);
     encodeComboAddress(map, PBNSSpeedMap::required_bytes_address, address);
-    map.add_float(PBNSSpeedMap::required_float_val, collection.d_val);
-    map.add_int32(PBNSSpeedMap::required_int32_last, collection.d_last);
+    map.add_float(PBNSSpeedMap::required_float_val, collection.d_decayed_value);
+    map.add_int32(PBNSSpeedMap::required_int32_last, collection.d_last_value);
   }
 }
 

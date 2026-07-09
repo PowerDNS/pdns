@@ -46,35 +46,35 @@ private:
   public:
     void submit(int arg, const struct timeval& last, const struct timeval& now)
     {
-      d_last = arg;
+      d_last_value = arg;
       auto val = static_cast<float>(arg);
-      if (d_val == 0) {
-        d_val = val;
+      if (d_decayed_value == 0) {
+        d_decayed_value = val;
       }
       else {
         auto diff = makeFloat(last - now);
         auto factor = expf(diff) / 2.0F; // might be '0.5', or 0.0001
-        d_val = (1.0F - factor) * val + factor * d_val;
+        d_decayed_value = (1.0F - factor) * val + factor * d_decayed_value;
       }
     }
 
     float get(float factor)
     {
-      return d_val *= factor;
+      return d_decayed_value *= factor;
     }
 
     [[nodiscard]] float peek() const
     {
-      return d_val;
+      return d_decayed_value;
     }
 
     [[nodiscard]] int last() const
     {
-      return d_last;
+      return d_last_value;
     }
 
-    float d_val{0};
-    int d_last{0};
+    float d_decayed_value{0};
+    int d_last_value{0};
   };
 
 public:
