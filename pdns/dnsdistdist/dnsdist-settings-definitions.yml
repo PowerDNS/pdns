@@ -1127,7 +1127,7 @@ incoming_quic:
       type: "String"
       default: ""
       description: "Write QUIC connection logs in QLOG format, as described in https://quicwg.org/qlog/draft-ietf-quic-qlog-main-schema.html"
-
+      version_added: "2.2.0"
 
 incoming_dnscrypt_certificate_key_pair:
   description: "Certificate and associated key for DNSCrypt frontends"
