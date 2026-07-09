@@ -30,7 +30,7 @@ template <class E>
 class unexpected
 {
 public:
-  unexpected(const E& arg) :
+  explicit unexpected(const E& arg) :
     err(arg) {}
   const E& error() const
   {
@@ -47,6 +47,8 @@ class expected : private std::variant<T, E>
 public:
   expected(const T& arg) :
     std::variant<T, E>(arg) {}
+  expected(T&& arg) :
+    std::variant<T, E>(std::forward<T>(arg)) {}
 
   expected(const unexpected<E>& arg) :
     std::variant<T, E>(arg.error()) {}

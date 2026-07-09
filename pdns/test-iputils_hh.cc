@@ -984,6 +984,12 @@ BOOST_AUTO_TEST_CASE(test_expected)
   test = pdns::unexpected(3);
   BOOST_ASSERT(!test.has_value());
   BOOST_CHECK_EQUAL(test.error(), 3);
+
+  std::string str("foo");
+  pdns::expected<std::string, int> test1(str);
+  BOOST_ASSERT(!str.empty());
+
+  pdns::expected<std::string, int> test2("bar");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
