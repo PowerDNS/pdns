@@ -32,7 +32,7 @@ class ResponseStats
 public:
   ResponseStats();
 
-  void submitResponse(DNSPacket& p, bool udpOrTCP, bool last = true) const;
+  void submitResponse(const DNSPacket& p, size_t length, bool udpOrTCP, bool last = true) const;
   void submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP) const;
   void submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rcode, bool udpOrTCP) const;
   map<uint16_t, uint64_t> getQTypeResponseCounts() const;

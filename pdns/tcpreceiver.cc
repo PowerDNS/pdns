@@ -184,7 +184,7 @@ void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool 
   buffer.append(p->getString());
   writenWithTimeout(outsock, buffer.c_str(), buffer.length(), d_idleTimeout);
 
-  g_rs.submitResponse(*p, false, last);
+  g_rs.submitResponse(*p, buffer.length() - 2, false, last);
 }
 
 

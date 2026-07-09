@@ -249,7 +249,7 @@ void UDPNameserver::send(DNSPacket& p)
          d_slog->error(Logr::Error, errno, "Error sending reply with sendmsg", "socket", Logging::Loggable(p.getSocket()), "remote", Logging::Loggable(p.d_remote.toStringWithPort())));
   }
 
-  g_rs.submitResponse(p, true);
+  g_rs.submitResponse(p, buffer.length(), true);
 }
 
 bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
