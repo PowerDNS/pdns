@@ -342,9 +342,7 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
 
 #ifdef HAVE_QUICHE_CONN_SET_QLOG_PATH
   if (config.df && !config.df->d_quicheParams.d_qLogDir.empty()) {
-    auto description = "peer_ip=" + peer.toString();
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): std::string's API
-    quiche_conn_set_qlog_path(quicheConn.get(), (config.df->d_quicheParams.d_qLogDir + "/" + std::string(reinterpret_cast<const char*>(originalDestinationID.data()), originalDestinationID.size()) + ".qlog").c_str(), "", description.c_str());
+    configureQLog(quicheConn, config.df->d_quicheParams.d_qLogDir, peer);
   }
 #endif
 
