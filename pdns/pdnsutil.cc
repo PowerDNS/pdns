@@ -3064,7 +3064,6 @@ static int listAllZones(const std::string_view synopsis, const string &type="") 
 
 static int listMemberZones(const string& catalog)
 {
-
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
   ZoneName catz(catalog);
@@ -3274,13 +3273,28 @@ static int setZoneOption(const ZoneName& zone, const string& type, const string&
 static int setZoneCatalog(const ZoneName& zone, const ZoneName& catalog)
 {
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
-  DomainInfo di;
+  DomainInfo info;
 
-  if (!B.getDomainInfo(zone, di)) {
+  if (!B.getDomainInfo(zone, info)) {
     cerr << "No such zone " << zone << " in the database" << endl;
     return EXIT_FAILURE;
   }
-  if (!di.backend->setCatalog(zone, catalog)) {
+  // Check that the catalog exists and is indeed a catalog zone.
+  // If the zone does not exist, assume the user knows what they are doing
+  // and only output a warning.
+  if (!catalog.empty()) {
+    DomainInfo info2;
+    if (B.getDomainInfo(catalog, info2)) {
+      if (!info2.isCatalogType()) {
+        cerr << "Zone '" << catalog << "' is not a catalog zone" << endl;
+        return EXIT_FAILURE;
+      }
+    }
+    else {
+      cout << "Warning: catalog zone '" << catalog << "' not found" << endl;
+    }
+  }
+  if (!info.backend->setCatalog(zone, catalog)) {
     cerr << "Could not find backend willing to accept new zone configuration" << endl;
     return EXIT_FAILURE;
   }
