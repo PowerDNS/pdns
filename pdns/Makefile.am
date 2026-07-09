@@ -1,4 +1,4 @@
-JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
+sJSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
 ARC4RANDOM_LIBS = $(top_builddir)/ext/arc4random/libarc4random.la
 
 AM_CPPFLAGS += \
@@ -237,6 +237,7 @@ pdns_server_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	expected.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	histogram.hh \
