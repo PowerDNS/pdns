@@ -1659,10 +1659,6 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
       }
 
       algorithm = dkrc.d_algorithm;
-      // TODO remove in 4.2.0
-      if (algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
-        algorithm = DNSSECKeeper::RSASHA1;
-      }
       dpk.setKey(dke, flags, algorithm);
     }
     catch (std::runtime_error& error) {
