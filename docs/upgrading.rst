@@ -16,6 +16,18 @@ NAPTR additional answers
 
 Since version 5.0, the information of the `a` and `s` NAPTR records are added to the additional answers section. This behaviour can be disabled by setting :ref:`setting-naptr-additional-processing` to `no`.
 
+Views support for the PostgreSQL backend
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:doc:`Views <views>` support, previously only available for the
+:doc:`LMDB <backends/lmdb>` backend, is now also available for the
+:doc:`PostgreSQL <backends/generic-postgresql>` backend. See
+:ref:`setting-gpgsql-views`. Existing installations that wish to use this
+feature need to apply the schema addition in
+``4.7.0_to_5.2.0_schema.pgsql.sql``, which adds the new ``networks`` and
+``views`` tables; installations which do not use views do not need to apply
+it. The MySQL and SQLite3 backends do not support Views yet.
+
 5.0.x to 5.1.x
 --------------
 

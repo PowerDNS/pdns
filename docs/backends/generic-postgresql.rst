@@ -12,7 +12,7 @@ Generic PostgreSQL backend
 * Disabled data: Yes
 * Comments: Yes
 * Search: Yes
-* Views: No
+* Views: Yes (set ``gpgsql-views``)
 * API: Read-Write
 * :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes
@@ -85,6 +85,14 @@ The password for :ref:`setting-gpgsql-user`. Default: not set.
 
 Enable DNSSEC processing for this backend. Default: no.
 
+.. _setting-gpgsql-views:
+
+``gpgsql-views``
+^^^^^^^^^^^^^^^^
+
+Enable :doc:`Views <../views>` processing for this backend. Requires the ``networks``
+and ``views`` tables from the default schema. Default: no.
+
 .. _setting-gpgsql-extra-connection-parameters:
 
 ``gpgsql-extra-connection-parameters``
@@ -111,7 +119,8 @@ Default: yes.
 Default schema
 --------------
 
-This is the 4.7 schema.
+This is the 4.7 schema, plus the ``networks`` and ``views`` tables used by
+:doc:`Views <../views>` support.
 
 .. literalinclude:: ../../modules/gpgsqlbackend/schema.pgsql.sql
    :language: SQL
