@@ -17,7 +17,7 @@ crate-type = ["staticlib"]
 [dependencies]
 cxx = "1.0.181" # issue #16101
 serde = { version = "1.0", features = ["derive"] }
-serde_yaml = { version = "0.9.34" }
+serde_yaml = { package = "yaml_serde", version = "0.10.4" }
 
 [build-dependencies]
 cxx-build = "1.0"
