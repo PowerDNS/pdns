@@ -16,10 +16,31 @@ module-dir=$PDNS_MODULE_PATH
 launch=gpgsql
 gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
+gpgsql-views=yes
 
 zone-cache-refresh-interval=120
 logging-structured
+edns-subnet-processing
+views=yes
 __EOF__
+
+		for variant in foo bar
+		do
+		  $PDNSUTIL --config-dir=. --config-name=gpgsql create-zone example.com..$variant
+		  $PDNSUTIL --config-dir=. --config-name=gpgsql add-record example.com..$variant example.com TXT '"hello from the '$variant' variant"'
+		  $PDNSUTIL --config-dir=. --config-name=gpgsql add-record example.com..$variant cname.example.com CNAME target.example.org
+		  $PDNSUTIL --config-dir=. --config-name=gpgsql add-record example.com..$variant cname-nxd.example.com CNAME nxd.example.org
+		done
+
+		$PDNSUTIL --config-dir=. --config-name=gpgsql view-add-zone view1 example.com..foo
+		$PDNSUTIL --config-dir=. --config-name=gpgsql view-add-zone view2 example.com..bar
+
+		$PDNSUTIL --config-dir=. --config-name=gpgsql create-zone example.org..foo
+		$PDNSUTIL --config-dir=. --config-name=gpgsql add-record example.org..foo target.example.org TXT '"hello from target..foo"'
+		$PDNSUTIL --config-dir=. --config-name=gpgsql view-add-zone view1 example.org..foo
+
+		$PDNSUTIL --config-dir=. --config-name=gpgsql set-network 192.0.2.0/24 view1
+		$PDNSUTIL --config-dir=. --config-name=gpgsql set-network 192.0.2.0/25 view2
 
 		gsql_master gpgsql nodyndns
 		;;
