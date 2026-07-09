@@ -70,7 +70,10 @@ public:
   }
   SSqlStatement* bind(const string& name, const ZoneName& value)
   {
-    return bind(name, value.operator const DNSName&());
+    if (!value.empty()) {
+      return bind(name, value.makeLowerCase().toStringRootDot());
+    }
+    return bind(name, string(""));
   }
   virtual SSqlStatement* bindNull(const string& name) = 0;
   virtual SSqlStatement* execute() = 0;
