@@ -390,7 +390,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
       int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, name.data(), name.length());
       int err = errno;
       if (res != 0) {
-        cerr << "SO_BINDTODEVICE " << res << stringerror(err) << endl;
+        VLOG(log, "SO_BINDTODEVICE error while connecting TCP: " << stringerror(err));
       }
     }
   }

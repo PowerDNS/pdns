@@ -344,9 +344,14 @@ LWResult::Result asendto(const void* data, size_t len,
   pident->id = qid;
 
   t_fdm->addReadFD(*fileDesc, handleUDPServerResponse, pident);
-  ssize_t sent{};
   if (!interface) {
-    sent = send(*fileDesc, data, len, 0);
+    auto sent = send(*fileDesc, data, len, 0);
+    if (sent < 0) {
+      int tmp = errno;
+      t_udpclientsocks->returnSocket(*fileDesc);
+      errno = tmp; // this is for logging purposes only
+      return LWResult::Result::PermanentError;
+    }
   }
   else {
     ComboAddress local;
@@ -356,24 +361,13 @@ LWResult::Result asendto(const void* data, size_t len,
     else {
       local.sin4.sin_family = toAddress.sin4.sin_family;
     }
-    // sendMsgWithOptions returns size_t while send(2) returns ssize_t. sendMsgWithOption also
-    // fatals (with calling exit!) on some error conditions.  This all looks fragile, but there are
-    // existing callers, changing sendMsgWithOption() to return ssize_t to make it more send(2) like
-    // needs to be done with extra care.
 
     auto sendRet = sendMsgWithOptions(*fileDesc, data, len, nullptr, &local, interface->d_index, 0);
-    if (sendRet.has_value()) {
-      sent = static_cast<ssize_t>(sendRet.value());
+    if (!sendRet.has_value()) {
+      t_udpclientsocks->returnSocket(*fileDesc);
+      errno = sendRet.error(); // this is for logging purposes only
+      return LWResult::Result::PermanentError;
     }
-    else {
-      sent = sendRet.error();
-    }
-  }
-  if (sent < 0) {
-    int tmp = errno;
-    t_udpclientsocks->returnSocket(*fileDesc);
-    errno = tmp; // this is for logging purposes only
-    return LWResult::Result::PermanentError;
   }
 
   return LWResult::Result::Success;
