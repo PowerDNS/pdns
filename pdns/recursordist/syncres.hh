@@ -78,10 +78,17 @@ using NsSet = std::unordered_map<DNSName, pair<vector<ComboAddress>, bool>>;
 
 extern std::unique_ptr<NegCache> g_negCache;
 
-class SyncRes : public boost::noncopyable
+class SyncRes
 {
 public:
-  enum LogMode
+  SyncRes();
+  ~SyncRes() = default;
+  SyncRes(const SyncRes&) = delete;
+  SyncRes(SyncRes&&) = delete;
+  SyncRes& operator=(const SyncRes&) = delete;
+  SyncRes& operator=(SyncRes&&) = delete;
+
+  enum LogMode : uint8_t
   {
     LogNone,
     Log,
@@ -173,7 +180,7 @@ public:
   static size_t getNSSpeedTable(size_t maxSize, std::string& ret);
   static size_t putIntoNSSpeedTable(const std::string& ret);
 
-  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t);
+  static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t, uint32_t& minttl);
   static void addDontQuery(const std::string& mask)
   {
     if (!s_dontQuery) {
@@ -364,6 +371,13 @@ public:
     return old;
   }
 
+  bool setForcedRefresh(bool doit)
+  {
+    auto old = d_forcedRefresh;
+    d_forcedRefresh = doit;
+    return old;
+  }
+
   bool setQNameMinimization(bool state = true)
   {
     auto old = d_qNameMinimization;
@@ -381,11 +395,6 @@ public:
   bool getQMFallbackMode() const
   {
     return d_qNameMinimizationFallbackMode;
-  }
-
-  void setDoEDNS0(bool state = true)
-  {
-    d_doEDNS0 = state;
   }
 
   void setDoDNSSEC(bool state = true)
@@ -598,18 +607,18 @@ public:
   std::shared_ptr<Logr::Logger> d_slog = g_slog->withName("syncres");
   std::optional<EDNSExtendedError> d_extendedError;
 
-  unsigned int d_authzonequeries;
-  unsigned int d_outqueries;
-  unsigned int d_tcpoutqueries;
-  unsigned int d_dotoutqueries;
-  unsigned int d_throttledqueries;
-  unsigned int d_timeouts;
-  unsigned int d_unreachables;
-  unsigned int d_bytesReceived;
-  unsigned int d_totUsec;
+  unsigned int d_authzonequeries{0};
+  unsigned int d_outqueries{0};
+  unsigned int d_tcpoutqueries{0};
+  unsigned int d_dotoutqueries{0};
+  unsigned int d_throttledqueries{0};
+  unsigned int d_timeouts{0};
+  unsigned int d_unreachables{0};
+  unsigned int d_bytesReceived{0};
+  unsigned int d_totUsec{0};
   unsigned int d_maxdepth{0};
   // Initialized only once, as opposed to d_now which gets updated after outgoing requests
-  struct timeval d_fixednow;
+  const struct timeval d_fixednow;
 
 private:
   ComboAddress d_requestor;
@@ -754,20 +763,20 @@ private:
   /* When d_cacheonly is set to true, we will only check the cache.
    * This is set when the RD bit is unset in the incoming query
    */
-  bool d_cacheonly;
+  bool d_cacheonly{false};
   bool d_doDNSSEC;
-  bool d_DNSSECValidationRequested{false};
-  bool d_doEDNS0{true};
+  bool d_DNSSECValidationRequested;
   bool d_requireAuthData{true};
   bool d_updatingRootNS{false};
   bool d_wantsRPZ{true};
   bool d_wasOutOfBand{false};
   bool d_wasVariable{false};
-  bool d_qNameMinimization{false};
+  bool d_qNameMinimization;
   bool d_qNameMinimizationFallbackMode{false};
   bool d_queryReceivedOverTCP{false};
   bool d_followCNAME{true};
   bool d_refresh{false};
+  bool d_forcedRefresh{false};
   bool d_serveStale{false};
 
   LogMode d_lm;
@@ -981,6 +990,7 @@ bool primeHints(time_t now = time(nullptr));
 
 using timebuf_t = std::array<char, 64>;
 const char* isoDateTimeMillis(const struct timeval& tval, timebuf_t& buf);
+bool haveFinalAnswer(const DNSName& qname, QType qtype, int res, const vector<DNSRecord>& ret);
 
 struct WipeCacheResult
 {

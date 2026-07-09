@@ -433,6 +433,7 @@ public:
 void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping, LuaConfigItems& newLuaConfig) // NOLINT(readability-function-cognitive-complexity)
 {
   LuaConfigItems lci;
+  lci.keepWarm = newLuaConfig.keepWarm;
   if (g_slog) {
     lci.d_slog = g_slog->withName("luaconfig");
   }

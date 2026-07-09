@@ -74,7 +74,17 @@ public:
   static constexpr Flags RequireAuth = 1 << 0;
   static constexpr Flags Refresh = 1 << 1;
   static constexpr Flags ServeStale = 1 << 2;
+  static constexpr Flags ForcedRefresh = 1 << 3;
 
+  static bool refresh(Flags flags)
+  {
+    return (flags & Refresh) != 0;
+  }
+
+  static bool forcedRefresh(Flags flags)
+  {
+    return (flags & Refresh) != 0;
+  }
   // The type used to pass auth record data to replace(); If the vector is non-empty, the cache will
   // store a shared pointer to the copied data. The shared pointer will be returned by get().  There
   // are optimizations: an empty vector will be stored as a nullptr, but get() will return a pointer
@@ -381,7 +391,7 @@ private:
     return d_maps.at(qname.hash() % d_maps.size());
   }
 
-  static time_t fakeTTD(OrderedTagIterator_t& entry, const DNSName& qname, QType qtype, time_t ret, time_t now, uint32_t origTTL, bool refresh);
+  static time_t fakeTTD(OrderedTagIterator_t& entry, const DNSName& qname, QType qtype, time_t ret, time_t now, uint32_t origTTL, Flags flags);
 
   static bool entryMatches(OrderedTagIterator_t& entry, QType qtype, bool requireAuth, const ComboAddress& who);
   static Entries getEntries(MapCombo::LockedContent& map, const DNSName& qname, QType qtype, const OptTag& rtag);

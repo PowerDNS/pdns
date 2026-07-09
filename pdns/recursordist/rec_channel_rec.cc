@@ -2121,6 +2121,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     // We might have a lua config file, but also process dynamic YAML parts if applicable, currently those are:
     // - the OT trace conditions
     // - the outgoing TLS config
+    // - keepWarm entries
     try {
       if (yamlstat == pdns::settings::rec::YamlSettingsStatus::OK) {
         // YAML read above succeeded
@@ -2128,6 +2129,9 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
         LuaConfigItems dummyLuaConfig; // we do not use the converted from YAML LuaConfigItems, but the "real thing"
         pdns::settings::rec::fromBridgeStructToLuaConfig(settings, dummyLuaConfig, dummyProxyMapping, conditions);
         TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
+        lci.keepWarm = dummyLuaConfig.keepWarm; // XXX
+        auto generation = g_luaconfs.getLocal()->generation;
+        lci.generation = generation + 1;
       }
       if (!::arg()["lua-config-file"].empty()) {
         loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci); // will bump generation

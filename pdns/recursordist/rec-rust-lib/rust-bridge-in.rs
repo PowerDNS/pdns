@@ -384,6 +384,15 @@ struct OpenTelemetryTraceCondition {
     traceid_only: bool,
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct QNameAndQType {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    qname: String,
+    #[serde(default = "crate::def_qnameandqtype_qtype", skip_serializing_if = "crate::def_value_equals_qnameqtype_qtype")]
+    qtype: String,
+}
+
 // Two structs used to generated YAML based on a vector of name to value mappings
 // Cannot use Enum as CXX has only very basic Enum support
 struct Value {
@@ -408,6 +417,7 @@ struct Value {
     vec_incomingwsconfig_val: Vec<IncomingWSConfig>,
     vec_outgoingtlsconfiguration_val: Vec<OutgoingTLSConfiguration>,
     vec_opentelemetrytracecondition_val: Vec<OpenTelemetryTraceCondition>,
+    vec_qnameandqtype_val: Vec<QNameAndQType>,
 }
 
 struct OldStyle {

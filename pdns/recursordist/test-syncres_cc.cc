@@ -240,7 +240,6 @@ void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec, bool debug, time_t fakeNo
   initSR(debug);
 
   sr = std::make_unique<SyncRes>(now);
-  sr->setDoEDNS0(true);
   if (dnssec) {
     sr->setDoDNSSEC(dnssec);
   }
