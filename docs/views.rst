@@ -16,12 +16,15 @@ GeoIP-like backend.
 Requirements
 ------------
 
-The `Views` features is currently only available in the :doc:`LMDB
-<backends/lmdb>` backend, and requires the zone cache to be enabled (by setting
-:ref:`setting-zone-cache-refresh-interval` to a non-zero value).
+The `Views` feature requires the zone cache to be enabled (by setting
+:ref:`setting-zone-cache-refresh-interval` to a non-zero value), and must
+also be explicitly enabled using :ref:`setting-views` in the configuration
+file.
 
-It must also be explicitly enabled using :ref:`setting-views` in the
-configuration file.
+It is available in the :doc:`LMDB <backends/lmdb>` backend, and in the
+generic SQL backends via a per-backend setting, e.g.
+:ref:`setting-gpgsql-views` for the :doc:`PostgreSQL backend
+<backends/generic-postgresql>`.
 
 Concepts
 --------
