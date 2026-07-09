@@ -94,6 +94,7 @@ public:
     declare(suffix, "ssl", "Send the SSL capability flag to the server", "no");
 
     declare(suffix, "dnssec", "Enable DNSSEC processing", "no");
+    declare(suffix, "views", "Enable views for this backend", "no");
 
     string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE";
 
