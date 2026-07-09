@@ -58,6 +58,18 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
     d_upgradeContent = false;
   }
 
+  d_views = mustDo("views");
+
+  if (d_views) {
+    d_ViewListQuery = getArg("view-list-query");
+    d_ViewListZonesQuery = getArg("view-list-zones-query");
+    d_ViewAddZoneQuery = getArg("view-add-zone-query");
+    d_ViewDelZoneQuery = getArg("view-del-zone-query");
+    d_NetworkSetQuery = getArg("network-set-query");
+    d_NetworkUnsetQuery = getArg("network-unset-query");
+    d_NetworkListQuery = getArg("network-list-query");
+  }
+
   d_NoIdQuery=getArg("basic-query");
   d_IdQuery=getArg("id-query");
   d_ANYNoIdQuery=getArg("any-query");
@@ -206,6 +218,13 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_DeleteCommentsQuery_stmt = nullptr;
   d_SearchRecordsQuery_stmt = nullptr;
   d_SearchCommentsQuery_stmt = nullptr;
+  d_ViewListQuery_stmt = nullptr;
+  d_ViewListZonesQuery_stmt = nullptr;
+  d_ViewAddZoneQuery_stmt = nullptr;
+  d_ViewDelZoneQuery_stmt = nullptr;
+  d_NetworkSetQuery_stmt = nullptr;
+  d_NetworkUnsetQuery_stmt = nullptr;
+  d_NetworkListQuery_stmt = nullptr;
 }
 
 void GSQLBackend::allocateStatements()
@@ -279,6 +298,16 @@ void GSQLBackend::allocateStatements()
     d_DeleteCommentsQuery_stmt = d_db->prepare(d_DeleteCommentsQuery, 1);
     d_SearchRecordsQuery_stmt = d_db->prepare(d_SearchRecordsQuery, 3);
     d_SearchCommentsQuery_stmt = d_db->prepare(d_SearchCommentsQuery, 3);
+
+    if (d_views) {
+      d_ViewListQuery_stmt = d_db->prepare(d_ViewListQuery, 0);
+      d_ViewListZonesQuery_stmt = d_db->prepare(d_ViewListZonesQuery, 1);
+      d_ViewAddZoneQuery_stmt = d_db->prepare(d_ViewAddZoneQuery, 3);
+      d_ViewDelZoneQuery_stmt = d_db->prepare(d_ViewDelZoneQuery, 2);
+      d_NetworkSetQuery_stmt = d_db->prepare(d_NetworkSetQuery, 2);
+      d_NetworkUnsetQuery_stmt = d_db->prepare(d_NetworkUnsetQuery, 1);
+      d_NetworkListQuery_stmt = d_db->prepare(d_NetworkListQuery, 0);
+    }
   }
 }
 
@@ -352,6 +381,13 @@ void GSQLBackend::freeStatements()
   d_DeleteCommentsQuery_stmt.reset();
   d_SearchRecordsQuery_stmt.reset();
   d_SearchCommentsQuery_stmt.reset();
+  d_ViewListQuery_stmt.reset();
+  d_ViewListZonesQuery_stmt.reset();
+  d_ViewAddZoneQuery_stmt.reset();
+  d_ViewDelZoneQuery_stmt.reset();
+  d_NetworkSetQuery_stmt.reset();
+  d_NetworkUnsetQuery_stmt.reset();
+  d_NetworkListQuery_stmt.reset();
 }
 
 void GSQLBackend::setNotified(domainid_t domain_id, uint32_t serial)
@@ -1081,7 +1117,216 @@ unsigned int GSQLBackend::getCapabilities()
   if (d_dnssecQueries) {
     caps |= CAP_DNSSEC;
   }
+  if (d_views) {
+    caps |= CAP_VIEWS;
+  }
   return caps;
+}
+
+bool GSQLBackend::getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaData)
+{
+  if (d_views && zoneId == UnknownDomainID) {
+    // With Views enabled, a base zone and its variants store their records
+    // under the same names, making a name-only SOA lookup ambiguous. Resolve
+    // the exact domain first; getDomainInfo matches the full zone name,
+    // variant included.
+    DomainInfo domaininfo;
+    if (!getDomainInfo(domain, domaininfo, false)) {
+      return false;
+    }
+    zoneId = domaininfo.id;
+  }
+  return DNSBackend::getSOA(domain, zoneId, soaData);
+}
+
+void GSQLBackend::viewList(vector<string>& result)
+{
+  result.clear();
+  if (!d_views) {
+    return;
+  }
+  try {
+    reconnectIfNeeded();
+
+    // clang-format off
+    d_ViewListQuery_stmt->
+      execute();
+    // clang-format on
+
+    SSqlStatement::row_t row;
+
+    while (d_ViewListQuery_stmt->hasNextRow()) {
+      d_ViewListQuery_stmt->nextRow(row);
+      ASSERT_ROW_COLUMNS("view-list-query", row, 1);
+      result.push_back(row[0]);
+    }
+
+    d_ViewListQuery_stmt->reset();
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to list views: " + e.txtReason());
+  }
+}
+
+void GSQLBackend::viewListZones(const string& view, vector<ZoneName>& result)
+{
+  result.clear();
+  if (!d_views) {
+    return;
+  }
+  try {
+    reconnectIfNeeded();
+
+    // clang-format off
+    d_ViewListZonesQuery_stmt->
+      bind("view", view)->
+      execute();
+    // clang-format on
+
+    SSqlStatement::row_t row;
+
+    while (d_ViewListZonesQuery_stmt->hasNextRow()) {
+      d_ViewListZonesQuery_stmt->nextRow(row);
+      ASSERT_ROW_COLUMNS("view-list-zones-query", row, 2);
+      try {
+        result.emplace_back(DNSName(row[0]), row[1]);
+      }
+      catch (const std::exception& e) {
+        SLOG(g_log << Logger::Warning << static_cast<const char*>(__PRETTY_FUNCTION__) << " zone name '" << row[0] << "' is not a valid DNS name: " << e.what() << endl,
+             d_slog->error(Logr::Warning, e.what(), "zone name is not a valid DNS name", "zone", Logging::Loggable(row[0])));
+        continue;
+      }
+      catch (const PDNSException& ae) {
+        SLOG(g_log << Logger::Warning << static_cast<const char*>(__PRETTY_FUNCTION__) << " zone name '" << row[0] << "' is not a valid DNS name: " << ae.reason << endl,
+             d_slog->error(Logr::Warning, ae.reason, "zone name is not a valid DNS name", "zone", Logging::Loggable(row[0])));
+        continue;
+      }
+    }
+
+    d_ViewListZonesQuery_stmt->reset();
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to list zones for view '" + view + "': " + e.txtReason());
+  }
+}
+
+bool GSQLBackend::viewAddZone(const string& view, const ZoneName& zone)
+{
+  if (!d_views) {
+    return false;
+  }
+  try {
+    reconnectIfNeeded();
+
+    // clang-format off
+    d_ViewAddZoneQuery_stmt->
+      bind("view", view)->
+      bind("zone", zone.operator const DNSName&())->
+      bind("variant", zone.getVariant())->
+      execute()->
+      reset();
+    // clang-format on
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to add zone '" + zone.toLogString() + "' to view '" + view + "': " + e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::viewDelZone(const string& view, const ZoneName& zone)
+{
+  if (!d_views) {
+    return false;
+  }
+  try {
+    reconnectIfNeeded();
+
+    // clang-format off
+    d_ViewDelZoneQuery_stmt->
+      bind("view", view)->
+      bind("zone", zone.operator const DNSName&())->
+      execute()->
+      reset();
+    // clang-format on
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to remove zone '" + zone.toLogString() + "' from view '" + view + "': " + e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::networkSet(const Netmask& net, std::string& tag)
+{
+  if (!d_views) {
+    return false;
+  }
+  try {
+    reconnectIfNeeded();
+
+    if (tag.empty()) {
+      // clang-format off
+      d_NetworkUnsetQuery_stmt->
+        bind("network", net.toString())->
+        execute()->
+        reset();
+      // clang-format on
+    }
+    else {
+      // clang-format off
+      d_NetworkSetQuery_stmt->
+        bind("network", net.toString())->
+        bind("view", tag)->
+        execute()->
+        reset();
+      // clang-format on
+    }
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to set network '" + net.toString() + "': " + e.txtReason());
+  }
+  return true;
+}
+
+bool GSQLBackend::networkList(vector<pair<Netmask, string>>& networks)
+{
+  networks.clear();
+  if (!d_views) {
+    return false;
+  }
+  try {
+    reconnectIfNeeded();
+
+    // clang-format off
+    d_NetworkListQuery_stmt->
+      execute();
+    // clang-format on
+
+    SSqlStatement::row_t row;
+
+    while (d_NetworkListQuery_stmt->hasNextRow()) {
+      d_NetworkListQuery_stmt->nextRow(row);
+      ASSERT_ROW_COLUMNS("network-list-query", row, 2);
+      try {
+        networks.emplace_back(Netmask(row[0]), row[1]);
+      }
+      catch (const std::exception& e) {
+        SLOG(g_log << Logger::Warning << static_cast<const char*>(__PRETTY_FUNCTION__) << " network '" << row[0] << "' is not a valid netmask: " << e.what() << endl,
+             d_slog->error(Logr::Warning, e.what(), "network is not a valid netmask", "network", Logging::Loggable(row[0])));
+        continue;
+      }
+      catch (const PDNSException& ae) {
+        SLOG(g_log << Logger::Warning << static_cast<const char*>(__PRETTY_FUNCTION__) << " network '" << row[0] << "' is not a valid netmask: " << ae.reason << endl,
+             d_slog->error(Logr::Warning, ae.reason, "network is not a valid netmask", "network", Logging::Loggable(row[0])));
+        continue;
+      }
+    }
+
+    d_NetworkListQuery_stmt->reset();
+  }
+  catch (SSqlException& e) {
+    throw PDNSException("GSQLBackend unable to list networks: " + e.txtReason());
+  }
+  return true;
 }
 
 // NOLINTNEXTLINE(readability-identifier-length)
