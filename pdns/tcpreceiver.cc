@@ -180,12 +180,11 @@ void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool 
 {
   uint16_t len=htons(p->getString(true).length());
 
-  // this also calls p->getString; call it after our explicit call so throwsOnTruncation=true is honoured
-  g_rs.submitResponse(*p, false, last);
-
   string buffer((const char*)&len, 2);
   buffer.append(p->getString());
   writenWithTimeout(outsock, buffer.c_str(), buffer.length(), d_idleTimeout);
+
+  g_rs.submitResponse(*p, false, last);
 }
 
 
