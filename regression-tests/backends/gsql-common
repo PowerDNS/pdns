@@ -56,21 +56,22 @@ gsql_master()
 
     if [ $context = ${backend}-nsec3 ]
     then
-        extracontexts="dnssec nsec3"
+        extracontexts="$backend dnssec nsec3"
         skipreasons="$skipreasons nsec3"
     elif [ $context = ${backend}-nsec3-optout ]
     then
-        extracontexts="dnssec nsec3 nsec3-optout"
+        extracontexts="$backend dnssec nsec3 nsec3-optout"
         skipreasons="$skipreasons optout"
     elif [ $context = ${backend}-nsec3-narrow ]
     then
-        extracontexts="dnssec narrow"
+        extracontexts="$backend dnssec narrow"
         skipreasons="$skipreasons narrow"
     elif [ $context = ${backend}-nodnssec ]
     then
+        extracontexts="$backend"
         skipreasons="$skipreasons nodnssec"
     else
-        extracontexts="dnssec"
+        extracontexts="$backend dnssec"
         skipreasons="$skipreasons nsec"
     fi
 }
