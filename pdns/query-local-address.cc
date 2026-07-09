@@ -25,6 +25,8 @@
 #include "query-local-address.hh"
 #include "iputils.hh"
 #include "dns_random.hh"
+#include "logging.hh"
+#include "logger.hh"
 
 namespace pdns
 {
@@ -92,7 +94,12 @@ namespace pdns
       }
       addr = parts.at(0);
       if (parts.size() >= 2) {
-        itf = Interface{ parts.at(1), if_nametoindex(parts.at(1).data())};
+        auto idx = if_nametoindex(parts.at(1).data());
+        if (idx == 0) {
+          SLOG(g_log << Logger::Error << "Interface name " << parts.at(1) << " is unknown" << endl,
+               g_slog->withName("runtime")->info(Logr::Error, "interface unknown", "name", Logging::Loggable(parts.at(1))));
+        }
+        itf = Interface{ parts.at(1), idx };
       }
 
       AddressAndInterface tmp{ComboAddress{addr}, itf};

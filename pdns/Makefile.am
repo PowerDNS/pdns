@@ -1,4 +1,4 @@
-sJSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
+JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
 ARC4RANDOM_LIBS = $(top_builddir)/ext/arc4random/libarc4random.la
 
 AM_CPPFLAGS += \
