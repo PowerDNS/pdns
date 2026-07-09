@@ -1031,6 +1031,7 @@ bool TCPNameserver::axfrRegularZone(XFRContext& ctx, vector<DNSZoneRecord> &zrrs
         if(!::arg().mustDo("direct-dnskey")) {
           continue;
         }
+	// Override TTL
         zrr.dr.d_ttl = ctx.soa.minimum;
       }
     }
@@ -1108,6 +1109,7 @@ bool TCPNameserver::axfrAlias(XFRContext& ctx, vector<DNSZoneRecord>& zrrs, DNSZ
   }
   for (auto& dzr: ips) {
     zrr.dr.d_type = dzr.dr.d_type;
+    zrr.dr.d_ttl = dzr.dr.d_ttl;
     zrr.dr.setContent(dzr.dr.getContent());
     zrrs.push_back(zrr);
   }
