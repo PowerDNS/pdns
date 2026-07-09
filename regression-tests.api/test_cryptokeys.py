@@ -346,3 +346,36 @@ class Cryptokeys(ApiTestCase):
         # check if key is activated
         out = pdnsutil("show-zone", self.zone_nodot)
         self.assertIn("Unpublished", out)
+
+    # Test adding a key from the exact json data obtained from a key query
+    def test_post_get_delete_post(self):
+        # 1. create a key
+        self.keyid = self.add_zone_key()
+        # 2. query it
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + self.zone + "/cryptokeys/" + self.keyid))
+        self.assertEqual(r.status_code, 200)
+        payload = r.json()
+        # 3. delete it
+        r = self.session.delete(self.url("/api/v1/servers/localhost/zones/" + self.zone + "/cryptokeys/" + self.keyid))
+        self.assertEqual(r.status_code, 204)
+        # 4. put it back
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones/" + self.zone + "/cryptokeys"),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
+        self.assert_success_json(r)
+        self.assertEqual(r.status_code, 201)
+        # 5. try to put it back, but with inconsistent parameters
+        if payload["bits"] == 1024:
+            payload["bits"] = 2048
+        else:
+            payload["bits"] = 1024
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/zones/" + self.zone + "/cryptokeys"),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
+        self.assert_error_json(r)
+        self.assertEqual(r.status_code, 422)
+        self.assertIn("inconsistent with the 'bits' field", r.json()["error"])
