@@ -101,6 +101,7 @@ public:
     declare(suffix, "prepared-statements", "Use prepared statements instead of parameterized queries", "yes");
 
     declare(suffix, "dnssec", "Enable DNSSEC processing", "no");
+    declare(suffix, "views", "Enable views for this backend", "no");
 
     string record_query = "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int FROM records WHERE";
 
@@ -184,6 +185,14 @@ public:
     declare(suffix, "delete-comments-query", "", "DELETE FROM comments WHERE domain_id=$1");
     declare(suffix, "search-records-query", "", record_query + " name ILIKE $1 OR content ILIKE $2 LIMIT $3");
     declare(suffix, "search-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE name ILIKE $1 OR comment ILIKE $2 LIMIT $3");
+
+    declare(suffix, "view-list-query", "", "SELECT DISTINCT view FROM views ORDER BY view");
+    declare(suffix, "view-list-zones-query", "", "SELECT zone, variant FROM views WHERE view=$1 ORDER BY zone");
+    declare(suffix, "view-add-zone-query", "", "INSERT INTO views (view, zone, variant) VALUES ($1, $2, $3) ON CONFLICT (view, zone) DO UPDATE SET variant = Excluded.variant");
+    declare(suffix, "view-del-zone-query", "", "DELETE FROM views WHERE view=$1 AND zone=$2");
+    declare(suffix, "network-set-query", "", "INSERT INTO networks (network, view) VALUES ($1, $2) ON CONFLICT (network) DO UPDATE SET view = Excluded.view");
+    declare(suffix, "network-unset-query", "", "DELETE FROM networks WHERE network=$1");
+    declare(suffix, "network-list-query", "", "SELECT network, view FROM networks ORDER BY network");
   }
 
   DNSBackend* make(const string& suffix = "") override
