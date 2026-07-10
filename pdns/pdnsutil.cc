@@ -1103,7 +1103,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       // The invalid part might be the record name itself, only output it if
       // non-empty.
       if (!drr.qname.empty()) {
-	cout << "'" << drr.qname << "' ";
+        cout << "'" << drr.qname << "' ";
       }
       cout << "record in backend storage: ";
       bool first = true;
@@ -5668,6 +5668,23 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
     cout<<"Processing '"<<di.zone<<"'"<<endl;
 
     copyZoneContents(di, di.zone, tgt.get());
+
+    // Copy zone options and catalog memberships, which are not handled by
+    // copyZoneContents() above. Note that getAllDomains above does not
+    // necessarily fill the options and catalog fields of the DomainInfo
+    // struct, so we need to query it again.
+    DomainInfo info;
+    if (src->getDomainInfo(di.zone, info, false)) {
+      if (!info.options.empty() && !tgt->setOptions(di.zone, info.options)) {
+        cout << "WARNING: could not copy zone options" << endl;
+      }
+      if (!info.catalog.empty() && !tgt->setCatalog(di.zone, info.catalog)) {
+        cout << "WARNING: could not copy zone catalog" << endl;
+      }
+    }
+    else {
+      cout << "WARNING: could not get zone options and catalog" << endl;
+    }
   }
 
   int ntk=0;
