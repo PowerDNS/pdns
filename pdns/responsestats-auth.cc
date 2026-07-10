@@ -7,8 +7,7 @@ extern StatBag S;
  *  Function that creates all the stats
  *  when udpOrTCP is true, it is udp
  */
-void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const {
-  const string& buf=p.getString();
+void ResponseStats::submitResponse(const DNSPacket &p, size_t length, bool udpOrTCP, bool last) const { // NOLINT(readability-identifier-length)
   static AtomicCounter &udpnumanswered=*S.getPointer("udp-answers");
   static AtomicCounter &udpnumanswered4=*S.getPointer("udp4-answers");
   static AtomicCounter &udpnumanswered6=*S.getPointer("udp6-answers");
@@ -38,20 +37,20 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const
 
   if (udpOrTCP) { // udp
     udpnumanswered++;
-    udpbytesanswered+=buf.length();
+    udpbytesanswered+=length;
     if(accountremote.sin4.sin_family==AF_INET) {
       udpnumanswered4++;
-      udpbytesanswered4+=buf.length();
+      udpbytesanswered4+=length;
     } else {
       udpnumanswered6++;
-      udpbytesanswered6+=buf.length();
+      udpbytesanswered6+=length;
     }
   } else { //tcp
-    tcpbytesanswered+=buf.length();
+    tcpbytesanswered+=length;
     if(accountremote.sin4.sin_family==AF_INET) {
-      tcpbytesanswered4+=buf.length();
+      tcpbytesanswered4+=length;
     } else {
-      tcpbytesanswered6+=buf.length();
+      tcpbytesanswered6+=length;
     }
     if(last) {
      tcpnumanswered++;
@@ -63,5 +62,5 @@ void ResponseStats::submitResponse(DNSPacket &p, bool udpOrTCP, bool last) const
     }
   }
 
-  submitResponse(p.qtype.getCode(), buf.length(), p.d.rcode, udpOrTCP);
+  submitResponse(p.qtype.getCode(), length, p.d.rcode, udpOrTCP);
 }

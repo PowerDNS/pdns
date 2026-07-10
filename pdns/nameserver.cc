@@ -226,7 +226,6 @@ UDPNameserver::UDPNameserver(Logr::log_t slog, bool additional_socket)
 void UDPNameserver::send(DNSPacket& p)
 {
   const string& buffer=p.getString();
-  g_rs.submitResponse(p, true);
 
   struct msghdr msgh;
   struct iovec iov;
@@ -249,6 +248,8 @@ void UDPNameserver::send(DNSPacket& p)
     SLOG(g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p.getSocket()<<", dest="<<p.d_remote.toStringWithPort()<<"): "<<stringerror(err)<<endl,
          d_slog->error(Logr::Error, errno, "Error sending reply with sendmsg", "socket", Logging::Loggable(p.getSocket()), "remote", Logging::Loggable(p.d_remote.toStringWithPort())));
   }
+
+  g_rs.submitResponse(p, buffer.length(), true);
 }
 
 bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
