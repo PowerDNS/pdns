@@ -1212,7 +1212,7 @@ struct SecondarySenderReceiver
     uint32_t theirExpire;
   };
 
-  map<uint32_t, Answer> d_freshness;
+  map<domainid_t, Answer> d_freshness;
 
   void deliverTimeout(const Identifier& /* i */)
   {
@@ -1221,10 +1221,11 @@ struct SecondarySenderReceiver
   Identifier send(DomainNotificationInfo& dni)
   {
     shuffle(dni.di.primaries.begin(), dni.di.primaries.end(), pdns::dns_random_engine());
+    ComboAddress remote = *dni.di.primaries.begin();
     try {
       return {dni.di.zone.operator const DNSName&(),
-              *dni.di.primaries.begin(),
-              d_resolver.sendResolve(*dni.di.primaries.begin(),
+              remote,
+              d_resolver.sendResolve(remote,
                                      dni.localaddr,
                                      dni.di.zone.operator const DNSName&(),
                                      QType::SOA,
@@ -1238,7 +1239,8 @@ struct SecondarySenderReceiver
 
   bool receive(Identifier& id, Answer& a) // NOLINT(readability-identifier-length)
   {
-    return d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)));
+    auto& [zonename, remote, requestid] = id;
+    return d_resolver.tryGetSOASerial(&zonename, &remote, &a.theirSerial, &a.theirInception, &a.theirExpire, &requestid);
   }
 
   void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */) // NOLINT(readability-identifier-length)
@@ -1508,7 +1510,8 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P) // NOLINT(readability
     catch (...) {
     }
 
-    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial;
+    const auto& answer = ssr.d_freshness[di.id];
+    uint32_t theirserial = answer.theirSerial;
     uint32_t ourserial = sd.serial;
     const ComboAddress remote = *di.primaries.begin();
 
@@ -1537,27 +1540,27 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P) // NOLINT(readability
         prio = SuckRequest::Notify;
       }
 
-      if (maxInception == 0 && ssr.d_freshness[di.id].theirInception == 0) {
+      if (maxInception == 0 && answer.theirInception == 0) {
         SLOG(g_log << Logger::Info << "Domain '" << di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl,
              d_slog->info(Logr::Info, "Domain is fresh (no DNSSEC)", "zone", Logging::Loggable(di.zone), "serial", Logging::Loggable(ourserial), "checked against", Logging::Loggable(remote.toStringWithPortExcept(53))));
         di.backend->setFresh(di.id);
       }
-      else if (maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
+      else if (maxInception == answer.theirInception && maxExpire == answer.theirExpire) {
         SLOG(g_log << Logger::Info << "Domain '" << di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl,
              d_slog->info(Logr::Info, "Domain is fresh and SOA RRSIGs match", "zone", Logging::Loggable(di.zone), "serial", Logging::Loggable(ourserial), "checked against", Logging::Loggable(remote.toStringWithPortExcept(53))));
         di.backend->setFresh(di.id);
       }
-      else if (maxExpire >= now && ssr.d_freshness[di.id].theirInception == 0) {
+      else if (maxExpire >= now && answer.theirInception == 0) {
         SLOG(g_log << Logger::Info << "Domain '" << di.zone << "' is fresh, primary " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl,
              d_slog->info(Logr::Info, "Domain is fresh, primary is no longer signed but (some) signatures are still valid", "zone", Logging::Loggable(di.zone), "serial", Logging::Loggable(ourserial), "checked against", Logging::Loggable(remote.toStringWithPortExcept(53))));
         di.backend->setFresh(di.id);
       }
-      else if (maxInception != 0 && ssr.d_freshness[di.id].theirInception == 0) {
+      else if (maxInception != 0 && answer.theirInception == 0) {
         SLOG(g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl,
              d_slog->info(Logr::Notice, "Domain is stale, primary is no longer signed and all signatures have expired", "zone", Logging::Loggable(di.zone), "serial", Logging::Loggable(ourserial), "checked against", Logging::Loggable(remote.toStringWithPortExcept(53))));
         addSuckRequest(di.zone, remote, prio);
       }
-      else if (dk.doesDNSSEC() && maxInception == 0 && ssr.d_freshness[di.id].theirInception != 0) {
+      else if (dk.doesDNSSEC() && maxInception == 0 && answer.theirInception != 0) {
         SLOG(g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl,
              d_slog->info(Logr::Notice, "Domain is stale, primary has signed", "zone", Logging::Loggable(di.zone), "serial", Logging::Loggable(ourserial), "checked against", Logging::Loggable(remote.toStringWithPortExcept(53))));
         addSuckRequest(di.zone, remote, prio);
