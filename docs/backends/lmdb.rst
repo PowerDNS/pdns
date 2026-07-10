@@ -197,6 +197,19 @@ on out-of-date data and may send unnecessary notifications, as well as
 perform unnecessary freshness checks. This however allows this feature to work
 without requiring a database schema upgrade.
 
+.. _settings-lmdb-page-size:
+
+``lmdb-page-size``
+^^^^^^^^^^^^^^^^^^
+
+  .. versionadded:: 5.2.0
+
+Size, in bytes, of the database page size. Must be a power of two, ranging from 256 to 65536, included. Defaults to 4096.
+
+On hardware where the MMU page size is larger than the commonly encountered value of 4096 bytes, setting this value to the hardware page size can yield a small performance improvement.
+
+This setting is only available with LMDB 1.0 and up, and will be silently ignored if the authoritative server is built against an older LMDB library.
+
 ``lmdb-lightning-stream``
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
