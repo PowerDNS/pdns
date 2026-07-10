@@ -5214,7 +5214,7 @@ void SyncRes::checkWildcardProof(const DNSName& qname, const QType& qtype, DNSRe
   }
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth) // // NOLINT(readability-function-cognitive-complexity)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, int& rcode, bool& negIndicHasSignatures, unsigned int depth) // // NOLINT(readability-function-cognitive-complexity)
 {
   bool done = false;
   DNSName dnameTarget;
@@ -5315,8 +5315,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         if (auto content = getRR<CNAMERecordContent>(rec)) {
           newtarget = DNSName(content->getTarget());
         }
-        if (needWildcardProof) {
-          checkWildcardProof(qname, QType::CNAME, rec, lwr, state, depth, prefix, wildcardLabelsCount);
+        if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end()) {
+          checkWildcardProof(qname, QType::CNAME, rec, lwr, state, depth, prefix, expandedIt->second);
         }
       }
       else if (rec.d_type == QType::DNAME && qname.isPartOf(rec.d_name)) { // DNAME
@@ -5336,8 +5336,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           }
           try {
             newtarget = qname.makeRelative(dnameOwner) + dnameTarget;
-            if (needWildcardProof) {
-              checkWildcardProof(qname, QType::DNAME, rec, lwr, state, depth, prefix, wildcardLabelsCount);
+            if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end()) {
+              checkWildcardProof(qname, QType::DNAME, rec, lwr, state, depth, prefix, expandedIt->second);
             }
           }
           catch (const std::exception& e) {
@@ -5362,8 +5362,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       done = true;
       rcode = RCode::NoError;
 
-      if (needWildcardProof) {
-        checkWildcardProof(qname, qtype, rec, lwr, state, depth, prefix, wildcardLabelsCount);
+      if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end()) {
+        checkWildcardProof(qname, qtype, rec, lwr, state, depth, prefix, expandedIt->second);
       }
 
       ret.push_back(rec);
@@ -5977,8 +5977,6 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   auto tcache = validateSignatures(prefix, lwr, qname, qtype, auth, wasForwarded && sendRDQuery, state, depth);
   // FIXME: TODO: checkDenialOfExistence
 
-  bool needWildcardProof = false;
-  unsigned int wildcardLabelsCount = 0;
   *rcode = updateCacheFromRecords(depth, prefix, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, remoteIP, overTCP, tcache);
   if (*rcode != RCode::NoError) {
     return true;
@@ -5993,7 +5991,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   DNSName newauth;
   DNSName newtarget;
 
-  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, wildcardLabelsCount, *rcode, negIndicHasSignatures, depth);
+  bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, *rcode, negIndicHasSignatures, depth);
 
   // If we both have a CNAME and an answer, let the CNAME take precedence. This *should* not happen
   // (because CNAMEs cannot co-exist with other records), but reality says otherwise. Other

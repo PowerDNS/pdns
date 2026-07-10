@@ -952,8 +952,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
-#if 0
-// FIXME!!
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_does_not_deny_next_closer)
 {
   std::unique_ptr<SyncRes> sr;
@@ -1064,7 +1062,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_does_not_deny_next_clo
   }
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
 {
@@ -1186,8 +1183,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
-#if 0
-// FIXME!!
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname)
 {
   /* this tests makes sure that we correctly detect that we need to gather
@@ -1302,6 +1297,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname)
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
+#if 0
+// FIXME!!
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname_missing_rrsig)
 {
   /* this tests makes sure that we correctly detect that we need to gather
@@ -2069,8 +2066,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
-#if 0
-// FIXME!!
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_proof_cname)
 {
   std::unique_ptr<SyncRes> resolver;
@@ -2174,10 +2169,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_proof_cname)
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
-#endif
 
-#if 0
-// FIXME!!
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
 {
   std::unique_ptr<SyncRes> sr;
@@ -2394,8 +2386,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
-#endif
 
+#if 0
+// FIXME!!
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself)
 {
   std::unique_ptr<SyncRes> sr;
@@ -2450,6 +2443,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself)
   /* A + RRSIG, NSEC + RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself_nodata)
 {
