@@ -88,7 +88,7 @@ using MDBRWTransaction = std::unique_ptr<MDBRWTransactionImpl>;
 class MDBEnv
 {
 public:
-  MDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB);
+  MDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB, int pagesize);
 
   ~MDBEnv()
   {
@@ -118,7 +118,7 @@ private:
   std::unordered_map<std::thread::id, std::atomic<int>> d_RWtransactionsOut;
 };
 
-std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB);
+std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB, int pagesize);
 
 #ifndef DNSDIST
 
