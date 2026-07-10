@@ -78,6 +78,7 @@ class TestDOQ(DOQCommon, QUICTests, DNSDistTest):
     addAction("refused.doq.tests.powerdns.com.", RCodeAction(DNSRCode.REFUSED))
     addAction("spoof.doq.tests.powerdns.com.", SpoofAction("1.2.3.4"))
     addAction("no-backend.doq.tests.powerdns.com.", PoolAction('this-pool-has-no-backend'))
+    addResponseAction("drop-response.doq.tests.powerdns.com.", DropResponseAction())
 
     addDOQLocal("127.0.0.1:%d", "%s", "%s")
     """
@@ -133,6 +134,13 @@ query_rules:
     action:
       type: "Pool"
       pool_name: "this-pool-has-no-backend"
+response_rules:
+  - name: "Drop"
+    selector:
+      type: "QName"
+      qname: "drop-response.doq.tests.powerdns.com."
+    action:
+      type: "Drop"
     """
     _yaml_config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 

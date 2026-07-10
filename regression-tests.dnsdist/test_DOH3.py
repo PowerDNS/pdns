@@ -44,6 +44,7 @@ class TestDOH3(DOH3Common, QUICTests, DNSDistTest):
     addAction("http-status-action.doh3.tests.powerdns.com.", HTTPStatusAction(200, "Plaintext answer", "text/plain"))
     addAction("http-status-action-redirect.doh3.tests.powerdns.com.", HTTPStatusAction(307, "https://doh.powerdns.org"))
     addAction("no-backend.doq.tests.powerdns.com.", PoolAction('this-pool-has-no-backend'))
+    addResponseAction("drop-response.doq.tests.powerdns.com.", DropResponseAction())
 
     function dohHandler(dq)
       if dq:getHTTPScheme() == 'https' and dq:getHTTPHost() == '%s:%d' and dq:getHTTPPath() == '/' and dq:getHTTPQueryString() == '' then
@@ -322,6 +323,13 @@ query_rules:
     action:
       type: "Pool"
       pool_name: "this-pool-has-no-backend"
+response_rules:
+  - name: "Drop"
+    selector:
+      type: "QName"
+      qname: "drop-response.doq.tests.powerdns.com."
+    action:
+      type: "Drop"
     """
     _yaml_config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 

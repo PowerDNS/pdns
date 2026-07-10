@@ -118,7 +118,8 @@ public:
 
       if (!processResponse(dnsResponse.ids.doqu->response, dnsResponse, false)) {
         if (dnsResponse.ids.doqu) {
-
+          /* this will signal an error */
+          dnsResponse.ids.doqu->response.clear();
           sendBackDOQUnit(std::move(dnsResponse.ids.doqu), "Response dropped by rules");
         }
         return;
