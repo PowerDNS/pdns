@@ -314,8 +314,9 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return true;
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>&, std::optional<uint16_t>)>("spoof", [](DNSQuestion& dnsQuestion, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response, std::optional<uint16_t> typeForAny) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>&, std::optional<uint16_t>, std::optional<uint32_t>)>("spoof", [](DNSQuestion& dnsQuestion, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response, std::optional<uint16_t> typeForAny, std::optional<uint32_t> ttl) {
     dnsdist::ResponseConfig responseConfig;
+    responseConfig.ttl = ttl.value_or(60);
     if (response.type() == typeid(LuaArray<ComboAddress>)) {
       std::vector<ComboAddress> data;
       auto responses = boost::get<LuaArray<ComboAddress>>(response);

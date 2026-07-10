@@ -399,9 +399,38 @@ class SpoofingTests(object):
             self.checkMessageNoEDNS(expectedResponse, receivedResponse)
             self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
+    def testSpoofLuaTtl(self):
+        """
+        Spoofing: With a TTL
+        """
+        name = "lua-ttl.spoofing.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags &= ~dns.flags.AA
+        rrset = dns.rrset.from_text(name, 300, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 300)
+
 
 class TestSpoofingViaLuaConfig(DNSDistTest, SpoofingTests):
     _config_template = """
+    function spoofWithTTL(dq)
+        if(dq.qtype==DNSQType.A)
+        then
+          dq:spoof({ newCA("192.0.2.1") }, nil, 300)
+          return DNSAction.HeaderModify
+        else
+          return DNSAction.None
+        end
+    end
+
     addAction(SuffixMatchNodeRule("spoofaction.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}))
     addAction(SuffixMatchNodeRule("spoofaction-aa.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {aa=true}))
     addAction(SuffixMatchNodeRule("spoofaction-ad.spoofing.tests.powerdns.com."), SpoofAction({"192.0.2.1", "2001:DB8::1"}, {ad=true}))
@@ -418,6 +447,7 @@ class TestSpoofingViaLuaConfig(DNSDistTest, SpoofingTests):
     addAction(AndRule{SuffixMatchNodeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction({"\\192\\000\\002\\001", "\\192\\000\\002\\002"}))
     -- rfc8482
     addAction(AndRule{SuffixMatchNodeRule("raw-any.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.ANY)}, SpoofRawAction("\\007rfc\\056\\052\\056\\050\\000", { typeForAny=DNSQType.HINFO }))
+    addAction(SuffixMatchNodeRule("lua-ttl.spoofing.tests.powerdns.com."), LuaAction(spoofWithTTL))
     newServer{address="127.0.0.1:%d"}
     """
 
@@ -626,6 +656,22 @@ query_rules:
         - '\\007rfc\\056\\052\\056\\050\\000'
       vars:
         ttl: 60
+  - selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "lua-ttl.spoofing.tests.powerdns.com."
+    action:
+      type: "Lua"
+      function_code: |
+        return function(dq)
+            if(dq.qtype==DNSQType.A)
+            then
+              dq:spoof({ newCA("192.0.2.1") }, nil, 300)
+              return DNSAction.HeaderModify
+            else
+              return DNSAction.None
+            end
+        end
     """
     _yaml_config_params = ["_testServerPort"]
     _config_params = []
