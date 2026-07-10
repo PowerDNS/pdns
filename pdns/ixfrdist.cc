@@ -809,12 +809,13 @@ static bool sendPacketOverTCP(int fd, const std::vector<uint8_t>& packet)
   return true;
 }
 
-static bool addRecordToWriter(DNSPacketWriter& pw, const DNSName& zoneName, const DNSRecord& record, bool compress)
+static bool addRecordToWriter(DNSPacketWriter& pwr, const DNSName& zoneName, const DNSRecord& record, bool compress, bool ignoreLimit=false)
 {
-  pw.startRecord(record.d_name + zoneName, record.d_type, record.d_ttl, QClass::IN, DNSResourceRecord::ANSWER, compress);
-  record.getContent()->toPacket(pw);
-  if (pw.size() > 16384) {
-    pw.rollback();
+  pwr.startRecord(record.d_name + zoneName, record.d_type, record.d_ttl, QClass::IN, DNSResourceRecord::ANSWER, compress);
+  record.getContent()->toPacket(pwr);
+  uint32_t maxsize = ignoreLimit ? 65535 : 16384;
+  if (pwr.size() > maxsize) {
+    pwr.rollback();
     return false;
   }
   return true;
@@ -824,6 +825,7 @@ template <typename T> static bool sendRecordsOverTCP(int fd, const MOADNSParser&
 {
   vector<uint8_t> packet;
 
+  bool wasRolledBack = false;
   for (auto it = records.cbegin(); it != records.cend();) {
     bool recordsAdded = false;
     packet.clear();
@@ -838,14 +840,21 @@ template <typename T> static bool sendRecordsOverTCP(int fd, const MOADNSParser&
         continue;
       }
 
-      if (addRecordToWriter(pw, mdp.d_qname, *it, g_compress)) {
+      if (addRecordToWriter(pw, mdp.d_qname, *it, g_compress, wasRolledBack && !recordsAdded)) {
         recordsAdded = true;
+        wasRolledBack = false;
         it++;
       }
       else {
+        if (wasRolledBack) {
+          // We did a rollback in the previous loop, and the large single record won't
+          // fit in the new packet by itself. Should be impossible, but here we are.
+          return false;
+        }
         if (recordsAdded) {
           pw.commit();
           sendPacketOverTCP(fd, packet);
+          wasRolledBack = true;
         }
         if (it == records.cbegin()) {
           /* something is wrong */
