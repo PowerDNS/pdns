@@ -352,6 +352,20 @@ std::string getSNIFromQuicheConnection([[maybe_unused]] const QuicheConnection& 
   return {};
 }
 
+void configureQLog(const QuicheConnection& conn, const std::string& qLogDir, const ComboAddress& peer)
+{
+  const unsigned char* trace_id = nullptr;
+  size_t trace_id_len = 0;
+  quiche_conn_trace_id(conn.get(), &trace_id, &trace_id_len);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): std::string's API
+  auto path = (qLogDir + "/" + std::string(reinterpret_cast<const char*>(trace_id), trace_id_len)) + ".qlog";
+  auto description = "peer_ip=" + peer.toString();
+  if (!quiche_conn_set_qlog_path(conn.get(), path.c_str(), "", description.c_str())) {
+    VERBOSESLOG(infolog("QLOG creation failed for connection from $s", peer.toStringWithPort()),
+                dnsdist::logging::getTopLogger("quic-qlog")->info(Logr::Info, "QLOG creation failed", "client.address", Logging::Loggable(peer)));
+  }
+}
+
 QUICConnection::QUICConnection(ClientState& frontend, const ComboAddress& peer, const ComboAddress& localAddr, QuicheConfig config, QuicheConnection&& conn) :
   d_frontend(frontend), d_peer(peer), d_localAddr(localAddr), d_conn(std::move(conn)), d_config(std::move(config))
 {

@@ -19,6 +19,7 @@ if (opt_quic.allowed() or opt_doh3.allowed()) and opt_libquiche.allowed()
   if dep_libquiche.found()
     funcs = [
       'quiche_conn_server_name',
+      'quiche_conn_set_qlog_path'
     ]
 
     foreach func: funcs

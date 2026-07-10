@@ -449,6 +449,12 @@ static std::optional<std::reference_wrapper<H3Connection>> createConnection(DOH3
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
+#ifdef HAVE_QUICHE_CONN_SET_QLOG_PATH
+  if (config.df && !config.df->d_quicheParams.d_qLogDir.empty()) {
+    configureQLog(quicheConn, config.df->d_quicheParams.d_qLogDir, peer);
+  }
+#endif
+
   auto conn = H3Connection(peer, localAddr, std::move(quicheConfig), std::move(quicheConn), *config.clientState);
   gettimeofday(&conn.d_connectionStartTime, nullptr);
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));

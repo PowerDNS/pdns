@@ -48,6 +48,7 @@ struct QuicheParams
 {
   TLSConfig d_tlsConfig;
   std::string d_keyLogFile;
+  std::string d_qLogDir;
   uint64_t d_idleTimeout{5};
   uint64_t d_maxInFlight{65535};
   std::string d_ccAlgo{"cubic"};
@@ -118,6 +119,7 @@ void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer,
 void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHTTP);
 bool recvAsync(Socket& socket, PacketBuffer& buffer, ComboAddress& clientAddr, ComboAddress& localAddr);
 std::string getSNIFromQuicheConnection(const QuicheConnection& conn);
+void configureQLog(const QuicheConnection& conn, const std::string& qLogDir, const ComboAddress& peer);
 };
 
 #endif

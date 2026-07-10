@@ -176,6 +176,7 @@ Listen Sockets
 
   .. versionchanged:: 2.2.0
      ``padResponses`` option added.
+     ``qLogDir`` option added.
 
   Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available in :doc:`../guides/dns-over-http3`.
@@ -197,6 +198,7 @@ Listen Sockets
   * ``congestionControlAlgo="cubic"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
+  * ``qLogDir``: str - Path to directory to store QLOG (QUIC logs) files in. By default QLOG is disabled.
 
 .. function:: addDOQLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -207,6 +209,7 @@ Listen Sockets
 
   .. versionchanged:: 2.2.0
      ``padResponses`` option added.
+     ``qLogDir`` option added.
 
   Listen on the specified address and UDP port for incoming DNS over QUIC connections, presenting the specified X.509 certificate.
   See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
@@ -229,6 +232,7 @@ Listen Sockets
   * ``congestionControlAlgo="cubic"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
+  * ``qLogDir``: str - Path to directory to store QLOG (QUIC logs) files in. By default QLOG is disabled.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
