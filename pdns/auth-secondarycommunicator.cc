@@ -1221,7 +1221,7 @@ struct SecondarySenderReceiver
   Identifier send(DomainNotificationInfo& dni)
   {
     shuffle(dni.di.primaries.begin(), dni.di.primaries.end(), pdns::dns_random_engine());
-    ComboAddress remote = *dni.di.primaries.begin();
+    const ComboAddress& remote = *dni.di.primaries.begin();
     try {
       return {dni.di.zone.operator const DNSName&(),
               remote,
@@ -1470,15 +1470,16 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P) // NOLINT(readability
       di.backend = tempdi.backend;
     }
 
+    const ComboAddress remote = *di.primaries.begin();
     if (ssr.d_freshness.count(di.id) == 0) { // If we don't have an answer for the domain
       auto [newCount, nextCheck] = markAsFailed(di.zone);
       if (newCount == 1) {
-        SLOG(g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl,
-             d_slog->info(Logr::Warning, "Unable to retrieve SOA for the first time", "zone", Logging::Loggable(di.zone), "SOA checks skipped until", Logging::Loggable(humanTime(nextCheck))));
+        SLOG(g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << " from " << remote.toStringWithPortExcept(53) << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl,
+             d_slog->info(Logr::Warning, "Unable to retrieve SOA for the first time", "zone", Logging::Loggable(di.zone), "remote", Logging::Loggable(remote.toStringWithPortExcept(53)), "SOA checks skipped until", Logging::Loggable(humanTime(nextCheck))));
       }
       else if (newCount % 10 == 0) {
-        SLOG(g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << humanTime(nextCheck) << endl,
-             d_slog->info(Logr::Warning, "Unable to retrieve SOA", "zone", Logging::Loggable(di.zone), "attempt number", Logging::Loggable(newCount), "SOA checks skipped until", Logging::Loggable(humanTime(nextCheck))));
+        SLOG(g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << " from " << remote.toStringWithPortExcept(53) << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << humanTime(nextCheck) << endl,
+             d_slog->info(Logr::Warning, "Unable to retrieve SOA", "zone", Logging::Loggable(di.zone), "remote", Logging::Loggable(remote.toStringWithPortExcept(53)), "attempt number", Logging::Loggable(newCount), "SOA checks skipped until", Logging::Loggable(humanTime(nextCheck))));
       }
       // Make sure we recheck SOA for notifies
       if (di.receivedNotify) {
@@ -1513,7 +1514,6 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P) // NOLINT(readability
     const auto& answer = ssr.d_freshness[di.id];
     uint32_t theirserial = answer.theirSerial;
     uint32_t ourserial = sd.serial;
-    const ComboAddress remote = *di.primaries.begin();
 
     if (hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial")) {
       SLOG(g_log << Logger::Warning << "Domain '" << di.zone << "' more recent than primary " << remote.toStringWithPortExcept(53) << ", our serial " << ourserial << " > their serial " << theirserial << endl,
