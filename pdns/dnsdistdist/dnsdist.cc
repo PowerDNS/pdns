@@ -1550,6 +1550,7 @@ static void maintThread()
   size_t counter = 0;
   size_t otCounter = 0;
   int32_t secondsToWaitLog = 0;
+  auto sLogger = dnsdist::logging::getTopLogger("maintenance");
 
   for (;;) {
     std::this_thread::sleep_for(std::chrono::seconds(interval));
@@ -1563,7 +1564,7 @@ static void maintThread()
     auto maint_closer = pdns::trace::dnsdist::getCloserForInternalSpan(tracer, "maintenanceThread");
     auto lua = g_lua.lock();
 
-    pdns::trace::dnsdist::runWithLuaTracing(*lua, tracer, [&lua, &tracer, &secondsToWaitLog]() {
+    pdns::trace::dnsdist::runWithLuaTracing(*lua, tracer, [&lua, &tracer, &secondsToWaitLog, &sLogger]() {
       try {
         auto maintenanceCallback = lua->readVariable<std::optional<std::function<void()>>>("maintenance");
         if (maintenanceCallback) {
@@ -1584,8 +1585,14 @@ static void maintThread()
       }
       catch (const std::exception& e) {
         if (secondsToWaitLog <= 0) {
+          auto logger = sLogger;
+#ifndef DISABLE_PROTOBUF
+          if (tracer != nullptr) {
+            logger = logger->withValues("traceID", Logging::Loggable{tracer->getTraceID().toLogString()});
+          }
+#endif
           SLOG(warnlog("Error during execution of maintenance function(s): %s", e.what()),
-               dnsdist::logging::getTopLogger("maintenance")->error(Logr::Warning, e.what(), "Error during execution of maintenance function(s)"));
+               logger->error(Logr::Warning, e.what(), "Error during execution of maintenance function(s)"));
           secondsToWaitLog = 61;
         }
         secondsToWaitLog -= interval;
