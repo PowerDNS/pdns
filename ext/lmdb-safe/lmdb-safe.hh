@@ -105,7 +105,7 @@ public:
   {
     return d_env;
   }
-  MDB_env* d_env;
+  MDB_env* d_env{nullptr};
 
   int getRWTX();
   void incRWTX();
