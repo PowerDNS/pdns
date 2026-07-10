@@ -85,6 +85,7 @@ dnsdist_build_deps = [
     "libcap-dev",
     "catch2",
     "libcdb-dev",
+    "libcurl4",
     "libedit-dev",
     "libfstrm-dev",
     "libgnutls28-dev",
@@ -999,6 +1000,7 @@ DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL = " ".join(
         "-D ebpf=enabled",
         "-D ipcipher=enabled",
         "-D ipcrypt2=enabled",
+        "-D libcurl=enabled",
         "-D libedit=enabled",
         "-D libsodium=enabled",
         "-D lmdb=enabled",
@@ -1014,6 +1016,7 @@ DNSDIST_CONFIGURE_MESON_FEATURE_SET_FULL = " ".join(
         "-D reproducible=true",
         "-D snmp=enabled",
         "-D yaml=enabled",
+        "-D otlp=enabled",
     ]
 )
 
@@ -1025,6 +1028,7 @@ DNSDIST_CONFIGURE_MESON_FEATURE_SET_LEAST = " ".join(
         "-D ebpf=disabled",
         "-D ipcipher=disabled",
         "-D ipcrypt2=disabled",
+        "-D libcurl=disabled",
         "-D libedit=disabled",
         "-D libsodium=disabled",
         "-D lmdb=disabled",
@@ -1039,6 +1043,7 @@ DNSDIST_CONFIGURE_MESON_FEATURE_SET_LEAST = " ".join(
         "-D reproducible=false",
         "-D snmp=disabled",
         "-D yaml=disabled",
+        "-D otlp=disabled",
     ]
 )
 

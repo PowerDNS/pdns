@@ -29,6 +29,7 @@
 #include "dnsdist-configuration.hh"
 #include "dnsdist-lua.hh"
 #include "dolog.hh"
+#include "otlp_logger.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 
 namespace dnsdist::lua
@@ -197,9 +198,9 @@ static void setupOpenTelemetryConfigurationItems(LuaContext& luaCtx)
         if (remote_logger.second != nullptr) {
           // avoids potentially-evaluated-expression warning with clang.
           RemoteLoggerInterface& remoteLoggerRef = *remote_logger.second;
-          if (typeid(remoteLoggerRef) != typeid(RemoteLogger)) {
+          if (typeid(remoteLoggerRef) != typeid(RemoteLogger) && typeid(remoteLoggerRef) != typeid(OTLPLogger)) {
             // We could let the user do what he wants, but wrapping PowerDNS Protobuf inside a FrameStream tagged as dnstap is logically wrong.
-            throw std::runtime_error(std::string("setOpenTelemetryInternalTrace only takes RemoteLogger."));
+            throw std::runtime_error(std::string("setOpenTelemetryInternalTrace only takes RemoteLogger and OTLPLogger."));
           }
           loggers.push_back(remote_logger.second);
         }

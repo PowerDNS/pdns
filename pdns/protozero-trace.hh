@@ -187,6 +187,7 @@ struct EntityRef
 
   void encode(protozero::pbf_writer& writer) const;
   static EntityRef decode(protozero::pbf_reader& reader);
+  bool operator==(const EntityRef& rhs) const;
 };
 
 struct KeyValue
@@ -207,6 +208,7 @@ struct Resource
 
   void encode(protozero::pbf_writer& writer) const;
   static Resource decode(protozero::pbf_reader& reader);
+  bool operator==(const Resource& rhs) const;
 };
 
 struct InstrumentationScope
@@ -218,6 +220,7 @@ struct InstrumentationScope
 
   void encode(protozero::pbf_writer& writer) const;
   static InstrumentationScope decode(protozero::pbf_reader& reader);
+  bool operator==(const InstrumentationScope& rhs) const;
 };
 
 struct TraceID : public std::array<uint8_t, 16>
@@ -374,6 +377,7 @@ struct Status
   }
   void encode(protozero::pbf_writer& writer) const;
   static Status decode(protozero::pbf_reader& reader);
+  bool operator==(const Status& rhs) const;
 };
 
 inline uint64_t timestamp()
@@ -527,6 +531,7 @@ struct Span
 
     void encode(protozero::pbf_writer& writer) const;
     static Event decode(protozero::pbf_reader& reader);
+    bool operator==(const Span::Event& rhs) const;
   };
   // events is a collection of Event items.
   std::vector<Event> events{}; // = 11
@@ -575,6 +580,7 @@ struct Span
 
     void encode(protozero::pbf_writer& writer) const;
     static Link decode(protozero::pbf_reader& reader);
+    bool operator==(const Span::Link& rhs) const;
   };
   std::vector<Link> links{}; // = 13
   uint32_t dropped_links_count{0}; // = 14
@@ -629,6 +635,7 @@ struct Span
   }
   void encode(protozero::pbf_writer& writer) const;
   static Span decode(protozero::pbf_reader& reader);
+  bool operator==(const Span& rhs) const;
 };
 
 // SpanFlags represents constants used to interpret the
@@ -684,6 +691,7 @@ struct ScopeSpans
   }
   void encode(protozero::pbf_writer& writer) const;
   static ScopeSpans decode(protozero::pbf_reader& reader);
+  bool operator==(const ScopeSpans& rhs) const;
 };
 
 // A collection of ScopeSpans from a Resource.
@@ -710,6 +718,7 @@ struct ResourceSpans
   }
   void encode(protozero::pbf_writer& writer) const;
   static ResourceSpans decode(protozero::pbf_reader& reader);
+  bool operator==(const ResourceSpans& rhs) const;
 };
 
 // TracesData represents the traces data that can be stored in a persistent storage,

@@ -28,6 +28,7 @@
 #include "dnsdist-protobuf.hh"
 #include "dnstap.hh"
 #include "fstrm_logger.hh"
+#include "otlp_logger.hh"
 #include "ipcipher.hh"
 #include "remote_logger.hh"
 #include "remote_logger_pool.hh"
@@ -194,6 +195,26 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 #else
     throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
 #endif /* HAVE_FSTRM */
+  });
+
+  luaCtx.writeFunction("newOtlpLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] std::optional<LuaAssociativeTable<unsigned int>> params) {
+#if !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL)
+    if (client || configCheck) {
+      return std::shared_ptr<RemoteLoggerInterface>(nullptr);
+    }
+    size_t interval{5};
+    size_t batchSize{100};
+    size_t queueSize{500};
+
+    getOptionalValue<size_t>(params, "interval", interval);
+    getOptionalValue<size_t>(params, "batchSize", batchSize);
+    getOptionalValue<size_t>(params, "queueSize", queueSize);
+    checkAllParametersConsumed("newOtlpLogger", params);
+
+    return std::shared_ptr<RemoteLoggerInterface>(new OTLPLogger(address, interval, queueSize, batchSize));
+#else
+    throw std::runtime_error("Protobuf and CURL are required for OTLP remote loggers");
+#endif /* !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL) */
   });
 
   luaCtx.registerFunction<std::string (std::shared_ptr<RemoteLoggerInterface>::*)() const>("toString", [](const std::shared_ptr<RemoteLoggerInterface>& logger) {

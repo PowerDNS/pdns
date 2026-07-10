@@ -203,6 +203,10 @@ remote_logging:
       type: "Vec<DnstapLoggerConfiguration>"
       default: true
       description: "List of endpoints to send queries and/or responses data to, using the dnstap format"
+    - name: "otlp_loggers"
+      type: "Vec<OtlpLoggerConfiguration>"
+      default: true
+      description: "List of endpoints to send OpenTelemetry Traces to, using OTLP"
 
 protobuf_logger:
   description: "Endpoint to send queries and/or responses data to, using the native PowerDNS format"
@@ -278,6 +282,28 @@ dnstap_logger:
       type: "u64"
       default: 1
       description: "Number of connections to open to the endpoint"
+
+otlp_logger:
+  description: "List of endpoints to send OpenTelemetry Traces to, using OTLP."
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "Name of this endpoint"
+    - name: "address"
+      type: "String"
+      description: "The URL of the endpoint. Must contain the scheme (http, https) and the path (like /v1/traces)"
+    - name: "interval"
+      type: "u32"
+      description: "Interval in seconds to wait before sending the next batch of OTLP messages"
+      default: 5
+    - name: "queue_size"
+      type: "u32"
+      description: "Maximum number of traces in the backlog"
+      default: 500
+    - name: "batch_size"
+      type: "u32"
+      description: "Maximum number of traces to send to the endpoint"
+      default: 100
 
 proto_buf_meta:
   description: "Meta-data entry to be added to a Protocol Buffer message"

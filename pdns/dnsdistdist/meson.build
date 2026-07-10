@@ -50,6 +50,7 @@ subdir('meson' / 'net-libs')                # Network Libraries
 subdir('meson' / 'tm-gmtoff')               # Check for tm_gmtoff field in struct tm
 subdir('meson' / 'mmap')                    # Check for mmap
 subdir('meson' / 'libcap')                  # Libcap to drop capabilities
+subdir('meson' / 'libcurl')                 # Libcurl for OTLPLogger
 subdir('meson' / 'libedit')                 # Libedit
 subdir('meson' / 'libsodium')               # Libsodium
 subdir('meson' / 'libcrypto')               # OpenSSL libcrypto
@@ -209,7 +210,9 @@ common_sources += files(
   src_dir / 'libssl.cc',
   src_dir / 'logging.cc',
   src_dir / 'misc.cc',
+  src_dir / 'otlp_logger.cc',
   src_dir / 'protozero.cc',
+  src_dir / 'protozero-otlp.cc',
   src_dir / 'protozero-trace.cc',
   src_dir / 'proxy-protocol.cc',
   src_dir / 'qtype.cc',
@@ -230,6 +233,12 @@ conditional_sources = {
       src_dir / 'cdb.cc',
     ],
     'condition': dep_cdb.found(),
+  },
+  'minicurl': {
+    'sources': [
+      src_dir / 'minicurl.cc',
+    ],
+    'condition': get_option('otlp').allowed() and dep_libcurl.found(),
   },
   'doq': {
     'sources': [
@@ -395,6 +404,7 @@ deps = [
   dep_ipcrypt2,
   dep_libcap,
   dep_libcrypto,
+  dep_libcurl,
   dep_gnutls,
   dep_libedit,
   dep_json11,
@@ -577,6 +587,7 @@ test_sources += files(
   src_dir / 'test-iputils_hh.cc',
   src_dir / 'test-luawrapper.cc',
   src_dir / 'test-mplexer.cc',
+  src_dir / 'test-protozero-otlp_cc.cc',
   src_dir / 'test-proxy_protocol_cc.cc',
   src_dir / 'test-sholder_hh.cc',
 )

@@ -24,12 +24,14 @@
 #include "dnsdist-ecs.hh"
 #include "sanitizer.hh"
 
+#include <any>
 #include <memory>
 #include <vector>
 
 #ifndef DISABLE_PROTOBUF
 #include "protozero.hh"
 #include "protozero-trace.hh"
+#include "otlp_logger.hh"
 #endif
 
 namespace pdns::trace::dnsdist
@@ -436,12 +438,29 @@ void sendTracesToRemoteLoggers(const std::shared_ptr<Tracer>& tracer, [[maybe_un
 #ifndef DISABLE_PROTOBUF
   static thread_local string pbBuf;
   pbBuf.clear();
-  pdns::ProtoZero::Message minimalMsg{pbBuf};
-  minimalMsg.setType(pdns::ProtoZero::Message::MessageType::InternalType);
-  minimalMsg.setOpenTelemetryTraceID(tracer->getTraceID());
-  minimalMsg.setOpenTelemetryData(tracer->getOTProtobuf());
+
+  bool haveNonOTLPLogger = false;
   for (const auto& remotelogger : remoteloggers) {
-    remotelogger->queueData(pbBuf);
+    haveNonOTLPLogger = haveNonOTLPLogger || std::dynamic_pointer_cast<OTLPLogger>(remotelogger) == nullptr;
+    if (haveNonOTLPLogger) {
+      break;
+    }
+  }
+
+  pdns::ProtoZero::Message minimalMsg{pbBuf};
+  if (haveNonOTLPLogger) {
+    minimalMsg.setType(pdns::ProtoZero::Message::MessageType::InternalType);
+    minimalMsg.setOpenTelemetryTraceID(tracer->getTraceID());
+    minimalMsg.setOpenTelemetryData(tracer->getOTProtobuf());
+  }
+
+  for (const auto& remotelogger : remoteloggers) {
+    if (std::dynamic_pointer_cast<OTLPLogger>(remotelogger) != nullptr) {
+      std::dynamic_pointer_cast<OTLPLogger>(remotelogger)->queueData(tracer->getTracesData());
+    }
+    else {
+      remotelogger->queueData(pbBuf);
+    }
   }
 #endif // DISABLE_PROTOBUF
 }
