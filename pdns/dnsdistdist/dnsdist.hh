@@ -1022,7 +1022,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 */
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
 /* Apply the decision (result) of a single rule to this query. If the decision implies to drop the query
-   `query` will be set to `true`. The return value indicates whether subsequent rules should be evaluated (true)
+   `drop` will be set to `true`. The return value indicates whether subsequent rules should be evaluated (true)
    or not (false).
 */
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
