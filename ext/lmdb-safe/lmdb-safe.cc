@@ -118,7 +118,7 @@ MDBEnv::MDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB, [[may
   }
 #endif
 
-  if(mdb_env_set_mapsize(d_env, mapsizeMB * 1048576)) {
+  if(mdb_env_set_mapsize(d_env, mapsizeMB * 1048576) != 0) {
     throw std::runtime_error("setting lmdb map size to " + std::to_string(mapsizeMB));
   }
 
