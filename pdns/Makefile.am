@@ -237,6 +237,7 @@ pdns_server_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	expected.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	histogram.hh \

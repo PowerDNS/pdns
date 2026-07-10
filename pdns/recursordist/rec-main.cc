@@ -1851,13 +1851,13 @@ static int initSyncRes(Logr::log_t log)
     Netmask netmask;
     bool done = false;
 
-    auto addr = pdns::getNonAnyQueryLocalAddress(AF_INET);
+    auto addr = pdns::getNonAnyQueryLocalAddress(AF_INET).d_address;
     if (addr.sin4.sin_family != 0) {
       netmask = Netmask(addr, 32);
       done = true;
     }
     if (!done) {
-      addr = pdns::getNonAnyQueryLocalAddress(AF_INET6);
+      addr = pdns::getNonAnyQueryLocalAddress(AF_INET6).d_address;
       if (addr.sin4.sin_family != 0) {
         netmask = Netmask(addr, 128);
         done = true;

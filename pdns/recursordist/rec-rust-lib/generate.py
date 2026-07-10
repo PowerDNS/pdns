@@ -99,6 +99,7 @@ class LType(Enum):
     Bool = auto()
     Command = auto()
     Double = auto()
+    ListAddressAndInterfaces = auto()
     ListAllowedAdditionalQTypes = auto()
     ListAuthZones = auto()
     ListDNSTapFrameStreamServers = auto()
@@ -107,6 +108,8 @@ class LType(Enum):
     ListForwardingCatalogZones = auto()
     ListIncomingWSConfigs = auto()
     ListNegativeTrustAnchors = auto()
+    ListOpenTelemetryTraceConditions = auto()
+    ListOutgoingTLSConfigurations = auto()
     ListProtobufServers = auto()
     ListProxyMappings = auto()
     ListRPZs = auto()
@@ -116,13 +119,11 @@ class LType(Enum):
     ListSubnets = auto()
     ListTrustAnchors = auto()
     ListZoneToCaches = auto()
-    ListOutgoingTLSConfigurations = auto()
-    ListOpenTelemetryTraceConditions = auto()
     String = auto()
     Uint64 = auto()
 
 
-listOfStringTypes = (LType.ListSocketAddresses, LType.ListStrings, LType.ListSubnets)
+listOfStringTypes = (LType.ListSocketAddresses, LType.ListStrings, LType.ListSubnets, LType.ListAddressAndInterfaces)
 listOfStructuredTypes = (
     LType.ListAuthZones,
     LType.ListForwardZones,
@@ -163,6 +164,8 @@ def get_olddoc_typename(typ):
         return "Comma separated list of 'zonename=IP' pairs"
     if typ == LType.ListAuthZones:
         return "Comma separated list of 'zonename=filename' pairs"
+    if typ == LType.ListAddressAndInterfaces:
+        return "Comma separated list IP or IP@interface strings"
     return "Unknown1" + str(typ)
 
 
@@ -214,6 +217,8 @@ def get_newdoc_typename(typ):
         return "Sequence of `OutgoingTLSConfiguration`_"
     if typ == LType.ListOpenTelemetryTraceConditions:
         return "Sequence of `OpenTelemetryTraceCondition`_"
+    if typ == LType.ListAddressAndInterfaces:
+        return "Sequence of address or address@interface_"
     return "Unknown2" + str(typ)
 
 
@@ -277,6 +282,8 @@ def get_rust_type(typ):
     if typ == LType.ListSubnets:
         return "Vec<String>"
     if typ == LType.ListStrings:
+        return "Vec<String>"
+    if typ == LType.ListAddressAndInterfaces:
         return "Vec<String>"
     # These vectors map to Vec<Type>
     return "Vec<" + list_to_base_type(typ) + ">"

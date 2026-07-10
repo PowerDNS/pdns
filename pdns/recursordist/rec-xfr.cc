@@ -180,7 +180,7 @@ static shared_ptr<const SOARecordContent> loadZoneFromServer(Logr::log_t plogger
 
   ComboAddress local(localAddress);
   if (local == ComboAddress()) {
-    local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0);
+    local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
   }
 
   AXFRRetriever axfr(logger, primary, zoneName, tsigTriplet, &local, maxReceivedBytes, axfrTimeout);
@@ -331,7 +331,7 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
 
     ComboAddress local(d_params.localAddress);
     if (local == ComboAddress()) {
-      local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0);
+      local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
     }
 
     try {

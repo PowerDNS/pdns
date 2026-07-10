@@ -392,7 +392,7 @@ void ComboAddress::truncate(unsigned int bits) noexcept
   *place &= (~((1 << bitsleft) - 1));
 }
 
-size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
+pdns::expected<size_t, int> sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
 {
   msghdr msgh{};
   iovec iov{};
@@ -457,7 +457,7 @@ size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const 
       iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
     }
     else if (res == 0) {
-      return res;
+      return static_cast<size_t>(0);
     }
     else if (res == -1) {
       int err = errno;
@@ -469,7 +469,7 @@ size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const 
            especially with TCP Fast Open */
         return sent;
       }
-      unixDie("failed in sendMsgWithOptions");
+      return pdns::unexpected{err};
     }
   } while (true);
 

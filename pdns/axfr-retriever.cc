@@ -45,7 +45,7 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
     if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
       throw ResolverException("Unable to determine source address for AXFR request to " + remote.toStringWithPort() + " for " + domain.toLogString() + ". Address family is not configured for outgoing queries");
     }
-    local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
+    local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0).d_address;
   }
   d_sock = -1;
   try {
