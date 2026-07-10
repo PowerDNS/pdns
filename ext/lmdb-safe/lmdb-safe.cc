@@ -108,14 +108,19 @@ int MDBDbi::mdb_dbi_open(MDB_txn* txn, const char* name, unsigned int flags, MDB
   return ::mdb_dbi_open(txn, name, flags, dbi);
 }
 
-MDBEnv::MDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB)
+MDBEnv::MDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB, [[maybe_unused]] int pagesize)
 {
   mdb_env_create(&d_env);
-  if(mdb_env_set_mapsize(d_env, mapsizeMB * 1048576))
-    throw std::runtime_error("setting map size");
-    /*
-Various other options may also need to be set before opening the handle, e.g. mdb_env_set_mapsize(), mdb_env_set_maxreaders(), mdb_env_set_maxdbs(),
-    */
+
+#if MDB_VERSION_MAJOR >= 1 // Not available prior to lmdb 1.0
+  if (pagesize > 0 && mdb_env_set_pagesize(d_env, pagesize)) {
+    throw std::runtime_error("setting lmdb page size to " + std::to_string(pagesize));
+  }
+#endif
+
+  if(mdb_env_set_mapsize(d_env, mapsizeMB * 1048576)) {
+    throw std::runtime_error("setting lmdb map size to " + std::to_string(mapsizeMB));
+  }
 
   mdb_env_set_maxdbs(d_env, 128);
 
@@ -175,7 +180,7 @@ int MDBEnv::getRWTX()
 }
 
 
-std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB)
+std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB, int pagesize)
 {
   struct Value
   {
@@ -198,7 +203,7 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
       if (errno != ENOENT) {
         throw std::runtime_error("Unable to stat prospective mdb database: " + MDBError(errno));
       }
-      auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
+      auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB, pagesize);
       if (stat(fname, &statbuf) != 0) {
         throw std::runtime_error("Unable to stat prospective mdb database: " + MDBError(errno));
       }
@@ -223,7 +228,7 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
     s_envs.erase(iter); // useful if make_shared fails
   }
 
-  auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
+  auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB, pagesize);
   s_envs.emplace(key, Value{fresh, flags});
 
   return fresh;

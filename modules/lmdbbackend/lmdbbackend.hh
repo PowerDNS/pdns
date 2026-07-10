@@ -446,4 +446,5 @@ private:
   DTime d_dtime; // used only for logging
   uint64_t d_mapsize_main;
   uint64_t d_mapsize_shards;
+  int d_pagesize;
 };

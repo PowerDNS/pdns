@@ -740,6 +740,13 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     // Old configuration with only one settings for main and shards.
     d_mapsize_shards = d_mapsize_main;
   }
+  d_pagesize = 0;
+  try {
+    d_pagesize = std::stoi(getArg("page-size"));
+  }
+  catch (const std::exception& e) {
+    throw std::runtime_error(std::string("Unable to parse the 'page-size' LMDB value: ") + e.what());
+  }
 
   d_write_notification_update = mustDo("write-notification-update");
   d_split_domains_table = mustDo("split-domains-table");
@@ -748,6 +755,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     d_random_ids = true;
     d_handle_dups = true;
     LMDBLS::s_flag_deleted = true;
+    // TODO: should we force a large value for d_pagesize here by default?
 
     if (atoi(getArg("shards").c_str()) != 1) {
       throw std::runtime_error(std::string("running with Lightning Stream support requires shards=1"));
@@ -884,7 +892,7 @@ LMDBBackend::~LMDBBackend()
 void LMDBBackend::openAllTheDatabases()
 {
   const auto& filename = getArg("filename");
-  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(filename.c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_main), "domains_v5");
+  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(filename.c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_main, d_pagesize), "domains_v5");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata_v5");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata_v5");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig_v5");
@@ -1925,7 +1933,7 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
   auto& shard = d_trecords[id % s_shards];
   if (!shard.env) {
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
-                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_shards);
+                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_shards, d_pagesize);
     shard.rdbi = shard.env->openDB("records_v5", MDB_CREATE);
     shard.cdbi = shard.env->openDB("comments_v7", MDB_CREATE);
   }
@@ -1944,7 +1952,7 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
       throw DBException("attempting to start nested transaction without open parent env");
     }
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
-                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_shards);
+                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize_shards, d_pagesize);
     shard.rdbi = shard.env->openDB("records_v5", MDB_CREATE);
     shard.cdbi = shard.env->openDB("comments_v7", MDB_CREATE);
   }
@@ -3785,6 +3793,7 @@ public:
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
     declare(suffix, "map-size", "main LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
     declare(suffix, "shards-map-size", "shard LMDB map size in megabytes, zero to use the same size as main", "0");
+    declare(suffix, "page-size", "LMDB page size in kilobytes", "4096");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
     declare(suffix, "write-notification-update", "Update domain table upon notification", "yes");
     declare(suffix, "split-domains-table", "Use a split domain table to reduce I/O load after XFR notifications", "no");
