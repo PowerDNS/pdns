@@ -114,6 +114,10 @@ public:
     memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
+      if (!responseContentMatches(unit->response, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, unit->downstream, dnsdist::configuration::getCurrentRuntimeConfiguration().d_allowEmptyResponse)) {
+        return;
+      }
+
       dnsResponse.ids.doqu = std::move(unit);
 
       if (!processResponse(dnsResponse.ids.doqu->response, dnsResponse, false)) {
