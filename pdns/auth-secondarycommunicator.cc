@@ -887,7 +887,8 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
           if (!g_slogStructured) {
             ctx.logPrefix[0] = 'A'; // IXFR -> AXFR
           }
-          bool firstNSEC3 = true;
+          bool firstNSEC3{true};
+          bool soa_received{false};
           rrs.reserve(axfr.size());
           for (const auto& dr : axfr) { // NOLINT(readability-identifier-length)
             auto rr = DNSResourceRecord::fromWire(dr); // NOLINT(readability-identifier-length)
@@ -898,8 +899,12 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
               continue;
             }
             if (dr.d_type == QType::SOA) {
+              if (soa_received) {
+                continue; // skip the last SOA
+              }
               auto sd = getRR<SOARecordContent>(dr); // NOLINT(readability-identifier-length)
               ctx.soa_serial = sd->d_st.serial;
+              soa_received = true;
             }
             rrs.emplace_back(std::move(rr));
           }
