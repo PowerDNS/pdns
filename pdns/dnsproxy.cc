@@ -39,6 +39,9 @@
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
 #include "dnsproxy.hh"
+#include "dnsseckeeper.hh"
+#include "dnssecinfra.hh"
+#include "ueberbackend.hh"
 
 #include <boost/uuid/uuid_io.hpp>
 
@@ -111,7 +114,7 @@ void DNSProxy::go()
 }
 
 //! look up qname 'target' with reply->qtype, plonk it in the answer section of 'reply' with name 'aname'
-bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, const uint8_t scopeMask)
+bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, const uint8_t scopeMask, const bool doSign, const std::set<ZoneName>& authSet, DNSSECKeeper& dnssecKeeper, UeberBackend& backend)
 {
   string ECSOptionStr;
 
@@ -157,6 +160,9 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
         ip.dr.d_name = aname;
         reply->addRecord(std::move(ip));
       }
+      if (doSign) {
+        addRRSigs(dnssecKeeper, backend, authSet, reply->getRRS(), reply.get());
+      }
     }
 
     uint16_t len = htons(reply->getString().length());
@@ -184,6 +190,8 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
     ce.complete = std::move(reply);
     ce.aname = aname;
     ce.anameScopeMask = scopeMask;
+    ce.doSign = doSign;
+    ce.authSet = authSet;
     (*conntrack)[id] = std::move(ce);
   }
 
@@ -234,6 +242,9 @@ void DNSProxy::mainloop()
 {
   setThreadName("pdns/dnsproxy");
   try {
+    UeberBackend db; // NOLINT(readability-identifier-length)
+    DNSSECKeeper dk(d_slog, &db); // NOLINT(readability-identifier-length)
+
     char buffer[1500];
     ssize_t len;
 
@@ -325,6 +336,10 @@ void DNSProxy::mainloop()
           }
 
           iter->second.complete->setRcode(mdp.d_header.rcode);
+
+          if (iter->second.doSign) {
+            addRRSigs(dk, db, iter->second.authSet, iter->second.complete->getRRS(), iter->second.complete.get());
+          }
         }
         else {
           SLOG(g_log << Logger::Error << "Error resolving for " << iter->second.aname << " ALIAS " << iter->second.qname << " over UDP, " << QType(iter->second.qtype).toString() << "-record query returned " << RCode::to_s(mdp.d_header.rcode) << ", returning SERVFAIL" << endl,

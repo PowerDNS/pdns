@@ -1988,7 +1988,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   if(!haveAlias.empty() && (!weDone || pkt.qtype.getCode() == QType::ANY)) {
     DLOG(SLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<state.target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl,
               d_slog->info(Logr::Warning, "Found nothing that matched, but got alias, referring", "query", Logging::Loggable(state.target), "alias", Logging::Loggable(haveAlias))));
-    DP->completePacket(state.r, haveAlias, state.target, aliasScopeMask);
+    DP->completePacket(state.r, haveAlias, state.target, aliasScopeMask, d_dnssec, state.authSet, d_dk, B);
     state.r = nullptr;
     return false;
   }

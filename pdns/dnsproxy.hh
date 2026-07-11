@@ -21,6 +21,7 @@
  */
 #pragma once
 #include <map>
+#include <set>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -29,6 +30,7 @@
 #include "dnspacket.hh"
 #include "lock.hh"
 #include "iputils.hh"
+#include "dnsname.hh"
 
 #include "namespaces.hh"
 
@@ -48,13 +50,19 @@ to make sure outside parties can't spoof us.
 To fix: how to remove the stale entries that will surely accumulate
 */
 
+class DNSSECKeeper;
+class UeberBackend;
+
 class DNSProxy
 {
 public:
   DNSProxy(Logr::log_t slog, const string& remote, const string& udpPortRange); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  bool completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, uint8_t scopeMask);
+  // DNSSECKeeper and UeberBackend objects are only used in the TCP path, where signing
+  // happens synchronously in the caller's thread; the UDP path signs later in
+  // mainloop() using its own thread-local backend.
+  bool completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, uint8_t scopeMask, bool doSign, const std::set<ZoneName>& authSet, DNSSECKeeper& dnssecKeeper, UeberBackend& backend);
 
   void mainloop(); //!< this is the main loop that receives reply packets and sends them out again
 private:
@@ -65,7 +73,9 @@ private:
     DNSName qname;
     std::unique_ptr<DNSPacket> complete;
     DNSName aname;
+    std::set<ZoneName> authSet;
     uint8_t anameScopeMask;
+    bool doSign{false};
     ComboAddress remote;
     uint16_t id;
     uint16_t qtype;

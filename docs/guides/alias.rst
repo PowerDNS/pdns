@@ -84,7 +84,8 @@ When set to 'ignore-errors', an unresolvable ALIAS target will be omitted from t
 ALIAS and DNSSEC
 ----------------
 
-Starting with the PowerDNS Authoritative Server 4.0.0, DNSSEC 'washing'
-of ALIAS records is supported on AXFR (**not** on live-signing). Set
-``outgoing-axfr-expand-alias`` to 'yes' and enable DNSSEC for the zone
-on the primary. PowerDNS will sign the A/AAAA records during the AXFR.
+Starting with the PowerDNS Authoritative Server 4.0.0, DNSSEC 'washing' of
+ALIAS records is supported on AXFR. Set ``outgoing-axfr-expand-alias`` to
+'yes' and enable DNSSEC for the zone on the primary. PowerDNS will sign the
+A/AAAA records during the AXFR. Starting with PowerDNS Authoritative Server
+5.2.0, live-signing is also supported.

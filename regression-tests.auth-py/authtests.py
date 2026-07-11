@@ -638,7 +638,7 @@ options {
 
         if keys:
             try:
-                dns.dnssec.validate(msgRRSet, msgRRsigRRSet.to_rdataset(), keys)
+                dns.dnssec.validate(msgRRSet, msgRRsigRRSet, keys)
             except dns.dnssec.ValidationFailure as e:
                 raise AssertionError("Signature validation failed for %s:\n%s" % (msg.question[0].to_text(), e))
 
