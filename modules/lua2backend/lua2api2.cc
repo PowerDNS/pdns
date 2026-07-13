@@ -123,11 +123,8 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
           if (item.second.which() == 3) {
             rec.qname = DNSName(boost::get<string>(item.second));
           }
-          else if (item.second.which() == 2) {
+          else { // assuming item.second.which() == 2 here
             rec.qname = boost::get<DNSName>(item.second);
-          }
-          else {
-            throw PDNSException("Unsupported value for name");
           }
         }
         else if (item.first == "domain_id") {
@@ -143,7 +140,12 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
           rec.ttl = boost::get<int>(item.second);
         }
         else if (item.first == "content") {
-          rec.setContent(boost::get<string>(item.second));
+          if (item.second.which() == 1) {
+            rec.setContent(std::to_string(boost::get<int>(item.second)));
+          }
+          else { // assuming item.second.which() == 3 here
+            rec.setContent(boost::get<string>(item.second));
+          }
         }
         else if (item.first == "scopeMask") {
           rec.scopeMask = boost::get<int>(item.second);
@@ -264,7 +266,12 @@ void Lua2BackendAPIv2::parseDomainInfo(const domaininfo_result_t& row, DomainInf
   for (const auto& item : row) {
     try {
       if (item.first == "account") {
-        info.account = boost::get<string>(item.second);
+        if (item.second.which() == 1) { // should the account name be all-digits...
+          info.account = std::to_string(boost::get<long>(item.second));
+        }
+        else { // assuming item.second.which() == 2 here
+          info.account = boost::get<string>(item.second);
+        }
       }
       else if (item.first == "last_check") {
         info.last_check = static_cast<time_t>(boost::get<long>(item.second));
