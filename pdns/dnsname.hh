@@ -491,6 +491,10 @@ struct SuffixMatchTree
     std::string_view d_name;
     bool operator<(const SuffixMatchTree& smt) const
     {
+      // This whole logic unfortunately can't be rewritten as
+      // pdns_ilexicographical_compare_three_way(this->d_name, smt.d_name)
+      // for, when the strings differ in length, the last return statement
+      // in the code below returns the opposite value.
       auto compareUpTo = std::min(this->d_name.size(), smt.d_name.size());
       auto this_name = std::string_view(this->d_name.data(), compareUpTo);
       auto smt_name = std::string_view(smt.d_name.data(), compareUpTo);
@@ -499,7 +503,7 @@ struct SuffixMatchTree
         return ret < 0;
       }
       if (this->d_name.size() == smt.d_name.size()) {
-        return ret < 0;
+        return 0;
       }
       return this->d_name.size() < smt.d_name.size();
     }
@@ -507,6 +511,10 @@ struct SuffixMatchTree
 
   bool operator<(const LightKey& lk) const
   {
+    // This whole logic unfortunately can't be rewritten as
+    // pdns_ilexicographical_compare_three_way(this->d_name, lk.d_name)
+    // for, when the strings differ in length, the last return statement
+    // in the code below returns the opposite value.
     auto compareUpTo = std::min(this->d_name.size(), lk.d_name.size());
     auto this_name = std::string_view(this->d_name.data(), compareUpTo);
     auto lk_name = std::string_view(lk.d_name.data(), compareUpTo);
@@ -515,7 +523,7 @@ struct SuffixMatchTree
       return ret < 0;
     }
     if (this->d_name.size() == lk.d_name.size()) {
-      return ret < 0;
+      return 0;
     }
     return this->d_name.size() < lk.d_name.size();
   }
