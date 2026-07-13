@@ -104,52 +104,57 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
   for (const auto& row : result) {
     DNSResourceRecord rec;
     for (const auto& item : row.second) {
-      if (item.first == "type") {
-        if (item.second.which() == 1) {
-          rec.qtype = QType(boost::get<int>(item.second));
+      try {
+        if (item.first == "type") {
+          if (item.second.which() == 1) {
+            rec.qtype = QType(boost::get<int>(item.second));
+          }
+          else if (item.second.which() == 3) {
+            rec.qtype = boost::get<string>(item.second);
+          }
+          else if (item.second.which() == 4) {
+            rec.qtype = boost::get<QType>(item.second);
+          }
+          else {
+            throw PDNSException("Unsupported value for type");
+          }
         }
-        else if (item.second.which() == 3) {
-          rec.qtype = boost::get<string>(item.second);
+        else if (item.first == "name") {
+          if (item.second.which() == 3) {
+            rec.qname = DNSName(boost::get<string>(item.second));
+          }
+          else if (item.second.which() == 2) {
+            rec.qname = boost::get<DNSName>(item.second);
+          }
+          else {
+            throw PDNSException("Unsupported value for name");
+          }
         }
-        else if (item.second.which() == 4) {
-          rec.qtype = boost::get<QType>(item.second);
+        else if (item.first == "domain_id") {
+          rec.domain_id = boost::get<int>(item.second);
+        }
+        else if (item.first == "auth") {
+          rec.auth = boost::get<bool>(item.second);
+        }
+        else if (item.first == "last_modified") {
+          rec.last_modified = static_cast<time_t>(boost::get<int>(item.second));
+        }
+        else if (item.first == "ttl") {
+          rec.ttl = boost::get<int>(item.second);
+        }
+        else if (item.first == "content") {
+          rec.setContent(boost::get<string>(item.second));
+        }
+        else if (item.first == "scopeMask") {
+          rec.scopeMask = boost::get<int>(item.second);
         }
         else {
-          throw PDNSException("Unsupported value for type");
+          SLOG(g_log << Logger::Warning << "Unsupported key '" << item.first << "' in lookup or list result" << endl,
+               d_slog->info(Logr::Warning, "Unsupported key in lookup or list result", "key", Logging::Loggable(item.first)));
         }
       }
-      else if (item.first == "name") {
-        if (item.second.which() == 3) {
-          rec.qname = DNSName(boost::get<string>(item.second));
-        }
-        else if (item.second.which() == 2) {
-          rec.qname = boost::get<DNSName>(item.second);
-        }
-        else {
-          throw PDNSException("Unsupported value for name");
-        }
-      }
-      else if (item.first == "domain_id") {
-        rec.domain_id = boost::get<int>(item.second);
-      }
-      else if (item.first == "auth") {
-        rec.auth = boost::get<bool>(item.second);
-      }
-      else if (item.first == "last_modified") {
-        rec.last_modified = static_cast<time_t>(boost::get<int>(item.second));
-      }
-      else if (item.first == "ttl") {
-        rec.ttl = boost::get<int>(item.second);
-      }
-      else if (item.first == "content") {
-        rec.setContent(boost::get<string>(item.second));
-      }
-      else if (item.first == "scopeMask") {
-        rec.scopeMask = boost::get<int>(item.second);
-      }
-      else {
-        SLOG(g_log << Logger::Warning << "Unsupported key '" << item.first << "' in lookup or list result" << endl,
-             d_slog->info(Logr::Warning, "Unsupported kep in lookup or list result", "key", Logging::Loggable(item.first)));
+      catch (const std::exception& e) {
+        throw PDNSException("Unable to parse " + item.first + " value in lookup or list result: " + e.what());
       }
     }
     if (d_debug_log) {
@@ -257,32 +262,37 @@ void Lua2BackendAPIv2::parseDomainInfo(const domaininfo_result_t& row, DomainInf
 {
   info.id = UnknownDomainID;
   for (const auto& item : row) {
-    if (item.first == "account") {
-      info.account = boost::get<string>(item.second);
-    }
-    else if (item.first == "last_check") {
-      info.last_check = static_cast<time_t>(boost::get<long>(item.second));
-    }
-    else if (item.first == "masters") {
-      for (const auto& primary : boost::get<vector<string>>(item.second)) {
-        info.primaries.emplace_back(ComboAddress(primary, 53));
+    try {
+      if (item.first == "account") {
+        info.account = boost::get<string>(item.second);
+      }
+      else if (item.first == "last_check") {
+        info.last_check = static_cast<time_t>(boost::get<long>(item.second));
+      }
+      else if (item.first == "masters") {
+        for (const auto& primary : boost::get<vector<string>>(item.second)) {
+          info.primaries.emplace_back(ComboAddress(primary, 53));
+        }
+      }
+      else if (item.first == "id") {
+        info.id = static_cast<domainid_t>(boost::get<long>(item.second));
+      }
+      else if (item.first == "notified_serial") {
+        info.notified_serial = static_cast<unsigned int>(boost::get<long>(item.second));
+      }
+      else if (item.first == "serial") {
+        info.serial = static_cast<unsigned int>(boost::get<long>(item.second));
+      }
+      else if (item.first == "kind") {
+        info.kind = DomainInfo::stringToKind(boost::get<string>(item.second));
+      }
+      else {
+        SLOG(g_log << Logger::Warning << "Unsupported key '" << item.first << "' in domaininfo result" << endl,
+             d_slog->info(Logr::Warning, "Unsupported key in domaininfo result", "key", Logging::Loggable(item.first)));
       }
     }
-    else if (item.first == "id") {
-      info.id = static_cast<domainid_t>(boost::get<long>(item.second));
-    }
-    else if (item.first == "notified_serial") {
-      info.notified_serial = static_cast<unsigned int>(boost::get<long>(item.second));
-    }
-    else if (item.first == "serial") {
-      info.serial = static_cast<unsigned int>(boost::get<long>(item.second));
-    }
-    else if (item.first == "kind") {
-      info.kind = DomainInfo::stringToKind(boost::get<string>(item.second));
-    }
-    else {
-      SLOG(g_log << Logger::Warning << "Unsupported key '" << item.first << "' in domaininfo result" << endl,
-           d_slog->info(Logr::Warning, "Unsupported key in domaininfo result", "key", Logging::Loggable(item.first)));
+    catch (const std::exception& e) {
+      throw PDNSException("Unable to parse " + item.first + " value in domaininfo result: " + e.what());
     }
   }
   info.backend = this;
@@ -429,24 +439,29 @@ bool Lua2BackendAPIv2::getDomainKeys(const ZoneName& name, std::vector<DNSBacken
     DNSBackend::KeyData key;
     key.published = true;
     for (const auto& item : row.second) {
-      if (item.first == "content") {
-        key.content = boost::get<string>(item.second);
+      try {
+        if (item.first == "content") {
+          key.content = boost::get<string>(item.second);
+        }
+        else if (item.first == "id") {
+          key.id = static_cast<unsigned int>(boost::get<int>(item.second));
+        }
+        else if (item.first == "flags") {
+          key.flags = static_cast<unsigned int>(boost::get<int>(item.second));
+        }
+        else if (item.first == "active") {
+          key.active = boost::get<bool>(item.second);
+        }
+        else if (item.first == "published") {
+          key.published = boost::get<bool>(item.second);
+        }
+        else {
+          SLOG(g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl,
+               d_slog->info(Logr::Warning, "Unsupported key in keydata result", "key", Logging::Loggable(item.first)));
+        }
       }
-      else if (item.first == "id") {
-        key.id = static_cast<unsigned int>(boost::get<int>(item.second));
-      }
-      else if (item.first == "flags") {
-        key.flags = static_cast<unsigned int>(boost::get<int>(item.second));
-      }
-      else if (item.first == "active") {
-        key.active = boost::get<bool>(item.second);
-      }
-      else if (item.first == "published") {
-        key.published = boost::get<bool>(item.second);
-      }
-      else {
-        SLOG(g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl,
-             d_slog->info(Logr::Warning, "Unsupported key in keydata result", "key", Logging::Loggable(item.first)));
+      catch (const std::exception& e) {
+        throw PDNSException("Unable to parse " + item.first + " value in keydata result: " + e.what());
       }
     }
     if (d_debug_log) {
