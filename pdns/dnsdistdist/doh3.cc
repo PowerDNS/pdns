@@ -145,7 +145,8 @@ public:
 
       if (!processResponse(dnsResponse.ids.doh3u->response, dnsResponse, false)) {
         if (dnsResponse.ids.doh3u) {
-
+          /* this will signal an error */
+          dnsResponse.ids.doh3u->response.clear();
           sendBackDOH3Unit(std::move(dnsResponse.ids.doh3u), "Response dropped by rules");
         }
         return;

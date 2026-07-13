@@ -63,6 +63,20 @@ class QUICTests(object):
         except StreamResetError as e:
             self.assertEqual(e.error, 5)
 
+    def testDroppedResponse(self):
+        """
+        QUIC: Dropped query response
+        """
+        name = "drop-response.doq.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        backendResponse = dns.message.make_response(query)
+        backendResponse.set_rcode(dns.rcode.REFUSED)
+        try:
+            (_, _) = self.sendQUICQuery(query, response=backendResponse, passExceptions=True)
+            self.fail()
+        except StreamResetError as e:
+            self.assertEqual(e.error, 5)
+
     def testRefused(self):
         """
         QUIC: Refused
