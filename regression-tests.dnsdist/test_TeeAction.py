@@ -7,31 +7,13 @@ from dnsdisttests import DNSDistTest, Queue, pickAvailablePort
 from proxyprotocolutils import ProxyProtocolUDPResponder
 
 
-class TestTeeAction(DNSDistTest):
-    _consoleKey = DNSDistTest.generateConsoleKey()
-    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+class TeeActionBase(object):
     _teeServerPort = pickAvailablePort()
     _teeProxyServerPort = pickAvailablePort()
     _toTeeQueue = Queue()
     _fromTeeQueue = Queue()
     _toTeeProxyQueue = Queue()
     _fromTeeProxyQueue = Queue()
-    _config_template = """
-    setKey("%s")
-    controlSocket("127.0.0.1:%d")
-    newServer{address="127.0.0.1:%d"}
-    addAction(QTypeRule(DNSQType.A), TeeAction("127.0.0.1:%d", true))
-    addAction(QTypeRule(DNSQType.AAAA), TeeAction("127.0.0.1:%d", false))
-    addAction(QTypeRule(DNSQType.ANY), TeeAction("127.0.0.1:%d", false, '127.0.0.1', true))
-    """
-    _config_params = [
-        "_consoleKeyB64",
-        "_consolePort",
-        "_testServerPort",
-        "_teeServerPort",
-        "_teeServerPort",
-        "_teeProxyServerPort",
-    ]
 
     @classmethod
     def startResponders(cls):
@@ -208,3 +190,84 @@ tcp-drops\t0
 """
             % (numberOfQueries, numberOfQueries, numberOfQueries),
         )
+
+class TestTeeActionLua(TeeActionBase, DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _teeServerPort = pickAvailablePort()
+    _teeProxyServerPort = pickAvailablePort()
+    _toTeeQueue = Queue()
+    _fromTeeQueue = Queue()
+    _toTeeProxyQueue = Queue()
+    _fromTeeProxyQueue = Queue()
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    newServer{address="127.0.0.1:%d"}
+    addAction(QTypeRule(DNSQType.A), TeeAction("127.0.0.1:%d", true))
+    addAction(QTypeRule(DNSQType.AAAA), TeeAction("127.0.0.1:%d", false))
+    addAction(QTypeRule(DNSQType.ANY), TeeAction("127.0.0.1:%d", false, '127.0.0.1', true))
+    """
+    _config_params = [
+        "_consoleKeyB64",
+        "_consolePort",
+        "_testServerPort",
+        "_teeServerPort",
+        "_teeServerPort",
+        "_teeProxyServerPort",
+    ]
+
+class TestTeeActionYaml(TeeActionBase, DNSDistTest):
+    _yaml_config_template = """---
+console:
+  listen_address: "127.0.0.1:%d"
+  key: "%s"
+  acl:
+    - 127.0.0.0/8
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+query_rules:
+  - name: "A to ECS Tee Action"
+    selector:
+      type: "QType"
+      qtype: "A"
+    action:
+      type: "Tee"
+      rca: "127.0.0.1:%d"
+      lca: ""
+      add_ecs: true
+  - name: "AAAA to no-ECS Tee Action"
+    selector:
+      type: "QType"
+      qtype: "AAAA"
+    action:
+      type: "Tee"
+      rca: "127.0.0.1:%d"
+      add_ecs: false
+  - name: "ANY to Proxy Protocol Tee Action"
+    selector:
+      type: "QType"
+      qtype: "ANY"
+    action:
+      type: "Tee"
+      rca: "127.0.0.1:%d"
+      lca: "127.0.0.1"
+      add_ecs: false
+      add_proxy_protocol: true
+"""
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
+    _yaml_config_params = [
+        "_consolePort",
+        "_consoleKeyB64",
+        "_testServerPort",
+        "_teeServerPort",
+        "_teeServerPort",
+        "_teeProxyServerPort",
+    ]
+    _config_params = [
+    ]
