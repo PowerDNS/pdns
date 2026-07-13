@@ -364,9 +364,11 @@ template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookup
         break;
       }
 
-      if (strncasecmp(raw.c_str() + *positionInNameIter + 1, (const char*)&d_content[*positionInPacketIter] + 1, nlen)) {
+      auto rawpart = std::string_view(raw.c_str() + *positionInNameIter + 1, nlen);
+      auto pktpart = std::string_view((const char*)&d_content[*positionInPacketIter] + 1, nlen);
+      if (pdns_ilexicographical_compare_three_way(rawpart, pktpart) != 0) {
         if (l_verbose) {
-          cout << "Mismatch: " << string(raw.c_str() + *positionInNameIter + 1, raw.c_str() + *positionInNameIter + nlen + 1) << " != " << string((const char*)&d_content[*positionInPacketIter] + 1, (const char*)&d_content[*positionInPacketIter] + nlen + 1) << endl;
+          cout << "Mismatch: " << rawpart << " != " << pktpart << endl;
         }
         break;
       }
