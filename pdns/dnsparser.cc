@@ -786,6 +786,7 @@ string simpleCompress(const string& elabel, const string& root)
   string ret;
   ret.reserve(label.size()+4);
   for(const auto & part : parts) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     auto label_part = std::string_view(label.c_str() + part.first, 1 + label.length() - part.first); // also match trailing 0, hence '1 +'
     if(!root.empty() && pdns_ilexicographical_compare_three_way(root, label_part) == 0) {
       const unsigned char rootptr[2]={0xc0,0x11};

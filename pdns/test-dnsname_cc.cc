@@ -1110,8 +1110,8 @@ BOOST_AUTO_TEST_CASE(test_variantnames) {
 #endif
 
 BOOST_AUTO_TEST_CASE(test_pdns_ilexicographical_compare) {
-  typedef boost::tuple<const std::string, const std::string, bool> case_t;
-  typedef std::list<case_t> cases_t;
+  using case_t = boost::tuple<const std::string, const std::string, bool>;
+  using cases_t = std::list<case_t>;
 
   cases_t cases = boost::assign::list_of
     (case_t(std::string(""), std::string(""), false))
@@ -1126,15 +1126,14 @@ BOOST_AUTO_TEST_CASE(test_pdns_ilexicographical_compare) {
   ;
 
   for(const case_t& val :  cases) {
-    bool res;
-    res = pdns_ilexicographical_compare(val.get<0>(), val.get<1>());
+    bool res = pdns_ilexicographical_compare(val.get<0>(), val.get<1>());
     BOOST_CHECK_EQUAL(res, val.get<2>());
   }
 }
 
 BOOST_AUTO_TEST_CASE(test_pdns_iequals) {
-  typedef boost::tuple<const std::string, const std::string, bool> case_t;
-  typedef std::list<case_t> cases_t;
+  using case_t = boost::tuple<const std::string, const std::string, bool>;
+  using cases_t = std::list<case_t>;
 
   cases_t cases = boost::assign::list_of
     (case_t(std::string(""), std::string(""), true))
@@ -1149,8 +1148,7 @@ BOOST_AUTO_TEST_CASE(test_pdns_iequals) {
   ;
 
   for(const case_t& val :  cases) {
-    bool res;
-    res = pdns_iequals(val.get<0>(), val.get<1>());
+    bool res = pdns_iequals(val.get<0>(), val.get<1>());
     BOOST_CHECK_EQUAL(res, val.get<2>());
   }
 }
