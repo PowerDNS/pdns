@@ -258,5 +258,4 @@ query_rules:
         "_teeServerPort",
         "_teeProxyServerPort",
     ]
-    _config_params = [
-    ]
+    _config_params = []
