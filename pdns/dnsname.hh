@@ -475,7 +475,7 @@ struct SuffixMatchTree
   }
   bool operator<(const SuffixMatchTree& rhs) const
   {
-    return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
+    return pdns_ilexicographical_compare(d_name, rhs.d_name);
   }
 
   std::string d_name;
@@ -492,7 +492,9 @@ struct SuffixMatchTree
     bool operator<(const SuffixMatchTree& smt) const
     {
       auto compareUpTo = std::min(this->d_name.size(), smt.d_name.size());
-      auto ret = strncasecmp(this->d_name.data(), smt.d_name.data(), compareUpTo);
+      auto this_name = std::string_view(this->d_name.data(), compareUpTo);
+      auto smt_name = std::string_view(smt.d_name.data(), compareUpTo);
+      auto ret = pdns_ilexicographical_compare_three_way(this_name, smt_name);
       if (ret != 0) {
         return ret < 0;
       }
@@ -506,7 +508,9 @@ struct SuffixMatchTree
   bool operator<(const LightKey& lk) const
   {
     auto compareUpTo = std::min(this->d_name.size(), lk.d_name.size());
-    auto ret = strncasecmp(this->d_name.data(), lk.d_name.data(), compareUpTo);
+    auto this_name = std::string_view(this->d_name.data(), compareUpTo);
+    auto lk_name = std::string_view(lk.d_name.data(), compareUpTo);
+    auto ret = pdns_ilexicographical_compare_three_way(this_name, lk_name);
     if (ret != 0) {
       return ret < 0;
     }
