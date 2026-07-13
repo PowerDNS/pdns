@@ -3916,6 +3916,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
   else {
     LOG(prefix << zone << ": We have " << std::to_string(dnskeys.size()) << " DNSKEYs but the zone (" << zone << ") is not part of the signer (" << signer << "), check that we did not miss a zone cut" << endl);
     /* try again to get the missed cuts, harder this time */
+    //cerr<<"calling getValidationStatus from "<<__PRETTY_FUNCTION__<<":"<<__LINE__<<endl;
     auto zState = getValidationStatus(zone, false, false, depth, prefix);
     if (zState == vState::Secure) {
       /* too bad */
@@ -3955,6 +3956,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
   if (validatedKeys.size() != tentativeKeys.size()) {
     LOG(prefix << zone << ": Let's check whether we missed a zone cut before returning a Bogus state from " << static_cast<const char*>(__func__) << "(" << zone << ")" << endl);
     /* try again to get the missed cuts, harder this time */
+    //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
     auto zState = getValidationStatus(zone, false, false, depth, prefix);
     if (zState == vState::Secure) {
       /* too bad */
@@ -4088,6 +4090,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix
       }
       /* try again to get the missed cuts, harder this time */
       LOG(prefix << signer << ": Checking whether we missed a zone cut for " << signer << " before returning a Bogus state for " << name << "|" << type.toString() << endl);
+      //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
       auto zState = getValidationStatus(signer, false, dsFailed, depth, prefix);
       if (zState == vState::Secure) {
         if (state == vState::BogusUnableToGetDNSKEYs && servFailOccurred) {
@@ -4131,6 +4134,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix
   }
 
   /* try again to get the missed cuts, harder this time */
+  //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
   auto zState = getValidationStatus(name, false, type == QType::DS || skipThisLevelWhenLookingForMissedCuts, depth, prefix);
   LOG(prefix << name << ": Checking whether we missed a zone cut before returning a Bogus state" << endl);
   if (zState == vState::Secure) {
@@ -4261,6 +4265,11 @@ static void checkIfAnswerContainsRecordsExpandedFromAWildcard(LWResult& lwr, con
       continue;
     }
 
+    /* We do that for all the candidates, not just the qname, because we need to store
+       NSEC(3) records with the expanded record in our record cache. If you think "but
+       we will not be caching CNAME records except the one matching the qname, because
+       the remaining ones will not be authoritative", you are right EXCEPT for the
+       forward recurse case where we will cache all of them. */
     const auto labelCount = rec.d_name.countLabels();
     /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
        count can be lower than the name's label count if it was
@@ -4312,12 +4321,12 @@ static void processCNAMEChain(LWResult& lwr, const DNSName& qname, std::unordere
   }
 }
 
-static void determineAnswerType(LWResult& lwr, bool haveAnswers, bool seenReferral)
+static void determineAnswerType(LWResult& lwr, bool haveAnswers)
 {
   if ((haveAnswers && lwr.d_rcode == RCode::NoError) || (haveAnswers && (lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) && lwr.d_rcode == RCode::NXDomain)) {
     lwr.d_answerType = LWResult::AnswerType::PositiveAnswer;
   }
-  else if (!haveAnswers && !lwr.d_aabit && lwr.d_rcode == RCode::NoError && seenReferral) {
+  else if (!haveAnswers && !lwr.d_aabit && lwr.d_rcode == RCode::NoError && lwr.d_newAuth) {
     lwr.d_answerType = LWResult::AnswerType::Referral;
   }
   else if (!haveAnswers && lwr.d_rcode == RCode::NoError && lwr.d_seenSOA) {
@@ -4453,6 +4462,7 @@ SyncRes::tcache_t SyncRes::validateSignatures(const std::string& prefix, LWResul
     vState recordState = vState::Indeterminate;
 
     if (expectSignature && shouldValidate()) {
+      //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
       vState initialState = getValidationStatus(tCacheEntry.first.name, !tCacheEntry.second.signatures.empty(), tCacheEntry.first.type == QType::DS, depth, prefix);
       LOG(prefix << qname << ": Got initial zone status " << initialState << " for record " << tCacheEntry.first.name << "|" << DNSRecordContent::NumberToType(tCacheEntry.first.type) << endl);
 
@@ -4492,7 +4502,6 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   bool cnameSeen = false;
   bool haveAnswers = false;
   bool soaInAuth = false;
-  bool seenReferral = false;
 
   std::vector<bool> skipvec(lwr.d_records.size(), false);
   unsigned int counter = 0;
@@ -4612,7 +4621,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         }
 
         if (!haveAnswers) {
-          seenReferral = true;
+          lwr.d_newAuth = rec->d_name;
         }
       }
 
@@ -4634,6 +4643,10 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         soaInAuth = true;
         lwr.d_seenSOA = rec->d_name;
       }
+
+      if (rec->d_type == QType::NSEC || rec->d_type == QType::NSEC3) {
+        lwr.d_seenNSEC = true;
+      }
     }
     /* dealing with records in additional */
     else if (rec->d_place == DNSResourceRecord::ADDITIONAL) {
@@ -4653,7 +4666,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
 
   processCNAMEChain(lwr, qname, cnameChain, allowedAnswerNames, cnameSeen, rdQuery);
 
-  determineAnswerType(lwr, haveAnswers, seenReferral);
+  determineAnswerType(lwr, haveAnswers);
 
   sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, acceptDelegation && !soaInAuth, skipvec, skipCount);
 }
@@ -5153,6 +5166,7 @@ void SyncRes::updateDenialValidationState(const DNSName& qname, vState& neValida
     else {
       LOG(prefix << qname << ": Invalid denial found for " << neName << ", res=" << denialState << ", expectedState=" << expectedState << ", checking whether we have missed a zone cut before returning a Bogus state" << endl);
       /* try again to get the missed cuts, harder this time */
+      //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
       auto zState = getValidationStatus(neName, false, isDS, depth, prefix);
       if (zState != vState::Secure) {
         neValidationState = zState;
@@ -5174,6 +5188,10 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& negEntry
 
 void SyncRes::checkWildcardProof(const DNSName& qname, const QType& qtype, DNSRecord& rec, const LWResult& lwr, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount)
 {
+  if (vStateIsBogus(state)) {
+    return;
+  }
+
   /* positive answer synthesized from a wildcard */
   NegCache::NegCacheEntry negEntry;
   negEntry.d_name = qname;
@@ -5181,36 +5199,33 @@ void SyncRes::checkWildcardProof(const DNSName& qname, const QType& qtype, DNSRe
   uint32_t lowestTTL = rec.d_ttl;
   harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
 
-  if (vStateIsBogus(state)) {
-    negEntry.d_validationState = state;
-  }
-  else {
-    auto recordState = getValidationStatus(qname, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
+  //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
+  auto recordState = getValidationStatus(qname, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
 
-    if (recordState == vState::Secure) {
-      /* We have a positive answer synthesized from a wildcard, we need to check that we have
-         proof that the next closer doesn't exist so the wildcard can be used,
-         as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
-      */
-      cspmap_t csp = harvestCSPFromNE(negEntry);
-      dState res = getDenial(csp, qname, negEntry.d_qtype.getCode(), false, false, d_validationContext, LogObject(prefix), false, wildcardLabelsCount);
-      if (res != dState::NXDOMAIN) {
-        vState tmpState = vState::BogusInvalidDenial;
-        if (res == dState::INSECURE || res == dState::OPTOUT) {
-          /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
-             this is not enough to warrant a Bogus, but go Insecure. */
-          tmpState = vState::Insecure;
-          LOG(prefix << qname << ": Unable to validate denial in wildcard expanded positive response found for " << qname << ", returning Insecure, res=" << res << endl);
-        }
-        else {
-          LOG(prefix << qname << ": Invalid denial in wildcard expanded positive response found for " << qname << ", returning Bogus, res=" << res << endl);
-          rec.d_ttl = std::min(rec.d_ttl, s_maxbogusttl);
-        }
-
-        updateValidationState(qname, state, tmpState, prefix);
-        /* we already stored the record with a different validation status, let's fix it */
-        updateValidationStatusInCache(qname, qtype, lwr.d_aabit, tmpState);
+  if (recordState == vState::Secure) {
+    /* We have a positive answer synthesized from a wildcard, we need to check that we have
+       proof that the next closer doesn't exist so the wildcard can be used,
+       as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
+    */
+    cspmap_t csp = harvestCSPFromNE(negEntry);
+    dState res = getDenial(csp, qname, negEntry.d_qtype.getCode(), false, false, d_validationContext, LogObject(prefix), false, wildcardLabelsCount);
+    if (res != dState::NXDOMAIN) {
+      vState tmpState = vState::BogusInvalidDenial;
+      if (res == dState::INSECURE || res == dState::OPTOUT) {
+        /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
+           this is not enough to warrant a Bogus, but go Insecure. */
+        tmpState = vState::Insecure;
+        LOG(prefix << qname << ": Unable to validate denial in wildcard expanded positive response found for " << qname << ", returning Insecure, res=" << res << endl);
       }
+      else {
+        LOG(prefix << qname << ": Invalid denial in wildcard expanded positive response found for " << qname << ", returning Bogus, res=" << res << endl);
+        rec.d_ttl = std::min(rec.d_ttl, s_maxbogusttl);
+      }
+
+      updateValidationState(qname, state, tmpState, prefix);
+#warning remove this once the validation has been moved to _before_ updating the cache (maybe not, what about just in time validation?)
+      /* we already stored the record with a different validation status, let's fix it */
+        updateValidationStatusInCache(qname, qtype, lwr.d_aabit, tmpState);
     }
   }
 }
@@ -5236,22 +5251,24 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       }
     }
     const bool negCacheIndication = rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_type == QType::SOA && lwr.d_rcode == RCode::NXDomain && qname.isPartOf(rec.d_name) && rec.d_name.isPartOf(auth);
-
+#if 0
     bool putInNegCache = true;
     if (negCacheIndication && qtype == QType::DS && isForwardOrAuth(qname)) {
       // #10189, a NXDOMAIN to a DS query for a forwarded or auth domain should not NXDOMAIN the whole domain
       putInNegCache = false;
     }
-
+#endif
     if (negCacheIndication) {
       LOG(prefix << qname << ": Got negative caching indication for name '" << qname << "' (accept=" << rec.d_name.isPartOf(auth) << "), newtarget='" << newtarget << "'" << endl);
-
+#if 0
       rec.d_ttl = min(rec.d_ttl, s_maxnegttl);
+#endif
       // only add a SOA if we're not going anywhere after this
       if (newtarget.empty()) {
+        //cerr<<"=> "<<__LINE__<<" pushing "<<rec.toString()<<endl;
         ret.push_back(rec);
       }
-
+#if 0
       NegCache::NegCacheEntry negEntry;
 
       uint32_t lowestTTL = rec.d_ttl;
@@ -5268,6 +5285,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       else {
         /* here we need to get the validation status of the zone telling us that the domain does not
            exist, ie the owner of the SOA */
+        //cerr<<"calling getValidationStatus from "<<__PRETTY_FUNCTION__<<":"<<__LINE__<<endl;
         auto recordState = getValidationStatus(rec.d_name, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
         if (recordState == vState::Secure) {
           dState denialState = getDenialValidationState(negEntry, dState::NXDOMAIN, false, prefix);
@@ -5302,8 +5320,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           g_negCache->add(negEntry);
         }
       }
-
-      negIndicHasSignatures = !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty();
+#endif
+      //negIndicHasSignatures = !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty();
       negindic = true;
     }
     else if (rec.d_place == DNSResourceRecord::ANSWER && isRedirection(rec.d_type) && // CNAME or DNAME answer
@@ -5414,6 +5432,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
 
       if (!vStateIsBogus(state)) {
+        //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
         auto recordState = getValidationStatus(newauth, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), true, depth, prefix);
 
         if (recordState == vState::Secure) {
@@ -5463,11 +5482,12 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         negEntry.d_name = qname;
         negEntry.d_qtype = qtype;
         harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
-
+        //cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<endl;
         if (vStateIsBogus(state)) {
           negEntry.d_validationState = state;
         }
         else {
+          //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
           auto recordState = getValidationStatus(qname, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), qtype == QType::DS, depth, prefix);
           if (recordState == vState::Secure) {
             dState denialState = getDenialValidationState(negEntry, dState::NXQTYPE, false, prefix);
@@ -5968,6 +5988,164 @@ static void normalizeTTLs(std::vector<DNSRecord>& records, bool updatingRootNS, 
   }
 }
 
+void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, tcache_t& tcache, vState& state)
+{
+  //cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+  if (!vStateIsBogus(state) && !lwr.d_synthesizedFromWildcard.empty()) {
+    //cerr<<"check expanded from wildcard"<<endl;
+    // check denial of existence if the answer has been generated from a wildcard,
+    // because then the name needs not to exist for the wildcard to apply
+    for (auto& rec : lwr.d_records) {
+      if (rec.d_place != DNSResourceRecord::ANSWER) {
+        // we are done then
+        break;
+      }
+      if (rec.d_class != QClass::IN || rec.d_type == QType::OPT) {
+        continue;
+      }
+      if (const auto wildcardIt = lwr.d_synthesizedFromWildcard.find(qname); wildcardIt != lwr.d_synthesizedFromWildcard.end()) {
+        if (wildcardIt->second.shouldDenialOfExistenceBeValidated()) {
+          // auto recordState = tcache.at(CacheKey{rec.d_name, rec.d_type, rec.d_place}).d_validationState;
+          // the second parameter, qtype, can go once the validation will be done before updating the cache
+          checkWildcardProof(wildcardIt->first, QType::CNAME, rec, lwr, state, depth, prefix, wildcardIt->second.d_labelsCount);
+#warning don't we need to update the record state?
+        }
+      }
+    }
+  }
+
+  if (lwr.d_answerType == LWResult::AnswerType::PositiveAnswer) {
+    //cerr<<"positive, done"<<endl;
+    return;
+  }
+
+  if (lwr.d_answerType == LWResult::AnswerType::Referral) {
+    //cerr<<"referral"<<endl;
+    if (lwr.d_seenNSEC && lwr.d_newAuth && !vStateIsBogus(state)) {
+      /* we might have received a denial of the DS, let's check */
+      NegCache::NegCacheEntry negEntry;
+      uint32_t lowestTTL = std::numeric_limits<uint32_t>::max();
+      harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
+
+      //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
+      auto recordState = getValidationStatus(*lwr.d_newAuth, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), true, depth, prefix);
+
+      if (recordState == vState::Secure) {
+        negEntry.d_auth = auth;
+        negEntry.d_name = *lwr.d_newAuth;
+        negEntry.d_qtype = QType::DS;
+
+        dState denialState = getDenialValidationState(negEntry, dState::NXQTYPE, true, prefix);
+
+        if (denialState == dState::NXQTYPE || denialState == dState::OPTOUT || denialState == dState::INSECURE) {
+          negEntry.d_ttd = lowestTTL + d_now.tv_sec;
+          negEntry.d_orig_ttl = lowestTTL;
+          negEntry.d_validationState = vState::Secure;
+          if (denialState == dState::OPTOUT) {
+            negEntry.d_validationState = vState::Insecure;
+          }
+          LOG(prefix << qname << ": Got negative indication of DS record for '" << *lwr.d_newAuth << "'" << endl);
+
+          g_negCache->add(negEntry);
+        }
+      }
+    }
+    return;
+  }
+
+  if (!lwr.d_seenSOA) {
+#warning that shouldn't happen, should we go Bogus if it does?
+    cerr<<"NO SOA"<<endl;
+    return;
+  }
+  if (lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) {
+    // the current qname is not NXDOMAIN or NODATA, the target is,
+    // and we will come back to it later.
+    cerr<<"CNAME or DNAME positive answer"<<endl;
+    return;
+  }
+
+  bool putInNegCache = true;
+  if (qtype == QType::DS && isForwardOrAuth(qname)) {
+    // #10189, a NXDOMAIN to a DS query for a forwarded or auth domain should not NXDOMAIN the whole domain
+    //cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+    putInNegCache = false;
+  }
+
+  for (const auto& rec : lwr.d_records) {
+    if (rec.d_class != QClass::IN || rec.d_type != QType::SOA || rec.d_place != DNSResourceRecord::AUTHORITY || rec.d_name != *lwr.d_seenSOA || !qname.isPartOf(rec.d_name) || !rec.d_name.isPartOf(auth)) {
+      continue;
+    }
+    //cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+
+    NegCache::NegCacheEntry negEntry;
+    uint32_t lowestTTL = rec.d_ttl;
+    /* if we get an NXDomain answer with a CNAME, the name
+       does exist but the target does not */
+    negEntry.d_name = qname;
+    negEntry.d_qtype = lwr.d_answerType == LWResult::AnswerType::NoData ? qtype : QType::ENT; // ENT encodes 'whole record'
+    negEntry.d_auth = *lwr.d_seenSOA;
+    harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
+
+    if (vStateIsBogus(state)) {
+      //cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+
+      negEntry.d_validationState = state;
+    }
+    else {
+      //cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+
+      /* here we need to get the validation status of the zone telling us that the domain does not
+         exist, ie the owner of the SOA */
+      //cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
+      auto recordState = getValidationStatus(rec.d_name, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
+      if (recordState == vState::Secure) {
+        //cerr << "in " << __PRETTY_FUNCTION__ << " : " << __LINE__ << endl;
+        //cerr<<"answer type is "<<(int)lwr.d_answerType<<endl;
+        dState denialState = getDenialValidationState(negEntry, lwr.d_answerType == LWResult::AnswerType::NoData ? dState::NXQTYPE : dState::NXDOMAIN, false, prefix);
+        updateDenialValidationState(qname, negEntry.d_validationState, negEntry.d_name, state, denialState, lwr.d_answerType == LWResult::AnswerType::NoData ? dState::NXQTYPE : dState::NXDOMAIN, false, depth, prefix);
+        //cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+      }
+      else {
+        // cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+        negEntry.d_validationState = recordState;
+        updateValidationState(qname, state, negEntry.d_validationState, prefix);
+      }
+    }
+
+    // cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+    if (vStateIsBogus(negEntry.d_validationState)) {
+      // cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+      lowestTTL = min(lowestTTL, s_maxbogusttl);
+    }
+
+    // cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+    negEntry.d_ttd = d_now.tv_sec + lowestTTL;
+    negEntry.d_orig_ttl = lowestTTL;
+    if (putInNegCache) {
+      // cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+
+      g_negCache->add(negEntry);
+      // doCNAMECacheCheck() checks record cache and does not look into negcache. That means that an old record might be found if
+      // serve-stale is active. Avoid that by explicitly zapping that CNAME record.
+      if (qtype == QType::CNAME && MemRecursorCache::s_maxServedStaleExtensions > 0) {
+        // cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+
+        g_recCache->doWipeCache(qname, false, qtype);
+      }
+      if (s_rootNXTrust && negEntry.d_auth.isRoot() && auth.isRoot() && lwr.d_aabit) {
+        // cerr<<"in "<<__PRETTY_FUNCTION__<<" : "<<__LINE__<<endl;
+
+        negEntry.d_name = negEntry.d_name.getLastLabel();
+        g_negCache->add(negEntry);
+      }
+    }
+    return;
+  }
+
+  // uh, oh
+}
+
 bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, DNSName& auth, bool wasForwarded, const std::optional<Netmask>& ednsmask, bool sendRDQuery, NsSet& nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP, bool overTCP)
 {
   fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
@@ -5976,7 +6154,8 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   normalizeTTLs(lwr.d_records, d_updatingRootNS, ednsmask.has_value(), s_minimumTTL, s_minimumECSTTL);
 
   auto tcache = validateSignatures(prefix, lwr, qname, qtype, auth, wasForwarded && sendRDQuery, state, depth);
-  // FIXME: TODO: checkDenialOfExistence
+  // will also update the negative cache
+  checkDenialOfExistence(depth, prefix, lwr, qname, qtype, auth, tcache, state);
 
   *rcode = updateCacheFromRecords(depth, prefix, lwr, qname, qtype, auth, wasForwarded, ednsmask, sendRDQuery, remoteIP, overTCP, tcache);
   if (*rcode != RCode::NoError) {
@@ -6013,6 +6192,10 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   if (lwr.d_rcode == RCode::NXDomain) {
     LOG(prefix << qname << ": Status=NXDOMAIN, we are done " << (negindic ? "(have negative SOA)" : "") << endl);
 
+#warning this should now be checked earlier
+
+#if 0
+    cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
     auto tempState = getValidationStatus(qname, negIndicHasSignatures, qtype == QType::DS, depth, prefix);
     if (tempState == vState::Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
       LOG(prefix << qname << ": NXDOMAIN without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus" << endl);
@@ -6023,7 +6206,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
          from an insecure zone, for example */
       updateValidationState(qname, state, tempState, prefix);
     }
-
+#endif
     if (d_doDNSSEC) {
       addNXNSECS(ret, lwr.d_records);
     }
@@ -6035,6 +6218,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   if (nsset.empty() && lwr.d_rcode == 0 && (negindic || lwr.d_aabit || sendRDQuery)) {
     LOG(prefix << qname << ": Status=noerror, other types may exist, but we are done " << (negindic ? "(have negative SOA) " : "") << (lwr.d_aabit ? "(have aa bit) " : "") << endl);
 
+    // cerr << "calling getValidationStatus from " << __PRETTY_FUNCTION__ << ":" << __LINE__ << endl;
     auto tempState = getValidationStatus(qname, negIndicHasSignatures, qtype == QType::DS, depth, prefix);
     if (tempState == vState::Secure && (lwr.d_aabit || sendRDQuery) && !negindic) {
       LOG(prefix << qname << ": NODATA without a negative indication (missing SOA in authority) in a DNSSEC secure zone, going Bogus" << endl);
@@ -6300,6 +6484,10 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           }
 
           LOG(prefix << qname << ": Got " << (unsigned int)lwr.d_records.size() << " answers from " << tns->first << " (" << remoteIP->toString() << "), rcode=" << lwr.d_rcode << " (" << RCode::to_s(lwr.d_rcode) << "), aa=" << lwr.d_aabit << ", in " << lwr.d_usec / 1000 << "ms" << endl);
+
+          for (const auto& rec : lwr.d_records) {
+            LOG(prefix << qname << ": - '" << rec.d_name << "|" << DNSRecordContent::NumberToType(rec.d_type) << "|" << rec.getContent()->getZoneRepresentation() << "' ttl=" << rec.d_ttl << ", place=" << (int)rec.d_place << endl);
+          }
 
           if (doDoT && s_max_busy_dot_probes > 0) {
             updateDoTStatus(*remoteIP, DoTStatus::Good, d_now.tv_sec + dotSuccessWait);

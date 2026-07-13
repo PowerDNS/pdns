@@ -106,6 +106,8 @@ public:
   //    downstream validators to do their thing
   std::unordered_map<DNSName, ExpandedWildcardData> d_synthesizedFromWildcard;
   std::optional<DNSName> d_seenSOA{std::nullopt};
+  // if this a referral, the new (more specific) auth
+  std::optional<DNSName> d_newAuth{std::nullopt};
   uint32_t d_usec{0};
   uint32_t d_bytesReceived{0};
   // this needs to be a signed integer because the Lua policies
@@ -118,6 +120,9 @@ public:
   bool d_haveEDNS{false};
   bool d_isCNAMEAnswer{false};
   bool d_isDNAMEAnswer{false};
+  // whether we have seen at least one NSEC(3) record in AUTHORITY.
+  // This might indicate a denial of the DS in referrals
+  bool d_seenNSEC{false};
 };
 
 class EDNSSubnetOpts;
