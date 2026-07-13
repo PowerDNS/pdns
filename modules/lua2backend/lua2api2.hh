@@ -29,60 +29,60 @@
 class Lua2BackendAPIv2 : public DNSBackend, AuthLua4
 {
 private:
-  typedef std::function<void()> init_call_t;
-  typedef std::function<void()> deinit_call_t;
+  using init_call_t = std::function<void()>;
+  using deinit_call_t = std::function<void()>;
 
-  typedef std::vector<std::pair<string, string>> lookup_context_t;
+  using lookup_context_t = std::vector<std::pair<string, string>>;
 
-  typedef std::vector<std::pair<int, std::vector<std::pair<string, boost::variant<bool, int, DNSName, string, QType>>>>> lookup_result_t;
-  typedef std::function<lookup_result_t(const QType& qtype, const DNSName& qname, domainid_t domain_id, const lookup_context_t& ctx)> lookup_call_t;
+  using lookup_result_t = std::vector<std::pair<int, std::vector<std::pair<string, boost::variant<bool, int, DNSName, string, QType>>>>>;
+  using lookup_call_t = std::function<lookup_result_t(const QType& qtype, const DNSName& qname, domainid_t domain_id, const lookup_context_t& ctx)>;
 
-  typedef boost::variant<bool, lookup_result_t> list_result_t;
-  typedef std::function<list_result_t(const DNSName& qname, domainid_t domain_id)> list_call_t;
+  using list_result_t = boost::variant<bool, lookup_result_t>;
+  using list_call_t = std::function<list_result_t(const DNSName& qname, domainid_t domain_id)>;
 
-  typedef vector<pair<string, boost::variant<bool, long, string, vector<string>>>> domaininfo_result_t;
-  typedef boost::variant<bool, domaininfo_result_t> get_domaininfo_result_t;
-  typedef vector<pair<DNSName, domaininfo_result_t>> get_all_domains_result_t;
-  typedef std::function<get_domaininfo_result_t(const DNSName& domain)> get_domaininfo_call_t;
-  typedef std::function<get_all_domains_result_t()> get_all_domains_call_t;
+  using domaininfo_result_t = vector<pair<string, boost::variant<bool, long, string, vector<string>>>>;
+  using get_domaininfo_result_t = boost::variant<bool, domaininfo_result_t>;
+  using get_all_domains_result_t = vector<pair<DNSName, domaininfo_result_t>>;
+  using get_domaininfo_call_t = std::function<get_domaininfo_result_t(const DNSName& domain)>;
+  using get_all_domains_call_t = std::function<get_all_domains_result_t()>;
 
-  typedef vector<pair<int, string>> domain_metadata_result_t;
-  typedef boost::variant<bool, domain_metadata_result_t> get_domain_metadata_result_t;
-  typedef boost::variant<bool, vector<pair<string, domain_metadata_result_t>>> get_all_domain_metadata_result_t;
-  typedef std::function<get_domain_metadata_result_t(const DNSName& domain, const string& kind)> get_domain_metadata_call_t;
-  typedef std::function<get_all_domain_metadata_result_t(const DNSName& domain)> get_all_domain_metadata_call_t;
+  using domain_metadata_result_t = vector<pair<int, string>>;
+  using get_domain_metadata_result_t = boost::variant<bool, domain_metadata_result_t>;
+  using get_all_domain_metadata_result_t = boost::variant<bool, vector<pair<string, domain_metadata_result_t>>>;
+  using get_domain_metadata_call_t = std::function<get_domain_metadata_result_t(const DNSName& domain, const string& kind)>;
+  using get_all_domain_metadata_call_t = std::function<get_all_domain_metadata_result_t(const DNSName& domain)>;
 
-  typedef vector<pair<string, boost::variant<bool, int, string>>> keydata_result_t;
-  typedef boost::variant<bool, vector<pair<int, keydata_result_t>>> get_domain_keys_result_t;
-  typedef std::function<get_domain_keys_result_t(const DNSName& domain)> get_domain_keys_call_t;
+  using keydata_result_t = vector<pair<string, boost::variant<bool, int, string>>>;
+  using get_domain_keys_result_t = boost::variant<bool, vector<pair<int, keydata_result_t>>>;
+  using get_domain_keys_call_t = std::function<get_domain_keys_result_t(const DNSName& domain)>;
 
-  typedef std::vector<std::pair<string, boost::variant<string, DNSName>>> before_and_after_names_result_t;
-  typedef boost::variant<bool, before_and_after_names_result_t> get_before_and_after_names_absolute_result_t;
-  typedef std::function<get_before_and_after_names_absolute_result_t(domainid_t id, const DNSName& qname)> get_before_and_after_names_absolute_call_t;
+  using before_and_after_names_result_t = std::vector<std::pair<string, boost::variant<string, DNSName>>>;
+  using get_before_and_after_names_absolute_result_t = boost::variant<bool, before_and_after_names_result_t>;
+  using get_before_and_after_names_absolute_call_t = std::function<get_before_and_after_names_absolute_result_t(domainid_t domain_id, const DNSName& qname)>;
 
-  typedef std::function<void(domainid_t, long)> set_notified_call_t;
+  using set_notified_call_t = std::function<void(domainid_t, long)>;
 
-  typedef std::function<string(const string& cmd)> direct_backend_cmd_call_t;
+  using direct_backend_cmd_call_t = std::function<string(const string& cmd)>;
 
 public:
-  Lua2BackendAPIv2(Logr::log_t slog, const string& suffix);
+  explicit Lua2BackendAPIv2(Logr::log_t slog, const string& suffix);
   ~Lua2BackendAPIv2() override;
 
   void postPrepareContext() override;
   void postLoad() override;
   unsigned int getCapabilities() override;
   bool list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */ = false) override;
-  void lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* p = nullptr) override;
-  bool get(DNSResourceRecord& rr) override;
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* pkt = nullptr) override;
+  bool get(DNSResourceRecord& drr) override;
   string directBackendCmd(const string& querystr) override;
-  void setNotified(domainid_t id, uint32_t serial) override;
-  void parseDomainInfo(const domaininfo_result_t& row, DomainInfo& di);
-  bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */ = true) override;
+  void setNotified(domainid_t domain_id, uint32_t serial) override;
+  void parseDomainInfo(const domaininfo_result_t& row, DomainInfo& info);
+  bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */ = true) override;
   void getAllDomains(vector<DomainInfo>* domains, bool /* getSerial */, bool /* include_disabled */) override;
   bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta) override;
   bool getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys) override;
-  bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
+  bool getBeforeAndAfterNamesAbsolute(domainid_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
 
 private:
   std::list<DNSResourceRecord> d_result;

@@ -36,8 +36,9 @@ Lua2BackendAPIv2::Lua2BackendAPIv2(Logr::log_t slog, const string& suffix)
 
 Lua2BackendAPIv2::~Lua2BackendAPIv2()
 {
-  if (f_deinit)
+  if (f_deinit) {
     f_deinit();
+  }
 }
 
 void Lua2BackendAPIv2::postPrepareContext()
@@ -47,22 +48,23 @@ void Lua2BackendAPIv2::postPrepareContext()
 
 void Lua2BackendAPIv2::postLoad()
 {
-  f_lookup = d_lw->readVariable<boost::optional<lookup_call_t>>("dns_lookup").get_value_or(0);
-  f_list = d_lw->readVariable<boost::optional<list_call_t>>("dns_list").get_value_or(0);
-  f_get_all_domains = d_lw->readVariable<boost::optional<get_all_domains_call_t>>("dns_get_all_domains").get_value_or(0);
-  f_get_domaininfo = d_lw->readVariable<boost::optional<get_domaininfo_call_t>>("dns_get_domaininfo").get_value_or(0);
-  f_get_domain_metadata = d_lw->readVariable<boost::optional<get_domain_metadata_call_t>>("dns_get_domain_metadata").get_value_or(0);
-  f_get_all_domain_metadata = d_lw->readVariable<boost::optional<get_all_domain_metadata_call_t>>("dns_get_all_domain_metadata").get_value_or(0);
-  f_get_domain_keys = d_lw->readVariable<boost::optional<get_domain_keys_call_t>>("dns_get_domain_keys").get_value_or(0);
-  f_get_before_and_after_names_absolute = d_lw->readVariable<boost::optional<get_before_and_after_names_absolute_call_t>>("dns_get_before_and_after_names_absolute").get_value_or(0);
-  f_set_notified = d_lw->readVariable<boost::optional<set_notified_call_t>>("dns_set_notified").get_value_or(0);
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks): clang-tidy is adamant readVariable may leak a std::function in LuaContext::Reader(), but only warns for the first readVariable call.
+  f_lookup = d_lw->readVariable<boost::optional<lookup_call_t>>("dns_lookup").get_value_or(nullptr);
+  f_list = d_lw->readVariable<boost::optional<list_call_t>>("dns_list").get_value_or(nullptr);
+  f_get_all_domains = d_lw->readVariable<boost::optional<get_all_domains_call_t>>("dns_get_all_domains").get_value_or(nullptr);
+  f_get_domaininfo = d_lw->readVariable<boost::optional<get_domaininfo_call_t>>("dns_get_domaininfo").get_value_or(nullptr);
+  f_get_domain_metadata = d_lw->readVariable<boost::optional<get_domain_metadata_call_t>>("dns_get_domain_metadata").get_value_or(nullptr);
+  f_get_all_domain_metadata = d_lw->readVariable<boost::optional<get_all_domain_metadata_call_t>>("dns_get_all_domain_metadata").get_value_or(nullptr);
+  f_get_domain_keys = d_lw->readVariable<boost::optional<get_domain_keys_call_t>>("dns_get_domain_keys").get_value_or(nullptr);
+  f_get_before_and_after_names_absolute = d_lw->readVariable<boost::optional<get_before_and_after_names_absolute_call_t>>("dns_get_before_and_after_names_absolute").get_value_or(nullptr);
+  f_set_notified = d_lw->readVariable<boost::optional<set_notified_call_t>>("dns_set_notified").get_value_or(nullptr);
 
-  auto init = d_lw->readVariable<boost::optional<init_call_t>>("dns_init").get_value_or(0);
+  auto init = d_lw->readVariable<boost::optional<init_call_t>>("dns_init").get_value_or(nullptr);
   if (init) {
     init();
   }
 
-  f_deinit = d_lw->readVariable<boost::optional<deinit_call_t>>("dns_deinit").get_value_or(0);
+  f_deinit = d_lw->readVariable<boost::optional<deinit_call_t>>("dns_deinit").get_value_or(nullptr);
 
   if (f_lookup == nullptr) {
     throw PDNSException("dns_lookup missing");
@@ -170,7 +172,7 @@ bool Lua2BackendAPIv2::list(const ZoneName& target, domainid_t domain_id, bool /
     return false;
   }
 
-  if (d_result.size() != 0) {
+  if (!d_result.empty()) {
     throw PDNSException("list attempted while another was running");
   }
 
@@ -189,16 +191,16 @@ bool Lua2BackendAPIv2::list(const ZoneName& target, domainid_t domain_id, bool /
   return true;
 }
 
-void Lua2BackendAPIv2::lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* p)
+void Lua2BackendAPIv2::lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* pkt)
 {
-  if (d_result.size() != 0) {
+  if (!d_result.empty()) {
     throw PDNSException("lookup attempted while another was running");
   }
 
   lookup_context_t ctx;
-  if (p != NULL) {
-    ctx.emplace_back(lookup_context_t::value_type{"source_address", p->getInnerRemote().toString()});
-    ctx.emplace_back(lookup_context_t::value_type{"real_source_address", p->getRealRemote().toString()});
+  if (pkt != nullptr) {
+    ctx.emplace_back(lookup_context_t::value_type{"source_address", pkt->getInnerRemote().toString()});
+    ctx.emplace_back(lookup_context_t::value_type{"real_source_address", pkt->getRealRemote().toString()});
   }
 
   if (d_debug_log) {
@@ -209,12 +211,12 @@ void Lua2BackendAPIv2::lookup(const QType& qtype, const DNSName& qname, domainid
   parseLookup(result);
 }
 
-bool Lua2BackendAPIv2::get(DNSResourceRecord& rr)
+bool Lua2BackendAPIv2::get(DNSResourceRecord& drr)
 {
-  if (d_result.size() == 0) {
+  if (d_result.empty()) {
     return false;
   }
-  rr = std::move(d_result.front());
+  drr = std::move(d_result.front());
   d_result.pop_front();
   return true;
 }
@@ -223,74 +225,74 @@ string Lua2BackendAPIv2::directBackendCmd(const string& querystr)
 {
   string::size_type pos = querystr.find_first_of(" \t");
   string cmd = querystr;
-  string par = "";
+  string par{};
   if (pos != string::npos) {
     cmd = querystr.substr(0, pos);
     par = querystr.substr(pos + 1);
   }
-  direct_backend_cmd_call_t f = d_lw->readVariable<boost::optional<direct_backend_cmd_call_t>>(cmd).get_value_or(0);
-  if (f == nullptr) {
+  direct_backend_cmd_call_t dbc = d_lw->readVariable<boost::optional<direct_backend_cmd_call_t>>(cmd).get_value_or(nullptr);
+  if (dbc == nullptr) {
     return cmd + "not found";
   }
   if (d_debug_log) {
     SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << cmd << "(" << "parameter=" << par << ")" << endl,
          d_slog->info(Logr::Debug, "Direct backend command", "command", Logging::Loggable(cmd), "parameters", Logging::Loggable(par)));
   }
-  return f(par);
+  return dbc(par);
 }
 
-void Lua2BackendAPIv2::setNotified(domainid_t id, uint32_t serial)
+void Lua2BackendAPIv2::setNotified(domainid_t domain_id, uint32_t serial)
 {
-  if (f_set_notified == NULL) {
+  if (f_set_notified == nullptr) {
     return;
   }
   if (d_debug_log) {
-    SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "dns_set_notified" << "(" << "id=" << id << ",serial=" << serial << ")" << endl,
-         d_slog->info(Logr::Debug, "Calling dns_set_notified", "id", Logging::Loggable(id), "serial", Logging::Loggable(serial)));
+    SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "dns_set_notified" << "(" << "id=" << domain_id << ",serial=" << serial << ")" << endl,
+         d_slog->info(Logr::Debug, "Calling dns_set_notified", "id", Logging::Loggable(domain_id), "serial", Logging::Loggable(serial)));
   }
-  f_set_notified(id, serial);
+  f_set_notified(domain_id, serial);
 }
 
-void Lua2BackendAPIv2::parseDomainInfo(const domaininfo_result_t& row, DomainInfo& di)
+void Lua2BackendAPIv2::parseDomainInfo(const domaininfo_result_t& row, DomainInfo& info)
 {
-  di.id = UnknownDomainID;
+  info.id = UnknownDomainID;
   for (const auto& item : row) {
     if (item.first == "account") {
-      di.account = boost::get<string>(item.second);
+      info.account = boost::get<string>(item.second);
     }
     else if (item.first == "last_check") {
-      di.last_check = static_cast<time_t>(boost::get<long>(item.second));
+      info.last_check = static_cast<time_t>(boost::get<long>(item.second));
     }
     else if (item.first == "masters") {
       for (const auto& primary : boost::get<vector<string>>(item.second)) {
-        di.primaries.push_back(ComboAddress(primary, 53));
+        info.primaries.emplace_back(ComboAddress(primary, 53));
       }
     }
     else if (item.first == "id") {
-      di.id = static_cast<domainid_t>(boost::get<long>(item.second));
+      info.id = static_cast<domainid_t>(boost::get<long>(item.second));
     }
     else if (item.first == "notified_serial") {
-      di.notified_serial = static_cast<unsigned int>(boost::get<long>(item.second));
+      info.notified_serial = static_cast<unsigned int>(boost::get<long>(item.second));
     }
     else if (item.first == "serial") {
-      di.serial = static_cast<unsigned int>(boost::get<long>(item.second));
+      info.serial = static_cast<unsigned int>(boost::get<long>(item.second));
     }
     else if (item.first == "kind") {
-      di.kind = DomainInfo::stringToKind(boost::get<string>(item.second));
+      info.kind = DomainInfo::stringToKind(boost::get<string>(item.second));
     }
     else {
       SLOG(g_log << Logger::Warning << "Unsupported key '" << item.first << "' in domaininfo result" << endl,
            d_slog->info(Logr::Warning, "Unsupported key in domaininfo result", "key", Logging::Loggable(item.first)));
     }
   }
-  di.backend = this;
+  info.backend = this;
   if (d_debug_log) {
-    SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString() << "'" << endl,
-         d_slog->info(Logr::Debug, "Got domain info", "zone", Logging::Loggable(di.zone), "serial", Logging::Loggable(di.serial), "kind", Logging::Loggable(di.getKindString())));
+    SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << "zone=" << info.zone << ",serial=" << info.serial << ",kind=" << info.getKindString() << "'" << endl,
+         d_slog->info(Logr::Debug, "Got domain info", "zone", Logging::Loggable(info.zone), "serial", Logging::Loggable(info.serial), "kind", Logging::Loggable(info.getKindString())));
   }
 }
 
-bool Lua2BackendAPIv2::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */)
+bool Lua2BackendAPIv2::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */)
 {
   if (f_get_domaininfo == nullptr) {
     // use getAuth instead... but getAuth wraps getSOA which will call
@@ -301,15 +303,15 @@ bool Lua2BackendAPIv2::getDomainInfo(const ZoneName& domain, DomainInfo& di, boo
            d_slog->info(Logr::Info, "Unable to return domain information due to unimplemented dns_get_domaininfo", "domain", Logging::Loggable(domain)));
       return false;
     }
-    SOAData sd;
-    if (!getAuth(domain, &sd)) {
+    SOAData soa;
+    if (!getAuth(domain, &soa)) {
       return false;
     }
 
-    di.id = sd.domain_id;
-    di.zone = domain;
-    di.backend = this;
-    di.serial = sd.serial;
+    info.id = soa.domain_id;
+    info.zone = domain;
+    info.backend = this;
+    info.serial = soa.serial;
     return true;
   }
 
@@ -323,8 +325,8 @@ bool Lua2BackendAPIv2::getDomainInfo(const ZoneName& domain, DomainInfo& di, boo
     return false;
   }
 
-  di.zone = domain;
-  parseDomainInfo(boost::get<domaininfo_result_t>(result), di);
+  info.zone = domain;
+  parseDomainInfo(boost::get<domaininfo_result_t>(result), info);
 
   return true;
 }
@@ -340,14 +342,14 @@ void Lua2BackendAPIv2::getAllDomains(vector<DomainInfo>* domains, bool /* getSer
          d_slog->info(Logr::Debug, "Calling get_all_domains"));
   }
   for (const auto& row : f_get_all_domains()) {
-    DomainInfo di;
-    di.zone = ZoneName(row.first);
+    DomainInfo info;
+    info.zone = ZoneName(row.first);
     if (d_debug_log) {
-      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << di.zone << "'" << endl,
-           d_slog->info(Logr::Debug, "Got result", "domain", Logging::Loggable(di.zone)));
+      SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Got result " << "'" << info.zone << "'" << endl,
+           d_slog->info(Logr::Debug, "Got result", "domain", Logging::Loggable(info.zone)));
     }
-    parseDomainInfo(row.second, di);
-    domains->push_back(std::move(di));
+    parseDomainInfo(row.second, info);
+    domains->push_back(std::move(info));
   }
 }
 
@@ -457,17 +459,17 @@ bool Lua2BackendAPIv2::getDomainKeys(const ZoneName& name, std::vector<DNSBacken
   return true;
 }
 
-bool Lua2BackendAPIv2::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+bool Lua2BackendAPIv2::getBeforeAndAfterNamesAbsolute(domainid_t domain_id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   if (f_get_before_and_after_names_absolute == nullptr) {
     return false;
   }
 
   if (d_debug_log) {
-    SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_before_and_after_names_absolute" << "(" << "id=<<" << id << ",qname=" << qname << ")" << endl,
-         d_slog->info(Logr::Debug, "Calling get_before_and_after_names_absolute", "id", Logging::Loggable(id), "name", Logging::Loggable(qname)));
+    SLOG(g_log << Logger::Debug << "[" << getPrefix() << "] Calling " << "get_before_and_after_names_absolute" << "(" << "id=<<" << domain_id << ",qname=" << qname << ")" << endl,
+         d_slog->info(Logr::Debug, "Calling get_before_and_after_names_absolute", "id", Logging::Loggable(domain_id), "name", Logging::Loggable(qname)));
   }
-  get_before_and_after_names_absolute_result_t result = f_get_before_and_after_names_absolute(id, qname);
+  get_before_and_after_names_absolute_result_t result = f_get_before_and_after_names_absolute(domain_id, qname);
 
   if (result.which() == 0) {
     return false;
