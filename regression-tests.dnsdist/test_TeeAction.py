@@ -191,6 +191,7 @@ tcp-drops\t0
             % (numberOfQueries, numberOfQueries, numberOfQueries),
         )
 
+
 class TestTeeActionLua(TeeActionBase, DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
@@ -269,5 +270,4 @@ query_rules:
         "_teeServerPort",
         "_teeProxyServerPort",
     ]
-    _config_params = [
-    ]
+    _config_params = []
