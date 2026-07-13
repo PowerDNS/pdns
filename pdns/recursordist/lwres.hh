@@ -74,6 +74,25 @@ public:
     NXDomain,
   };
 
+  class ExpandedWildcardData
+  {
+  public:
+    // wildcards expanded onto themselves (*.powerdns.com. returned as a query
+    // for *.powerdns.com., for example) DO exist, so trying to prove that they
+    // don't would fail.
+    bool shouldDenialOfExistenceBeValidated() const
+    {
+      return !d_expandedOntoItself;
+    }
+
+    // The number of labels of the wildcard (from the RRSIG)
+    // so that we can reconstruct it. Remember to check if this is a
+    // wildcard expanded onto itself (shouldDenialOfExistenceBeValidated)
+    // when consuming this.
+    uint8_t d_labelsCount{0};
+    bool d_expandedOntoItself{false};
+  };
+
   [[nodiscard]] static bool isLimitError(Result res)
   {
     return res == Result::OSLimitError || res == Result::ChainLimitError;
@@ -85,11 +104,7 @@ public:
   //    that the wildcard could have been applied
   // 2/ gather the corresponding NSEC/NSEC3 records and their RRSIGs to allow
   //    downstream validators to do their thing
-  // The value is the number of labels of the wildcard (from the RRSIG)
-  // so that we can reconstruct it. Remember to check if this is a
-  // wildcard expanded onto itself (isWildcardExpandedOntoItself)
-  // when consuming this
-  std::unordered_map<DNSName, uint8_t> d_synthesizedFromWildcard;
+  std::unordered_map<DNSName, ExpandedWildcardData> d_synthesizedFromWildcard;
   std::optional<DNSName> d_seenSOA{std::nullopt};
   uint32_t d_usec{0};
   uint32_t d_bytesReceived{0};

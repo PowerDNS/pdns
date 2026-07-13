@@ -4242,7 +4242,8 @@ static bool isRedirection(QType qtype)
 static void checkIfAnswerContainsRecordsExpandedFromAWildcard(LWResult& lwr, const DNSName& qname, const std::unordered_set<DNSName>& cnames)
 {
   // names that might be expanded from a wildcard, and thus require denial of existence proof
-  // this is the queried name and any part of the CNAME chain from the queried name
+  // this is the queried name and any part of the CNAME chain from the queried name (if we are
+  // doing forward recurse, otherwise we discarded the chain except for the first CNAME anyway).
   // the key is the name itself, the value is initially false and is set to true once we have
   // confirmed it was actually expanded from a wildcard
   std::unordered_set<DNSName> wildcardCandidates{{qname}};
@@ -4271,7 +4272,7 @@ static void checkIfAnswerContainsRecordsExpandedFromAWildcard(LWResult& lwr, con
          We still want to gather the corresponding NSEC/NSEC3 records
          to pass them to our client in case it wants to validate by itself.
       */
-      lwr.d_synthesizedFromWildcard.emplace(rec.d_name, rrsig->d_labels);
+      lwr.d_synthesizedFromWildcard.emplace(rec.d_name, LWResult::ExpandedWildcardData{rrsig->d_labels, isWildcardExpandedOntoItself(rec.d_name, labelCount, *rrsig)});
     }
   }
 }
@@ -5315,8 +5316,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         if (auto content = getRR<CNAMERecordContent>(rec)) {
           newtarget = DNSName(content->getTarget());
         }
-        if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end()) {
-          checkWildcardProof(qname, QType::CNAME, rec, lwr, state, depth, prefix, expandedIt->second);
+        if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end() && expandedIt->second.shouldDenialOfExistenceBeValidated()) {
+          checkWildcardProof(qname, QType::CNAME, rec, lwr, state, depth, prefix, expandedIt->second.d_labelsCount);
         }
       }
       else if (rec.d_type == QType::DNAME && qname.isPartOf(rec.d_name)) { // DNAME
@@ -5336,8 +5337,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           }
           try {
             newtarget = qname.makeRelative(dnameOwner) + dnameTarget;
-            if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end()) {
-              checkWildcardProof(qname, QType::DNAME, rec, lwr, state, depth, prefix, expandedIt->second);
+            if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end() && expandedIt->second.shouldDenialOfExistenceBeValidated()) {
+              checkWildcardProof(qname, QType::DNAME, rec, lwr, state, depth, prefix, expandedIt->second.d_labelsCount);
             }
           }
           catch (const std::exception& e) {
@@ -5352,7 +5353,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
        return the corresponding NSEC/NSEC3 records from the AUTHORITY section
        proving that the exact name did not exist.
        Except if this is a NODATA answer because then we will gather the NXNSEC records later */
-    else if (!lwr.d_synthesizedFromWildcard.empty() && !negindic && (rec.d_type == QType::RRSIG || rec.d_type == QType::NSEC || rec.d_type == QType::NSEC3) && rec.d_place == DNSResourceRecord::AUTHORITY) {
+    else if (!negindic && (rec.d_type == QType::RRSIG || rec.d_type == QType::NSEC || rec.d_type == QType::NSEC3) && rec.d_place == DNSResourceRecord::AUTHORITY && (lwr.d_synthesizedFromWildcard.find(qname) != lwr.d_synthesizedFromWildcard.end())) {
       ret.push_back(rec); // enjoy your DNSSEC
     }
     // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
@@ -5362,8 +5363,8 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       done = true;
       rcode = RCode::NoError;
 
-      if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end()) {
-        checkWildcardProof(qname, qtype, rec, lwr, state, depth, prefix, expandedIt->second);
+      if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(qname); expandedIt != lwr.d_synthesizedFromWildcard.end() && expandedIt->second.shouldDenialOfExistenceBeValidated()) {
+        checkWildcardProof(qname, qtype, rec, lwr, state, depth, prefix, expandedIt->second.d_labelsCount);
       }
 
       ret.push_back(rec);

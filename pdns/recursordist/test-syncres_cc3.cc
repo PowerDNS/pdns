@@ -1339,8 +1339,6 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_nodata_bogus)
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
-#if 0
-// FIXME!!
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded)
 {
   std::unique_ptr<SyncRes> testSR;
@@ -1413,7 +1411,6 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   BOOST_REQUIRE_EQUAL(ret.size(), 5U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_auth_zone_oob)
 {

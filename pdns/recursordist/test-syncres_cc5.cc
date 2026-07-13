@@ -2387,8 +2387,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
-#if 0
-// FIXME!!
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself)
 {
   std::unique_ptr<SyncRes> sr;
@@ -2443,7 +2441,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself)
   /* A + RRSIG, NSEC + RRSIG */
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself_nodata)
 {
