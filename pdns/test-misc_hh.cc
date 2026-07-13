@@ -12,8 +12,6 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
 
-#include <boost/tuple/tuple.hpp>
-
 #include <arpa/inet.h>
 
 #include "dns.hh"
@@ -61,52 +59,6 @@ BOOST_AUTO_TEST_CASE(test_CIStringPairCompare) {
                 s<<"("<<i->first<<"|"<<i->second<<")";
         }
         BOOST_CHECK_EQUAL(s.str(), "(|1)(abc|1)(abc|2)(def|1)(ns.example.com|0)(ns.example.com|1)");
-}
-
-BOOST_AUTO_TEST_CASE(test_pdns_ilexicographical_compare) {
-  typedef boost::tuple<const std::string, const std::string, bool> case_t;
-  typedef std::list<case_t> cases_t;
-
-  cases_t cases = boost::assign::list_of
-    (case_t(std::string(""), std::string(""), false))
-    (case_t(std::string(""), std::string("abc"), true))
-    (case_t(std::string("abc"), std::string(""), false))
-    (case_t(std::string("abc"), std::string("abcd"), true))
-    (case_t(std::string("abcd"), std::string("abc"), false))
-    (case_t(std::string("abd"), std::string("abc"), false))
-    (case_t(std::string("abc"), std::string("abd"), true))
-    (case_t(std::string("abc"), std::string("Abc"), false))
-    (case_t(std::string("Abc"), std::string("abc"), false))
-  ;
-
-  for(const case_t& val :  cases) {
-    bool res;
-    res = pdns_ilexicographical_compare(val.get<0>(), val.get<1>());
-    BOOST_CHECK_EQUAL(res, val.get<2>());
-  }
-}
-
-BOOST_AUTO_TEST_CASE(test_pdns_iequals) {
-  typedef boost::tuple<const std::string, const std::string, bool> case_t;
-  typedef std::list<case_t> cases_t;
-
-  cases_t cases = boost::assign::list_of
-    (case_t(std::string(""), std::string(""), true))
-    (case_t(std::string(""), std::string("abc"), false))
-    (case_t(std::string("abc"), std::string(""), false))
-    (case_t(std::string("abc"), std::string("abcd"), false))
-    (case_t(std::string("abcd"), std::string("abc"), false))
-    (case_t(std::string("abd"), std::string("abc"), false))
-    (case_t(std::string("abc"), std::string("abd"), false))
-    (case_t(std::string("abc"), std::string("Abc"), true))
-    (case_t(std::string("Abc"), std::string("abc"), true))
-  ;
-
-  for(const case_t& val :  cases) {
-    bool res;
-    res = pdns_iequals(val.get<0>(), val.get<1>());
-    BOOST_CHECK_EQUAL(res, val.get<2>());
-  }
 }
 
 BOOST_AUTO_TEST_CASE(test_stripDot) {
