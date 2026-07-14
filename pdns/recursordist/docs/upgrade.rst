@@ -30,6 +30,8 @@ The .onion domain is no longer forwarded to any authoritative server but respond
 
 Any domains under .test and .invalid are no longer forwarded to authoritatives on the internet, but can be individually forwarded or overwritten.
 
+The Special Use Domains :rfc:`home.arpa <8375>`, :rfc:`resolver.arpa <9462>`, and :rfc:`service.arpa <9665>` are no longer forwarded to the internet, but can be individually overwritten or forwarded.
+
 5.1.10, 5.2.8 and 5.3.5
 -----------------------
 
