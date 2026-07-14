@@ -1588,31 +1588,38 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
 
   int64_t insertedId = -1;
 
-  if (privatekey.is_null()) {
-    int bits = keyOrZone ? ::arg().asNum("default-ksk-size") : ::arg().asNum("default-zsk-size");
-    auto docbits = document["bits"];
-    if (!docbits.is_null()) {
-      if (!docbits.is_number() || (fmod(docbits.number_value(), 1.0) != 0) || docbits.int_value() < 0) {
-        throw ApiException("'bits' must be a positive integer value");
-      }
-
+  int bits = -1;
+  const auto& docbits = document["bits"];
+  if (!docbits.is_null()) {
+    if (docbits.is_number() && fmod(docbits.number_value(), 1.0) == 0.0) {
       bits = docbits.int_value();
     }
-    int algorithm = DNSSECKeeper::shorthand2algorithm(keyOrZone ? ::arg()["default-ksk-algorithm"] : ::arg()["default-zsk-algorithm"]);
-    const auto& providedAlgo = document["algorithm"];
+    if (bits < 0) {
+      throw ApiException("'bits' must be a positive integer value");
+    }
+  }
+  int algorithm = -1;
+  const auto& providedAlgo = document["algorithm"];
+  if (!providedAlgo.is_null()) {
     if (providedAlgo.is_string()) {
       algorithm = DNSSECKeeper::shorthand2algorithm(providedAlgo.string_value());
-      if (algorithm == -1) {
-        throw ApiException("Unknown algorithm: " + providedAlgo.string_value());
-      }
     }
     else if (providedAlgo.is_number()) {
       algorithm = providedAlgo.int_value();
     }
-    else if (!providedAlgo.is_null()) {
+    if (algorithm < 0 || algorithm > std::numeric_limits<uint8_t>::max()) {
       throw ApiException("Unknown algorithm: " + providedAlgo.string_value());
     }
+  }
 
+  if (privatekey.is_null()) {
+    // Use defaults for bits and algorithm if they have not been specified
+    if (bits < 0) {
+      bits = keyOrZone ? ::arg().asNum("default-ksk-size") : ::arg().asNum("default-zsk-size");
+    }
+    if (algorithm < 0) {
+      algorithm = DNSSECKeeper::shorthand2algorithm(keyOrZone ? ::arg()["default-ksk-algorithm"] : ::arg()["default-zsk-algorithm"]);
+    }
     try {
       if (!zoneData.dnssecKeeper.addKey(zoneData.zoneName, keyOrZone, algorithm, insertedId, bits, active, published)) {
         throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
@@ -1625,12 +1632,24 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
     }
   }
-  else if (document["bits"].is_null() && document["algorithm"].is_null()) {
+  else {
     const auto& keyData = stringFromJson(document, privatekey_fieldname);
     DNSKEYRecordContent dkrc;
     DNSSECPrivateKey dpk;
     try {
       shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(resp->d_slog, dkrc, keyData));
+      // If we have been passed bits and/or algorithm, make sure they match
+      // the private key.
+      if (!docbits.is_null()) {
+        if (dke->getBits() != bits) {
+          throw ApiException("Private key size (" + std::to_string(dke->getBits()) + " bits) is inconsistent with the 'bits' field");
+        }
+      }
+      if (!providedAlgo.is_null()) {
+        if (dke->getAlgorithm() != static_cast<unsigned int>(algorithm)) {
+          throw ApiException("Private key algorithm (" + DNSSECKeeper::algorithm2name(dke->getBits()) + ") is inconsistent with the 'algorithm' field");
+        }
+      }
       uint16_t flags = 0;
       if (keyOrZone) {
         flags = 257;
@@ -1639,11 +1658,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
         flags = 256;
       }
 
-      uint8_t algorithm = dkrc.d_algorithm;
-      // TODO remove in 4.2.0
-      if (algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
-        algorithm = DNSSECKeeper::RSASHA1;
-      }
+      algorithm = dkrc.d_algorithm;
       dpk.setKey(dke, flags, algorithm);
     }
     catch (std::runtime_error& error) {
@@ -1660,9 +1675,6 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
     if (insertedId < 0) {
       throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
     }
-  }
-  else {
-    throw ApiException("Either you submit just the 'privatekey' field or you leave 'privatekey' empty and submit the other fields.");
   }
   apiZoneCryptokeysPostProcessing(zoneData, resp->d_slog);
   apiZoneCryptokeysExport(zoneData.zoneName, insertedId, resp, &zoneData.dnssecKeeper);
