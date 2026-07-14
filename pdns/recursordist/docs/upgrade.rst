@@ -29,6 +29,11 @@ New Settings
   Because responses are packet-cached, adding or removing an NTA only affects the presence of this   Extended Error once the relevant cache entries expire or are flushed.
   See :ref:`ntas`.
 
+Special-Use Domain Names
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The .onion domain is no longer forwarded to any authoritative server but responded to with an NXDomain, as prescribed by :rfc:`7686`.
+
 5.1.10, 5.2.8, 5.3.5 and 5.5.0
 ------------------------------
 

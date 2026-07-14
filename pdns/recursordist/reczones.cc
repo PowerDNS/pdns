@@ -548,5 +548,8 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   processAllowNotifyFor(newSet);
   processAllowNotifyForFile(newSet, log);
 
+  // RFC 7686 tells us to NXDomain .onion unless the resolver is hooked up to resolve it
+  makeEmptyZone(*newMap, "onion.", log);
+
   return {newMap, newSet};
 }
