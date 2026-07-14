@@ -18,6 +18,11 @@ The :ref:`incoming-ws-config` YAML struct has been extended to be able to specif
 
 The :ref:`outgoing-tls-configuration` YAML struct has been extended to be able to specify an TLS client certificate to be used for outgoing DoT connections.
 
+Special-Use Domain Names
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The .onion domain is no longer forwarded to any authoritative server but responded to with an NXDomain, as prescribed by :rfc:`7686`.
+
 5.1.10, 5.2.8 and 5.3.5
 -----------------------
 
