@@ -190,13 +190,15 @@ zone check-all [exit-on-error]
 zone clear *ZONE*
 
     Clear the records in zone *ZONE*, but leave actual zone and
-    settings unchanged
+    settings unchanged.
 
 zone copy *ZONE* *NEW-ZONE*
 
     Copies the contents of *ZONE* (records, comments, metadata, keys) to a
     new zone *NEW-ZONE*. The new zone must not exist and gets created as
     part of the copy, in the same backend as *ZONE*.
+    Note that the *ZONE* options and catalog memberships, if any, are
+    not copied.
 
 zone create *ZONE*
 
