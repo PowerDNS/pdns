@@ -566,5 +566,14 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   // RFC 7686 tells us to NXDomain .onion unless the resolver is hooked up to resolve it
   makeEmptyZone(*newMap, "onion.", log);
 
+  // RFC 8375
+  makeEmptyZone(*newMap, "home.arpa.", log);
+
+  // RFC 9462 says "idem", but for resolver.arpa
+  makeEmptyZone(*newMap, "resolver.arpa.", log);
+
+  // RFC 9665 say "idem", for service.arpa
+  makeEmptyZone(*newMap, "service.arpa.", log);
+
   return {newMap, newSet};
 }
