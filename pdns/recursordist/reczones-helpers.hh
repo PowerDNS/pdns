@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "logr.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
