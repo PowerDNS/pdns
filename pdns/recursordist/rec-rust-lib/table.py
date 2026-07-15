@@ -3449,6 +3449,19 @@ Sequence of negative trust anchors.
         "runtime": ["add-nta", "clear-nta", "reload-lua-config", "reload-yaml"],
     },
     {
+        "name": "nta_extended_error",
+        "section": "dnssec",
+        "type": LType.Bool,
+        "default": "true",
+        "help": "Add an EDNS Extended Error (code 33, Negative Trust Anchor) to insecure answers covered by an NTA",
+        "doc": """
+When enabled, the recursor adds an EDNS Extended Error (:rfc:`8914`) with info-code 33, "Negative Trust Anchor", to an insecure response when the queried name, or a CNAME target it chased, is covered by a configured Negative Trust Anchor (see :ref:`ntas`).
+The signal means an NTA is in effect for the name. However it does not assert that the NTA is why the answer is insecure, and it may appear on a name that would be insecure regardless.
+This is diagnostic only: it does not change validation, the AD bit, or any other protocol behaviour.
+ """,
+        "versionadded": "5.5.0",
+    },
+    {
         "name": "trustanchorfile",
         "section": "dnssec",
         "type": LType.String,

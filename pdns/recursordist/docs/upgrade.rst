@@ -18,6 +18,18 @@ The :ref:`incoming-ws-config` YAML struct has been extended to be able to specif
 
 The :ref:`outgoing-tls-configuration` YAML struct has been extended to be able to specify an TLS client certificate to be used for outgoing DoT connections.
 
+New Settings
+^^^^^^^^^^^^
+The :ref:`setting-yaml-dnssec.nta_extended_error` setting has been introduced, enabled by default.
+
+Changed Behaviour
+^^^^^^^^^^^^^^^^^
+When a Negative Trust Anchor is in effect, the recursor now adds an EDNS Extended Error (:rfc:`8914`) with info-code 33, "Negative Trust Anchor", to insecure responses covered by the NTA, as a diagnostic signal.
+This is enabled by default and can be turned off with :ref:`setting-yaml-dnssec.nta_extended_error`.
+It does not change validation or the AD bit.
+Because responses are packet-cached, adding or removing an NTA only affects the presence of this Extended Error once the relevant cache entries expire or are flushed.
+See :ref:`ntas`.
+
 5.1.10, 5.2.8 and 5.3.5
 -----------------------
 
