@@ -204,7 +204,7 @@ without requiring a database schema upgrade.
 
   .. versionadded:: 5.2.0
 
-Size, in bytes, of the database page size. Must be a power of two, ranging from 256 to 65536, included. Defaults to 4096.
+Size, in bytes, of the database page size. Must be a power of two, ranging from 256 to 65536, included, or zero (default), which uses the default value of the LMDB library, which is currently (as of LMDB 1.0) 4096 bytes.
 
 On hardware where the MMU page size is larger than the commonly encountered value of 4096 bytes, setting this value to the hardware page size can yield a small performance improvement.
 
