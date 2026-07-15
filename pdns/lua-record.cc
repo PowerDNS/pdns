@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <condition_variable>
+#include <forward_list>
 #include <future>
 #include <random>
 #include <stdexcept>
@@ -246,7 +247,7 @@ private:
     {
       std::chrono::system_clock::time_point checkStart = std::chrono::system_clock::now();
       std::vector<std::future<void>> results;
-      std::vector<CheckDesc> toDelete;
+      std::forward_list<CheckDesc> toDelete;
       {
         // make sure there's no insertion
         auto statuses = d_statuses.read_lock();
@@ -285,7 +286,7 @@ private:
           // This is unlikely to be a problem in practice due to the default value of the expire delay being one hour.
           if (not state->first &&
               lastAccess < (checkStart - std::chrono::seconds(g_luaHealthChecksExpireDelay))) {
-            toDelete.push_back(desc);
+            toDelete.push_front(desc);
           }
         }
       }
