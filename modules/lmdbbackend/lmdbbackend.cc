@@ -3793,7 +3793,7 @@ public:
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
     declare(suffix, "map-size", "main LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
     declare(suffix, "shards-map-size", "shard LMDB map size in megabytes, zero to use the same size as main", "0");
-    declare(suffix, "page-size", "LMDB page size in kilobytes", "4096");
+    declare(suffix, "page-size", "LMDB page size in kilobytes", "0");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
     declare(suffix, "write-notification-update", "Update domain table upon notification", "yes");
     declare(suffix, "split-domains-table", "Use a split domain table to reduce I/O load after XFR notifications", "no");
