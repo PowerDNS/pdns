@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <condition_variable>
+#include <forward_list>
 #include <future>
 #include <random>
 #include <stdexcept>
@@ -183,7 +184,7 @@ private:
     {
       std::chrono::system_clock::time_point checkStart = std::chrono::system_clock::now();
       std::vector<std::future<void>> results;
-      std::vector<CheckDesc> toDelete;
+      std::forward_list<CheckDesc> toDelete;
       {
         // make sure there's no insertion
         auto statuses = d_statuses.read_lock();
@@ -197,7 +198,7 @@ private:
             results.push_back(std::async(std::launch::async, &IsUpOracle::checkURL, this, desc, state->status.load(), state->first.load()));
           }
           if (std::chrono::system_clock::from_time_t(state->lastAccess) < (checkStart - std::chrono::seconds(g_luaHealthChecksExpireDelay))) {
-            toDelete.push_back(desc);
+            toDelete.push_front(desc);
           }
         }
       }
