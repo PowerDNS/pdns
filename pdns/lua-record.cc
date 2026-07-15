@@ -299,8 +299,8 @@ private:
       if (!toDelete.empty()) {
         {
           auto statuses = d_statuses.write_lock();
-          for (auto& it: toDelete) {
-            statuses->erase(it);
+          for (auto& iter: toDelete) {
+            statuses->erase(iter);
           }
         }
         // No need to keep these objects around while we'll be waiting below.
