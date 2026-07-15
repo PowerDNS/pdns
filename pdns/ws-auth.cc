@@ -755,7 +755,12 @@ static void gatherRecords(const Json& container, const DNSName& qname, const QTy
         // parsed correctly. However, doing so, they have also been normalized
         // and may be different from what the user submitted.
         if (!pdns_iequals(tmp, content)) {
-          warnings.emplace_back("Record contents '" + content + "' have been normalized as '" + tmp + "'");
+          std::string warning{"Record contents '"};
+          warning.append(content);
+          warning.append("' have been normalized as '");
+          warning.append(tmp);
+          warning.append("'");
+          warnings.emplace_back(warning);
           content = std::move(tmp);
         }
       }
