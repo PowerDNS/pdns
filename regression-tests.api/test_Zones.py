@@ -1380,7 +1380,10 @@ $ORIGIN %NAME%
             + name
             + " 0 10800 3600 604800 3600",
         ]
-        self.assertCountEqual(data["zone"].strip().split("\n"), expected_data)
+        received_data = data["zone"].strip().split("\n")
+        self.assertCountEqual(received_data, expected_data)
+        for line in expected_data:
+            self.assertIn(line, received_data)
 
     def test_import_zone_consumer(self):
         zonestring = """
@@ -1403,7 +1406,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         name, payload, zone = self.create_zone(nameservers=["ns1.foo.com.", "ns2.foo.com."], soa_edit_api="")
         # export it
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/" + name + "/export"))
-        data = r.text.strip().split("\n")
+        received_data = r.text.strip().split("\n")
         expected_data = [
             name + "\t3600\tIN\tNS\tns1.foo.com.",
             name + "\t3600\tIN\tNS\tns2.foo.com.",
@@ -1412,7 +1415,9 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             + name
             + " 0 10800 3600 604800 3600",
         ]
-        self.assertCountEqual(data, expected_data)
+        self.assertCountEqual(received_data, expected_data)
+        for line in expected_data:
+            self.assertIn(line, received_data)
 
     def test_update_zone(self):
         name, payload, zone = self.create_zone()
@@ -1546,7 +1551,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assert_success(r)
         # verify that (only) the new record is there
         data = self.get_zone(name)
-        self.assertCountEqual(get_rrset(data, name, "NS")["records"], rrset["records"])
+        self.assertEqual(get_rrset(data, name, "NS")["records"], rrset["records"])
 
     def test_zone_rr_update_lua(self):
         # Important to test with LUA records, as their contents should not be
@@ -2624,42 +2629,42 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         json = r.json()
         print(json)
         remove_timestamp(json)
-        self.assertCountEqual(
-            json,
-            [
-                {"object_type": "zone", "name": name, "zone_id": name},
-                {
-                    "content": "ns1.example.com.",
-                    "zone_id": name,
-                    "zone": name,
-                    "object_type": "record",
-                    "disabled": False,
-                    "ttl": 3600,
-                    "type": "NS",
-                    "name": name,
-                },
-                {
-                    "content": "ns2.example.com.",
-                    "zone_id": name,
-                    "zone": name,
-                    "object_type": "record",
-                    "disabled": False,
-                    "ttl": 3600,
-                    "type": "NS",
-                    "name": name,
-                },
-                {
-                    "content": "a.misconfigured.dns.server.invalid. hostmaster." + name + " 22 10800 3600 604800 3600",
-                    "zone_id": name,
-                    "zone": name,
-                    "object_type": "record",
-                    "disabled": False,
-                    "ttl": 3600,
-                    "type": "SOA",
-                    "name": name,
-                },
-            ],
-        )
+        expected_data = [
+            {"object_type": "zone", "name": name, "zone_id": name},
+            {
+                "content": "ns1.example.com.",
+                "zone_id": name,
+                "zone": name,
+                "object_type": "record",
+                "disabled": False,
+                "ttl": 3600,
+                "type": "NS",
+                "name": name,
+            },
+            {
+                "content": "ns2.example.com.",
+                "zone_id": name,
+                "zone": name,
+                "object_type": "record",
+                "disabled": False,
+                "ttl": 3600,
+                "type": "NS",
+                "name": name,
+            },
+            {
+                "content": "a.misconfigured.dns.server.invalid. hostmaster." + name + " 22 10800 3600 604800 3600",
+                "zone_id": name,
+                "zone": name,
+                "object_type": "record",
+                "disabled": False,
+                "ttl": 3600,
+                "type": "SOA",
+                "name": name,
+            },
+        ]
+        self.assertCountEqual(json, expected_data)
+        for record in expected_data:
+            self.assertIn(record, json)
 
     def test_search_rr_exact_zone_filter_type_zone(self):
         name = unique_zone_name()
@@ -2688,41 +2693,41 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         json = r.json()
         print(json)
         remove_timestamp(json)
-        self.assertCountEqual(
-            json,
-            [
-                {
-                    "content": "ns1.example.com.",
-                    "zone_id": name,
-                    "zone": name,
-                    "object_type": "record",
-                    "disabled": False,
-                    "ttl": 3600,
-                    "type": "NS",
-                    "name": name,
-                },
-                {
-                    "content": "ns2.example.com.",
-                    "zone_id": name,
-                    "zone": name,
-                    "object_type": "record",
-                    "disabled": False,
-                    "ttl": 3600,
-                    "type": "NS",
-                    "name": name,
-                },
-                {
-                    "content": "a.misconfigured.dns.server.invalid. hostmaster." + name + " 22 10800 3600 604800 3600",
-                    "zone_id": name,
-                    "zone": name,
-                    "object_type": "record",
-                    "disabled": False,
-                    "ttl": 3600,
-                    "type": "SOA",
-                    "name": name,
-                },
-            ],
-        )
+        expected_data = [
+            {
+                "content": "ns1.example.com.",
+                "zone_id": name,
+                "zone": name,
+                "object_type": "record",
+                "disabled": False,
+                "ttl": 3600,
+                "type": "NS",
+                "name": name,
+            },
+            {
+                "content": "ns2.example.com.",
+                "zone_id": name,
+                "zone": name,
+                "object_type": "record",
+                "disabled": False,
+                "ttl": 3600,
+                "type": "NS",
+                "name": name,
+            },
+            {
+                "content": "a.misconfigured.dns.server.invalid. hostmaster." + name + " 22 10800 3600 604800 3600",
+                "zone_id": name,
+                "zone": name,
+                "object_type": "record",
+                "disabled": False,
+                "ttl": 3600,
+                "type": "SOA",
+                "name": name,
+            },
+        ]
+        self.assertCountEqual(json, expected_data)
+        for record in expected_data:
+            self.assertIn(record, json)
 
     def test_search_rr_substring(self):
         name = unique_zone_name()
