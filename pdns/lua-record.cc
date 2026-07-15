@@ -294,10 +294,14 @@ private:
         future.wait();
       }
       if (!toDelete.empty()) {
-        auto statuses = d_statuses.write_lock();
-        for (auto& it: toDelete) {
-          statuses->erase(it);
+        {
+          auto statuses = d_statuses.write_lock();
+          for (auto& it: toDelete) {
+            statuses->erase(it);
+          }
         }
+        // No need to keep these objects around while we'll be waiting below.
+        toDelete.clear();
       }
 
       // set thread name again, in case std::async surprised us by doing work in this thread
@@ -347,7 +351,8 @@ private:
   }
 
   //NOLINTNEXTLINE(readability-identifier-length)
-  void setWeight(const CheckDesc& cd, int weight){
+  void setWeight(const CheckDesc& cd, int weight)
+  {
     auto statuses = d_statuses.write_lock();
     auto& state = (*statuses)[cd];
     state->weight = weight;
