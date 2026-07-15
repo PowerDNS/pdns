@@ -51,6 +51,9 @@
 #include "ssqlite3.hh"
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #endif
+#ifdef HAVE_LMDB
+#include "lmdb.h"
+#endif
 
 StatBag S;
 AuthPacketCache PC;
@@ -3827,7 +3830,14 @@ static int addOrSetMeta(const ZoneName& zone, const string& kind, const vector<s
 
 static int lmdbGetBackendVersion([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
 {
+#ifdef HAVE_LMDB
   cout << "6" << endl; // FIXME this should reuse the constant from lmdbbackend but that is currently a #define in a .cc
+  if (g_verbose) {
+    cout << "Built against LMDB library version " << MDB_VERSION_MAJOR << "." << MDB_VERSION_MINOR << "." << MDB_VERSION_PATCH << endl;
+  }
+#else
+  cerr<<"LMDB support not enabled"<<endl;
+#endif
   return 0;
 }
 

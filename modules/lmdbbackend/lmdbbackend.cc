@@ -97,7 +97,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
         // we don't have a database yet! report schema 0, with 0 shards
         return {0U, 0U};
       }
-      throw std::runtime_error("mdb_env_open failed: " + MDBError(retCode));
+      MDBOpenFailure(filename, retCode); // throws
     }
   }
 
@@ -382,7 +382,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   }
 
   if (int retCode = mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR, 0600); retCode != 0) {
-    throw std::runtime_error("mdb_env_open failed: " + MDBError(retCode));
+    MDBOpenFailure(filename, retCode); // throws
   }
 
   MDB_txn* txn = nullptr;
@@ -423,7 +423,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     }
 
     if (int retCode = mdb_env_open(shenv, shardfile.c_str(), MDB_NOSUBDIR, 0600); retCode != 0) {
-      throw std::runtime_error("mdb_env_open failed: " + MDBError(retCode));
+      MDBOpenFailure(shardfile, retCode); // throws
     }
 
     MDB_txn* shtxn = nullptr;
