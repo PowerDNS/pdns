@@ -183,7 +183,7 @@ private:
     while (true)
     {
       std::chrono::system_clock::time_point checkStart = std::chrono::system_clock::now();
-      std::vector<std::future<void>> results;
+      std::forward_list<std::future<void>> results;
       std::forward_list<CheckDesc> toDelete;
       {
         // make sure there's no insertion
@@ -193,9 +193,9 @@ private:
           auto& state = it.second;
 
           if (desc.url.empty()) { // TCP
-            results.push_back(std::async(std::launch::async, &IsUpOracle::checkTCP, this, desc, state->status.load(), state->first.load()));
+            results.push_front(std::async(std::launch::async, &IsUpOracle::checkTCP, this, desc, state->status.load(), state->first.load()));
           } else { // URL
-            results.push_back(std::async(std::launch::async, &IsUpOracle::checkURL, this, desc, state->status.load(), state->first.load()));
+            results.push_front(std::async(std::launch::async, &IsUpOracle::checkURL, this, desc, state->status.load(), state->first.load()));
           }
           if (std::chrono::system_clock::from_time_t(state->lastAccess) < (checkStart - std::chrono::seconds(g_luaHealthChecksExpireDelay))) {
             toDelete.push_front(desc);
@@ -206,6 +206,8 @@ private:
       for (auto& future: results) {
         future.wait();
       }
+      // No need to keep these objects around any further
+      results.clear();
       if (!toDelete.empty()) {
         {
           auto statuses = d_statuses.write_lock();
