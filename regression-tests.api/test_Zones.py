@@ -1546,7 +1546,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assert_success(r)
         # verify that (only) the new record is there
         data = self.get_zone(name)
-        self.assertCountEqual(get_rrset(data, name, "NS")["records"], rrset["records"])
+        self.assertEqual(get_rrset(data, name, "NS")["records"], rrset["records"])
 
     def test_zone_rr_update_lua(self):
         # Important to test with LUA records, as their contents should not be
