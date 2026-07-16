@@ -228,6 +228,11 @@ bool Lua2BackendAPIv2::get(DNSResourceRecord& drr)
   return true;
 }
 
+void Lua2BackendAPIv2::lookupEnd()
+{
+  d_result.clear();
+}
+
 string Lua2BackendAPIv2::directBackendCmd(const string& querystr)
 {
   string::size_type pos = querystr.find_first_of(" \t");

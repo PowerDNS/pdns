@@ -68,15 +68,18 @@ public:
   explicit Lua2BackendAPIv2(Logr::log_t slog, const string& suffix);
   ~Lua2BackendAPIv2() override;
 
+  // AuthLua4 overrides
   void postPrepareContext() override;
   void postLoad() override;
+
+  // DNSBackend overrides
   unsigned int getCapabilities() override;
   bool list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */ = false) override;
   void lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* pkt = nullptr) override;
   bool get(DNSResourceRecord& drr) override;
+  void lookupEnd() override;
   string directBackendCmd(const string& querystr) override;
   void setNotified(domainid_t domain_id, uint32_t serial) override;
-  void parseDomainInfo(const domaininfo_result_t& row, DomainInfo& info);
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */ = true) override;
   void getAllDomains(vector<DomainInfo>* domains, bool /* getSerial */, bool /* include_disabled */) override;
   bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta) override;
@@ -106,5 +109,6 @@ private:
 
   deinit_call_t f_deinit;
 
+  void parseDomainInfo(const domaininfo_result_t& row, DomainInfo& info);
   void parseLookup(const lookup_result_t& result);
 };
