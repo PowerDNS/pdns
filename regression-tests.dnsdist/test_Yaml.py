@@ -700,7 +700,9 @@ query_rules:
             failed = True
             expected = "dnsdist --check-config failed (1): b\"Error while parsing YAML file configs/dnsdist_TestYamlInvalidComboAddress.yml: Unable to convert presentation address 'a:'\\n\""
             if str(err) != expected:
-                raise AssertionError("DNSdist should not start with an invalid ComboAddress in listen_address: %s" % (err))
+                raise AssertionError(
+                    "DNSdist should not start with an invalid ComboAddress in listen_address: %s" % (err)
+                )
         if not failed:
             raise AssertionError("DNSdist should not start with an invalid ComboAddress in listen_address")
 
