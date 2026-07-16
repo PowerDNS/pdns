@@ -156,7 +156,9 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
         }
       }
       catch (const std::exception& e) {
-        throw PDNSException("Unable to parse " + item.first + " value in lookup or list result: " + e.what());
+        std::stringstream value;
+        value << item.second;
+        throw PDNSException("Unable to parse " + item.first + " value (" + value.str() + ") of variant type " + std::to_string(item.second.which()) + " in lookup or list result: " + e.what());
       }
     }
     if (d_debug_log) {
@@ -304,7 +306,9 @@ void Lua2BackendAPIv2::parseDomainInfo(const domaininfo_result_t& row, DomainInf
       }
     }
     catch (const std::exception& e) {
-      throw PDNSException("Unable to parse " + item.first + " value in domaininfo result: " + e.what());
+      // We can't get a printable version of the contents, because of the
+      // vector<string> case, which is not OutputStreamable.
+      throw PDNSException("Unable to parse " + item.first + " value of variant type " + std::to_string(item.second.which()) + " in domaininfo result: " + e.what());
     }
   }
   info.backend = this;
@@ -473,7 +477,9 @@ bool Lua2BackendAPIv2::getDomainKeys(const ZoneName& name, std::vector<DNSBacken
         }
       }
       catch (const std::exception& e) {
-        throw PDNSException("Unable to parse " + item.first + " value in keydata result: " + e.what());
+        std::stringstream value;
+        value << item.second;
+        throw PDNSException("Unable to parse " + item.first + " value (" + value.str() + ") of variant type " + std::to_string(item.second.which()) + " in keydata result: " + e.what());
       }
     }
     if (d_debug_log) {
