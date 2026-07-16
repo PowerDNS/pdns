@@ -4,6 +4,7 @@ sources = files(
   '../dnsdist-selectors-definitions.yml',
   '../dnsdist-settings-definitions.yml',
   '../dnsdist-response-actions-definitions.yml',
+  '../dnsdist-rust-bridge.hh',
   'dnsdist-configuration-yaml-items-pre-in.cc',
   'rust-pre-in.rs',
   'rust-middle-in.rs',
