@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <condition_variable>
+#include <forward_list>
 #include <future>
 #include <random>
 #include <stdexcept>
@@ -245,8 +246,8 @@ private:
     while (true)
     {
       std::chrono::system_clock::time_point checkStart = std::chrono::system_clock::now();
-      std::vector<std::future<void>> results;
-      std::vector<CheckDesc> toDelete;
+      std::forward_list<std::future<void>> results;
+      std::forward_list<CheckDesc> toDelete;
       {
         // make sure there's no insertion
         auto statuses = d_statuses.read_lock();
@@ -276,16 +277,16 @@ private:
           }
 
           if (desc.url.empty()) { // TCP
-            results.push_back(std::async(std::launch::async, &IsUpOracle::checkTCP, this, desc, state->status.load(), state->first.load()));
+            results.push_front(std::async(std::launch::async, &IsUpOracle::checkTCP, this, desc, state->status.load(), state->first.load()));
           } else { // URL
-            results.push_back(std::async(std::launch::async, &IsUpOracle::checkURL, this, desc, state->status.load(), state->first.load()));
+            results.push_front(std::async(std::launch::async, &IsUpOracle::checkURL, this, desc, state->status.load(), state->first.load()));
           }
           // Give it a chance to run at least once.
           // If minimumFailures * interval > lua-health-checks-expire-delay, then a down status will never get reported.
           // This is unlikely to be a problem in practice due to the default value of the expire delay being one hour.
           if (not state->first &&
               lastAccess < (checkStart - std::chrono::seconds(g_luaHealthChecksExpireDelay))) {
-            toDelete.push_back(desc);
+            toDelete.push_front(desc);
           }
         }
       }
@@ -293,11 +294,17 @@ private:
       for (auto& future: results) {
         future.wait();
       }
+      // No need to keep these objects around any further
+      results.clear();
       if (!toDelete.empty()) {
-        auto statuses = d_statuses.write_lock();
-        for (auto& it: toDelete) {
-          statuses->erase(it);
+        {
+          auto statuses = d_statuses.write_lock();
+          for (auto& iter: toDelete) {
+            statuses->erase(iter);
+          }
         }
+        // No need to keep these objects around while we'll be waiting below.
+        toDelete.clear();
       }
 
       // set thread name again, in case std::async surprised us by doing work in this thread
@@ -347,7 +354,8 @@ private:
   }
 
   //NOLINTNEXTLINE(readability-identifier-length)
-  void setWeight(const CheckDesc& cd, int weight){
+  void setWeight(const CheckDesc& cd, int weight)
+  {
     auto statuses = d_statuses.write_lock();
     auto& state = (*statuses)[cd];
     state->weight = weight;
