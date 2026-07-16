@@ -191,3 +191,6 @@ private:
 using DNSPacketWriter = GenericDNSPacketWriter<std::vector<uint8_t>>;
 
 std::vector<string> segmentDNSText(const string& text); // from dnslabeltext.rl
+#ifdef HAVE_LUA_RECORDS
+std::vector<string> segmentLuaText(const string& text); // from dnslabeltext.rl
+#endif
