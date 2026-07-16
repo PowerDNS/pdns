@@ -158,6 +158,8 @@ class TestDOQWithCache(DOQCommon, QUICWithCacheTests, DNSDistTest):
 
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
+
+    setForwardViaUDPFirst(true)
     """
     _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 
@@ -177,6 +179,8 @@ class TestDOQWithCacheAndBBR(DOQCommon, QUICWithCacheTests, DNSDistTest):
 
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
+
+    setForwardViaUDPFirst(true)
     """
     _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 

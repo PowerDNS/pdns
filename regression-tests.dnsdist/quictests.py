@@ -149,6 +149,10 @@ class QUICWithCacheTests(object):
         rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
         response.answer.append(rrset)
 
+        before = 0
+        for key in self._responsesCounter:
+            before += self._responsesCounter[key]
+
         # first query to fill the cache
         (receivedQuery, receivedResponse) = self.sendQUICQuery(query, response=response)
         self.assertTrue(receivedQuery)
@@ -161,12 +165,69 @@ class QUICWithCacheTests(object):
             (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, response)
 
-        total = 0
+        after = 0
         for key in self._responsesCounter:
-            total += self._responsesCounter[key]
+            after += self._responsesCounter[key]
 
-        self.assertEqual(total, 1)
+        self.assertEqual(after - before, 1)
 
+    def testTruncation(self):
+        """
+        QUIC cache: Truncation over UDP
+        """
+        # the query is first forwarded over UDP, leading to a TC=1 answer from the
+        # backend, then over TCP
+        name = "truncated-udp.doq-with-cache.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        query.id = 42
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery.id = 42
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        before = 0
+        for key in self._responsesCounter:
+            before += self._responsesCounter[key]
+
+        # first response is a TC=1
+        tcResponse = dns.message.make_response(query)
+        tcResponse.flags |= dns.flags.TC
+        self._toResponderQueue.put(tcResponse, True, 2.0)
+
+        (receivedQuery, receivedResponse) = self.sendQUICQuery(query, response=response)
+        # first query, received by the responder over UDP
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+
+        # check the response
+        self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
+        # check the second query, received by the responder over TCP
+        receivedQuery = self._fromResponderQueue.get(True, 2.0)
+        self.assertTrue(receivedQuery)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+
+        # now check the cache for a QUIC query
+        (receivedQuery, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
+        self.assertEqual(response, receivedResponse)
+
+        # The TC=1 answer received over UDP will not be cached, because we currently do not cache answers with no records (no TTL)
+        # The TCP one should, however
+        (_, receivedResponse) = self.sendTCPQuery(expectedQuery, response=None, useQueue=False)
+        self.assertEqual(response, receivedResponse)
+
+        after = 0
+        for key in self._responsesCounter:
+            after += self._responsesCounter[key]
+
+        # one UDP, one TCP
+        self.assertEqual(after - before, 2)
 
 class QUICGetLocalAddressOnAnyBindTests(object):
     def testGetLocalAddressOnAnyBind(self):
