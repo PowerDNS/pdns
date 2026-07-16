@@ -71,12 +71,12 @@ function dns_lookup(qtype, qname, d_id, ctx)
      if qtype:getName() == "ANY" then
        for k, v in pairs(rr) do
          for idx,row in ipairs(v) do
-           table.insert(ret, { name = qname, type = newQType(k), content = row, ttl = 60, domain_id = d_id })
+           table.insert(ret, { name = qname, type = newQType(k), content = row, ttl = 60, domain_id = d_id, auth = 1 })
          end
        end
      elseif rr[qtype:getName()] ~= nil then
        for idx,row in ipairs(rr[qtype:getName()]) do
-         table.insert(ret, { name = qname, type = qtype, content = row, ttl = 60, domain_id = d_id })
+         table.insert(ret, { name = qname, type = qtype, content = row, ttl = 60, domain_id = d_id, auth = true })
        end
      end
   end

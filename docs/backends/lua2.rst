@@ -13,7 +13,7 @@ Lua2 Backend
 * Comments: No
 * Search: Yes\*
 * Views: No
-* API: Read-Write
+* API: Read-only
 * :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes\*
 * Module name: lua2
