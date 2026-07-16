@@ -218,6 +218,7 @@ class TestTeeActionLua(TeeActionBase, DNSDistTest):
         "_teeProxyServerPort",
     ]
 
+
 class TestTeeActionYaml(TeeActionBase, DNSDistTest):
     _yaml_config_template = """---
 console:
