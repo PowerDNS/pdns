@@ -207,6 +207,13 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrText(co
   }
 }
 
+#ifdef HAVE_LUA_RECORDS
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrLua(const string& text)
+{
+  xfrText(text, true);
+}
+#endif
+
 template <typename Container> void GenericDNSPacketWriter<Container>::xfrUnquotedText(const string& text, bool lenField)
 {
   if(text.empty()) {

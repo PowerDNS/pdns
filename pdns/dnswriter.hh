@@ -129,6 +129,9 @@ public:
 
   void xfrName(const DNSName& name, bool compress=false);
   void xfrText(const string& text, bool multi=false, bool lenField=true);
+#ifdef HAVE_LUA_RECORDS
+  void xfrLua(const string& text);
+#endif
   void xfrUnquotedText(const string& text, bool lenField);
   void xfrBlob(const string& blob, int len=-1);
   void xfrBlob(const vector<uint8_t>& blob);

@@ -751,6 +751,13 @@ void RecordTextReader::xfrText(string& val, bool multi, bool /* lenField */)
   }
 }
 
+#ifdef HAVE_LUA_RECORDS
+void RecordTextReader::xfrLua(string& val)
+{
+  xfrText(val, true);
+}
+#endif
+
 void RecordTextReader::xfrUnquotedText(string& val, bool /* lenField */)
 {
   val.clear();
@@ -1095,6 +1102,13 @@ void RecordTextWriter::xfrText(const string& val, bool /* multi */, bool /* lenF
     d_string.append(val);
   }
 }
+
+#ifdef HAVE_LUA_RECORDS
+void RecordTextWriter::xfrLua(const string& val)
+{
+  xfrText(val, true);
+}
+#endif
 
 void RecordTextWriter::xfrUnquotedText(const string& val, bool /* lenField */)
 {
