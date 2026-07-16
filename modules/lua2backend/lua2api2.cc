@@ -128,7 +128,12 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
           rec.domain_id = boost::get<int>(item.second);
         }
         else if (item.first == "auth") {
-          rec.auth = boost::get<bool>(item.second);
+          if (item.second.which() == 1) {
+            rec.auth = boost::get<int>(item.second) != 0;
+          }
+          else { // assuming item.second.which() == 0 here
+            rec.auth = boost::get<bool>(item.second);
+          }
         }
         else if (item.first == "last_modified") {
           rec.last_modified = static_cast<time_t>(boost::get<int>(item.second));
@@ -463,10 +468,20 @@ bool Lua2BackendAPIv2::getDomainKeys(const ZoneName& name, std::vector<DNSBacken
           key.flags = static_cast<unsigned int>(boost::get<int>(item.second));
         }
         else if (item.first == "active") {
-          key.active = boost::get<bool>(item.second);
+          if (item.second.which() == 1) {
+            key.active = boost::get<int>(item.second) != 0;
+          }
+          else { // assuming item.second.which() == 0 here
+            key.active = boost::get<bool>(item.second);
+          }
         }
         else if (item.first == "published") {
-          key.published = boost::get<bool>(item.second);
+          if (item.second.which() == 1) {
+            key.published = boost::get<int>(item.second) != 0;
+          }
+          else { // assuming item.second.which() == 0 here
+            key.published = boost::get<bool>(item.second);
+          }
         }
         else {
           SLOG(g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl,
