@@ -9,6 +9,32 @@ class DNSRule;
 
 #include "rust/cxx.h"
 
+/* the following replaces the default handling of exceptions
+   thrown from C++ code called from Rust. It is necessary because
+   some of our legacy code uses the special PDNSException that does
+   not inherit from std::exception
+*/
+#include "pdnsexception.hh"
+
+namespace rust::behavior
+{
+
+template <typename Try, typename Fail>
+static void trycatch(Try &&func, Fail &&fail) noexcept
+{
+  try {
+    func();
+  }
+  catch (const std::exception& exp) {
+    fail(exp.what());
+  }
+  catch (const PDNSException& exp) {
+    fail(exp.reason);
+  }
+}
+
+}
+
 namespace dnsdist::rust::settings
 {
 
