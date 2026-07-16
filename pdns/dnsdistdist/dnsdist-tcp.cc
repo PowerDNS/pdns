@@ -1100,7 +1100,10 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     if (assignOutgoingUDPQueryToBackend(backend, queryID, dnsQuestion, query)) {
       return QueryProcessingResult::Forwarded;
     }
-    restoreDOHUnit(std::move(dnsQuestion.ids.du));
+    if (streamID) {
+      restoreDOHUnit(std::move(dnsQuestion.ids.du));
+    }
+
     // fallback to the normal flow
   }
 
