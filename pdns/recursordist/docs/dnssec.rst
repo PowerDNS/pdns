@@ -178,6 +178,7 @@ Extended DNS Error for Negative Trust Anchors
 
 While a negative trust anchor is in effect, the recursor by default adds an EDNS Extended Error (:rfc:`8914`) with info-code 33, "Negative Trust Anchor", to an insecure response whose queried name, or a chased CNAME target, is covered by a configured NTA.
 This lets clients and downstream operators tell that an NTA is in effect for the name.
+The Extended Error is only added when the query was subject to DNSSEC validation, which depends on :ref:`setting-yaml-dnssec.validation` and, in ``process`` mode, on the client setting the AD or DO bit.
 The signal indicates that an NTA covers the name. However it does not assert that the NTA is why the answer is insecure, and it may appear on a name that would have been insecure regardless (for example an already-unsigned delegation).
 The EDE is diagnostic only and does not change validation, the AD bit, or any other protocol behaviour.
 Emission is controlled by :ref:`setting-yaml-dnssec.nta_extended_error`, which is enabled by default.

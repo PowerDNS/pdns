@@ -706,8 +706,9 @@ int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass
 
   /* EDE 33 signals that an NTA is in effect for this name (coverage, not causation).
      Consult negAnchors directly rather than via getTA(), so cache hits are covered too;
-     the answer-owner check catches a CNAME chased into an NTA. */
-  if (s_ntaExtendedError && !d_extendedError && d_queryValidationState == vState::Insecure) {
+     the answer-owner check catches a CNAME chased into an NTA. shouldValidate() keeps
+     the EDE off for queries not subject to validation, even on a cache hit. */
+  if (s_ntaExtendedError && shouldValidate() && !d_extendedError && d_queryValidationState == vState::Insecure) {
     auto luaLocal = g_luaconfs.getLocal();
     if (!luaLocal->negAnchors.empty()) {
       bool covered = isCoveredByNTA(luaLocal->negAnchors, qname);
