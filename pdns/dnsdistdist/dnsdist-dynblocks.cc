@@ -130,26 +130,31 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
   StatNode::Stat node;
   std::unordered_map<DNSName, SMTBlockParameters> namesToBlock;
   statNodeRoot.visit([this, &namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
-    bool block = false;
-    SMTBlockParameters blockParameters;
-    if (d_smtVisitorFFI) {
-      dnsdist_ffi_stat_node_t tmp(*node_, self, children, blockParameters);
-      block = d_smtVisitorFFI(&tmp);
-    }
-    else {
-      auto ret = d_smtVisitor(*node_, self, children);
-      block = std::get<0>(ret);
-      if (block) {
-        if (boost::optional<std::string> tmp = std::get<1>(ret)) {
-          blockParameters.d_reason = std::move(*tmp);
+    try {
+      bool block = false;
+      SMTBlockParameters blockParameters;
+      if (d_smtVisitorFFI) {
+        dnsdist_ffi_stat_node_t tmp(*node_, self, children, blockParameters);
+        block = d_smtVisitorFFI(&tmp);
+      }
+      else {
+        auto ret = d_smtVisitor(*node_, self, children);
+        block = std::get<0>(ret);
+        if (block) {
+          if (boost::optional<std::string> tmp = std::get<1>(ret)) {
+            blockParameters.d_reason = std::move(*tmp);
+          }
+          if (boost::optional<int> tmp = std::get<2>(ret)) {
+            blockParameters.d_action = static_cast<DNSAction::Action>(*tmp);
+          }
         }
-        if (boost::optional<int> tmp = std::get<2>(ret)) {
-          blockParameters.d_action = static_cast<DNSAction::Action>(*tmp);
+        if (block) {
+          namesToBlock.insert({DNSName(node_->fullname), std::move(blockParameters)});
         }
       }
     }
-    if (block) {
-      namesToBlock.insert({DNSName(node_->fullname), std::move(blockParameters)});
+    catch (const std::exception& exp) {
+      warnlog("Error while executing the Dynamic Block Suffix Match policy: %s", exp.what());
     }
   },
                      node);
@@ -480,7 +485,12 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
 
       if (suffixMatchRuleMatches) {
         const bool hit = ringEntry.isACacheHit();
-        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt);
+        try {
+          root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt);
+        }
+        catch (const std::exception& exp) {
+          warnlog("Error submitting name %s to Dynamic Block Suffix Match Rule policy: %s", ringEntry.name, exp.what());
+        }
       }
     }
   }
