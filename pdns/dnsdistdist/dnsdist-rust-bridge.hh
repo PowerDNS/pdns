@@ -20,7 +20,7 @@ namespace rust::behavior
 {
 
 template <typename Try, typename Fail>
-static void trycatch(Try &&func, Fail &&fail) noexcept
+static void trycatch(Try&& func, Fail&& fail) noexcept
 {
   try {
     func();
