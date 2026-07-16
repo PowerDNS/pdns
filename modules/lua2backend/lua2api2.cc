@@ -112,11 +112,8 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
           else if (item.second.which() == 3) {
             rec.qtype = boost::get<string>(item.second);
           }
-          else if (item.second.which() == 4) {
+          else { // assuming item.second.which() == 4 here
             rec.qtype = boost::get<QType>(item.second);
-          }
-          else {
-            throw PDNSException("Unsupported value for type");
           }
         }
         else if (item.first == "name") {
