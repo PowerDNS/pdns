@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <string>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
+#include <tuple>
 #include <utility>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -2904,17 +2905,17 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
     newrrs.insert(newrrs.end(), oldrrs.begin(), oldrrs.end());
   }
 
-  std::vector<std::pair<DNSResourceRecord, string>> errors;
+  std::vector<std::tuple<Logr::Priority, DNSResourceRecord, string>> diagnostics;
   Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
   if (allowUnderscores) {
     flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
   }
-  Check::checkRRSet(oldrrs, newrrs, zone, flags, errors);
+  Check::checkRRSet(oldrrs, newrrs, zone, flags, diagnostics);
   oldrrs.clear(); // no longer needed
-  if (!errors.empty()) {
-    for (const auto& error : errors) {
-      const auto [rec, why] = error;
-      cerr << "RRset " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
+  if (!diagnostics.empty()) {
+    for (const auto& error : diagnostics) {
+      const auto [prio, rec, why] = error;
+      cerr << Logr::Logger::toString(prio) << ": RRset " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
     }
     return EXIT_FAILURE;
   }

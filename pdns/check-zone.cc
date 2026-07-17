@@ -53,7 +53,7 @@ bool validateViewName(std::string_view name, std::string& error)
   return true;
 }
 
-void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<pair<DNSResourceRecord, string>>& errors)
+void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<std::tuple<Logr::Priority, DNSResourceRecord, string>>& diagnostics)
 {
   // QTypes that MUST NOT have multiple records of the same type in a given RRset.
   static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
@@ -85,10 +85,10 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          errors.emplace_back(std::make_pair(rec, "only one such record allowed"));
+          diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, "only one such record allowed"));
         }
         if (previous.content == contentstr) {
-          errors.emplace_back(std::make_pair(rec, std::string{"duplicate record with content \""} + rec.content + "\""));
+          diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, std::string{"duplicate record with content \""} + rec.content + "\""));
         }
         // Enforce identical TTLs for all records with the same name and type,
         // if required. This is optional because some callers are able to
@@ -99,7 +99,7 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
             // This error message may be misleading if a TTL discrepancy already
             // exists in the RRset, as it might blame an existing record rather
             // than those being added. ¯\_(ツ)_/¯
-            errors.emplace_back(std::make_pair(rec, std::string{"uses a different TTL value than the remainder of the RRset"}));
+            diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, std::string{"uses a different TTL value than the remainder of the RRset"}));
           }
         }
       }
@@ -113,10 +113,10 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
           // order to decide which record to blame in order to make the error
           // message as less confusing as possible.
           if (std::find(oldrrs.begin(), oldrrs.end(), rec) != oldrrs.end()) {
-            errors.emplace_back(std::make_pair(previous, std::string{"conflicts with existing "} + rec.qtype.toString() + " RRset of the same name"));
+            diagnostics.emplace_back(std::make_tuple(Logr::Error, previous, std::string{"conflicts with existing "} + rec.qtype.toString() + " RRset of the same name"));
           }
           else {
-            errors.emplace_back(std::make_pair(rec, std::string{"conflicts with existing "} + previous.qtype.toString() + " RRset of the same name"));
+            diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, std::string{"conflicts with existing "} + previous.qtype.toString() + " RRset of the same name"));
           }
         }
       }
@@ -124,11 +124,11 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
 
     if (rec.qname == zone.operator const DNSName&()) {
       if (nonApexTypes.count(rec.qtype.getCode()) != 0) {
-        errors.emplace_back(std::make_pair(rec, "is not allowed at apex"));
+        diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec, "is not allowed at apex"));
       }
     }
     else if (atApexTypes.count(rec.qtype.getCode()) != 0) {
-      errors.emplace_back(std::make_pair(rec, "is only allowed at apex"));
+      diagnostics.emplace_back(std::make_tuple(rec.qtype == QType::SOA ? Logr::Error : Logr::Warning, rec, "is only allowed at apex"));
     }
 
     // Check if the DNSNames that should be hostnames, are hostnames
@@ -137,7 +137,7 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
       checkHostnameCorrectness(rec, allowUnderscores);
     }
     catch (const std::exception& e) {
-      errors.emplace_back(std::make_pair(rec, e.what()));
+      diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec, e.what()));
     }
 
     previous = rec;
