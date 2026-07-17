@@ -21,7 +21,6 @@ platforms = [
     'config-defines': [
       { 'name': 'HAVE_SOLARIS', 'description': 'On Solaris/SunOS' },
       { 'name': 'NEED_POSIX_TYPEDEF', 'description': 'POSIX typedefs need to be defined' },
-      { 'name': 'NEED_INET_NTOP_PROTO', 'description': 'OS is so broken that it needs an additional prototype' },
     ],
     'cmdline-defines': ['_REENTRANT'],
     'libraries': ['posix4'],
