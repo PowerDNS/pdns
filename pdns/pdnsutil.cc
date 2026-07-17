@@ -955,6 +955,104 @@ static bool areUnderscoresAllowed(const ZoneName& zonename, DomainInfo& info)
   return underscores == "0";
 }
 
+static int checkZoneTLSA(const set<DNSName>& tlsas, const set<DNSName>& cnames, const set<DNSName>& noncnames)
+{
+  int numwarnings{0};
+  for(const auto &i: tlsas) {
+    DNSName name = DNSName(i);
+    name.trimToLabels(name.countLabels()-2);
+    if (cnames.find(name) == cnames.end() && noncnames.find(name) == noncnames.end()) {
+      // No specific record for the name in the TLSA record exists, this
+      // is already worth emitting a warning. Let's see if a wildcard exist.
+      cout<<"[Warning] ";
+      DNSName wcname(name);
+      wcname.chopOff();
+      wcname.prependRawLabel("*");
+      if (cnames.find(wcname) != cnames.end() || noncnames.find(wcname) != noncnames.end()) {
+        cout<<"A wildcard record exist for '"<<wcname<<"' and a TLSA record for '"<<i<<"'.";
+      } else {
+        cout<<"No record for '"<<name<<"' exists, but a TLSA record for '"<<i<<"' does.";
+      }
+      numwarnings++;
+      cout<<" A query for '"<<name<<"' will yield an empty response. This is most likely a mistake, please create records for '"<<name<<"'."<<endl;
+    }
+  }
+  return numwarnings;
+}
+
+// Record name, prio, target name, ipv4hint=auto, ipv6hint=auto
+using svcbset_t = set<std::tuple<DNSName, uint16_t, DNSName, bool, bool>>;
+
+static void checkZoneSVCB(int& numwarnings, int& numerrors, const ZoneName& zone, const svcbset_t& svcbTargets, const set<DNSName>& svcbAliases, const set<DNSName>& svcbRecords, const set<DNSName>& arecords, const set<DNSName>& aaaarecords, const set<DNSName>& addresses)
+{
+  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : svcbTargets) {
+    if (name == target) {
+      cout<<"[Error] SVCB record "<<name<<" has itself as target."<<endl;
+      numerrors++;
+    }
+
+    if (prio == 0) {
+      if (target.isPartOf(zone)) {
+        if (svcbAliases.find(target) != svcbAliases.end()) {
+          cout << "[Warning] SVCB record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
+          numwarnings++;
+        }
+        if (addresses.find(target) == addresses.end() && svcbRecords.find(target) == svcbRecords.end()) {
+          cout<<"[Error] SVCB record "<<name<<" has a target "<<target<<" that has neither address nor SVCB records."<<endl;
+          numerrors++;
+        }
+      }
+    }
+
+    const auto& trueTarget = target.isRoot() ? name : target;
+    if (prio > 0) {
+      if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
+        cout << "[warning] SVCB record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
+        numwarnings++;
+      }
+      if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
+        cout << "[warning] SVCB record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
+        numwarnings++;
+      }
+    }
+  }
+}
+
+static void checkZoneHTTPS(int& numwarnings, int& numerrors, const ZoneName& zone, const svcbset_t& httpsTargets, const set<DNSName>& httpsAliases, const set<DNSName>& httpsRecords, const set<DNSName>& arecords, const set<DNSName>& aaaarecords, const set<DNSName>& addresses)
+{
+  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : httpsTargets) {
+    if (name == target) {
+      cout<<"[Error] HTTPS record "<<name<<" has itself as target."<<endl;
+      numerrors++;
+    }
+
+    if (prio == 0) {
+      if (target.isPartOf(zone)) {
+        if (httpsAliases.find(target) != httpsAliases.end()) {
+          cout << "[Warning] HTTPS record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
+          numwarnings++;
+        }
+        if (addresses.find(target) == addresses.end() && httpsRecords.find(target) == httpsRecords.end()) {
+          cout<<"[Error] HTTPS record "<<name<<" has a target "<<target<<" that has neither address nor HTTPS records."<<endl;
+          numerrors++;
+        }
+      }
+    }
+
+    const auto& trueTarget = target.isRoot() ? name : target;
+    if (prio > 0) {
+      if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
+        cout << "[warning] HTTPS record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
+        numwarnings++;
+      }
+      if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
+        cout << "[warning] HTTPS record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
+        numwarnings++;
+      }
+    }
+  }
+}
+
 static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINT(readability-function-cognitive-complexity,readability-identifier-length)
 {
   int numerrors=0;
@@ -1081,11 +1179,22 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
   // only be performed on complete zone contents and are only done here.
 
   bool hasNsAtApex = false;
-  set<DNSName> tlsas, cnames, noncnames, glue, checkglue, addresses, svcbAliases, httpsAliases, svcbRecords, httpsRecords, arecords, aaaarecords;
+  set<DNSName> tlsas;
+  set<DNSName> cnames;
+  set<DNSName> noncnames;
+  set<DNSName> glue;
+  set<DNSName> checkglue;
+  set<DNSName> addresses;
+  set<DNSName> svcbAliases;
+  set<DNSName> httpsAliases;
+  set<DNSName> svcbRecords;
+  set<DNSName> httpsRecords;
+  set<DNSName> arecords;
+  set<DNSName> aaaarecords;
   vector<DNSResourceRecord> checkCNAME;
-  set<pair<DNSName, QType> > checkOcclusion;
-  // Record name, prio, target name, ipv4hint=auto, ipv6hint=auto
-  set<std::tuple<DNSName, uint16_t, DNSName, bool, bool> > svcbTargets, httpsTargets;
+  set<pair<DNSName, QType>> checkOcclusion;
+  svcbset_t svcbTargets;
+  svcbset_t httpsTargets;
 
   ostringstream content;
   pair<map<string, unsigned int>::iterator,bool> ret;
@@ -1371,89 +1480,21 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
     }
   }
 
-  for(const auto &i: tlsas) {
-    DNSName name = DNSName(i);
-    name.trimToLabels(name.countLabels()-2);
-    if (cnames.find(name) == cnames.end() && noncnames.find(name) == noncnames.end()) {
-      // No specific record for the name in the TLSA record exists, this
-      // is already worth emitting a warning. Let's see if a wildcard exist.
-      cout<<"[Warning] ";
-      DNSName wcname(name);
-      wcname.chopOff();
-      wcname.prependRawLabel("*");
-      if (cnames.find(wcname) != cnames.end() || noncnames.find(wcname) != noncnames.end()) {
-        cout<<"A wildcard record exist for '"<<wcname<<"' and a TLSA record for '"<<i<<"'.";
-      } else {
-        cout<<"No record for '"<<name<<"' exists, but a TLSA record for '"<<i<<"' does.";
-      }
-      numwarnings++;
-      cout<<" A query for '"<<name<<"' will yield an empty response. This is most likely a mistake, please create records for '"<<name<<"'."<<endl;
-    }
-  }
+  numwarnings += checkZoneTLSA(tlsas, cnames, noncnames);
+  tlsas.clear();
 
-  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : svcbTargets) {
-    if (name == target) {
-      cout<<"[Error] SVCB record "<<name<<" has itself as target."<<endl;
-      numerrors++;
-    }
+  checkZoneSVCB(numwarnings, numerrors, zone, svcbTargets, svcbAliases, svcbRecords, arecords, aaaarecords, addresses);
+  svcbTargets.clear();
+  svcbAliases.clear();
+  svcbRecords.clear();
+  checkZoneHTTPS(numwarnings, numerrors, zone, httpsTargets, httpsAliases, httpsRecords, arecords, aaaarecords, addresses);
+  httpsTargets.clear();
+  httpsAliases.clear();
+  httpsRecords.clear();
 
-    if (prio == 0) {
-      if (target.isPartOf(zone)) {
-        if (svcbAliases.find(target) != svcbAliases.end()) {
-          cout << "[Warning] SVCB record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
-          numwarnings++;
-        }
-        if (addresses.find(target) == addresses.end() && svcbRecords.find(target) == svcbRecords.end()) {
-          cout<<"[Error] SVCB record "<<name<<" has a target "<<target<<" that has neither address nor SVCB records."<<endl;
-          numerrors++;
-        }
-      }
-    }
-
-    const auto& trueTarget = target.isRoot() ? name : target;
-    if (prio > 0) {
-      if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
-        cout << "[warning] SVCB record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
-        numwarnings++;
-      }
-      if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
-        cout << "[warning] SVCB record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
-        numwarnings++;
-      }
-    }
-  }
-
-  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : httpsTargets) {
-    if (name == target) {
-      cout<<"[Error] HTTPS record "<<name<<" has itself as target."<<endl;
-      numerrors++;
-    }
-
-    if (prio == 0) {
-      if (target.isPartOf(zone)) {
-        if (httpsAliases.find(target) != httpsAliases.end()) {
-          cout << "[Warning] HTTPS record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
-          numwarnings++;
-        }
-        if (addresses.find(target) == addresses.end() && httpsRecords.find(target) == httpsRecords.end()) {
-          cout<<"[Error] HTTPS record "<<name<<" has a target "<<target<<" that has neither address nor HTTPS records."<<endl;
-          numerrors++;
-        }
-      }
-    }
-
-    const auto& trueTarget = target.isRoot() ? name : target;
-    if (prio > 0) {
-      if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
-        cout << "[warning] HTTPS record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
-        numwarnings++;
-      }
-      if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
-        cout << "[warning] HTTPS record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
-        numwarnings++;
-      }
-    }
-  }
+  arecords.clear();
+  aaaarecords.clear();
+  addresses.clear();
 
   if(!hasNsAtApex) {
     cout<<"[Error] No NS record at zone apex in zone '"<<zone<<"'"<<endl;
