@@ -267,6 +267,128 @@ private:
 
 std::shared_ptr<DOH3TCPCrossQuerySender> DOH3CrossProtocolQuery::s_sender = std::make_shared<DOH3TCPCrossQuerySender>();
 
+class DOH3QueryForwardedOverUDP : public DOHUnitInterface
+{
+public:
+  DOH3QueryForwardedOverUDP(DOH3UnitUniquePtr&& unit) :
+    d_unit(std::move(unit))
+  {
+  }
+  DOH3QueryForwardedOverUDP(const DOH3QueryForwardedOverUDP&) = delete;
+  DOH3QueryForwardedOverUDP(DOH3QueryForwardedOverUDP&&) = delete;
+  DOH3QueryForwardedOverUDP& operator=(const DOH3QueryForwardedOverUDP&) = delete;
+  DOH3QueryForwardedOverUDP& operator=(DOH3QueryForwardedOverUDP&&) = delete;
+
+  ~DOH3QueryForwardedOverUDP() override = default;
+
+#if defined(HAVE_DNS_OVER_HTTPS)
+  [[nodiscard]] std::string getHTTPPath() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] const std::string& getHTTPScheme() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] const std::string& getHTTPHost() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] std::string getHTTPQueryString() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] const HeadersMap& getHTTPHeaders() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType) override
+  {
+    (void)statusCode;
+    (void)body;
+    (void)contentType;
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& downstream_) override
+  {
+    std::unique_ptr<DOHUnitInterface> unit(this);
+    timeval now{};
+    gettimeofday(&now, nullptr);
+    if (state.forwardedOverUDP) {
+      dnsheader_aligned responseDH(response.data());
+
+      if (responseDH->tc && state.d_packet && state.d_packet->size() > state.d_proxyProtocolPayloadSize && state.d_packet->size() - state.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
+
+        VERBOSESLOG(infolog("Response received from backend %s via UDP, for query received from %s via DoH3, is truncated, retrying over TCP", downstream_->getNameWithAddr(), state.origRemote.toStringWithPort()),
+                    state.getLogger()->info(Logr::Info, "Response received from backend via UDP, for query received via DoH3, is truncated, retrying over TCP"));
+
+        auto& query = *state.d_packet;
+        dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&query.at(state.d_proxyProtocolPayloadSize), [origID = state.origID](dnsheader& header) {
+          /* restoring the original ID */
+          header.id = origID;
+          return true;
+        });
+
+        state.forwardedOverUDP = false;
+        bool proxyProtocolPayloadAdded = state.d_proxyProtocolPayloadSize > 0;
+        this->d_unit->query = std::move(query);
+        this->d_unit->ids = std::move(state);
+        // NOLINTNEXTLINE(bugprone-unused-return-value)
+        unit.release();
+        /* this moves d_unit->ids, careful! */
+        auto cpq = std::make_unique<DOH3CrossProtocolQuery>(std::move(this->d_unit), false);
+        cpq->query.d_proxyProtocolPayloadAdded = proxyProtocolPayloadAdded;
+        /* 'd_packet' buffer has been moved above, need re-association */
+        cpq->query.d_idstate.d_packet = std::make_unique<PacketBuffer>(cpq->query.d_buffer);
+        if (downstream_->passCrossProtocolQuery(std::move(cpq))) {
+          return;
+        }
+
+        cpq->handleInternalError();
+        return;
+      }
+    }
+
+    TCPResponse resp(std::move(response), std::move(state), nullptr, downstream_);
+    DOH3CrossProtocolQuery cpq(std::move(d_unit), true);
+    const auto& sender = cpq.getTCPQuerySender();
+    resp.d_idstate.doh3u = cpq.releaseDU();
+    sender->handleResponse(now, std::move(resp));
+  }
+
+  void handleTimeout() override
+  {
+    DOH3CrossProtocolQuery cpq(std::move(d_unit), true);
+    const auto& sender = cpq.getTCPQuerySender();
+    timeval now{};
+    gettimeofday(&now, nullptr);
+    TCPResponse resp;
+    resp.d_idstate.doh3u = cpq.releaseDU();
+    sender->notifyIOError(now, std::move(resp));
+  }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
+
+  [[nodiscard]] std::shared_ptr<TCPQuerySender> getQuerySender() const override
+  {
+    /* have fun using that! */
+    return {};
+  }
+
+  DOH3UnitUniquePtr releaseDU()
+  {
+    return std::move(d_unit);
+  }
+
+private:
+  DOH3UnitUniquePtr d_unit;
+};
+
 static bool tryWriteResponse(H3Connection& conn, const uint64_t streamID, PacketBuffer& response)
 {
   size_t pos = 0;
@@ -604,6 +726,18 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
     }
     unit->ids.cs = &clientState;
 
+    const bool forwardViaUDPFirst = dnsdist::configuration::getCurrentRuntimeConfiguration().d_forwardViaUDPFirst;
+    if (forwardViaUDPFirst) {
+      // if there was no EDNS, we add it with a large buffer size
+      // so we can use UDP to talk to the backend.
+      const dnsheader_aligned dnsHeader(unit->query.data());
+      if (dnsHeader->arcount == 0U) {
+        if (addEDNS(unit->query, 4096, false, 4096, 0)) {
+          dnsQuestion.ids.ednsAdded = true;
+        }
+      }
+    }
+
     auto result = processQuery(dnsQuestion, downstream);
     if (result == ProcessQueryResult::Drop) {
       unit->status_code = 403;
@@ -653,6 +787,18 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
     }
 
     unit->ids.origID = htons(queryId);
+
+    if (!downstream->isTCPOnly() && forwardViaUDPFirst) {
+      auto query = std::move(unit->query);
+      dnsQuestion.ids.du = std::make_unique<DOH3QueryForwardedOverUDP>(std::move(unit));
+
+      if (assignOutgoingUDPQueryToBackend(downstream, htons(queryId), dnsQuestion, query)) {
+        return;
+      }
+      unit = DOH3UnitUniquePtr(dynamic_cast<DOH3QueryForwardedOverUDP*>(dnsQuestion.ids.du.get())->releaseDU());
+      unit->query = std::move(query);
+      // fallback to the normal flow
+    }
     unit->tcp = true;
 
     /* this moves unit->ids, careful! */
