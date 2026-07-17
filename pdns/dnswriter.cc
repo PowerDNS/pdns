@@ -225,7 +225,7 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrUnquote
 
 static constexpr bool l_verbose=false;
 static constexpr uint16_t maxCompressionOffset=16384;
-template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookupName(const DNSName& name, uint16_t* matchLen)
+template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookupName(const DNSName& name, uint16_t* matchLen) // NOLINT(readability-function-cognitive-complexity)
 {
   // iterate over the written labels, see if we find a match
   const auto& raw = name.getStorage();
@@ -364,9 +364,11 @@ template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookup
         break;
       }
 
-      if (strncasecmp(raw.c_str() + *positionInNameIter + 1, (const char*)&d_content[*positionInPacketIter] + 1, nlen)) {
+      auto rawpart = std::string_view(raw.c_str() + *positionInNameIter + 1, nlen); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      auto pktpart = std::string_view((const char*)&d_content[*positionInPacketIter] + 1, nlen); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      if (pdns_ilexicographical_compare_three_way(rawpart, pktpart) != 0) {
         if (l_verbose) {
-          cout << "Mismatch: " << string(raw.c_str() + *positionInNameIter + 1, raw.c_str() + *positionInNameIter + nlen + 1) << " != " << string((const char*)&d_content[*positionInPacketIter] + 1, (const char*)&d_content[*positionInPacketIter] + nlen + 1) << endl;
+          cout << "Mismatch: " << rawpart << " != " << pktpart << endl;
         }
         break;
       }

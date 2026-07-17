@@ -59,6 +59,58 @@ inline unsigned char dns_tolower(unsigned char chr)
   return dns_tolower_table[chr];
 }
 
+inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)  __attribute__((pure));
+inline int pdns_ilexicographical_compare_three_way(const std::string_view a, const std::string_view b)
+{
+  const unsigned char *aPtr = (const unsigned char*)a.data(), *bPtr = (const unsigned char*)b.data();
+  const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
+  while(aPtr != aEptr && bPtr != bEptr) {
+    if (*aPtr != *bPtr) {
+      if (int rc = dns_tolower(*aPtr) - dns_tolower(*bPtr); rc != 0) {
+        return rc;
+      }
+    }
+    aPtr++;
+    bPtr++;
+  }
+  // At this point, one of the strings has been completely processed.
+  // Either both have the same length, and they are equal, or one of them
+  // is larger, and compares as higher.
+  if (aPtr == aEptr) {
+    if (bPtr != bEptr) {
+      return -1; // a < b
+    }
+  }
+  else {
+    return 1; // a > b
+  }
+  return 0; // a == b
+}
+
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
+{
+  return pdns_ilexicographical_compare_three_way(a, b) < 0;
+}
+
+inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
+inline bool pdns_iequals(const std::string& a, const std::string& b)
+{
+  if (a.length() != b.length())
+    return false;
+
+  return pdns_ilexicographical_compare_three_way(a, b) == 0;
+}
+
+inline bool pdns_iequals_ch(const char a, const char b) __attribute__((pure));
+inline bool pdns_iequals_ch(const char a, const char b)
+{
+  if ((a != b) && (dns_tolower(a) != dns_tolower(b)))
+    return false;
+
+  return true;
+}
+
 #include "burtle.hh"
 #include "views.hh"
 
@@ -423,7 +475,7 @@ struct SuffixMatchTree
   }
   bool operator<(const SuffixMatchTree& rhs) const
   {
-    return strcasecmp(d_name.c_str(), rhs.d_name.c_str()) < 0;
+    return pdns_ilexicographical_compare(d_name, rhs.d_name);
   }
 
   std::string d_name;
@@ -439,13 +491,19 @@ struct SuffixMatchTree
     std::string_view d_name;
     bool operator<(const SuffixMatchTree& smt) const
     {
+      // This whole logic unfortunately can't be rewritten as
+      // pdns_ilexicographical_compare_three_way(this->d_name, smt.d_name)
+      // for, when the strings differ in length, the last return statement
+      // in the code below returns the opposite value.
       auto compareUpTo = std::min(this->d_name.size(), smt.d_name.size());
-      auto ret = strncasecmp(this->d_name.data(), smt.d_name.data(), compareUpTo);
+      auto this_name = std::string_view(this->d_name.data(), compareUpTo);
+      auto smt_name = std::string_view(smt.d_name.data(), compareUpTo);
+      auto ret = pdns_ilexicographical_compare_three_way(this_name, smt_name);
       if (ret != 0) {
         return ret < 0;
       }
       if (this->d_name.size() == smt.d_name.size()) {
-        return ret < 0;
+        return 0;
       }
       return this->d_name.size() < smt.d_name.size();
     }
@@ -453,13 +511,19 @@ struct SuffixMatchTree
 
   bool operator<(const LightKey& lk) const
   {
+    // This whole logic unfortunately can't be rewritten as
+    // pdns_ilexicographical_compare_three_way(this->d_name, lk.d_name)
+    // for, when the strings differ in length, the last return statement
+    // in the code below returns the opposite value.
     auto compareUpTo = std::min(this->d_name.size(), lk.d_name.size());
-    auto ret = strncasecmp(this->d_name.data(), lk.d_name.data(), compareUpTo);
+    auto this_name = std::string_view(this->d_name.data(), compareUpTo);
+    auto lk_name = std::string_view(lk.d_name.data(), compareUpTo);
+    auto ret = pdns_ilexicographical_compare_three_way(this_name, lk_name);
     if (ret != 0) {
       return ret < 0;
     }
     if (this->d_name.size() == lk.d_name.size()) {
-      return ret < 0;
+      return 0;
     }
     return this->d_name.size() < lk.d_name.size();
   }

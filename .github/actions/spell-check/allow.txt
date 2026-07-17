@@ -3476,7 +3476,6 @@ stringstream
 stringtok
 stringvalue
 STRLIT
-strncasecmp
 strncmp
 strncpy
 strptime

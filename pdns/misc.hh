@@ -373,59 +373,6 @@ inline bool operator<(const struct timespec& lhs, const struct timespec& rhs)
 }
 
 
-inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)  __attribute__((pure));
-inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)
-{
-  const unsigned char *aPtr = (const unsigned char*)a.data(), *bPtr = (const unsigned char*)b.data();
-  const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
-  while(aPtr != aEptr && bPtr != bEptr) {
-    if (*aPtr != *bPtr) {
-      if (int rc = dns_tolower(*aPtr) - dns_tolower(*bPtr); rc != 0) {
-        return rc;
-      }
-    }
-    aPtr++;
-    bPtr++;
-  }
-  // At this point, one of the strings has been completely processed.
-  // Either both have the same length, and they are equal, or one of them
-  // is larger, and compares as higher.
-  if (aPtr == aEptr) {
-    if (bPtr != bEptr) {
-      return -1; // a < b
-    }
-  }
-  else {
-    return 1; // a > b
-  }
-  return 0; // a == b
-}
-
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
-{
-  return pdns_ilexicographical_compare_three_way(a, b) < 0;
-}
-
-inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
-inline bool pdns_iequals(const std::string& a, const std::string& b)
-{
-  if (a.length() != b.length())
-    return false;
-
-  return pdns_ilexicographical_compare_three_way(a, b) == 0;
-}
-
-inline bool pdns_iequals_ch(const char a, const char b) __attribute__((pure));
-inline bool pdns_iequals_ch(const char a, const char b)
-{
-  if ((a != b) && (dns_tolower(a) != dns_tolower(b)))
-    return false;
-
-  return true;
-}
-
-
 typedef unsigned long AtomicCounterInner;
 typedef std::atomic<AtomicCounterInner> AtomicCounter ;
 

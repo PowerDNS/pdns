@@ -5,6 +5,8 @@
 #define BOOST_TEST_NO_MAIN
 
 #include <boost/test/unit_test.hpp>
+#include <boost/assign/list_of.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #include <cmath>
 #include <numeric>
@@ -1106,5 +1108,49 @@ BOOST_AUTO_TEST_CASE(test_variantnames) {
   BOOST_CHECK_THROW(ZoneName zone("variants.r.us..dot..dot...dot....dot.....dots"),std::out_of_range);
 }
 #endif
+
+BOOST_AUTO_TEST_CASE(test_pdns_ilexicographical_compare) {
+  using case_t = boost::tuple<const std::string, const std::string, bool>;
+  using cases_t = std::list<case_t>;
+
+  cases_t cases = boost::assign::list_of
+    (case_t(std::string(""), std::string(""), false))
+    (case_t(std::string(""), std::string("abc"), true))
+    (case_t(std::string("abc"), std::string(""), false))
+    (case_t(std::string("abc"), std::string("abcd"), true))
+    (case_t(std::string("abcd"), std::string("abc"), false))
+    (case_t(std::string("abd"), std::string("abc"), false))
+    (case_t(std::string("abc"), std::string("abd"), true))
+    (case_t(std::string("abc"), std::string("Abc"), false))
+    (case_t(std::string("Abc"), std::string("abc"), false))
+  ;
+
+  for(const case_t& val :  cases) {
+    bool res = pdns_ilexicographical_compare(val.get<0>(), val.get<1>());
+    BOOST_CHECK_EQUAL(res, val.get<2>());
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_pdns_iequals) {
+  using case_t = boost::tuple<const std::string, const std::string, bool>;
+  using cases_t = std::list<case_t>;
+
+  cases_t cases = boost::assign::list_of
+    (case_t(std::string(""), std::string(""), true))
+    (case_t(std::string(""), std::string("abc"), false))
+    (case_t(std::string("abc"), std::string(""), false))
+    (case_t(std::string("abc"), std::string("abcd"), false))
+    (case_t(std::string("abcd"), std::string("abc"), false))
+    (case_t(std::string("abd"), std::string("abc"), false))
+    (case_t(std::string("abc"), std::string("abd"), false))
+    (case_t(std::string("abc"), std::string("Abc"), true))
+    (case_t(std::string("Abc"), std::string("abc"), true))
+  ;
+
+  for(const case_t& val :  cases) {
+    bool res = pdns_iequals(val.get<0>(), val.get<1>());
+    BOOST_CHECK_EQUAL(res, val.get<2>());
+  }
+}
 
 BOOST_AUTO_TEST_SUITE_END()
