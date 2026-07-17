@@ -1636,8 +1636,8 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={"content-type": "application/json"},
         )
-        self.assertEqual(r.status_code, 422)
-        self.assertIn("Not in expected format (parsed as", r.json()["error"])
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("have been normalized", r.json()["warnings"][0])
 
     def test_zone_rr_update_with_semicolon(self):
         name, payload, zone = self.create_zone()
