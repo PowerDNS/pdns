@@ -1425,7 +1425,7 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
         numwarnings++;
       }
     }
-  }
+  } // end of complete records loop
 
   for(const auto &name: cnames) {
     if (noncnames.find(name) != noncnames.end()) {
@@ -1436,6 +1436,7 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
 
   numwarnings += checkZoneTLSA(tlsas, cnames, noncnames);
   tlsas.clear();
+  noncnames.clear();
 
   checkZoneSVCB(numwarnings, numerrors, "SVCB", zone, svcbTargets, svcbAliases, svcbRecords, arecords, aaaarecords, addresses);
   svcbTargets.clear();
@@ -1479,6 +1480,8 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
       numwarnings++;
     }
   }
+  glue.clear();
+  checkglue.clear();
 
   for (const auto& qname : checkOcclusion) {
     for (const auto& drr : records) {
@@ -1546,7 +1549,7 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
         target = std::dynamic_pointer_cast<NSRecordContent>(drc)->getNS();
         break;
       default:
-        // programmer error, but let's not abort() :)
+        // can't happen due to the way checkCNAME is filled
         break;
     }
     if (target.isPartOf(zone) && cnames.count(target) != 0) {
@@ -1554,6 +1557,8 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
       numwarnings++;
     }
   }
+  checkCNAME.clear();
+  cnames.clear();
 
   bool ok, ds_ns, done;
   for( const auto &rr : records ) {
@@ -1590,6 +1595,7 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
       numerrors++;
     }
   }
+  checkOcclusion.clear();
 
   std::map<std::string, std::vector<std::string>> metadatas;
   if (B.getAllDomainMetadata(zone, metadatas)) {
