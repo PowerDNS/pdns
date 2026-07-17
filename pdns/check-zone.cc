@@ -70,12 +70,24 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
 
   DNSResourceRecord previous;
   for (const auto& rec : allrrs) {
+    bool lowercase{false};
+    switch (rec.qtype) {
+    case QType::MX:
+    case QType::PTR:
+    case QType::SRV:
+      lowercase = true;
+      break;
+    }
+    std::string contentstr{rec.content};
+    if (lowercase) {
+      toLowerInPlace(contentstr);
+    }
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
           errors.emplace_back(std::make_pair(rec, "only one such record allowed"));
         }
-        if (previous.content == rec.content) {
+        if (previous.content == contentstr) {
           errors.emplace_back(std::make_pair(rec, std::string{"duplicate record with content \""} + rec.content + "\""));
         }
         // Enforce identical TTLs for all records with the same name and type,
@@ -129,6 +141,9 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
     }
 
     previous = rec;
+    if (lowercase) {
+      previous.content = contentstr;
+    }
   }
 }
 
