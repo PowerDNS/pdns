@@ -84,7 +84,6 @@ static const std::map<std::string, BooleanConfigurationItems> s_booleanConfigIte
   {"setWebserverBindFatal", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_webserverBindFatal = newValue; }}},
   {"setProxyProtocolApplyACLToProxiedClients", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_applyACLToProxiedClients = newValue; }}},
   {"setAddEDNSToSelfGeneratedResponses", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_addEDNSToSelfGeneratedResponses = newValue; }}},
-  {"setForwardViaUDPFirst", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_forwardViaUDPFirst = newValue; }}},
 };
 
 static const std::map<std::string, UnsignedIntegerConfigurationItems> s_unsignedIntegerConfigItems{

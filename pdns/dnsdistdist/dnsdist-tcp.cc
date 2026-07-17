@@ -894,7 +894,7 @@ std::unique_ptr<DOHUnitInterface> IncomingTCPConnectionState::getDOHUnit(uint32_
 
 bool IncomingTCPConnectionState::forwardViaUDPFirst() const
 {
-  return dnsdist::configuration::getCurrentRuntimeConfiguration().d_forwardViaUDPFirst;
+  return d_ci.cs != nullptr && d_ci.cs->d_forwardViaUDPFirst;
 }
 
 IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::handleQuery(PacketBuffer&& queryIn, const struct timeval& now, std::optional<int32_t> streamID)

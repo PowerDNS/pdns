@@ -154,12 +154,10 @@ class TestDOQWithCache(DOQCommon, QUICWithCacheTests, DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
-    addDOQLocal("127.0.0.1:%d", "%s", "%s")
+    addDOQLocal("127.0.0.1:%d", "%s", "%s", {forwardViaUDPFirst=true})
 
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
-
-    setForwardViaUDPFirst(true)
     """
     _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 
@@ -175,12 +173,10 @@ class TestDOQWithCacheAndBBR(DOQCommon, QUICWithCacheTests, DNSDistTest):
 
     -- As of Quiche 0.24.7 BBR is no longer supported, but we should not choke on it
     -- see https://github.com/cloudflare/quiche/issues/2342
-    addDOQLocal("127.0.0.1:%d", "%s", "%s", {congestionControlAlgo="bbr"})
+    addDOQLocal("127.0.0.1:%d", "%s", "%s", {congestionControlAlgo="bbr", forwardViaUDPFirst=true})
 
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
-
-    setForwardViaUDPFirst(true)
     """
     _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 

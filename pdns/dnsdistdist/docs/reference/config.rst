@@ -113,7 +113,7 @@ Listen Sockets
      ``enableProxyProtocol``, ``ktls``, ``library``, ``proxyProtocolOutsideTLS``, ``readAhead``, ``tlsAsyncMode`` options added.
 
   .. versionchanged:: 2.2.0
-     ``padResponses`` and ``ecdheCurves`` options added.
+     ``padResponses``, ``ecdheCurves`` and ``forwardViaUDPFirst`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -166,6 +166,7 @@ Listen Sockets
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
   * ``enableProxyProtocol=true``: bool - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
+  * ``forwardViaUDPFirst``: bool - Whether queries received by this frontend over DoTCP should be forwarded to the backend via UDP (unless the backend is TCP-only). If a truncated answer is received, the query will be re-tried over TCP. Default is ``false``.
 
 .. function:: addDOH3Local(address, certFile(s), keyFile(s) [, options])
 
@@ -177,6 +178,7 @@ Listen Sockets
   .. versionchanged:: 2.2.0
      ``padResponses`` option added.
      ``qLogDir`` option added.
+     ``forwardViaUDPFirst`` option added.
 
   Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available in :doc:`../guides/dns-over-http3`.
@@ -199,6 +201,7 @@ Listen Sockets
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
   * ``qLogDir``: str - Path to directory to store QLOG (QUIC logs) files in. By default QLOG is disabled.
+  * ``forwardViaUDPFirst``: bool - Whether queries received by this frontend over should be forwarded to the backend via UDP (unless the backend is TCP-only). If a truncated answer is received, the query will be re-tried over TCP. Default is false.
 
 .. function:: addDOQLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -210,6 +213,7 @@ Listen Sockets
   .. versionchanged:: 2.2.0
      ``padResponses`` option added.
      ``qLogDir`` option added.
+     ``forwardViaUDPFirst`` option added.
 
   Listen on the specified address and UDP port for incoming DNS over QUIC connections, presenting the specified X.509 certificate.
   See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
@@ -233,13 +237,14 @@ Listen Sockets
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
   * ``qLogDir``: str - Path to directory to store QLOG (QUIC logs) files in. By default QLOG is disabled.
+  * ``forwardViaUDPFirst``: bool - Whether queries received by this frontend over should be forwarded to the backend via UDP (unless the backend is TCP-only). If a truncated answer is received, the query will be re-tried over TCP. Default is ``false``.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
   .. versionchanged:: 1.9.0
      ``enableProxyProtocol``, ``readAhead`` and ``proxyProtocolOutsideTLS`` options added.
   .. versionchanged:: 2.2.0
-     ``padResponses`` and ``ecdheCurves`` options added.
+     ``padResponses``, ``ecdheCurves`` and ``forwardViaUDPFirst`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available at :doc:`../guides/dns-over-tls`.
@@ -283,6 +288,7 @@ Listen Sockets
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
   * ``enableProxyProtocol=true``: str - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
+  * ``forwardViaUDPFirst``: bool - Whether queries received by this frontend over should be forwarded to the backend via UDP (unless the backend is TCP-only). If a truncated answer is received, the query will be re-tried over TCP. Default is ``false``.
 
 .. function:: setLocal(address[, options])
 

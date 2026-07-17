@@ -595,8 +595,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     }
     unit->ids.cs = &clientState;
 
-    const bool forwardViaUDPFirst = dnsdist::configuration::getCurrentRuntimeConfiguration().d_forwardViaUDPFirst;
-    if (forwardViaUDPFirst) {
+    if (clientState.d_forwardViaUDPFirst) {
       // if there was no EDNS, we add it with a large buffer size
       // so we can use UDP to talk to the backend.
       const dnsheader_aligned dnsHeader(unit->query.data());
@@ -655,7 +654,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     unit->ids.origID = htons(queryId);
     unit->tcp = true;
 
-    if (!downstream->isTCPOnly() && forwardViaUDPFirst) {
+    if (!downstream->isTCPOnly() && clientState.d_forwardViaUDPFirst) {
       auto query = std::move(unit->query);
       dnsQuestion.ids.du = std::make_unique<QUICQueryForwardedOverUDP>(std::move(unit));
 
