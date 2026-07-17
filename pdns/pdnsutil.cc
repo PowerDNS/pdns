@@ -1420,24 +1420,6 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
     }
   }
 
-  Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
-  if (allowUnderscores) {
-    flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
-  }
-  std::vector<std::tuple<Logr::Priority, DNSResourceRecord, std::string>> errors;
-  Check::checkRRSet({}, records, zone, flags, errors);
-  for (const auto& error : errors) {
-    const auto [prio, rec, why] = error;
-    cerr << "[" << Logr::Logger::toString(prio) << "] " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
-    if (prio == Logr::Error) {
-      numerrors++;
-    }
-    else {
-      numwarnings++;
-    }
-  }
-  errors.clear();
-
   for(const auto &name: cnames) {
     if (noncnames.find(name) != noncnames.end()) {
       cout<<"[Error] CNAME "<<name<<" found, but other records with same label exist."<<endl;
@@ -1460,6 +1442,24 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
   arecords.clear();
   aaaarecords.clear();
   addresses.clear();
+
+  Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
+  if (allowUnderscores) {
+    flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
+  }
+  std::vector<std::tuple<Logr::Priority, DNSResourceRecord, std::string>> errors;
+  Check::checkRRSet({}, records, zone, flags, errors);
+  for (const auto& error : errors) {
+    const auto [prio, rec, why] = error;
+    cerr << "[" << Logr::Logger::toString(prio) << "] " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
+    if (prio == Logr::Error) {
+      numerrors++;
+    }
+    else {
+      numwarnings++;
+    }
+  }
+  errors.clear();
 
   if(!hasNsAtApex) {
     cout<<"[Error] No NS record at zone apex in zone '"<<zone<<"'"<<endl;
