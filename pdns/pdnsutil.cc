@@ -1336,30 +1336,20 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
         }
       }
 
-      switch (rr.qtype.getCode()) {
-      case QType::SVCB:
-        if (svcbrc->getPriority() == 0) {
-          if (svcbAliases.find(rr.qname) != svcbAliases.end()) {
-            cout << "[Warning] More than one Alias form SVCB record for " << rr.qname << " exists." << endl;
-            numwarnings++;
-          }
-          svcbAliases.insert(rr.qname);
+      bool isSvcb = rr.qtype.getCode() == QType::SVCB;
+      set<DNSName>& aliases = isSvcb ? svcbAliases : httpsAliases;
+      svcbset_t& targets = isSvcb ? svcbTargets : httpsTargets;
+      set<DNSName>& ourrecords = isSvcb ? svcbRecords : httpsRecords;
+
+      if (svcbrc->getPriority() == 0) {
+        if (aliases.find(rr.qname) != aliases.end()) {
+          cout << "[Warning] More than one Alias form " << rr.qtype.toString()<< " " << rr.qname << " exists." << endl;
+          numwarnings++;
         }
-        svcbTargets.emplace(rr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint));
-        svcbRecords.insert(rr.qname);
-        break;
-      case QType::HTTPS:
-        if (svcbrc->getPriority() == 0) {
-          if (httpsAliases.find(rr.qname) != httpsAliases.end()) {
-            cout << "[Warning] More than one Alias form HTTPS record for " << rr.qname << " exists." << endl;
-            numwarnings++;
-          }
-          httpsAliases.insert(rr.qname);
-        }
-        httpsTargets.emplace(rr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint));
-        httpsRecords.insert(rr.qname);
-        break;
+        aliases.insert(rr.qname);
       }
+      targets.emplace(rr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint));
+      ourrecords.insert(rr.qname);
     }
 
     if (isSecure && isOptOut && (rr.qname.hasLabels() && rr.qname.getRawLabel(0) == "*")) {
