@@ -317,6 +317,9 @@ public:
 
   void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& downstream_) override
   {
+    /* The caller will NOT free us, so we need to do it ourselves.
+       Our internal d_unit object will be moved in most cases, but not this object.
+    */
     std::unique_ptr<DOHUnitInterface> unit(this);
     timeval now{};
     gettimeofday(&now, nullptr);
@@ -339,8 +342,6 @@ public:
         bool proxyProtocolPayloadAdded = state.d_proxyProtocolPayloadSize > 0;
         this->d_unit->query = std::move(query);
         this->d_unit->ids = std::move(state);
-        // NOLINTNEXTLINE(bugprone-unused-return-value)
-        unit.release();
         /* this moves d_unit->ids, careful! */
         auto cpq = std::make_unique<DOH3CrossProtocolQuery>(std::move(this->d_unit), false);
         cpq->query.d_proxyProtocolPayloadAdded = proxyProtocolPayloadAdded;
