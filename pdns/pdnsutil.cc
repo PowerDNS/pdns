@@ -1018,6 +1018,71 @@ static void checkZoneSVCB(int& numwarnings, int& numerrors, const std::string& t
   }
 }
 
+static int normalizeSOARecord(DNSResourceRecord& drr)
+{
+  int numwarnings{0};
+  vector<string> parts;
+  stringtok(parts, drr.content);
+
+  if(parts.size() < 7) {
+    cout << "[Info] SOA autocomplete is deprecated, missing field(s) in SOA content: " << drr.qname << " IN " << drr.qtype.toString() << " '" << drr.content << "'" << endl;
+  }
+
+  if(parts.size() >= 2) {
+    if(parts[1].find('@') != string::npos) {
+      cout<<"[Warning] Found @-sign in SOA RNAME, should probably be a dot (.): "<<drr.qname<<" IN " <<drr.qtype.toString()<< " '" << drr.content<<"'"<<endl;
+      numwarnings++;
+    }
+  }
+
+  ostringstream ostr;
+  ostr<<drr.content;
+  for(auto pleft=parts.size(); pleft < 7; ++pleft) {
+    ostr<<" 0";
+  }
+  drr.content=ostr.str();
+  return numwarnings;
+}
+
+static bool checkRecordContents(int& numwarnings, int& numerrors, DNSResourceRecord& drr)
+{
+  // Make sure TXT record contents are quoted
+  if(drr.qtype.getCode() == QType::TXT && !drr.content.empty() && drr.content[0]!='"') {
+    drr.content = "\""+drr.content+"\"";
+  }
+
+  try {
+    shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
+    string tmp=drc->serialize(drr.qname);
+    tmp = drc->getZoneRepresentation(true);
+    if (drr.qtype.getCode() != QType::AAAA) {
+      if (!pdns_iequals(tmp, drr.content)) {
+        if(drr.qtype.getCode() == QType::SOA) {
+          tmp = drc->getZoneRepresentation(false);
+        }
+        if(!pdns_iequals(tmp, drr.content)) {
+          cout<<"[Warning] Parsed and original record content are not equal: "<<drr.qname<<" IN " <<drr.qtype.toString()<< " '" << drr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
+          numwarnings++;
+        }
+      }
+    } else {
+      struct in6_addr tmpbuf;
+      if (inet_pton(AF_INET6, drr.content.c_str(), &tmpbuf) != 1) {
+        cout<<"[Warning] Following record is not a valid IPv6 address: "<<drr.qname<<" IN " <<drr.qtype.toString()<< " '" << drr.content<<"'"<<endl;
+        numwarnings++;
+      }
+    }
+    return true;
+  }
+  catch(std::exception& e)
+  {
+    cout<<"[Error] Following record had a problem: \""<<drr.qname<<" IN "<<drr.qtype.toString()<<" "<<drr.content<<"\""<<endl;
+    cout<<"[Error] Error was: "<<e.what()<<endl;
+    numerrors++;
+    return false;
+  }
+}
+
 static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINT(readability-function-cognitive-complexity,readability-identifier-length)
 {
   int numerrors=0;
@@ -1227,58 +1292,10 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
       aaaarecords.insert(rr.qname);
     }
     if(rr.qtype.getCode() == QType::SOA) {
-      vector<string>parts;
-      stringtok(parts, rr.content);
-
-      if(parts.size() < 7) {
-        cout << "[Info] SOA autocomplete is deprecated, missing field(s) in SOA content: " << rr.qname << " IN " << rr.qtype.toString() << " '" << rr.content << "'" << endl;
-      }
-
-      if(parts.size() >= 2) {
-        if(parts[1].find('@') != string::npos) {
-          cout<<"[Warning] Found @-sign in SOA RNAME, should probably be a dot (.): "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"'"<<endl;
-          numwarnings++;
-        }
-      }
-
-      ostringstream o;
-      o<<rr.content;
-      for(auto pleft=parts.size(); pleft < 7; ++pleft) {
-        o<<" 0";
-      }
-      rr.content=o.str();
+      numwarnings += normalizeSOARecord(rr);
     }
 
-    if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
-      rr.content = "\""+rr.content+"\"";
-
-    try {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
-      string tmp=drc->serialize(rr.qname);
-      tmp = drc->getZoneRepresentation(true);
-      if (rr.qtype.getCode() != QType::AAAA) {
-        if (!pdns_iequals(tmp, rr.content)) {
-          if(rr.qtype.getCode() == QType::SOA) {
-            tmp = drc->getZoneRepresentation(false);
-          }
-          if(!pdns_iequals(tmp, rr.content)) {
-            cout<<"[Warning] Parsed and original record content are not equal: "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"' (Content parsed as '"<<tmp<<"')"<<endl;
-            numwarnings++;
-          }
-        }
-      } else {
-        struct in6_addr tmpbuf;
-        if (inet_pton(AF_INET6, rr.content.c_str(), &tmpbuf) != 1) {
-          cout<<"[Warning] Following record is not a valid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"'"<<endl;
-          numwarnings++;
-        }
-      }
-    }
-    catch(std::exception& e)
-    {
-      cout<<"[Error] Following record had a problem: \""<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"\""<<endl;
-      cout<<"[Error] Error was: "<<e.what()<<endl;
-      numerrors++;
+    if (!checkRecordContents(numwarnings, numerrors, rr)) {
       continue;
     }
 
