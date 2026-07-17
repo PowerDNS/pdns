@@ -1208,28 +1208,34 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
   // We defer some of them to Check::checkRRSet(), but some of the checks can
   // only be performed on complete zone contents and are only done here.
 
+  bool allowUnderscores = areUnderscoresAllowed(zone, di);
   bool hasNsAtApex = false;
-  set<DNSName> tlsas;
+  size_t recordCount{0};
+  {
+  vector<DNSResourceRecord> records;
+  set<pair<DNSName, QType>> checkOcclusion;
+  {
+  vector<DNSResourceRecord> checkCNAME;
   set<DNSName> cnames;
-  set<DNSName> noncnames;
+  {
   set<DNSName> glue;
   set<DNSName> checkglue;
-  set<DNSName> addresses;
-  set<DNSName> svcbAliases;
-  set<DNSName> httpsAliases;
-  set<DNSName> svcbRecords;
-  set<DNSName> httpsRecords;
+  {
   set<DNSName> arecords;
   set<DNSName> aaaarecords;
-  vector<DNSResourceRecord> checkCNAME;
-  set<pair<DNSName, QType>> checkOcclusion;
-  svcbset_t svcbTargets;
+  set<DNSName> addresses;
+  {
+  set<DNSName> httpsAliases;
+  set<DNSName> httpsRecords;
   svcbset_t httpsTargets;
+  {
+  set<DNSName> svcbAliases;
+  set<DNSName> svcbRecords;
+  svcbset_t svcbTargets;
+  {
+  set<DNSName> tlsas;
+  set<DNSName> noncnames;
 
-  ostringstream content;
-  pair<map<string, unsigned int>::iterator,bool> ret;
-
-  vector<DNSResourceRecord> records;
   if(suppliedrecords == nullptr) {
     std::vector<std::pair<std::string, std::string>> invalid;
     DNSResourceRecord drr;
@@ -1266,8 +1272,7 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
   else {
     records = *suppliedrecords;
   }
-
-  bool allowUnderscores = areUnderscoresAllowed(zone, di);
+  recordCount = records.size();
 
   for(auto &rr : records) { // We modify SOA and TXT record contents
     if(rr.qtype.getCode() == QType::TLSA)
@@ -1435,39 +1440,33 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
   }
 
   numwarnings += checkZoneTLSA(tlsas, cnames, noncnames);
-  tlsas.clear();
-  noncnames.clear();
+  } // end of scope for tlsas and noncnames
 
   checkZoneSVCB(numwarnings, numerrors, "SVCB", zone, svcbTargets, svcbAliases, svcbRecords, arecords, aaaarecords, addresses);
-  svcbTargets.clear();
-  svcbAliases.clear();
-  svcbRecords.clear();
+  } // end of scope for svcbTargets, svcbAliases and svcbRecords
   checkZoneSVCB(numwarnings, numerrors, "HTTPS", zone, httpsTargets, httpsAliases, httpsRecords, arecords, aaaarecords, addresses);
-  httpsTargets.clear();
-  httpsAliases.clear();
-  httpsRecords.clear();
+  } // end of scope for httpsTargets, httpsAliases and httpsRecords
 
-  arecords.clear();
-  aaaarecords.clear();
-  addresses.clear();
+  } // end of scope for arecords, aaaarecords and addresses
 
-  Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
-  if (allowUnderscores) {
-    flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
-  }
-  std::vector<std::tuple<Logr::Priority, DNSResourceRecord, std::string>> errors;
-  Check::checkRRSet({}, records, zone, flags, errors);
-  for (const auto& error : errors) {
-    const auto [prio, rec, why] = error;
-    cerr << "[" << Logr::Logger::toString(prio) << "] " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
-    if (prio == Logr::Error) {
-      numerrors++;
+  {
+    Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
+    if (allowUnderscores) {
+      flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
     }
-    else {
-      numwarnings++;
+    std::vector<std::tuple<Logr::Priority, DNSResourceRecord, std::string>> errors;
+    Check::checkRRSet({}, records, zone, flags, errors);
+    for (const auto& error : errors) {
+      const auto [prio, rec, why] = error;
+      cerr << "[" << Logr::Logger::toString(prio) << "] " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
+      if (prio == Logr::Error) {
+        numerrors++;
+      }
+      else {
+        numwarnings++;
+      }
     }
   }
-  errors.clear();
 
   if(!hasNsAtApex) {
     cout<<"[Error] No NS record at zone apex in zone '"<<zone<<"'"<<endl;
@@ -1480,8 +1479,8 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
       numwarnings++;
     }
   }
-  glue.clear();
-  checkglue.clear();
+
+  } // end of scope for glue and checkglue
 
   for (const auto& qname : checkOcclusion) {
     for (const auto& drr : records) {
@@ -1557,8 +1556,8 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
       numwarnings++;
     }
   }
-  checkCNAME.clear();
-  cnames.clear();
+
+  } // end of scope for checkCNAME and cnames
 
   bool ok, ds_ns, done;
   for( const auto &rr : records ) {
@@ -1595,7 +1594,8 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
       numerrors++;
     }
   }
-  checkOcclusion.clear();
+
+  } // end of scope for records and checkOcclusion
 
   std::map<std::string, std::vector<std::string>> metadatas;
   if (B.getAllDomainMetadata(zone, metadatas)) {
@@ -1616,7 +1616,7 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
     }
   }
 
-  cout<<"Checked "<<records.size()<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
+  cout<<"Checked "<<recordCount<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
   return numerrors;
 }
 
