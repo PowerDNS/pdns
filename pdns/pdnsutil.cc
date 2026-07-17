@@ -958,8 +958,8 @@ static bool areUnderscoresAllowed(const ZoneName& zonename, DomainInfo& info)
 static int checkZoneTLSA(const set<DNSName>& tlsas, const set<DNSName>& cnames, const set<DNSName>& noncnames)
 {
   int numwarnings{0};
-  for(const auto &i: tlsas) {
-    DNSName name = DNSName(i);
+  for(const auto& origname: tlsas) {
+    auto name = origname;
     name.trimToLabels(name.countLabels()-2);
     if (cnames.find(name) == cnames.end() && noncnames.find(name) == noncnames.end()) {
       // No specific record for the name in the TLSA record exists, this
@@ -969,9 +969,9 @@ static int checkZoneTLSA(const set<DNSName>& tlsas, const set<DNSName>& cnames, 
       wcname.chopOff();
       wcname.prependRawLabel("*");
       if (cnames.find(wcname) != cnames.end() || noncnames.find(wcname) != noncnames.end()) {
-        cout<<"A wildcard record exist for '"<<wcname<<"' and a TLSA record for '"<<i<<"'.";
+        cout<<"A wildcard record exist for '"<<wcname<<"' and a TLSA record for '"<<origname<<"'.";
       } else {
-        cout<<"No record for '"<<name<<"' exists, but a TLSA record for '"<<i<<"' does.";
+        cout<<"No record for '"<<name<<"' exists, but a TLSA record for '"<<origname<<"' does.";
       }
       numwarnings++;
       cout<<" A query for '"<<name<<"' will yield an empty response. This is most likely a mistake, please create records for '"<<name<<"'."<<endl;
@@ -1066,7 +1066,7 @@ static bool checkRecordContents(int& numwarnings, int& numerrors, DNSResourceRec
         }
       }
     } else {
-      struct in6_addr tmpbuf;
+      struct in6_addr tmpbuf{};
       if (inet_pton(AF_INET6, drr.content.c_str(), &tmpbuf) != 1) {
         cout<<"[Warning] Following record is not a valid IPv6 address: "<<drr.qname<<" IN " <<drr.qtype.toString()<< " '" << drr.content<<"'"<<endl;
         numwarnings++;
@@ -1274,48 +1274,49 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
   }
   recordCount = records.size();
 
-  for(auto &rr : records) { // We modify SOA and TXT record contents
-    if(rr.qtype.getCode() == QType::TLSA)
-      tlsas.insert(rr.qname);
-    if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
-      addresses.insert(rr.qname);
+  for(auto &drr : records) { // We modify SOA and TXT record contents
+    if(drr.qtype.getCode() == QType::TLSA) {
+      tlsas.insert(drr.qname);
+    }
+    if(drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) {
+      addresses.insert(drr.qname);
     }
 #ifdef HAVE_LUA_RECORDS
-    if(rr.qtype.getCode() == QType::LUA) {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
+    if(drr.qtype.getCode() == QType::LUA) {
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
       auto luarec = std::dynamic_pointer_cast<LUARecordContent>(drc);
       QType qtype = luarec->d_type;
       if(qtype == QType::A || qtype == QType::AAAA) {
-        addresses.insert(rr.qname);
+        addresses.insert(drr.qname);
       }
     }
 #endif
-    if(rr.qtype.getCode() == QType::A) {
-      arecords.insert(rr.qname);
+    if(drr.qtype.getCode() == QType::A) {
+      arecords.insert(drr.qname);
     }
-    if(rr.qtype.getCode() == QType::AAAA) {
-      aaaarecords.insert(rr.qname);
+    if(drr.qtype.getCode() == QType::AAAA) {
+      aaaarecords.insert(drr.qname);
     }
-    if(rr.qtype.getCode() == QType::SOA) {
-      numwarnings += normalizeSOARecord(rr);
+    if(drr.qtype.getCode() == QType::SOA) {
+      numwarnings += normalizeSOARecord(drr);
     }
 
-    if (!checkRecordContents(numwarnings, numerrors, rr)) {
+    if (!checkRecordContents(numwarnings, numerrors, drr)) {
       continue;
     }
 
-    if(!rr.qname.isPartOf(zone)) {
-      cout<<"[Error] Record '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
+    if(!drr.qname.isPartOf(zone)) {
+      cout<<"[Error] Record '"<<drr.qname<<" IN "<<drr.qtype.toString()<<" "<<drr.content<<"' in zone '"<<zone<<"' is out-of-zone."<<endl;
       numerrors++;
       continue;
     }
 
-    if (rr.qtype.getCode() == QType::SVCB || rr.qtype.getCode() == QType::HTTPS) {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
+    if (drr.qtype.getCode() == QType::SVCB || drr.qtype.getCode() == QType::HTTPS) {
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
       // I, too, like to live dangerously
       auto svcbrc = std::dynamic_pointer_cast<SVCBBaseRecordContent>(drc);
       if (svcbrc->getPriority() == 0 && svcbrc->hasParams()) {
-        cout<<"[Warning] Aliasform "<<rr.qtype.toString()<<" record "<<rr.qname<<" has service parameters."<<endl;
+        cout<<"[Warning] Aliasform "<<drr.qtype.toString()<<" record "<<drr.qname<<" has service parameters."<<endl;
         numwarnings++;
       }
 
@@ -1327,106 +1328,107 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
            *  also be specified in order for the RR to be "self-consistent
            *  (Section 2.4.3).
            */
-          cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.toString()<<" is not self-consistent: 'no-default-alpn' parameter without 'alpn' parameter"<<endl;
+          cout<<"[Warning] "<<drr.qname<<"|"<<drr.qtype.toString()<<" is not self-consistent: 'no-default-alpn' parameter without 'alpn' parameter"<<endl;
           numwarnings++;
         }
         if (svcbrc->hasParam(SvcParam::mandatory)) {
           auto keys = svcbrc->getParam(SvcParam::mandatory).getMandatory();
           for (auto const &k: keys) {
             if (!svcbrc->hasParam(k)) {
-              cout<<"[Warning] "<<rr.qname<<"|"<<rr.qtype.toString()<<" is not self-consistent: 'mandatory' parameter lists '"+ SvcParam::keyToString(k) +"', but that parameter does not exist"<<endl;
+              cout<<"[Warning] "<<drr.qname<<"|"<<drr.qtype.toString()<<" is not self-consistent: 'mandatory' parameter lists '"+ SvcParam::keyToString(k) +"', but that parameter does not exist"<<endl;
               numwarnings++;
             }
           }
         }
       }
 
-      bool isSvcb = rr.qtype.getCode() == QType::SVCB;
+      bool isSvcb = drr.qtype.getCode() == QType::SVCB;
       set<DNSName>& aliases = isSvcb ? svcbAliases : httpsAliases;
       svcbset_t& targets = isSvcb ? svcbTargets : httpsTargets;
       set<DNSName>& ourrecords = isSvcb ? svcbRecords : httpsRecords;
 
       if (svcbrc->getPriority() == 0) {
-        if (aliases.find(rr.qname) != aliases.end()) {
-          cout << "[Warning] More than one Alias form " << rr.qtype.toString()<< " " << rr.qname << " exists." << endl;
+        if (aliases.find(drr.qname) != aliases.end()) {
+          cout << "[Warning] More than one Alias form " << drr.qtype.toString()<< " " << drr.qname << " exists." << endl;
           numwarnings++;
         }
-        aliases.insert(rr.qname);
+        aliases.insert(drr.qname);
       }
-      targets.emplace(rr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint));
-      ourrecords.insert(rr.qname);
+      targets.emplace(drr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint));
+      ourrecords.insert(drr.qname);
     }
 
-    if (isSecure && isOptOut && (rr.qname.hasLabels() && rr.qname.getRawLabel(0) == "*")) {
-      cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' is insecure"<<endl;
+    if (isSecure && isOptOut && (drr.qname.hasLabels() && drr.qname.getRawLabel(0) == "*")) {
+      cout<<"[Warning] wildcard record '"<<drr.qname<<" IN " <<drr.qtype.toString()<<" "<<drr.content<<"' is insecure"<<endl;
       cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: 'pdnsutil zone set-nsec3 "<<zone<<"'"<<endl;
       numwarnings++;
     }
 
-    if(rr.qname==zone.operator const DNSName&()) {
+    if(drr.qname==zone.operator const DNSName&()) {
       // apex checks
-      if (rr.qtype.getCode() == QType::NS) {
+      if (drr.qtype.getCode() == QType::NS) {
         hasNsAtApex=true;
       }
     } else {
       // non-apex checks
-      if (rr.qtype.getCode() == QType::NS) {
-        if (DNSName(rr.content).isPartOf(rr.qname)) {
-          checkglue.insert(DNSName(toLower(rr.content)));
+      if (drr.qtype.getCode() == QType::NS) {
+        if (DNSName(drr.content).isPartOf(drr.qname)) {
+          checkglue.insert(DNSName(toLower(drr.content)));
         }
-        checkOcclusion.insert({rr.qname, rr.qtype});
-      } else if (rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
-        glue.insert(rr.qname);
+        checkOcclusion.insert({drr.qname, drr.qtype});
+      } else if (drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) {
+        glue.insert(drr.qname);
       }
     }
 
     // DNAMEs can occur both at the apex and below it
-    if (rr.qtype == QType::DNAME) {
-      checkOcclusion.insert({rr.qname, rr.qtype});
+    if (drr.qtype == QType::DNAME) {
+      checkOcclusion.insert({drr.qname, drr.qtype});
     }
 
-    if((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) && !rr.qname.isWildcard() && !rr.qname.isHostname())
-      cout<<"[Info] "<<rr.qname.toString()<<" record for '"<<rr.qtype.toString()<<"' is not a valid hostname."<<endl;
+    if((drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) && !drr.qname.isWildcard() && !drr.qname.isHostname()) {
+      cout<<"[Info] "<<drr.qname.toString()<<" record for '"<<drr.qtype.toString()<<"' is not a valid hostname."<<endl;
+    }
 
-    if (rr.qtype.getCode() == QType::CNAME) {
-      if (cnames.count(rr.qname) == 0) {
-        cnames.insert(rr.qname);
+    if (drr.qtype.getCode() == QType::CNAME) {
+      if (cnames.count(drr.qname) == 0) {
+        cnames.insert(drr.qname);
       }
     } else {
-      if (rr.qtype.getCode() == QType::RRSIG) {
+      if (drr.qtype.getCode() == QType::RRSIG) {
         if(!presigned) {
-          cout<<"[Error] RRSIG found at '"<<rr.qname<<"' in non-presigned zone. These do not belong in the database."<<endl;
+          cout<<"[Error] RRSIG found at '"<<drr.qname<<"' in non-presigned zone. These do not belong in the database."<<endl;
           numerrors++;
           continue;
         }
       } else
-        noncnames.insert(rr.qname);
+        noncnames.insert(drr.qname);
     }
 
-    if (rr.qtype == QType::MX || rr.qtype == QType::NS || rr.qtype == QType::SRV) {
-      checkCNAME.push_back(rr);
+    if (drr.qtype == QType::MX || drr.qtype == QType::NS || drr.qtype == QType::SRV) {
+      checkCNAME.push_back(drr);
     }
 
-    if(rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3)
+    if(drr.qtype.getCode() == QType::NSEC || drr.qtype.getCode() == QType::NSEC3)
     {
-      cout<<"[Error] NSEC or NSEC3 found at '"<<rr.qname<<"'. These do not belong in the database."<<endl;
+      cout<<"[Error] NSEC or NSEC3 found at '"<<drr.qname<<"'. These do not belong in the database."<<endl;
       numerrors++;
       continue;
     }
 
-    if(!presigned && rr.qtype.getCode() == QType::DNSKEY)
+    if(!presigned && drr.qtype.getCode() == QType::DNSKEY)
     {
       if(::arg().mustDo("direct-dnskey"))
       {
-        if(rr.ttl != sd.minimum)
+        if(drr.ttl != sd.minimum)
         {
-          cout<<"[Warning] DNSKEY TTL of "<<rr.ttl<<" at '"<<rr.qname<<"' differs from SOA minimum of "<<sd.minimum<<endl;
+          cout<<"[Warning] DNSKEY TTL of "<<drr.ttl<<" at '"<<drr.qname<<"' differs from SOA minimum of "<<sd.minimum<<endl;
           numwarnings++;
         }
       }
       else
       {
-        cout<<"[Warning] DNSKEY at '"<<rr.qname<<"' in non-presigned zone will mostly be ignored and can cause problems."<<endl;
+        cout<<"[Warning] DNSKEY at '"<<drr.qname<<"' in non-presigned zone will mostly be ignored and can cause problems."<<endl;
         numwarnings++;
       }
     }
