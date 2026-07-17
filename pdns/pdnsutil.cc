@@ -955,7 +955,7 @@ static bool areUnderscoresAllowed(const ZoneName& zonename, DomainInfo& info)
   return underscores == "0";
 }
 
-static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINT(readability-function-cognitive-complexity,readability-identifier-length)
+static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINT(readability-function-cognitive-complexity,readability-identifier-length)
 {
   int numerrors=0;
   int numwarnings=0;
@@ -978,6 +978,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
     return 1;
   }
 
+  // SOA record checks
   SOAData sd;
   try {
     if (!B.getSOAUncached(zone, sd)) {
@@ -1002,6 +1003,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
     }
   }
 
+  // NSEC3 parameters checks
   NSEC3PARAMRecordContent ns3pr;
   bool narrow = false;
   bool haveNSEC3 = dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
@@ -1074,13 +1076,14 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
     }
   }
 
+  // Record checks.
+  // We defer some of them to Check::checkRRSet(), but some of the checks can
+  // only be performed on complete zone contents and are only done here.
 
   bool hasNsAtApex = false;
   set<DNSName> tlsas, cnames, noncnames, glue, checkglue, addresses, svcbAliases, httpsAliases, svcbRecords, httpsRecords, arecords, aaaarecords;
   vector<DNSResourceRecord> checkCNAME;
   set<pair<DNSName, QType> > checkOcclusion;
-  set<string> recordcontents;
-  map<string, unsigned int> ttl;
   // Record name, prio, target name, ipv4hint=auto, ipv6hint=auto
   set<std::tuple<DNSName, uint16_t, DNSName, bool, bool> > svcbTargets, httpsTargets;
 
@@ -1121,12 +1124,13 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       numwarnings++;
     }
   }
-  else
-    records=*suppliedrecords;
+  else {
+    records = *suppliedrecords;
+  }
 
   bool allowUnderscores = areUnderscoresAllowed(zone, di);
 
-  for(auto &rr : records) { // we modify this
+  for(auto &rr : records) { // We modify SOA and TXT record contents
     if(rr.qtype.getCode() == QType::TLSA)
       tlsas.insert(rr.qname);
     if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
@@ -1267,32 +1271,6 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       }
     }
 
-    content.str("");
-    content<<rr.qname<<" "<<rr.qtype.toString()<<" "<<rr.content;
-    string contentstr = content.str();
-    if (rr.qtype.getCode() != QType::TXT) {
-      contentstr=toLower(contentstr);
-    }
-    if (recordcontents.count(contentstr) != 0) {
-      cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"'"<<endl;
-      numerrors++;
-      continue;
-    }
-    recordcontents.insert(std::move(contentstr));
-
-    content.str("");
-    content<<rr.qname<<" "<<rr.qtype.toString();
-    if (rr.qtype.getCode() == QType::RRSIG) {
-      RRSIGRecordContent rrc(rr.content);
-      content<<" ("<<DNSRecordContent::NumberToType(rrc.d_type)<<")";
-    }
-    ret = ttl.insert(pair<string, unsigned int>(toLower(content.str()), rr.ttl));
-    if (!ret.second && ret.first->second != rr.ttl) {
-      cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
-      numerrors++;
-      continue;
-    }
-
     if (isSecure && isOptOut && (rr.qname.hasLabels() && rr.qname.getRawLabel(0) == "*")) {
       cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' is insecure"<<endl;
       cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: 'pdnsutil zone set-nsec3 "<<zone<<"'"<<endl;
@@ -1303,21 +1281,10 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       // apex checks
       if (rr.qtype.getCode() == QType::NS) {
         hasNsAtApex=true;
-      } else if (rr.qtype.getCode() == QType::DS) {
-        cout<<"[Warning] DS at apex in zone '"<<zone<<"', should not be here."<<endl;
-        numwarnings++;
       }
     } else {
       // non-apex checks
-      if (rr.qtype.getCode() == QType::SOA) {
-        cout<<"[Error] SOA record not at apex '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"' in zone '"<<zone<<"'"<<endl;
-        numerrors++;
-        continue;
-      }
-      if (rr.qtype.getCode() == QType::DNSKEY) {
-        cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
-        numwarnings++;
-      } else if (rr.qtype.getCode() == QType::NS) {
+      if (rr.qtype.getCode() == QType::NS) {
         if (DNSName(rr.content).isPartOf(rr.qname)) {
           checkglue.insert(DNSName(toLower(rr.content)));
         }
@@ -1335,22 +1302,9 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
     if((rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) && !rr.qname.isWildcard() && !rr.qname.isHostname())
       cout<<"[Info] "<<rr.qname.toString()<<" record for '"<<rr.qtype.toString()<<"' is not a valid hostname."<<endl;
 
-    // Check if the DNSNames that should be hostnames, are hostnames
-    try {
-      checkHostnameCorrectness(rr, allowUnderscores);
-    } catch (const std::exception& e) {
-      cout << "[Warning] " << rr.qtype.toString() << " record in zone '" << zone << ": " << e.what() << endl;
-      numwarnings++;
-    }
-
     if (rr.qtype.getCode() == QType::CNAME) {
       if (cnames.count(rr.qname) == 0) {
         cnames.insert(rr.qname);
-      }
-      else {
-        cout<<"[Error] Duplicate CNAME found at '"<<rr.qname<<"'"<<endl;
-        numerrors++;
-        continue;
       }
     } else {
       if (rr.qtype.getCode() == QType::RRSIG) {
@@ -1391,6 +1345,24 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       }
     }
   }
+
+  Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
+  if (allowUnderscores) {
+    flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
+  }
+  std::vector<std::tuple<Logr::Priority, DNSResourceRecord, std::string>> errors;
+  Check::checkRRSet({}, records, zone, flags, errors);
+  for (const auto& error : errors) {
+    const auto [prio, rec, why] = error;
+    cerr << "[" << Logr::Logger::toString(prio) << "] " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
+    if (prio == Logr::Error) {
+      numerrors++;
+    }
+    else {
+      numwarnings++;
+    }
+  }
+  errors.clear();
 
   for(const auto &name: cnames) {
     if (noncnames.find(name) != noncnames.end()) {
@@ -1646,7 +1618,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
   B.getAllDomains(&domainInfo, true, true);
   int errors=0;
   for (auto& di : domainInfo) {
-    if (checkZone(dk, B, di.zone) > 0) {
+    if (checkZoneRecords(dk, B, di.zone) > 0) {
       errors++;
     }
 
@@ -2423,7 +2395,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
           drr.domain_id = info.id;
           checkrr.push_back(std::move(drr));
         }
-        if(checkZone(dsk, B, zone, &checkrr) != 0) {
+        if(checkZoneRecords(dsk, B, zone, &checkrr) != 0) {
           state = INVALIDZONE;
           break;
         }
@@ -4034,7 +4006,7 @@ static int checkZone(vector<string>& cmds, const std::string_view synopsis)
   }
   DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
   UtilBackend B("default"); // NOLINT(readability-identifier-length)
-  return checkZone(dk, B, ZoneName(cmds.at(0)));
+  return checkZoneRecords(dk, B, ZoneName(cmds.at(0)));
 }
 
 static int benchDb(vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
