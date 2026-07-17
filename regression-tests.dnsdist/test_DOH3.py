@@ -3,7 +3,14 @@ import dns
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
-from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests, QUICTooLargeTests
+from quictests import (
+    QUICTests,
+    QUICWithCacheTests,
+    QUICACLTests,
+    QUICGetLocalAddressOnAnyBindTests,
+    QUICXFRTests,
+    QUICTooLargeTests,
+)
 
 
 class DOH3Common(object):

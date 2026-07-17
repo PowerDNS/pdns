@@ -229,6 +229,7 @@ class QUICWithCacheTests(object):
         # one UDP, one TCP
         self.assertEqual(after - before, 2)
 
+
 class QUICGetLocalAddressOnAnyBindTests(object):
     def testGetLocalAddressOnAnyBind(self):
         """
