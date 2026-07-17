@@ -983,22 +983,22 @@ static int checkZoneTLSA(const set<DNSName>& tlsas, const set<DNSName>& cnames, 
 // Record name, prio, target name, ipv4hint=auto, ipv6hint=auto
 using svcbset_t = set<std::tuple<DNSName, uint16_t, DNSName, bool, bool>>;
 
-static void checkZoneSVCB(int& numwarnings, int& numerrors, const ZoneName& zone, const svcbset_t& svcbTargets, const set<DNSName>& svcbAliases, const set<DNSName>& svcbRecords, const set<DNSName>& arecords, const set<DNSName>& aaaarecords, const set<DNSName>& addresses)
+static void checkZoneSVCB(int& numwarnings, int& numerrors, const std::string& type, const ZoneName& zone, const svcbset_t& targets, const set<DNSName>& aliases, const set<DNSName>& records, const set<DNSName>& arecords, const set<DNSName>& aaaarecords, const set<DNSName>& addresses)
 {
-  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : svcbTargets) {
+  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : targets) {
     if (name == target) {
-      cout<<"[Error] SVCB record "<<name<<" has itself as target."<<endl;
+      cout<<"[Error] " << type << " record "<<name<<" has itself as target."<<endl;
       numerrors++;
     }
 
     if (prio == 0) {
       if (target.isPartOf(zone)) {
-        if (svcbAliases.find(target) != svcbAliases.end()) {
-          cout << "[Warning] SVCB record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
+        if (aliases.find(target) != aliases.end()) {
+          cout << "[Warning] " << type << " record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
           numwarnings++;
         }
-        if (addresses.find(target) == addresses.end() && svcbRecords.find(target) == svcbRecords.end()) {
-          cout<<"[Error] SVCB record "<<name<<" has a target "<<target<<" that has neither address nor SVCB records."<<endl;
+        if (addresses.find(target) == addresses.end() && records.find(target) == records.end()) {
+          cout<<"[Error] " << type << " record "<<name<<" has a target "<<target<<" that has neither address nor " << type << " records."<<endl;
           numerrors++;
         }
       }
@@ -1007,46 +1007,11 @@ static void checkZoneSVCB(int& numwarnings, int& numerrors, const ZoneName& zone
     const auto& trueTarget = target.isRoot() ? name : target;
     if (prio > 0) {
       if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
-        cout << "[warning] SVCB record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
+        cout << "[warning] " << type << " record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
         numwarnings++;
       }
       if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
-        cout << "[warning] SVCB record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
-        numwarnings++;
-      }
-    }
-  }
-}
-
-static void checkZoneHTTPS(int& numwarnings, int& numerrors, const ZoneName& zone, const svcbset_t& httpsTargets, const set<DNSName>& httpsAliases, const set<DNSName>& httpsRecords, const set<DNSName>& arecords, const set<DNSName>& aaaarecords, const set<DNSName>& addresses)
-{
-  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : httpsTargets) {
-    if (name == target) {
-      cout<<"[Error] HTTPS record "<<name<<" has itself as target."<<endl;
-      numerrors++;
-    }
-
-    if (prio == 0) {
-      if (target.isPartOf(zone)) {
-        if (httpsAliases.find(target) != httpsAliases.end()) {
-          cout << "[Warning] HTTPS record for " << name << " has an aliasform target (" << target << ") that is in aliasform itself." << endl;
-          numwarnings++;
-        }
-        if (addresses.find(target) == addresses.end() && httpsRecords.find(target) == httpsRecords.end()) {
-          cout<<"[Error] HTTPS record "<<name<<" has a target "<<target<<" that has neither address nor HTTPS records."<<endl;
-          numerrors++;
-        }
-      }
-    }
-
-    const auto& trueTarget = target.isRoot() ? name : target;
-    if (prio > 0) {
-      if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
-        cout << "[warning] HTTPS record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
-        numwarnings++;
-      }
-      if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
-        cout << "[warning] HTTPS record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
+        cout << "[warning] " << type << " record for "<< name << " has automatic IPv6 hints, but no AAAA-record for the target at "<< trueTarget <<" exists."<<endl;
         numwarnings++;
       }
     }
@@ -1483,11 +1448,11 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
   numwarnings += checkZoneTLSA(tlsas, cnames, noncnames);
   tlsas.clear();
 
-  checkZoneSVCB(numwarnings, numerrors, zone, svcbTargets, svcbAliases, svcbRecords, arecords, aaaarecords, addresses);
+  checkZoneSVCB(numwarnings, numerrors, "SVCB", zone, svcbTargets, svcbAliases, svcbRecords, arecords, aaaarecords, addresses);
   svcbTargets.clear();
   svcbAliases.clear();
   svcbRecords.clear();
-  checkZoneHTTPS(numwarnings, numerrors, zone, httpsTargets, httpsAliases, httpsRecords, arecords, aaaarecords, addresses);
+  checkZoneSVCB(numwarnings, numerrors, "HTTPS", zone, httpsTargets, httpsAliases, httpsRecords, arecords, aaaarecords, addresses);
   httpsTargets.clear();
   httpsAliases.clear();
   httpsRecords.clear();
