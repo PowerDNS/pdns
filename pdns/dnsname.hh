@@ -60,7 +60,7 @@ inline unsigned char dns_tolower(unsigned char chr)
 }
 
 inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)  __attribute__((pure));
-inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)
+inline int pdns_ilexicographical_compare_three_way(const std::string_view a, const std::string_view b)
 {
   const unsigned char *aPtr = (const unsigned char*)a.data(), *bPtr = (const unsigned char*)b.data();
   const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
