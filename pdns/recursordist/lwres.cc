@@ -385,6 +385,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 
   try {
     sock.bind(localip.d_address);
+#ifdef SO_BINDTODEVICE
     if (localip.d_interface) {
       const auto& name = localip.d_interface->d_name;
       int res = setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, name.data(), name.length());
@@ -393,6 +394,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
         VLOG(log, "SO_BINDTODEVICE error while connecting TCP: " << stringerror(err));
       }
     }
+#endif
   }
   catch (const NetworkError& e) {
     if (localBind) {
@@ -450,6 +452,7 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   if (getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip.d_address), &slen) != 0) {
     return LWResult::Result::PermanentError;
   }
+#ifdef SO_BINDTODEVICE
   std::array<char, IFNAMSIZ> name{};
   socklen_t namelen = name.size();
   if (getsockopt(connection.d_handler->getDescriptor(), SOL_SOCKET, SO_BINDTODEVICE, name.data(), &namelen) == 0) {
@@ -458,6 +461,7 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
       localip.d_interface = pdns::Interface{std::string(name.data()), index};
     }
   }
+#endif
 
   PacketBuffer packet;
   packet.reserve(2 + vpacket.size());
