@@ -351,8 +351,9 @@ std::string getSNIFromQuicheConnection([[maybe_unused]] const QuicheConnection& 
   return {};
 }
 
-void configureQLog(const QuicheConnection& conn, const std::string& qLogDir, const ComboAddress& peer)
+void configureQLog([[maybe_unused]] const QuicheConnection& conn, [[maybe_unused]] const std::string& qLogDir, [[maybe_unused]] const ComboAddress& peer)
 {
+#ifdef HAVE_QUICHE_CONN_SET_QLOG_PATH
   const unsigned char* trace_id = nullptr;
   size_t trace_id_len = 0;
   quiche_conn_trace_id(conn.get(), &trace_id, &trace_id_len);
@@ -363,6 +364,7 @@ void configureQLog(const QuicheConnection& conn, const std::string& qLogDir, con
     VERBOSESLOG(infolog("QLOG creation failed for connection from $s", peer.toStringWithPort()),
                 dnsdist::logging::getTopLogger("quic-qlog")->info(Logr::Info, "QLOG creation failed", "client.address", Logging::Loggable(peer)));
   }
+#endif
 }
 
 QUICConnection::QUICConnection(ClientState& frontend, const ComboAddress& peer, const ComboAddress& localAddr, QuicheConfig config, QuicheConnection&& conn) :
