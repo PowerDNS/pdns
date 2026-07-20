@@ -35,33 +35,115 @@ std::atomic<bool> DNSRecordContent::d_locked{false};
 
 UnknownRecordContent::UnknownRecordContent(const string& zone)
 {
-  // parse the input
-  vector<string> parts;
-  stringtok(parts, zone);
-  // we need exactly 3 parts, except if the length field is set to 0 then we only need 2
-  if (parts.size() != 3 && !(parts.size() == 2 && boost::equals(parts.at(1), "0"))) {
-    throw MOADNSException("Unknown record was stored incorrectly, need 3 fields, got " + std::to_string(parts.size()) + ": " + zone);
+  // The expected format is '\#', followed by the length in decimal, and as
+  // many pairs of hex digits as the length, which may be separated by
+  // whitespace.
+  // Because of this, using stringtok() might be horribly suboptimal for large
+  // data with every byte separated by spaces.
+
+  // The following is equivalent to strintok(parts, zone), but stops after
+  // filling two parts, and stores the beginning of the actual payload for
+  // further consumption.
+  constexpr const char *delimiters = " \t\n";
+  std::vector<std::string> parts;
+  parts.reserve(2);
+  std::string::size_type pos{0};
+  {
+    const auto len = zone.length();
+
+    while (pos<len) {
+      // eat leading whitespace
+      pos = zone.find_first_not_of (delimiters, pos);
+      if (pos == string::npos) {
+        break;   // nothing left but white space
+      }
+
+      // find the end of the token
+      std::string::size_type epos = zone.find_first_of (delimiters, pos);
+
+      // push token
+      if (epos == std::string::npos) {
+        parts.push_back (zone.substr(pos));
+        pos = epos;
+        break;
+      }
+      parts.push_back (zone.substr(pos, epos-pos));
+      // set up for next loop
+      pos = epos + 1;
+      if (parts.size() == 2) {
+        break;
+      }
+    }
   }
 
-  if (parts.at(0) != "\\#") {
-    throw MOADNSException("Unknown record was stored incorrectly, first part should be '\\#', got '" + parts.at(0) + "'");
+  if (parts.empty() || parts.at(0) != "\\#") {
+    throw MOADNSException("Unknown record was stored incorrectly, should start with '\\#'");
   }
 
-  const string& relevant = (parts.size() > 2) ? parts.at(2) : "";
-  auto total = pdns::checked_stoi<unsigned int>(parts.at(1));
-  if (relevant.size() % 2 || (relevant.size() / 2) != total) {
-    throw MOADNSException((boost::format("invalid unknown record length: size not equal to length field (%d != 2 * %d)") % relevant.size() % total).str());
+  if (parts.size() < 2) {
+    throw MOADNSException("Unknown record was stored incorrectly, missing size field");
+  }
+  auto total = pdns::checked_stoi<unsigned long>(parts.at(1));
+  if (total == 0) {
+    if (pos != std::string::npos) {
+      throw MOADNSException("Unknown record was stored incorrectly, spurious data after zero size field");
+    }
+    return;
   }
 
-  string out;
+  if (total > std::numeric_limits<uint16_t>::max()) {
+    throw MOADNSException((boost::format("invalid unknown record length size (%d)") % total).str());
+  }
+
+  std::string out;
   out.reserve(total + 1);
 
-  for (unsigned int n = 0; n < total; ++n) {
-    int c;
-    if (sscanf(&relevant.at(2*n), "%02x", &c) != 1) {
-      throw MOADNSException("unable to read data at position " + std::to_string(2 * n) + " from unknown record of size " + std::to_string(relevant.size()));
+  // This loops mimics stringtok() again
+  unsigned int byte = 0;
+  while (byte < total) {
+    // eat leading whitespace
+    pos = zone.find_first_not_of (delimiters, pos);
+    if (pos == std::string::npos) { // nothing left but white space
+      throw MOADNSException("Unknown record was stored incorrectly, truncated after byte " + std::to_string(byte) + " of " + std::to_string(total));
     }
-    out.append(1, (char)c);
+
+    // find the end of the token
+    std::string::size_type epos = zone.find_first_of (delimiters, pos);
+
+    // extract token
+    std::string_view chunk{};
+    if (epos == std::string::npos) {
+      // TODO: replace with zone.subview(pos) once we can use C++26
+      chunk = std::string_view(&zone.at(pos));
+      pos = epos;
+    } else {
+      // TODO: replace with zone.subview(pos, epos-pos) once we can use C++26
+      chunk = std::string_view(&zone.at(pos), epos-pos);
+    }
+
+    // process token
+    if ((chunk.size() % 2) != 0) {
+      throw MOADNSException("Unknown record was stored incorrectly, sequence of digits for byte " + std::to_string(byte) + " of " + std::to_string(total) + " onward at offset " + std::to_string(pos) + " has uneven length");
+    }
+    if ((chunk.size() / 2) > total - byte) {
+      throw MOADNSException("Unknown record was stored incorrectly, sequence of digits for byte " + std::to_string(byte) + " of " + std::to_string(total) + " onward at offset " + std::to_string(pos) + " is too long");
+    }
+    for (std::string_view::size_type subpos = 0; subpos < chunk.size(); subpos += 2) {
+      int chr{0};
+      if (sscanf(&chunk.at(subpos), "%02x", &chr) != 1) {
+        throw MOADNSException("unable to read data for byte " + std::to_string(byte) + " of " + std::to_string(total) + " at offset " + std::to_string(pos + subpos) + " from unknown record");
+      }
+      out.append(1, static_cast<char>(chr));
+      ++byte;
+    }
+
+    // set up for next loop
+    if (epos == std::string::npos) {
+      pos = epos;
+    }
+    else {
+      pos = epos + 1;
+    }
   }
 
   d_record.insert(d_record.end(), out.begin(), out.end());
