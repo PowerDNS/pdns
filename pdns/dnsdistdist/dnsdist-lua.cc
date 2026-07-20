@@ -136,12 +136,15 @@ static std::shared_ptr<const Logr::Logger> getLogger(const std::string_view cont
 
 using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>, std::shared_ptr<XskSocket>>>;
 
-static void parseLocalBindVars(std::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections, bool& enableProxyProtocol)
+static void parseLocalBindVars(std::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections, bool& enableProxyProtocol, bool& randomReusePortPolicy)
 {
   if (vars) {
     LuaArray<int> setCpus;
 
     getOptionalValue<bool>(vars, "reusePort", reusePort);
+    if (reusePort) {
+      getOptionalValue<bool>(vars, "randomReusePortPolicy", randomReusePortPolicy);
+    }
     getOptionalValue<bool>(vars, "enableProxyProtocol", enableProxyProtocol);
     getOptionalValue<int>(vars, "tcpFastOpenQueueSize", tcpFastOpenQueueSize);
     getOptionalValue<int>(vars, "tcpListenQueueSize", tcpListenQueueSize);
@@ -820,8 +823,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     bool enableProxyProtocol = true;
+    bool randomReusePortPolicy = false;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, randomReusePortPolicy);
 
     auto frontends = dnsdist::configuration::getImmutableConfiguration().d_frontends;
     try {
@@ -838,7 +842,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       // only works pre-startup, so no sync necessary
       auto udpCS = std::make_shared<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, false);
+      udpCS->randomReusePortPolicy = randomReusePortPolicy;
       auto tcpCS = std::make_shared<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, false);
+      tcpCS->randomReusePortPolicy = randomReusePortPolicy;
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
       }
@@ -892,14 +898,19 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     bool enableProxyProtocol = true;
+    bool randomReusePortPolicy = false;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, randomReusePortPolicy);
 
     try {
       ComboAddress loc(addr, 53);
       // only works pre-startup, so no sync necessary
       auto udpCS = std::make_shared<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, false);
       auto tcpCS = std::make_shared<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, false);
+      if (reusePort && randomReusePortPolicy) {
+        udpCS->randomReusePortPolicy = randomReusePortPolicy;
+        tcpCS->randomReusePortPolicy = randomReusePortPolicy;
+      }
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
       }
@@ -1607,8 +1618,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::set<int> cpus;
     std::vector<DNSCryptContext::CertKeyPaths> certKeys;
     bool enableProxyProtocol = true;
+    bool randomReusePortPolicy = false;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, randomReusePortPolicy);
     checkAllParametersConsumed("addDNSCryptBind", vars);
 
     if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
@@ -1643,6 +1655,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       /* UDP */
       auto clientState = std::make_shared<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, false);
+      clientState->randomReusePortPolicy = reusePort && randomReusePortPolicy;
       clientState->dnscryptCtx = ctx;
 
       dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
@@ -2343,9 +2356,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
     bool enableProxyProtocol = true;
     bool padResponses = false;
+    bool randomReusePortPolicy = false;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, randomReusePortPolicy);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
       getOptionalValue<std::string>(vars, "serverTokens", frontend->d_serverTokens);
       getOptionalValue<std::string>(vars, "provider", frontend->d_tlsContext->d_provider);
@@ -2421,6 +2435,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     auto clientState = std::make_shared<ClientState>(frontend->d_tlsContext->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, padResponses);
+    clientState->randomReusePortPolicy = reusePort && randomReusePortPolicy;
     clientState->dohFrontend = std::move(frontend);
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
@@ -2466,9 +2481,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
     bool enableProxyProtocol = true;
     bool padResponses = false;
+    bool randomReusePortPolicy = false;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, randomReusePortPolicy);
       if (maxInFlightQueriesPerConn > 0) {
         frontend->d_quicheParams.d_maxInFlight = maxInFlightQueriesPerConn;
       }
@@ -2505,6 +2521,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     auto clientState = std::make_shared<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, padResponses);
+    clientState->randomReusePortPolicy = reusePort && randomReusePortPolicy;
     clientState->doh3Frontend = std::move(frontend);
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
@@ -2543,9 +2560,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
     bool enableProxyProtocol = true;
     bool padResponses = false;
+    bool randomReusePortPolicy = false;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, randomReusePortPolicy);
       if (maxInFlightQueriesPerConn > 0) {
         frontend->d_quicheParams.d_maxInFlight = maxInFlightQueriesPerConn;
       }
@@ -2914,9 +2932,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
     bool enableProxyProtocol = true;
     bool padResponses = false;
+    bool randomReusePortPolicy = false;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConns, enableProxyProtocol);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConns, enableProxyProtocol, randomReusePortPolicy);
 
       getOptionalValue<std::string>(vars, "provider", frontend->d_provider);
       boost::algorithm::to_lower(frontend->d_provider);
@@ -2976,6 +2995,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       // only works pre-startup, so no sync necessary
       auto clientState = std::make_shared<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, padResponses);
+      clientState->randomReusePortPolicy = reusePort && randomReusePortPolicy;
       clientState->tlsFrontend = std::move(frontend);
       clientState->d_additionalAddresses = std::move(additionalAddresses);
       if (tcpListenQueueSize > 0) {

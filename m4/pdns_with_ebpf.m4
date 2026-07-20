@@ -18,8 +18,8 @@ AC_DEFUN([PDNS_WITH_EBPF],[
     ])
   ])
   AM_CONDITIONAL([HAVE_EBPF], [test x"$bpf_headers" = "xyes" ])
-  AS_IF([test x"$bpf_headers" = "xyes" ],
-    [AC_CHECK_DECL(BPF_FUNC_tail_call,
+  AS_IF([test x"$bpf_headers" = "xyes" ], [
+    AC_CHECK_DECL(BPF_FUNC_tail_call,
       [ AC_CHECK_DECL(SO_ATTACH_BPF,
         [ AC_DEFINE([HAVE_EBPF], [1], [Define if using eBPF.]) ],
         [ AS_IF([test "x$with_ebpf" = "xyes"], [
@@ -33,6 +33,13 @@ AC_DEFUN([PDNS_WITH_EBPF],[
       ])],
       [#include <linux/bpf.h>
       ]
-    )]
+    )
+    AC_CHECK_DECL(BPF_FUNC_get_prandom_u32,
+      [AC_DEFINE([HAVE_BPF_FUNC_get_prandom_u32], [1], [Define if BPF_FUNC_get_prandom_u32 is supported.]) ],
+      [],
+      [#include <linux/bpf.h>
+      ]
+    )
+    ]
   )
 ])

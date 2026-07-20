@@ -393,6 +393,7 @@ struct ClientState
   bool d_enableProxyProtocol{true}; // the global proxy protocol ACL still applies
   bool d_padResponses{false};
   bool ready{false};
+  bool randomReusePortPolicy{false};
 
   int getSocket() const
   {
