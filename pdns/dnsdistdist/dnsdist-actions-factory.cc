@@ -195,7 +195,7 @@ private:
 TeeAction::TeeAction(const ComboAddress& rca, const std::optional<ComboAddress>& lca, bool addECS, bool addProxyProtocol) :
   d_remote(rca), d_socket(d_remote.sin4.sin_family, SOCK_DGRAM, 0), d_addECS(addECS), d_addProxyProtocol(addProxyProtocol)
 {
-  if (lca) {
+  if (lca && !lca->isUnspecified()) {
     d_socket.bind(*lca, false);
   }
   d_socket.connect(d_remote);
