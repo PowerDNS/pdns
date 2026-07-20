@@ -146,7 +146,9 @@ bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, s
       *age = static_cast<uint32_t>(now - iter->d_creation);
       // we know ttl is > 0
       auto ttl = static_cast<uint32_t>(iter->d_ttd - now);
-      if (s_refresh_ttlperc > 0 && !iter->d_submitted && taskQTypeIsSupported(qtype)) {
+      // Be wary of refreshing NS records, it could lead to ghosts if the record cache entry expires between
+      // sending out the request and the reply coming back in, as then the TTL capping does not work.
+      if (s_refresh_ttlperc > 0 && !iter->d_submitted && taskQTypeIsSupported(qtype) && qtype != QType::NS) {
         const dnsheader_aligned header(iter->d_packet.data());
         const auto* headerPtr = header.get();
         if (headerPtr->rcode == RCode::NoError) {

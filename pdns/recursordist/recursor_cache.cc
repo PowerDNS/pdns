@@ -425,7 +425,10 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
       if (refresh) {
         return -1;
       }
-      if (!entry->d_submitted) {
+      // We do not want to refresh auth NS entries, as it could lead to ghost domains if an entry
+      // expires between submit and response coming in, as the TTL capping then does not work for
+      // lack of current TTL info.
+      if (!entry->d_submitted && (qtype != QType::NS || !entry->d_auth)) {
         pushRefreshTask(qname, qtype, entry->d_ttd, entry->d_netmask);
         entry->d_submitted = true;
       }
