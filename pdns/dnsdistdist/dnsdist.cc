@@ -1865,11 +1865,9 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
 }
 
-static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr, int& socket, bool tcp, bool warn, const std::shared_ptr<const Logr::Logger>& logger)
+static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr, int& socket, bool tcp, [[maybe_unused]] bool warn, const std::shared_ptr<const Logr::Logger>& logger)
 {
-  const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   static bool s_warned_ipv6_recvpktinfo = false;
-  (void)warn;
   socket = SSocket(addr.sin4.sin_family, !tcp ? SOCK_DGRAM : SOCK_STREAM, 0);
 
   if (tcp) {
@@ -1881,6 +1879,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 #ifdef TCP_FASTOPEN
       SSetsockopt(socket, IPPROTO_TCP, TCP_FASTOPEN, clientState.fastOpenQueueSize);
 #ifdef TCP_FASTOPEN_KEY
+      const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
       if (!immutableConfig.d_tcpFastOpenKey.empty()) {
         auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, immutableConfig.d_tcpFastOpenKey.data(), immutableConfig.d_tcpFastOpenKey.size() * sizeof(immutableConfig.d_tcpFastOpenKey[0]));
         if (res == -1) {
