@@ -191,12 +191,14 @@ int UDPClientSocks::makeClientSocket(int family, const std::optional<pdns::Addre
     }
     if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin.d_address), sin.d_address.getSocklen()) >= 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast
       if (sin.d_interface) {
+#ifdef SO_BINDTODEVICE
         const auto& name = sin.d_interface->d_name;
         int res = setsockopt(ret, SOL_SOCKET, SO_BINDTODEVICE, name.data(), name.length());
         if (res != 0) {
           int err = errno;
           throw PDNSException("Resolver binding to interface " + name + ": " + stringerror(err));
         }
+#endif
         interface = sin.d_interface;
       }
       break;
