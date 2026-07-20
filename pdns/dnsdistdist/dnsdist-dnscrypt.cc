@@ -31,7 +31,7 @@
 namespace dnsdist::dnscrypt
 {
 
-bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response)
+bool handleDNSCryptQuery([[maybe_unused]] PacketBuffer& packet, [[maybe_unused]] DNSCryptQuery& query, [[maybe_unused]] bool tcp, [[maybe_unused]] time_t now, [[maybe_unused]] PacketBuffer& response)
 {
 #ifdef HAVE_DNSCRYPT
   query.parsePacket(packet, tcp, now);
@@ -59,7 +59,7 @@ bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, t
 #endif
 }
 
-bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery)
+bool encryptResponse([[maybe_unused]] PacketBuffer& response, [[maybe_unused]] size_t maximumSize, [[maybe_unused]] bool tcp, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery)
 {
 #ifdef HAVE_DNSCRYPT
   if (dnsCryptQuery) {
