@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
     /* simple case */
     ZoneParserTNG zoneparser(pathbuf.str(), ZoneName("unit2.test"));
 
-    const vector<string> expected = {
+    const std::array expected = {
       "0.01.0003.000005.00000007.unit2.test.",
       "1.02.0004.000006.00000008.unit2.test.",
       "2.03.0005.000007.00000009.unit2.test.",
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
     /* GENERATE with a step of 2, and the template radix defaulting to 'd' */
     ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 0-4/2 $.${1,2,o}.${3,4}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("unit2.test"));
 
-    const vector<string> expected = {
+    const std::array expected = {
       "0.01.0003.000005.00000007.unit2.test.",
       "2.03.0005.000007.00000009.unit2.test.",
       "4.05.0007.000009.0000000b.unit2.test.",
@@ -125,7 +125,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
     /* GENERATE with a larger initial counter and a large stop */
     ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 4294967294-4294967295/2 $	86400	IN	A 1.2.3.4"}), ZoneName("unit2.test"));
 
-    const vector<string> expected = {
+    const std::array expected = {
       "4294967294.unit2.test.",
     };
 
