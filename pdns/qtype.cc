@@ -160,7 +160,7 @@ uint16_t QType::chartocode(const char *p)
    // not all callers are ready to handle exceptions arising here.
    char *end{nullptr};
    unsigned long typeno = strtoul(digits, &end, 10);
-   if (typeno <= std::numeric_limits<uint16_t>::max() && end != digits && (*end == '\0' || isspace(static_cast<int>(*end)) != 0)) {
+   if (typeno <= std::numeric_limits<uint16_t>::max() && end != digits && (*end == '\0' || isspace(static_cast<unsigned char>(*end)) != 0)) {
      return typeno;
    }
   }

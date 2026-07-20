@@ -143,7 +143,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   }
 
   char lc=dns_tolower(str[str.length()-1]);
-  if(!isdigit(lc))
+  if(!isdigit(static_cast<unsigned char>(lc)))
     switch(lc) {
     case 's':
       break;
