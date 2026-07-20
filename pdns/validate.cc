@@ -1418,7 +1418,7 @@ std::ostream& operator<<(std::ostream& ostr, const vState dstate)
 
 std::ostream& operator<<(std::ostream& ostr, const dState dstate)
 {
-  static const std::array dStates = {"no denial", "inconclusive", "nxdomain", "nxqtype", "empty non-terminal", "insecure", "opt-out"};
+  constexpr std::array dStates = {"no denial", "inconclusive", "nxdomain", "nxqtype", "empty non-terminal", "insecure", "opt-out"};
   ostr << dStates.at(static_cast<size_t>(dstate));
   return ostr;
 }

@@ -209,7 +209,7 @@ static void printtable(ostringstream& ret, const string& ringname, const std::st
   ret << "<input type=\"hidden\" name=\"resizering\" value=\"" << htmlescape(ringname) << "\" />";
   ret << "<input type=\"hidden\" name=\"unique\" value=\"" << htmlescape(unique) << "\" />";
   ret << "<select name=\"size\">";
-  static const std::array<uint64_t, 7> sizes{10, 100, 500, 1000, 10000, 500000, 0};
+  constexpr std::array<uint64_t, 7> sizes{10, 100, 500, 1000, 10000, 500000, 0};
   for (const auto size : sizes) {
     ret << "<option value=\"" << size << "\"";
     if (S.getRingSize(ringname) == size) {
