@@ -108,15 +108,6 @@ public:
   //! Gets the current time.
   static int gettimeofday( struct timeval *tv, void *tz = NULL );
 
-  //! Converts an address from dot and numbers format to binary data.
-  static int inet_aton( const char *cp, struct in_addr *inp );
-
-  //! Converts an address from presentation format to network format.
-  static int inet_pton( int af, const char *src, void *dst );
-
-  //! The inet_ntop() function converts an address from network format (usually a struct in_addr or some other binary form, in network byte order) to presentation format.
-  static const char *inet_ntop( int af, const char *src, char *dst, size_t size );
-
   //! Writes a vector.
   static int writev( Utility::sock_t socket, const iovec *vector, size_t count );
 
