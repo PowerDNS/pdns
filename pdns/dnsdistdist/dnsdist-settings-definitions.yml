@@ -1782,6 +1782,9 @@ udp_tuning:
       lua-name: "setUDPMultipleMessagesVectorSize"
       internal-field-name: "d_udpVectorSize"
       runtime-configurable: false
+      changes:
+        - version: "2.2.0"
+          content: "This setting now applies to the thread(s) processing UDP responses from backends, in addition to the thread(s) processing UDP queries from clients."
     - name: "send_buffer_size"
       type: "u32"
       default: 0
