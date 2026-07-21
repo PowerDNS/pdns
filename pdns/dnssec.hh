@@ -47,7 +47,9 @@ public:
     ECDSA256 = 13,
     ECDSA384 = 14,
     ED25519 = 15,
-    ED448 = 16
+    ED448 = 16,
+    MLDSA44 = 18
+
   };
 
   enum dsdigestalgorithm_t : uint8_t
@@ -127,6 +129,9 @@ public:
     if (pdns_iequals(algorithm, "ed448")) {
       return ED448;
     }
+    if (pdns_iequals(algorithm, "mldsa44")) {
+      return MLDSA44;
+    }
     if (pdns_iequals(algorithm, "indirect")) {
       return 252;
     }
@@ -176,6 +181,8 @@ public:
       return "ED25519";
     case ED448:
       return "ED448";
+    case MLDSA44:
+      return "MLDSA44";
     case 252:
       return "INDIRECT";
     case 253:

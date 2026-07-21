@@ -1832,6 +1832,12 @@ OpenSSLEDDSADNSCryptoKeyEngine::OpenSSLEDDSADNSCryptoKeyEngine(Logr::log_t slog,
     d_id = NID_ED448;
   }
 #endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+  if (d_algorithm == 18) {
+    d_len = 32;
+    d_id = NID_ML_DSA_44;
+  }
+#endif
   if (d_len == 0) {
     throw runtime_error(OpenSSLEDDSADNSCryptoKeyEngine::getName() + " unknown algorithm " + std::to_string(d_algorithm));
   }
@@ -1933,6 +1939,11 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
 #ifdef HAVE_LIBCRYPTO_ED448
   if (d_algorithm == 16) {
     algorithm = "16 (ED448)";
+  }
+#endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+  if (d_algorithm == 18) {
+    algorithm = "18 (MLDSA44)";
   }
 #endif
   if (algorithm.empty()) {
@@ -2066,6 +2077,9 @@ const struct LoaderStruct
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
     DNSCryptoKeyEngine::report(DNSSEC::ED448, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+#endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+    DNSCryptoKeyEngine::report(DNSSEC::MLDSA44, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
   }
 } loaderOpenSSL;
