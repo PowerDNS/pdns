@@ -172,14 +172,14 @@ size_t DNSName::parsePacketUncompressed(const pdns::views::UnsignedCharView& vie
     checkLabelLength(labellen);
 
     // reserve one byte for the label length, plus one byte for the final empty label if we were empty before
-    if ((existingSize + totalLength + labellen) > (s_maxDNSNameLength - (neededSizeForFinalLabel + 1))) {
+    if ((existingSize + totalLength + labellen + 1U + neededSizeForFinalLabel) > s_maxDNSNameLength) {
       throw std::range_error("name too long to append");
     }
     if (pos + labellen >= view.size()) {
       throw std::range_error("Found an invalid label length in qname");
     }
     pos += labellen;
-    totalLength += 1 + labellen;
+    totalLength += 1U + labellen;
   }
   while (pos < view.size());
 
@@ -188,7 +188,7 @@ size_t DNSName::parsePacketUncompressed(const pdns::views::UnsignedCharView& vie
       // remove the last label count, we are about to override it */
       --existingSize;
     }
-    if ((existingSize + totalLength + 1) > s_maxDNSNameLength) {
+    if ((existingSize + totalLength + 1U) > s_maxDNSNameLength) {
       throw std::range_error("name too long to append");
     }
     d_storage.reserve(existingSize + totalLength + 1);
