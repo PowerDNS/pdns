@@ -4,6 +4,16 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.9
+  :released: 22nd of July 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17756
+
+    Fix PowerDNS Security Advisory 2026-10 for PowerDNS Recursor: Multiple Issues
+
+.. changelog::
   :version: 5.3.8
   :released: 25th of June 2026
 
