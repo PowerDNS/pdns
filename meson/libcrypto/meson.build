@@ -116,3 +116,4 @@ summary('OpenSSL libcrypto', dep_libcrypto.found(), bool_yn: true, section: 'Cry
 
 subdir('ecdsa')                 # ECDSA signers
 subdir('eddsa')                 # EDDSA signers
+subdir('mldsa')                 # MLDSA support
