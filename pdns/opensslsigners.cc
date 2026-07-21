@@ -1956,6 +1956,13 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
   size_t len = d_len;
   buf.resize(len);
 
+  size_t needlen{0};
+
+  EVP_PKEY_get_raw_private_key(d_edkey.get(), NULL, &needlen);
+  cout<<"needlen="<<needlen<<endl;
+  len = needlen;
+  buf.resize(len);
+
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   if (EVP_PKEY_get_raw_private_key(d_edkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
     throw pdns::OpenSSL::error(getName(), "Could not get private key from d_edkey");
@@ -1976,7 +1983,7 @@ std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 
   string msgToSign = msg;
 
-  size_t siglen = d_len * 2;
+  size_t siglen = 2420; // d_len * 2;
   string signature;
   signature.resize(siglen);
 
@@ -2017,7 +2024,7 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& message, const st
 std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const
 {
   string buf;
-  size_t len = d_len;
+  size_t len = 1312; // d_len;
   buf.resize(len);
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
@@ -2044,14 +2051,14 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
 
 void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
 {
-  if (content.length() != d_len) {
-    throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
-  }
+  // if (content.length() != d_len) {
+  //   throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
+  // }
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   const auto* raw = reinterpret_cast<const unsigned char*>(content.c_str());
 
-  d_edkey = Key(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, d_len), EVP_PKEY_free);
+  d_edkey = Key(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, content.length()), EVP_PKEY_free);
   if (!d_edkey) {
     throw pdns::OpenSSL::error(getName(), "Allocation of public key structure failed");
   }
