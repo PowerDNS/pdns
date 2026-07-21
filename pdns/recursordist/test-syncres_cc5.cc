@@ -24,7 +24,12 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_various_algos)
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
   generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+  // this skips testing ECDSA256 here, but it is tested below in testFixedPointInTime and elsewhere
+  generateKeyMaterial(DNSName("com."), DNSSEC::MLDSA44, DNSSEC::DIGEST_SHA256, keys);
+#else
   generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+#endif
   generateKeyMaterial(DNSName("powerdns.com."), DNSSEC::ECDSA384, DNSSEC::DIGEST_SHA384, keys);
 
   g_luaconfs.setState(luaconfsCopy);

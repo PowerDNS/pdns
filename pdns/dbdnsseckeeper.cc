@@ -114,6 +114,9 @@ bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, i
     case DNSSECKeeper::ED448:
       bits = 456;
       break;
+    case DNSSECKeeper::MLDSA44:
+      bits = 256;
+      break;
     default:
       throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
     }

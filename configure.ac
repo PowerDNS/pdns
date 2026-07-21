@@ -95,6 +95,7 @@ PDNS_CHECK_LIBCRYPTO([
 )
 PDNS_CHECK_LIBCRYPTO_ECDSA
 PDNS_CHECK_LIBCRYPTO_EDDSA
+PDNS_CHECK_LIBCRYPTO_MLDSA
 
 AM_CONDITIONAL([HAVE_GNUTLS], [false])
 AM_CONDITIONAL([HAVE_LIBSSL], [false])
@@ -423,6 +424,10 @@ AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$libcrypto_ed25519" = "xyes"],
 AS_IF([test "x$libcrypto_ed448" = "xyes"],
   [AC_MSG_NOTICE([ed448: yes])],
   [AC_MSG_NOTICE([ed448: no])]
+)
+AS_IF([test "x$libcrypto_mldsa" = "xyes"],
+  [AC_MSG_NOTICE([mldsa: yes])],
+  [AC_MSG_NOTICE([mldsa: no])]
 )
 AS_IF([test "x$needsqlite3" != "x"],
   [AC_MSG_NOTICE([SQLite3: yes])],

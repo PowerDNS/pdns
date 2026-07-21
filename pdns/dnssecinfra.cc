@@ -451,6 +451,9 @@ void DNSCryptoKeyEngine::testMakers(Logr::log_t slog, unsigned int algo, maker_t
     case DNSSEC::ED448:
       bits = 456;
       break;
+    case DNSSEC::MLDSA44:
+      bits = 256;
+      break;
     }
   }
 

@@ -116,3 +116,4 @@ summary('OpenSSL libcrypto version', dep_libcrypto.version(), section: 'Crypto')
 
 subdir('ecdsa')                 # ECDSA signers
 subdir('eddsa')                 # EDDSA signers
+subdir('mldsa')                 # MLDSA support
