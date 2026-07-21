@@ -44,40 +44,47 @@ private:
   struct DecayingEwma
   {
   public:
-    void submit(int arg, const struct timeval& last, const struct timeval& now)
+    void submit(int arg, const struct timeval& now)
     {
-      d_last = arg;
       auto val = static_cast<float>(arg);
-      if (d_val == 0) {
-        d_val = val;
+      auto usecTS = uSec(now);
+      if (d_decayed_value == 0) {
+        d_decayed_value = val;
       }
       else {
-        auto diff = makeFloat(last - now);
-        auto factor = expf(diff) / 2.0F; // might be '0.5', or 0.0001
-        d_val = (1.0F - factor) * val + factor * d_val;
+        auto int_diff = static_cast<int64_t>(d_last_timestamp - usecTS); // usecs
+        auto diff = static_cast<float>(int_diff) / 1000000.0F; // seconds
+        auto factor = expf(diff / DecayingEwmaCollection::s_memory) / 2.0F; // might be '0.5', or 0.0001
+        auto original_value = static_cast<float>(d_last_value);
+        d_decayed_value = (1.0F - factor) * val + factor * original_value;
       }
+      d_last_value = arg;
+      d_last_timestamp = usecTS;
     }
 
     float get(float factor)
     {
-      return d_val *= factor;
+      return d_decayed_value *= factor;
     }
 
     [[nodiscard]] float peek() const
     {
-      return d_val;
+      return d_decayed_value;
     }
 
     [[nodiscard]] int last() const
     {
-      return d_last;
+      return d_last_value;
     }
 
-    float d_val{0};
-    int d_last{0};
+    uint64_t d_last_timestamp{0};
+    float d_decayed_value{0};
+    int d_last_value{0};
   };
 
 public:
+  static constexpr float s_memory = 60; // higher value means we remember past performance longer
+
   DecayingEwmaCollection(DNSName name, const struct timeval val = {0, 0}) :
     d_name(std::move(name)), d_lastget(val)
   {
@@ -85,13 +92,13 @@ public:
 
   void submit(const ComboAddress& remote, int usecs, const struct timeval& now) const
   {
-    d_collection[remote].submit(usecs, d_lastget, now);
+    d_collection[remote].submit(usecs, now);
   }
 
   float getFactor(const struct timeval& now) const
   {
     float diff = makeFloat(d_lastget - now);
-    return expf(diff / 60.0F); // is 1.0 or less
+    return expf(diff / s_memory); // is 1.0 or less
   }
 
   bool stale(time_t limit) const
@@ -111,9 +118,9 @@ public:
     }
   }
 
-  void insert(const ComboAddress& address, float val, int last)
+  void insert(const ComboAddress& address, float val, int last, uint64_t last_ts)
   {
-    d_collection.insert(std::make_pair(address, DecayingEwma{val, last}));
+    d_collection.insert(std::make_pair(address, DecayingEwma{.d_last_timestamp = last_ts, .d_decayed_value = val, .d_last_value = last}));
   }
 
   // d_collection is the modifyable part of the record, we index on DNSName and timeval, and DNSName never changes

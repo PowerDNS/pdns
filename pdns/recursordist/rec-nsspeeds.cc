@@ -52,6 +52,7 @@ enum class PBNSSpeedMap : protozero::pbf_tag_type
   required_bytes_address = 1,
   required_float_val = 2,
   required_int32_last = 3,
+  optional_uint64_last_ts = 4,
 };
 
 template <typename T, typename U>
@@ -65,8 +66,9 @@ void nsspeeds_t::getPBEntry(T& message, U& entry)
   for (const auto& [address, collection] : entry.d_collection) {
     protozero::pbf_builder<PBNSSpeedMap> map(message, PBNSSpeedEntry::repeated_message_map);
     encodeComboAddress(map, PBNSSpeedMap::required_bytes_address, address);
-    map.add_float(PBNSSpeedMap::required_float_val, collection.d_val);
-    map.add_int32(PBNSSpeedMap::required_int32_last, collection.d_last);
+    map.add_float(PBNSSpeedMap::required_float_val, collection.d_decayed_value);
+    map.add_int32(PBNSSpeedMap::required_int32_last, collection.d_last_value);
+    map.add_uint64(PBNSSpeedMap::optional_uint64_last_ts, collection.d_last_timestamp);
   }
 }
 
@@ -122,6 +124,7 @@ bool nsspeeds_t::putPBEntry(time_t cutoff, T& message)
       ComboAddress address;
       float val{};
       int last{};
+      uint64_t last_ts{0};
       while (map.next()) {
         switch (map.tag()) {
         case PBNSSpeedMap::required_bytes_address:
@@ -133,9 +136,12 @@ bool nsspeeds_t::putPBEntry(time_t cutoff, T& message)
         case PBNSSpeedMap::required_int32_last:
           last = map.get_int32();
           break;
+        case PBNSSpeedMap::optional_uint64_last_ts:
+          last_ts = map.get_uint64();
+          break;
         }
       }
-      entry.insert(address, val, last);
+      entry.insert(address, val, last, last_ts);
       break;
     }
     }
