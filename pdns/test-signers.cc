@@ -296,6 +296,99 @@ static const SignerParams ed448 = SignerParams{
 };
 // clang-format on
 
+/* mldsa44.
+ */
+// clang-format off
+static const SignerParams mldsa44 = SignerParams{
+  // from draft
+  .iscMap = "Private-key-format: v1.3\n"
+            "Algorithm: 18 (MLDSA44)\n"
+            "PrivateKey: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\n",
+
+  .dsSHA1 = "59828 18 1 "
+            "3e5eeab8dbff479c6721fc9d61b48b1a16d3914a",
+
+  .dsSHA256 = "59828 18 2 "
+              "fb79e7572febe5ba8c7c3552afd1003c662392e83f8f2c17cdf3e9477fe32e91",
+
+  .dsSHA384 = "59828 18 4 "
+              "592965779a255c4ef7cb7e6694c255682595362e7d7cb2de"
+              "63fce4223fae23a35d22c6b7188c9ce7ff3e5cd79afdcad2",
+
+  .signature = {
+    0xb5, 0xcc, 0x21, 0x5a, 0x52, 0x21, 0x60, 0xa3, 0xb8, 0xd9, 0x3a, 0xd7, 0x05,
+    0xdd, 0x4a, 0x32, 0x96, 0xce, 0x08, 0xde, 0x74, 0x5f, 0xdb, 0xde, 0x54, 0x95,
+    0x97, 0x93, 0x6f, 0x3a, 0x4a, 0x34, 0x41, 0x14, 0xba, 0x99, 0x86, 0x0d, 0xe2,
+    0x99, 0xf1, 0x14, 0x6a, 0x1b, 0x7a, 0xfa, 0xef, 0xab, 0x62, 0xd2, 0x71, 0x85,
+    0xae, 0xd1, 0x84, 0x80, 0x00, 0x50, 0x03, 0x9e, 0x73, 0x53, 0xe8, 0x9e, 0x19,
+    0xb8, 0xc0, 0xdb, 0xd4, 0xf0, 0x1e, 0x44, 0x4c, 0xb7, 0x32, 0x07, 0xda, 0x0b,
+    0x64, 0x22, 0xa8, 0x63, 0xaa, 0x7a, 0x12, 0x73, 0xc9, 0x29, 0xfd, 0x50, 0x85,
+    0x0f, 0x43, 0x72, 0x77, 0x86, 0xec, 0x88, 0x1a, 0x96, 0x95, 0x4a, 0x01, 0xfe,
+    0xf2, 0xe6, 0x77, 0x4a, 0x2e, 0x43, 0xdd, 0x60, 0x29, 0x00,
+  },
+
+  // from draft
+  .zoneRepresentation = "256 3 18 "
+                        "17K0clSq4NtF55MNSpjSyX2PE5fReJ2voXAksxbpvslPyZRtQvGbeadBO7qj"
+                        "PnFJy0LtURVpOsBB+suYit61/g4dhjEYSZW1ksOX0ilOLhT5CqQUujgmiZrE"
+                        "P0zMrLwm6agyuVEY1ctDPL75ZgsAE44IF/YediyidMNq1VTrIqrBFi5KsBrL"
+                        "oeOMTv2PgLZbMz0PcuVd/nHOnB67mInnxWEGwP1zgDoq7P6v3teqPLLO2lTR"
+                        "K9jNNqeM+XWUO0er0l6ICsRS5XQu0ejRqCr6huWQx1jBWuTShA2SvKGlCQ9A"
+                        "SWWX/KfYuVE/GhvabpUKqpjeRnUH1KT1pPBZkhZYLDVy9i7aiQWrNYFnDEoC"
+                        "d3oz4Mpylf2PT/bRoKOnaD1l9fX3/GDaAj6CbF+SFEwC99G6EHWYdVPqk2f8"
+                        "122ZC3+pnNRa/biDbUPkWfUYffBYR5cJoB6mg1k1+nBGCZDNPcG6QBupS6sd"
+                        "3kGsZ6szGdysoGBI1MTu8n7hOpwX0FOPQw8tZC3CQVZg3niHfY2KvHJSOXjA"
+                        "QuQoX0MZhGxEEmJCl2hEwQ5Va6IVtacZ5Z0MayqW05hZBx/cws3nUkp77a5U"
+                        "6FsxjoVOj+Ky8+36yXGRKCcKr9HlBEw6T9r9n/MfkHhLjo5FlhRKDa9YZRHT"
+                        "2ZYrnqla8Ze05fxg8rHtFd46W+9fib3HnZEFHZsoFudPpUUx79wcvnTUSIV/"
+                        "R2vNWPIcC2U7O3ak4HamVZowJxhVXMY/dIWaq6uSXwI4YcqM0Pe62yhx9n1V"
+                        "Mm10URNa1F9KG6aRGPuyyKMO7JOS7z+XcGbJrdXHEMxkexUU0hfZWMcBfD6Q"
+                        "/SDATmdLkEhuk3CjGgAdMvRzl55JBnSefkd/oLdFCPil8jeDErg8Jb04jKCw"
+                        "//dHi69CtxZn7arJfEaxKWQ+WG5bBVoMIRlG1PNuZ1vtWGD6BCoxXZgmFk1q"
+                        "kjfDWl+/SVSQpb1N8ki5XEqud4S2BWcxZqxCRbW0sIKgnpMj5i8geMW3Z4NE"
+                        "be/XNq06NwLUmwiYRJAKYYMzl7xEGbMNepegs4fBkRR0xNQbU+Mql3rLbw6n"
+                        "XbZbs55Z5wHnaVfe9vLURVnDGncSK1IE47XCGfFoixTtC8C4AbPm6C3NQ+nA"
+                        "6fQXRM2YFb0byIINi7Ej8E+s0bG2hd1aKxuNu/PtkzZw8JWhgLTxktCLELj6"
+                        "u9/MKyRRjjLuoKXgyQTKhEeACD87DNLQuLavZ7w1W5SUAl3HsKePqA46Lb/r"
+                        "UTKIUdYHgZjpSTZRrnh+wCUfkiujDp9R32Km1yeEzz3SBTkxdt+jJKUSvZSX"
+                        "CjbdNKUUqGeR8Os28BRbCatkZRtKAxOymWEaKhxIiRYnWYdooxFAYLpEQ0ht"
+                        "9RUioc6IswmFwhb45u0XjdVnswSg1Mr7qIKig0LxepqiauWNtjAIPSw1j99W"
+                        "bD9dYqQoVnvJ6ozpXKoPNUdLC/qPM5olCrTfzyCDvo7vvBBV4Y/hU3DuyyYF"
+                        "Ztg/8GshGq7EPKKbVMzQD4gVokZe8LRlFcx+QfMSTwnv/3OTCatYspoUWaAL"
+                        "zlA46TjJZ49y6w5O5f2q5m2fhXP8l/xCtJWfS/i2HXhDPoawM11ukZHE2L9I"
+                        "ezkFwQjP1qwksM633LfPUfhNDtaHuV6uscUzwG8NlwI9kqcIJYN7Wbpst9Tl"
+                        "awqHwgOGKujzFbpZJejt76Z5NpoiAnZhUfFqll+fgeznbMBwtVhp5NuXhM8F"
+                        "yDCzJCyDEg==",
+
+  .name = "mldsa44.",
+
+  // vector extracted from https://gitlab.labs.nic.cz/labs/ietf/blob/master/dnskey.py (rev
+  // 476d6ded) by printing signature_data
+  .rfcMsgDump = "00 0f 10 02 00 00 0e 10 55 d4 fc 60 55 b9 4c e0 25 f1 07 65 78 "
+                "61 6d 70 6c 65 03 63 6f 6d 00 07 65 78 61 6d 70 6c 65 03 63 6f "
+                "6d 00 00 0f 00 01 00 00 0e 10 00 14 00 0a 04 6d 61 69 6c 07 65 "
+                "78 61 6d 70 6c 65 03 63 6f 6d 00 ",
+
+  // vector verified from dnskey.py as above, and confirmed with
+  // https://www.rfc-editor.org/errata_search.php?rfc=8080&eid=4935
+  .rfcB64Signature = "3cPAHkmlnxcDHMyg7vFC34l0blBhuG1qpwLmjInI8w1CMB29FkEA"
+                     "IJUA0amxWndkmnBZ6SKiwZSAxGILn/NBtOXft0+Gj7FSvOKxE/07"
+                     "+4RQvE581N3Aj/JtIyaiYVdnYtyMWbSNyGEY2213WKsJlwEA",
+
+  .bits = 256,
+  .flags = 256,
+  .rfcFlags = 257,
+
+  .algorithm = DNSSEC::MLDSA44,
+  .isDeterministic = true,
+
+  .pem = "-----BEGIN PRIVATE KEY-----\n"
+         "MEcCAQAwBQYDK2VxBDsEOcWfuQoJuOt8boLZGOQdCcenqxU16dd62HoLLdKkbTbD\n"
+         "mJ2laTMdGf3ORIgPcfMFmww3Lf1NxYWFgA==\n"
+         "-----END PRIVATE KEY-----\n"
+};
+// clang-format on
+
 struct Fixture
 {
   Fixture()
@@ -307,7 +400,7 @@ struct Fixture
     }
 
     BOOST_TEST_MESSAGE("Setting up signer params:");
-
+#if 0
     addSignerParams(DNSSEC::RSASHA256, "RSA SHA256", rsaSha256SignerParams);
 
 #ifdef HAVE_LIBCRYPTO_ECDSA
@@ -321,6 +414,11 @@ struct Fixture
 
 #if defined(HAVE_LIBCRYPTO_ED448)
     addSignerParams(DNSSEC::ED448, "ED448", ed448);
+#endif
+#endif
+
+#if defined(HAVE_LIBCRYPTO_ML_DSA_44)
+    addSignerParams(DNSSEC::MLDSA44, "MLDSA44", mldsa44);
 #endif
   }
 
