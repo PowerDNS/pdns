@@ -969,10 +969,10 @@ bool UeberBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
   return false;
 }
 
-bool UeberBackend::deleteTSIGKey(const DNSName& name)
+bool UeberBackend::deleteTSIGKey(const DNSName& name, const DNSName& algorithm)
 {
   for (auto& backend : backends) {
-    if (backend->deleteTSIGKey(name)) {
+    if (backend->deleteTSIGKey(name, algorithm)) {
       return true;
     }
   }
