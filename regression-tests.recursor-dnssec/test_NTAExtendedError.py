@@ -65,13 +65,12 @@ class NTAExtendedErrorDisabledTest(RecursorTest):
     _confdir = "NTAExtendedErrorDisabled"
     _auth_zones = RecursorTest._default_auth_zones
 
-    _config_template = """dnssec=validate
-nta-extended-error=no"""
+    _config_template = """dnssec=validate"""
     _lua_config_file = """addNTA("bogus.example", "Negative Trust Anchor for testing")"""
 
     def testNTAWithFeatureDisabledHasNoEDE(self):
-        """With nta-extended-error=no the NTA still works (Insecure, no AD) but no EDE 33
-        is attached."""
+        """With nta-extended-error left at its default (off) the NTA still works (Insecure,
+        no AD) but no EDE 33 is attached."""
         msg = dns.message.make_query("ted.bogus.example.", dns.rdatatype.A)
         msg.flags = dns.flags.from_text("AD RD")
         msg.use_edns(edns=0, ednsflags=dns.flags.edns_from_text("DO"))

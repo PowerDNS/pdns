@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_ta)
   BOOST_CHECK_EQUAL(settings.dnssec.negative_trustanchors.size(), 0U);
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchorfile), "");
   BOOST_CHECK_EQUAL(settings.dnssec.trustanchorfile_interval, 24U);
-  BOOST_CHECK_EQUAL(settings.dnssec.nta_extended_error, true);
+  BOOST_CHECK_EQUAL(settings.dnssec.nta_extended_error, false);
 
   const std::string yaml2 = R"EOT(dnssec:
   trustanchors:
