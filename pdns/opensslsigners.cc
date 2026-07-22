@@ -2006,13 +2006,32 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
 
 std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters builder");
+  }
+
+  OSSL_PARAM_BLD_push_int(params_build.get(), OSSL_SIGNATURE_PARAM_DETERMINISTIC, 1);
+
+  auto params = Params(OSSL_PARAM_BLD_to_param(params_build.get()), OSSL_PARAM_free);
+  if (params == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create signer parameters");
+  }
+
   auto mdctx = MessageDigestContext(EVP_MD_CTX_new(), EVP_MD_CTX_free);
   if (!mdctx) {
     throw pdns::OpenSSL::error(getName(), "MD context initialization failed");
   }
-  if (EVP_DigestSignInit(mdctx.get(), nullptr, nullptr, nullptr, d_edkey.get()) < 1) {
+  if (EVP_DigestSignInit_ex(mdctx.get(), nullptr, nullptr, nullptr, nullptr, d_edkey.get(), params.get()) < 1) {
     throw pdns::OpenSSL::error(getName(), "Unable to initialize signer");
   }
+
+  // FIGURE OUT: set_params failed, so I switched to Init_ex, which does work
+  // int ret = EVP_MD_CTX_set_params(mdctx.get(), params.get());
+  // cerr<<ret<<endl;
+  // if (ret < 1) {
+  //   throw pdns::OpenSSL::error(getName(), "Signer parameter setting failed");
+  // }
 
   string msgToSign = msg;
 
