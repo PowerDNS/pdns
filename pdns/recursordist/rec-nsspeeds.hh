@@ -52,11 +52,18 @@ private:
         d_decayed_value = val;
       }
       else {
-        auto int_diff = static_cast<int64_t>(d_last_timestamp - usecTS); // usecs
-        auto diff = static_cast<float>(int_diff) / 1000000.0F; // seconds
-        auto factor = expf(diff / DecayingEwmaCollection::s_memory) / 2.0F; // might be '0.5', or 0.0001
-        auto original_value = static_cast<float>(d_last_value);
-        d_decayed_value = (1.0F - factor) * val + factor * original_value;
+        // We compute the new moving average based on the latest measurement and the *undecayed*
+        // previous value.  As we modify the decayed value on get(), we recompute the original value
+        // by using the inverse of the decaying function.  The new weighted average is then
+        // computed, with old values not weighting in much because factor will be small
+        auto int_diff = static_cast<int64_t>(d_last_timestamp - usecTS); // usecs, is negative
+        auto diff = static_cast<float>(int_diff) / 1000000.0F; // seconds, is negative
+        auto factor = expf(diff / DecayingEwmaCollection::s_memory); // range [0, 1]; close to 1 for small diff, 0 for very negative (large) diff
+        // if decayed = undecayed * exp(diff/60) what is undecayed?
+        // answer: undecayed = exp(-diff/60) * decayed (with help form alpha)
+        float undecayed = expf(-diff / DecayingEwmaCollection::s_memory) * d_decayed_value;
+        // small diff means the new value has a small weight
+        d_decayed_value = ((1.0F - factor) * val) + (factor * undecayed);
       }
       d_last_value = arg;
       d_last_timestamp = usecTS;
