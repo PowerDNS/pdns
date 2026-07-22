@@ -3389,6 +3389,8 @@ bool LMDBBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& co
   TSIGKey key;
   for (auto id : ids) {
     if (txn.get(id, key)) {
+      // Note that this will return the last key found matching name and
+      // optional algorithm.
       if (algorithm.empty() || algorithm == DNSName(key.algorithm)) {
         algorithm = DNSName(key.algorithm);
         content = key.key;

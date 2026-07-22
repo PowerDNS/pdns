@@ -465,6 +465,8 @@ bool Bind2Backend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& c
     SSqlStatement::row_t row;
     while (d_getTSIGKeyQuery_stmt->hasNextRow()) {
       d_getTSIGKeyQuery_stmt->nextRow(row);
+      // Note that this will return the last key found matching name and
+      // optional algorithm.
       if (row.size() >= 2 && (algorithm.empty() || algorithm == DNSName(row[0]))) {
         algorithm = DNSName(row[0]);
         content = row[1];
