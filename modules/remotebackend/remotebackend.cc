@@ -550,9 +550,14 @@ bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::str
     return false;
   }
 
+  Json::object parameters;
+  parameters["name"] = name.toString();
+  if (!algorithm.empty()) {
+    parameters["algorithm"] = algorithm.toString();
+  }
   Json query = Json::object{
     {"method", "getTSIGKey"},
-    {"parameters", Json::object{{"name", name.toString()}}}};
+    {"parameters", parameters}};
 
   Json answer;
   if (!this->send(query) || !this->recv(answer)) {
