@@ -46,10 +46,15 @@ class DNSBackendHandler(http.server.BaseHTTPRequestHandler):
             "gettsigkey",
             "getdomaininfo",
             "settsigkey",
-            "deletetsigkey",
             "getalldomainmetadata",
         ):
             self.args["name"] = parts.pop(0)
+        elif self.method == "deletetsigkey":
+            self.args["name"] = parts.pop(0)
+            if len(parts) > 0:
+                self.args["algorithm"] = parts.pop(0)
+            else:
+                self.args["algorithm"] = ""
         elif self.method == "setnotified":
             self.args["id"] = int(parts.pop(0))
         elif self.method == "feedents":
