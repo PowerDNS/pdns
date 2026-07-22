@@ -1375,6 +1375,8 @@ bool GSQLBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& co
       d_getTSIGKeyQuery_stmt->nextRow(row);
       ASSERT_ROW_COLUMNS("get-tsig-key-query", row, 2);
       try{
+        // Note that this will return the last key found matching name and
+        // optional algorithm.
         if (algorithm.empty() || algorithm == DNSName(row[0])) {
           algorithm = DNSName(row[0]);
           content = row[1];

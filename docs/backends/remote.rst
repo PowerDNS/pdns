@@ -844,7 +844,7 @@ Response:
 Retrieves the key needed to sign AXFR.
 
 -  Mandatory: no
--  Parameters: name
+-  Parameters: name, optional algorithm
 -  Reply: algorithm, content
 
 Example JSON/RPC

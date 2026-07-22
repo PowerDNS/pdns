@@ -947,7 +947,6 @@ bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, con
 
 bool UeberBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
 {
-  algorithm.clear();
   content.clear();
 
   for (auto& backend : backends) {
