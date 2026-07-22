@@ -1282,6 +1282,10 @@ bind:
       type: "String"
       default: ""
       description: "The name of an XSK sockets map to attach to this frontend, if any"
+    - name: "forward_via_udp_first"
+      type: "bool"
+      default: "false"
+      description: "Whether queries received by this frontend over DoTCP, DoT, DoQ and DoH3 should be forwarded to the backend via UDP (unless the backend is TCP-only). If a truncated answer is received, the query will be re-tried over TCP. Queries received over DoUDP and DoH are always forwarded via UDP unless the backend is TCP-only, so this setting has no effect on these frontends."
 
 outgoing_tcp:
   description: "TCP-related settings for backends"
@@ -2214,6 +2218,8 @@ packet_cache:
       type: "u32"
       default: 0
       description: "On a truncated (TC=1, no records) response from the backend, cache for this amount of seconds. 0, the default, means that truncated answers are not cached"
+      changes:
+        - version_removed: 2.2.0
     - name: "cookie_hashing"
       type: "bool"
       default: "false"

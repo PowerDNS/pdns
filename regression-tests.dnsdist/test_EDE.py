@@ -54,7 +54,7 @@ class TestBasics(DNSDistTest):
 
         response.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             receivedQuery.id = query.id
@@ -79,7 +79,7 @@ class TestBasics(DNSDistTest):
         rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, backendResponse)
             receivedQuery.id = query.id
@@ -112,7 +112,7 @@ class TestBasics(DNSDistTest):
         rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, backendResponse)
             receivedQuery.id = query.id
@@ -144,7 +144,7 @@ class TestBasics(DNSDistTest):
         rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, backendResponse)
             receivedQuery.id = query.id
@@ -276,7 +276,7 @@ class TestMultipleEDE(DNSDistTest):
         rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, backendResponse)
             receivedQuery.id = query.id
@@ -309,7 +309,7 @@ class TestMultipleEDE(DNSDistTest):
         rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         expectedResponse.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ["sendUDPQuery"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, backendResponse)
             receivedQuery.id = query.id

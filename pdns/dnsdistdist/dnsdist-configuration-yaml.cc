@@ -853,6 +853,7 @@ static void loadBinds(const Context& context, const ::rust::Vec<dnsdist::rust::s
         if (bind.tcp.max_concurrent_connections > 0) {
           state->d_tcpConcurrentConnectionsLimit = bind.tcp.max_concurrent_connections;
         }
+        state->d_forwardViaUDPFirst = bind.forward_via_udp_first;
 
         handleAdditionalAddressesForFrontend(context, state, protocol, bind.additional_addresses);
 
