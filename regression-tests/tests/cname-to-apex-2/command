@@ -1,0 +1,3 @@
+#!/bin/sh
+cleandig www.test.com AAAA
+cleandig www.cryptokeys.org AAAA
