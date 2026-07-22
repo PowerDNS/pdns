@@ -552,7 +552,7 @@ bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::str
 
   Json::object parameters;
   parameters["name"] = name.toString();
-  if (!algorithm.empty()) {
+  if (!algorithm.empty()) { // don't send a single dot in this case!
     parameters["algorithm"] = algorithm.toString();
   }
   Json query = Json::object{
@@ -585,15 +585,20 @@ bool RemoteBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, co
   return connector->send(query) && connector->recv(answer);
 }
 
-bool RemoteBackend::deleteTSIGKey(const DNSName& name)
+bool RemoteBackend::deleteTSIGKey(const DNSName& name, const DNSName& algorithm)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
     return false;
   }
+  Json::object parameters;
+  parameters["name"] = name.toString();
+  if (!algorithm.empty()) { // don't send a single dot in this case!
+    parameters["algorithm"] = algorithm.toString();
+  }
   Json query = Json::object{
     {"method", "deleteTSIGKey"},
-    {"parameters", Json::object{{"name", name.toString()}}}};
+    {"parameters", parameters}};
 
   Json answer;
   return connector->send(query) && connector->recv(answer);

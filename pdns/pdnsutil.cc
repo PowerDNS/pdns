@@ -5264,14 +5264,29 @@ static int deleteTSIGKey(vector<string>& cmds, const std::string_view synopsis)
     return usage(synopsis);
   }
   DNSName name(cmds.at(0));
+  DNSName algo;
+  if (cmds.size() >= 2) {
+    algo = DNSName(cmds.at(1));
+  }
 
   UtilBackend B("default"); // NOLINT(readability-identifier-length)
-  if (B.deleteTSIGKey(name)) {
-    cout << "Deleted TSIG key " << name << endl;
+  if (!algo.empty()) {
+    if (B.deleteTSIGKey(name, algo)) {
+      cout << "Deleted TSIG key " << name << endl;
+    }
+    else {
+      cerr << "Failure deleting TSIG key " << name << endl;
+      return 1;
+    }
   }
   else {
-    cerr << "Failure deleting TSIG key " << name << endl;
-    return 1;
+    if (B.deleteTSIGKey(name, algo)) {
+      cout << "Deleted TSIG key " << name << " with algorithm " << algo << endl;
+    }
+    else {
+      cerr << "Failure deleting TSIG key " << name << " with algorithm " << algo << endl;
+      return 1;
+    }
   }
   return 0;
 }

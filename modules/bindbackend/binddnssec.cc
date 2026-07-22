@@ -115,7 +115,7 @@ bool Bind2Backend::setTSIGKey(const DNSName& /* name */, const DNSName& /* algor
   return false;
 }
 
-bool Bind2Backend::deleteTSIGKey(const DNSName& /* name */)
+bool Bind2Backend::deleteTSIGKey(const DNSName& /* name */, const DNSName& /* algorithm */)
 {
   return false;
 }
@@ -178,6 +178,7 @@ void Bind2Backend::setupStatements()
   d_getTSIGKeyQuery_stmt = d_dnssecdb->prepare("select algorithm, secret from tsigkeys where name=:key_name", 1);
   d_setTSIGKeyQuery_stmt = d_dnssecdb->prepare("replace into tsigkeys (name,algorithm,secret) values(:key_name, :algorithm, :content)", 3);
   d_deleteTSIGKeyQuery_stmt = d_dnssecdb->prepare("delete from tsigkeys where name=:key_name", 1);
+  d_deleteTSIGKeyWithAlgorithmQuery_stmt = d_dnssecdb->prepare("delete from tsigkeys where name=:key_name and algorithm=:algorithm", 2);
   d_getTSIGKeysQuery_stmt = d_dnssecdb->prepare("select name,algorithm,secret from tsigkeys", 0);
 }
 
@@ -198,6 +199,7 @@ void Bind2Backend::freeStatements()
   d_getTSIGKeyQuery_stmt.reset();
   d_setTSIGKeyQuery_stmt.reset();
   d_deleteTSIGKeyQuery_stmt.reset();
+  d_deleteTSIGKeyWithAlgorithmQuery_stmt.reset();
   d_getTSIGKeysQuery_stmt.reset();
 }
 
@@ -495,13 +497,18 @@ bool Bind2Backend::setTSIGKey(const DNSName& name, const DNSName& algorithm, con
   return true;
 }
 
-bool Bind2Backend::deleteTSIGKey(const DNSName& name)
+bool Bind2Backend::deleteTSIGKey(const DNSName& name, const DNSName& algorithm)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_deleteTSIGKeyQuery_stmt->bind("key_name", name)->execute()->reset();
+    if (!algorithm.empty()) {
+      d_deleteTSIGKeyWithAlgorithmQuery_stmt->bind("key_name", name)->bind("algorithm", algorithm)->execute()->reset();
+    }
+    else {
+      d_deleteTSIGKeyQuery_stmt->bind("key_name", name)->execute()->reset();
+    }
   }
   catch (SSqlException& e) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, deleteTSIGKey(): " + e.txtReason());

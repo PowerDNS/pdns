@@ -133,6 +133,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_getTSIGKeyQuery = getArg("get-tsig-key-query");
   d_setTSIGKeyQuery = getArg("set-tsig-key-query");
   d_deleteTSIGKeyQuery = getArg("delete-tsig-key-query");
+  d_deleteTSIGKeyWithAlgorithmQuery = getArg("delete-tsig-key-algorithm-query");
   d_getTSIGKeysQuery = getArg("get-tsig-keys-query");
 
   d_SearchRecordsQuery = getArg("search-records-query");
@@ -198,6 +199,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_getTSIGKeyQuery_stmt = nullptr;
   d_setTSIGKeyQuery_stmt = nullptr;
   d_deleteTSIGKeyQuery_stmt = nullptr;
+  d_deleteTSIGKeyWithAlgorithmQuery_stmt = nullptr;
   d_getTSIGKeysQuery_stmt = nullptr;
   d_getAllDomainsQuery_stmt = nullptr;
   d_ListCommentsQuery_stmt = nullptr;
@@ -271,6 +273,7 @@ void GSQLBackend::allocateStatements()
     d_getTSIGKeyQuery_stmt = d_db->prepare(d_getTSIGKeyQuery, 1);
     d_setTSIGKeyQuery_stmt = d_db->prepare(d_setTSIGKeyQuery, 3);
     d_deleteTSIGKeyQuery_stmt = d_db->prepare(d_deleteTSIGKeyQuery, 1);
+    d_deleteTSIGKeyWithAlgorithmQuery_stmt = d_db->prepare(d_deleteTSIGKeyWithAlgorithmQuery, 2);
     d_getTSIGKeysQuery_stmt = d_db->prepare(d_getTSIGKeysQuery, 0);
     d_getAllDomainsQuery_stmt = d_db->prepare(d_getAllDomainsQuery, 1);
     d_ListCommentsQuery_stmt = d_db->prepare(d_ListCommentsQuery, 1);
@@ -344,6 +347,7 @@ void GSQLBackend::freeStatements()
   d_getTSIGKeyQuery_stmt.reset();
   d_setTSIGKeyQuery_stmt.reset();
   d_deleteTSIGKeyQuery_stmt.reset();
+  d_deleteTSIGKeyWithAlgorithmQuery_stmt.reset();
   d_getTSIGKeysQuery_stmt.reset();
   d_getAllDomainsQuery_stmt.reset();
   d_ListCommentsQuery_stmt.reset();
@@ -1413,17 +1417,28 @@ bool GSQLBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
   return true;
 }
 
-bool GSQLBackend::deleteTSIGKey(const DNSName& name)
+bool GSQLBackend::deleteTSIGKey(const DNSName& name, const DNSName& algorithm)
 {
   try {
     reconnectIfNeeded();
 
-    // clang-format off
-    d_deleteTSIGKeyQuery_stmt->
-      bind("key_name", name)->
-      execute()->
-      reset();
-    // clang-format on
+    if (!algorithm.empty()) {
+      // clang-format off
+      d_deleteTSIGKeyWithAlgorithmQuery_stmt->
+        bind("key_name", name)->
+        bind("algorithm", algorithm)->
+        execute()->
+        reset();
+      // clang-format on
+    }
+    else {
+      // clang-format off
+      d_deleteTSIGKeyQuery_stmt->
+        bind("key_name", name)->
+        execute()->
+        reset();
+      // clang-format on
+    }
   }
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to delete TSIG key with name '" + name.toLogString() + "': "+e.txtReason());

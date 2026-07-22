@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.19"
+  version: "0.0.20"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -457,6 +457,46 @@ paths:
     delete:
       summary: "Delete the TSIGKey with tsigkey_id"
       operationId: deleteTSIGKey
+      tags:
+        - tsigkey
+      responses:
+        "204":
+          description: "OK, key was deleted"
+        default:
+          $ref: "#/components/responses/Error"
+
+  "/servers/{server_id}/tsigkeys/{tsigkey_id}/{algorithm_id}":
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: tsigkey_id
+        in: path
+        required: true
+        description: 'The id of the TSIGkey. Should match the "id" field in the TSIGKey object'
+        schema:
+          type: string
+      - name: algorithm_id
+        in: path
+        required: true
+        description: 'The algorithm of the TSIGkey. Should match the "algorithm" field in the TSIGKey object'
+        schema:
+          type: string
+    get:
+      summary: "Get a specific TSIGKeys on the server, including the actual key"
+      operationId: getTSIGKeyWithAlgorithm
+      tags:
+        - tsigkey
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TSIGKey"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      summary: "Delete the TSIGKey with tsigkey_id and algorithm_id"
+      operationId: deleteTSIGKeyWithAlgorithm
       tags:
         - tsigkey
       responses:

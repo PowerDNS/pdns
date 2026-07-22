@@ -140,9 +140,10 @@ tsigkey deactivate *ZONE* *NAME* {**primary**,\ **secondary**,\ **producer**,\ *
     Disable TSIG authenticated AXFR using the key *NAME* for zone
     *ZONE*.
 
-tsigkey delete *NAME*
+tsigkey delete *NAME* [*ALGORITHM*]
 
-    Delete the TSIG key *NAME*. Warning: this does not deactivate said key.
+    Delete all TSIG keys matching *NAME* (and *ALGORITHM* if specified).
+    Warning: this does not deactivate said keys.
 
 tsigkey generate *NAME* *ALGORITHM*
 

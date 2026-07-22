@@ -863,7 +863,7 @@ In order for a backend to support the storage of TSIG keys, the following operat
       /* ... */
       virtual bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content);
       virtual bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
-      virtual bool deleteTSIGKey(const DNSName& name);
+      virtual bool deleteTSIGKey(const DNSName& name, const DNSName& algorithm);
       virtual bool getTSIGKeys(std::vector< struct TSIGKey > &keys);
       /* ... */
     }

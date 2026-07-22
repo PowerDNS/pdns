@@ -363,6 +363,8 @@ TSIG
 -  ``set-tsig-key-query``: Called to set the algorithm and secret for a
    named TSIG key.
 -  ``delete-tsig-key-query``: Called to delete a named TSIG key.
+-  ``delete-tsig-key-algorithm-query``: Called to delete a named TSIG key with
+   the given algorithm.
 
 Comment queries
 ^^^^^^^^^^^^^^^
