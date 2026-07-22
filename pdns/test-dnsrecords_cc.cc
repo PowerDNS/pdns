@@ -55,6 +55,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
 
   const cases_t cases = boost::assign::list_of
      (CASE_S(QType::A, "127.0.0.1", "\x7F\x00\x00\x01"))
+     (CASE_L(QType::A, "\\# 4 7f000001", "127.0.0.1", "\x7F\x00\x00\x01"))
 // local nameserver
      (CASE_S(QType::NS, "ns.rec.test.", "\x02ns\xc0\x11"))
 // non-local nameserver
@@ -106,6 +107,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::RP, "admin.example.com. admin-info.example.com.", "\x05""admin\x07""example\x03""com\x00\x0a""admin-info\x07""example\x03""com\x00"))
 // local name
      (CASE_S(QType::AFSDB, "1 afs-server.rec.test.", "\x00\x01\x0a""afs-server\x03rec\x04test\x00"))
+     (CASE_L(QType::AFSDB, "\\# 23 00010a6166732d73657276657203726563047465737400", "1 afs-server.rec.test.", "\x00\x01\x0a""afs-server\x03rec\x04test\x00"))
 // non-local name
      (CASE_S(QType::AFSDB, "1 afs-server.example.com.", "\x00\x01\x0a""afs-server\x07""example\x03""com\x00"))
      (CASE_S(QType::KEY, "0 3 3 V19hwufL6LJARVIxzHDyGdvZ7dbQE0Kyl18yPIWj/sbCcsBbz7zO6Q2qgdzmWI3OvGNne2nxflhorhefKIMsUg==", "\x00\x00\x03\x03\x57\x5f\x61\xc2\xe7\xcb\xe8\xb2\x40\x45\x52\x31\xcc\x70\xf2\x19\xdb\xd9\xed\xd6\xd0\x13\x42\xb2\x97\x5f\x32\x3c\x85\xa3\xfe\xc6\xc2\x72\xc0\x5b\xcf\xbc\xce\xe9\x0d\xaa\x81\xdc\xe6\x58\x8d\xce\xbc\x63\x67\x7b\x69\xf1\x7e\x58\x68\xae\x17\x9f\x28\x83\x2c\x52"))
