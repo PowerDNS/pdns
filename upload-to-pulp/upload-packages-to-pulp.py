@@ -265,10 +265,10 @@ def pulp_upload_deb_packages_by_folder(repo_name, distribution_name, source):
     modify_repository_url = PULP_API_URL + repository_href + "modify/"
 
     repository_modify_payload = {
-        "add_content_units": packages,
-        "add_release_components": release_components,
-        "add_release_architectures": release_architectures,
-        "add_package_release_components": package_release_components
+        "add_content_units": packages
+        + release_components
+        + release_architectures
+        + package_release_components
     }
 
     try:
