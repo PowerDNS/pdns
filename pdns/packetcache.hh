@@ -217,7 +217,10 @@ public:
     uint16_t optionLen;
 
     while (pos < querySize && rdataRead < rdLen && getNextEDNSOption(&query.at(pos), rdLen - rdataRead, optionCode, optionLen)) {
-      if (optionLen > (rdLen - rdataRead)) {
+      /* getNextEDNSOption() only returns true if at least 4 bytes (the option
+         code and length) are left, so rdLen - rdataRead >= 4 here and the
+         subtraction below cannot underflow */
+      if (optionLen > (rdLen - rdataRead - 4)) {
         return cachedQuery.compare(pos, cachedQuerySize - pos, query, pos, querySize - pos) == 0;
       }
 
