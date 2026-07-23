@@ -56,7 +56,7 @@ public:
   ~GeoIPBackend() override;
 
   using filevec_t = std::vector<std::unique_ptr<GeoIPInterface>>;
-  using state_t = struct
+  using state_t = struct state_t
   {
     unsigned int instance_count{0};
     std::vector<GeoIPDomain> domains;
