@@ -466,7 +466,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
           throw std::runtime_error("copyDBIAndAddLSHeader failed");
         }
 
-        cerr << "shard mbd_drop=" << mdb_drop(shtxn, shdbi, 1) << endl;
+        int rc = mdb_drop(shtxn, shdbi, 1);
+        cerr << "shard mbd_drop=" << rc << endl;
         mdb_txn_commit(shtxn);
         mdb_dbi_close(shenv, shdbi2);
       }
@@ -634,7 +635,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       mdb_drop(txn, fromindexdbi[i], 1);
     }
 
-    cerr << "txn commit=" << mdb_txn_commit(txn) << endl;
+    int rc = mdb_txn_commit(txn);
+    cerr << "txn commit=" << rc << endl;
 
     for (int i = 0; i < 4; i++) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
