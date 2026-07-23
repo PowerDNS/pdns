@@ -49,6 +49,7 @@ static void bindlexer_fatal_error(const char* msg)
 %option nounput
 %option noyy_top_state
 %option noinput
+%option nodefault
 
 %%
 
