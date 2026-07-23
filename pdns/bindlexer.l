@@ -101,6 +101,10 @@ include                 BEGIN(incl);
         yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
 
    }
+<incl>.*|\n {
+        bindlexer_cleanup();
+        LEXER_ERROR( "Invalid include directive",yytext+1,-1);
+   }
 
 
 <<EOF>>   {

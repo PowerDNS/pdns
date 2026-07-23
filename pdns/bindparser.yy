@@ -124,9 +124,14 @@ void BindParser::lexer_error(const char *msg, char *filename, int error)
     text = std::string("Lexer error in bind configuration '") + string(current_filename) + "' around line " + std::to_string(linenumber) + ": " + std::string(msg);
   }
   else {
-    text = std::string("File '") + std::string(filename) + "': " + std::string(msg);
-    if (error != 0) {
-      text.append(": ").append(strerror(error));
+    if (error < 0) {
+      text = std::string(msg) + ": '" + std::string(filename) + "'";
+    }
+    else {
+      text = std::string("File '") + std::string(filename) + "': " + std::string(msg);
+      if (error != 0) {
+        text.append(": ").append(strerror(error));
+      }
     }
   }
   throw PDNSException(text);
