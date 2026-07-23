@@ -92,4 +92,6 @@ private:
   set<string> alsoNotify;
   vector<BindDomainInfo> d_zonedomains;
   bool d_verbose{false};
+
+  static void lexer_error(const char *msg, char *filename, int error);
 };
