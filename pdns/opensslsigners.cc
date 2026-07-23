@@ -1755,7 +1755,7 @@ class OpenSSLEDDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 public:
   explicit OpenSSLEDDSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo);
 
-  [[nodiscard]] string getName() const override { return "OpenSSL EdDSA"; }
+  [[nodiscard]] string getName() const override { return (d_algorithm == 18) ? "OpenSSL MLDSA" : "OpenSSL EdDSA"; }
   [[nodiscard]] int getBits() const override;
 
   void create(unsigned int bits) override;
