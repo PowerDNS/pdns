@@ -2075,7 +2075,8 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& message, const st
 std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const
 {
   string buf;
-  size_t len = 1312; // d_len;
+  size_t len = (d_algorithm == 18) ? 1312 : d_len;
+
   buf.resize(len);
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
@@ -2107,9 +2108,9 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
 
 void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
 {
-  // if (content.length() != d_len) {
-  //   throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
-  // }
+  if (d_algorithm != 18 && content.length() != d_len) {
+    throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
+  }
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   const auto* raw = reinterpret_cast<const unsigned char*>(content.c_str());
