@@ -16,6 +16,11 @@ NAPTR additional answers
 
 Since version 5.0, the information of the `a` and `s` NAPTR records are added to the additional answers section. This behaviour can be disabled by setting :ref:`setting-naptr-additional-processing` to `no`.
 
+PKCS#11 now requires setting an option
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When PowerDNS is built with :doc:`PKCS#11 support <dnssec/pkcs11>`, the PKCS#11 engine is disabled by the :ref:`setting-pkcs11` configuration setting by default. To use the PKCS#11 engine, this setting must be set to ``yes``.
+
 5.0.x to 5.1.x
 --------------
 

@@ -1,6 +1,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "arguments.hh"
 #include "base64.hh"
 #include "dnsparser.hh"
 #include "sstuff.hh"
@@ -15,6 +16,12 @@
 #include "gss_context.hh"
 
 bool g_slogStructured{false};
+
+ArgvMap &arg()
+{
+  static ArgvMap theArg;
+  return theArg;
+}
 
 StatBag S;
 
