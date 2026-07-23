@@ -58,7 +58,7 @@ void RecordTextReader::xfrNodeOrLocatorID(NodeOrLocatorID& val) {
   skipSpaces();
   size_t len;
   for(len=0;
-      d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':');
+      d_pos+len < d_string.length() && (isxdigit(static_cast<unsigned char>(d_string.at(d_pos+len))) != 0 || d_string.at(d_pos+len) == ':');
       len++) ;   // find length of ID
 
   // Parse as v6, and then strip the final 64 zero bytes
@@ -77,9 +77,9 @@ void RecordTextReader::xfr64BitInt(uint64_t &val)
 {
   skipSpaces();
 
-  if(!isdigit(d_string.at(d_pos)))
+  if (isdigit(static_cast<unsigned char>(d_string.at(d_pos))) == 0) {
     throw RecordTextException("expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
-
+  }
   size_t pos;
   val=std::stoull(d_string.substr(d_pos), &pos);
 
@@ -91,9 +91,9 @@ void RecordTextReader::xfr32BitInt(uint32_t &val)
 {
   skipSpaces();
 
-  if(!isdigit(d_string.at(d_pos)))
+  if (isdigit(static_cast<unsigned char>(d_string.at(d_pos))) == 0) {
     throw RecordTextException("expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
-
+  }
   size_t pos;
   val = pdns::checked_stoi<uint32_t>(d_string.c_str() + d_pos, &pos);
 
@@ -141,9 +141,9 @@ void RecordTextReader::xfrIP(uint32_t &val)
 {
   skipSpaces();
 
-  if(!isdigit(d_string.at(d_pos)))
+  if (isdigit(static_cast<unsigned char>(d_string.at(d_pos))) == 0) {
     throw RecordTextException("while parsing IP address, expected digits at position "+std::to_string(d_pos)+" in '"+d_string+"'");
-
+  }
   uint32_t octet=0;
   val=0;
   char count=0;
@@ -161,7 +161,7 @@ void RecordTextReader::xfrIP(uint32_t &val)
       if(count > 3)
         throw RecordTextException(string("unable to parse IP address, too many dots"));
     }
-    else if(isdigit(d_string.at(d_pos))) {
+    else if (isdigit(static_cast<unsigned char>(d_string.at(d_pos))) != 0) {
       last_was_digit = true;
       octet*=10;
       octet+=d_string.at(d_pos) - '0';
@@ -196,7 +196,7 @@ void RecordTextReader::xfrIP6(std::string &val)
   size_t len;
   // lookup end of value - think of ::ffff encoding too, has dots in it!
   for(len=0;
-      d_pos+len < d_string.length() && (isxdigit(d_string.at(d_pos+len)) || d_string.at(d_pos+len) == ':' || d_string.at(d_pos+len)=='.');
+      d_pos+len < d_string.length() && (isxdigit(static_cast<unsigned char>(d_string.at(d_pos+len))) != 0 || d_string.at(d_pos+len) == ':' || d_string.at(d_pos+len)=='.');
     len++);
 
   if(!len)
@@ -633,7 +633,7 @@ static void HEXDecode(std::string_view chunk, string& out)
   bool lowdigit{false};
   uint8_t val{0};
   for (auto chr : chunk) {
-    if(isalnum(chr) == 0) {
+    if(isalnum(static_cast<unsigned char>(chr)) == 0) {
       continue;
     }
     if (!lowdigit) {

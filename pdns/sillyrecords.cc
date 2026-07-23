@@ -25,7 +25,7 @@ enum coordtype { LATITUDE, LONGITUDE };
 static void
 skipspace(const std::string& content, std::string::size_type& pos)
 {
-  while (pos < content.length() && std::isspace(content.at(pos)) != 0) {
+  while (pos < content.length() && std::isspace(static_cast<unsigned char>(content.at(pos))) != 0) {
     ++pos;
   }
 }
@@ -54,7 +54,7 @@ parsenum(const std::string& content, std::string::size_type& pos, unsigned int& 
   bool parsed{false};
 
   number = 0;
-  while (pos < content.length() && std::isdigit(content.at(pos)) != 0) {
+  while (pos < content.length() && std::isdigit(static_cast<unsigned char>(content.at(pos))) != 0) {
     parsed = true;
     number = number * 10 + (content.at(pos) - '0');
     ++pos;
@@ -75,14 +75,14 @@ parsefrac(const std::string& content, std::string::size_type& pos, unsigned int 
     ++pos;
     while (digits-- != 0) {
       number *= 10;
-      if (pos < content.length() && std::isdigit(content.at(pos)) != 0) {
+      if (pos < content.length() && std::isdigit(static_cast<unsigned char>(content.at(pos))) != 0) {
         parsed = true; // intentionally rejects '.' alone
         number += (content.at(pos) - '0');
         ++pos;
       }
     }
     // skip any further digits
-    while (pos < content.length() && std::isdigit(content.at(pos)) != 0) {
+    while (pos < content.length() && std::isdigit(static_cast<unsigned char>(content.at(pos))) != 0) {
       ++pos;
     }
   }
