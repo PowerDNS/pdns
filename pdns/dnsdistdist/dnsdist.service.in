@@ -13,10 +13,8 @@ User=@ServiceUser@
 Group=@ServiceGroup@
 SyslogIdentifier=@SyslogIdentifier@
 Type=notify
-Restart=on-failure
-RestartSec=2
+Restart=on-abnormal
 TimeoutStopSec=5
-StartLimitInterval=0
 
 # Tuning
 TasksMax=8192
