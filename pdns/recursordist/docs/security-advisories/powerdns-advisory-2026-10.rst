@@ -30,7 +30,7 @@ The remedy is: upgrade to a patched version.
 We would like to thank Qifan Zhang from Palo Alto Networks for bringing this issue to our attention.
 
 
-CVE-2026-62686: Wildcard CNAME proof validation bypass
+CVE-2026-52686: Wildcard CNAME proof validation bypass
 ------------------------------------------------------
 
 - CVE: CVE-2026-52686
