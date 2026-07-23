@@ -175,6 +175,7 @@ common_sources += files(
   src_dir / 'dnsdist-nghttp2.cc',
   src_dir / 'dnsdist-nghttp2-in.cc',
   src_dir / 'dnsdist-opentelemetry.cc',
+  src_dir / 'dnsdist-packet-processing.cc',
   src_dir / 'dnsdist-protobuf.cc',
   src_dir / 'dnsdist-protocols.cc',
   src_dir / 'dnsdist-proxy-protocol.cc',
