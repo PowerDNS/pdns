@@ -445,7 +445,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_missing_soa)
           setLWResult(res, 0, false, false, true);
           addRecordToLW(res, DNSName("powerdns.com."), QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
           /* no DS */
-          addNSECRecordToLW(DNSName("powerdns.com."), DNSName("powerdnsz.com."), {QType::NS}, 600, res->d_records);
+          addNSECRecordToLW(DNSName("powerdns.com."), DNSName("a.powerdns.com."), {QType::NS}, 600, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("com."), 300);
           addRecordToLW(res, "ns1.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
           return LWResult::Result::Success;
@@ -454,14 +454,14 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_missing_soa)
       else if (address == ComboAddress("192.0.2.2:53")) {
         if (domain == DNSName("nxd.sub.powerdns.com.")) {
           setLWResult(res, RCode::NXDomain, true, false, true);
-          addNSECRecordToLW(DNSName("nxc.sub.powerdns.com."), DNSName("nxe.sub.powerdnsz.com."), {QType::AAAA}, 600, res->d_records);
+          addNSECRecordToLW(DNSName("nxc.sub.powerdns.com."), DNSName("nxe.sub.powerdns.com."), {QType::AAAA}, 600, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("sub.powerdns.com."), 300);
           return LWResult::Result::Success;
         }
         if (domain == DNSName("nodata.sub.powerdns.com.")) {
           setLWResult(res, 0, true, false, true);
           /* NSEC but no SOA */
-          addNSECRecordToLW(DNSName("nodata.sub.powerdns.com."), DNSName("nodata2.sub.powerdnsz.com."), {QType::AAAA}, 600, res->d_records);
+          addNSECRecordToLW(DNSName("nodata.sub.powerdns.com."), DNSName("nodata2.sub.powerdns.com."), {QType::AAAA}, 600, res->d_records);
           addRRSIG(keys, res->d_records, DNSName("sub.powerdns.com."), 300);
           return LWResult::Result::Success;
         }

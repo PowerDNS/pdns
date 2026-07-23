@@ -321,7 +321,14 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
       }
 
       next = content->d_next;
-      if (next.canonCompare(owner) && next != zone) {
+      if (!next.isPartOf(zone)) {
+        /* the next name is not part of the zone, something is very wrong */
+        return;
+      }
+
+      // we know from the test above that next is part of zone, so
+      // if next.wirelength() == zone.wirelength() then next == zone
+      if (next.canonCompare(owner) && next.wirelength() != zone.wirelength()) {
         /* not accepting a NSEC whose next domain name is before the owner
            unless the next domain name is the apex, sorry */
         return;

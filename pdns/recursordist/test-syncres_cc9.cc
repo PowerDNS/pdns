@@ -373,7 +373,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_negcache_secure)
       setLWResult(res, RCode::NoError, true, false, true);
       addRecordToLW(res, domain, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
       addRRSIG(keys, res->d_records, domain, 300);
-      addNSECRecordToLW(domain, DNSName("z."), {QType::NSEC, QType::RRSIG}, 600, res->d_records);
+      addNSECRecordToLW(domain, DNSName("z") + domain, {QType::NSEC, QType::RRSIG}, 600, res->d_records);
       addRRSIG(keys, res->d_records, domain, 1, false, std::nullopt, std::nullopt, fixedNow);
       return LWResult::Result::Success;
     }
