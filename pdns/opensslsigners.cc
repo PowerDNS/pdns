@@ -1921,7 +1921,6 @@ void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int /* bits */, std::string
   }
 
   int ret = EVP_PKEY_CTX_set_params(pctx.get(), params.get());
-  cerr<<ret<<endl;
   if (ret < 1) {
     throw pdns::OpenSSL::error(getName(), "Parameter setting failed");
   }
