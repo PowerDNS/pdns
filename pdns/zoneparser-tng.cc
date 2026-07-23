@@ -143,7 +143,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
   }
 
   char lc=dns_tolower(str[str.length()-1]);
-  if(!isdigit(static_cast<unsigned char>(lc)))
+  if (isdigit(static_cast<unsigned char>(lc)) == 0) {
     switch(lc) {
     case 's':
       break;
@@ -166,6 +166,7 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
     default:
       throw PDNSException("Unable to parse time specification '"+str+"' "+getLineOfFile());
     }
+  }
   return val;
 }
 
