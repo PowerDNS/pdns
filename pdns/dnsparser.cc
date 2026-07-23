@@ -154,6 +154,22 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::make(uint16_t qtype, uint16_
     return std::make_shared<UnknownRecordContent>(content);
   }
 
+  // If the record type is known, but is provided as raw data, we need to first
+  // parse it as an UnknownRecordContent, and then pretend the data is coming
+  // from the wire.
+  if (content.length() >= 3 && content.at(0) == '\\' && content.at(1) == '#' && isspace(content.at(2)) != 0) {
+    UnknownRecordContent urc(content);
+    const auto& rawdata = urc.getRawContent();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): rawdata.data() is uint8_t *
+    PacketReader reader(std::string_view(reinterpret_cast<const char *>(rawdata.data()), rawdata.size()), 0, false, true /* standalone */);
+    DNSRecord rec;
+    rec.d_class = qclass;
+    rec.d_type = qtype;
+    rec.d_ttl = 0;
+    rec.d_clen = rawdata.size();
+    return make(rec, reader);
+  }
+
   return i->second(content);
 }
 
@@ -473,10 +489,12 @@ DNSName PacketReader::getName()
 {
   unsigned int consumed;
   try {
-    DNSName dn((const char*) d_content.data(), d_content.size(), d_pos, true /* uncompress */, nullptr /* qtype */, nullptr /* qclass */, &consumed, sizeof(dnsheader));
+    uint16_t minOffset = d_standalone ? 0 : sizeof(dnsheader);
+    bool uncompress = !d_standalone;
+    DNSName name((const char*) d_content.data(), d_content.size(), d_pos, uncompress, nullptr /* qtype */, nullptr /* qclass */, &consumed, minOffset);
 
     d_pos+=consumed;
-    return dn;
+    return name;
   }
   catch(const std::range_error& re) {
     throw std::out_of_range(string("dnsname issue: ")+re.what());
