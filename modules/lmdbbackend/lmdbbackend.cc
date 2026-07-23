@@ -109,7 +109,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   }
 
   try {
-    MDB_dbi dbi;
+    MDB_dbi dbi{};
 
     {
       int retCode = MDBDbi::mdb_dbi_open(txn, "pdns", 0, &dbi);
@@ -124,10 +124,12 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
       }
     }
 
-    MDB_val key, data;
+    MDB_val key;
+    MDB_val data;
 
-    key.mv_data = (char*)"schemaversion";
-    key.mv_size = strlen((char*)key.mv_data);
+    static constexpr std::string_view key_schemaversion{"schemaversion"};
+    key.mv_data = const_cast<char*>(key_schemaversion.data()); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+    key.mv_size = key_schemaversion.length();
 
     {
       int retCode = mdb_get(txn, dbi, &key, &data);
@@ -153,15 +155,17 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
 
       // FIXME: get actual header size (including extension blocks) instead of just reading from the back
       // FIXME: add a test for reading schemaversion and shards (and actual data, later) when there are variably sized headers
-      memcpy(&schemaversion, (char*)data.mv_data + data.mv_size - sizeof(schemaversion), sizeof(schemaversion));
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      memcpy(&schemaversion, static_cast<char*>(data.mv_data) + data.mv_size - sizeof(schemaversion), sizeof(schemaversion));
       schemaversion = ntohl(schemaversion);
     }
     else {
       throw std::runtime_error("pdns.schemaversion had unexpected size");
     }
 
-    key.mv_data = (char*)"shards";
-    key.mv_size = strlen((char*)key.mv_data);
+    static constexpr std::string_view key_shards{"shards"};
+    key.mv_data = const_cast<char*>(key_shards.data()); // NOLINT(cppcoreguidelines-pro-type-const-cast)
+    key.mv_size = key_shards.length();
 
     {
       int retCode = mdb_get(txn, dbi, &key, &data);
@@ -184,7 +188,8 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     }
     else if (data.mv_size >= LMDBLS::LS_MIN_HEADER_SIZE + sizeof(shards)) {
       // FIXME: get actual header size (including extension blocks) instead of just reading from the back
-      memcpy(&shards, (char*)data.mv_data + data.mv_size - sizeof(shards), sizeof(shards));
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      memcpy(&shards, static_cast<char*>(data.mv_data) + data.mv_size - sizeof(shards), sizeof(shards));
       shards = ntohl(shards);
     }
     else {
@@ -466,8 +471,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
           throw std::runtime_error("copyDBIAndAddLSHeader failed");
         }
 
-        int rc = mdb_drop(shtxn, shdbi, 1);
-        cerr << "shard mbd_drop=" << rc << endl;
+        int ret = mdb_drop(shtxn, shdbi, 1);
+        cerr << "shard mbd_drop=" << ret << endl;
         mdb_txn_commit(shtxn);
         mdb_dbi_close(shenv, shdbi2);
       }
@@ -510,8 +515,6 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
         throw std::runtime_error("copyTypedDBI failed");
       }
 
-      // mdb_dbi_close(env, dbi2);
-      // mdb_dbi_close(env, dbi);
       std::cerr << "migrated " << dbname << std::endl;
 
       index++;
@@ -568,10 +571,10 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
     std::string header(LMDBLS::LS_MIN_HEADER_SIZE, '\0');
 
-    for (const std::string keyname : {"schemaversion", "shards"}) {
+    for (const std::string_view keyname : {"schemaversion", "shards"}) {
       cerr << "migrating pdns." << keyname << endl;
 
-      key.mv_data = (char*)keyname.c_str();
+      key.mv_data = const_cast<char*>(keyname.data()); // NOLINT(cppcoreguidelines-pro-type-const-cast)
       key.mv_size = keyname.size();
 
       if (int retCode = mdb_get(txn, dbi, &key, &data); retCode != 0) {
@@ -596,7 +599,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
       MDB_val tdata;
 
-      tdata.mv_data = (char*)stdata.c_str();
+      tdata.mv_data = const_cast<char*>(stdata.c_str()); // NOLINT(cppcoreguidelines-pro-type-const-cast)
       tdata.mv_size = stdata.size();
 
       if (int retCode = mdb_put(txn, dbi, &key, &tdata, 0); retCode != 0) {
@@ -604,23 +607,22 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       }
     }
 
-    for (const std::string keyname : {"uuid"}) {
+    for (const std::string_view keyname : {"uuid"}) {
       cerr << "migrating pdns." << keyname << endl;
 
-      key.mv_data = (char*)keyname.c_str();
+      key.mv_data = const_cast<char*>(keyname.data()); // NOLINT(cppcoreguidelines-pro-type-const-cast)
       key.mv_size = keyname.size();
 
       if (int retCode = mdb_get(txn, dbi, &key, &data); retCode != 0) {
         throw std::runtime_error("mdb_get pdns.shards failed: " + MDBError(retCode));
       }
 
-      std::string sdata((char*)data.mv_data, data.mv_size);
-
+      std::string sdata(static_cast<char*>(data.mv_data), data.mv_size);
       std::string stdata = header + sdata;
 
       MDB_val tdata;
 
-      tdata.mv_data = (char*)stdata.c_str();
+      tdata.mv_data = const_cast<char*>(stdata.c_str()); // NOLINT(cppcoreguidelines-pro-type-const-cast)
       tdata.mv_size = stdata.size();
 
       if (int retCode = mdb_put(txn, dbi, &key, &tdata, 0); retCode != 0) {
@@ -635,8 +637,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       mdb_drop(txn, fromindexdbi[i], 1);
     }
 
-    int rc = mdb_txn_commit(txn);
-    cerr << "txn commit=" << rc << endl;
+    int ret = mdb_txn_commit(txn);
+    cerr << "txn commit=" << ret << endl;
 
     for (int i = 0; i < 4; i++) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
