@@ -1,0 +1,4 @@
+Tries to resolve the AAAA for a name which is a CNAME to the apex, lacking
+an AAAA record.
+This used to trigger a scary warning with the TinyDNS backend, see
+https://github.com/PowerDNS/pdns/issues/2625

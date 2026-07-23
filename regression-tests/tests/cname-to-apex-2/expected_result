@@ -1,0 +1,8 @@
+0	www.test.com.	3600	IN	CNAME	server1.test.com.
+1	test.com.	3600	IN	SOA	ns1.test.com. ahu.example.com. 2005092501 28800 7200 604800 86400
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='www.test.com.', qtype=AAAA
+0	www.cryptokeys.org.	3600	IN	CNAME	cryptokeys.org.
+1	cryptokeys.org.	3600	IN	SOA	cryptokeys.ds9a.nl. ahu.ds9a.nl. 2009071301 14400 3600 604800 3600
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='www.cryptokeys.org.', qtype=AAAA
