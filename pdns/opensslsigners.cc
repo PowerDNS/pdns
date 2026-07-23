@@ -2034,7 +2034,7 @@ std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 
   string msgToSign = msg;
 
-  size_t siglen = 2420; // d_len * 2;
+  size_t siglen = (d_algorithm == 18) ? 2420 : d_len * 2;
   string signature;
   signature.resize(siglen);
 
