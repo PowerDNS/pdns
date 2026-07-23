@@ -579,9 +579,10 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState)
       if (slot.packet.size() < initialBufferSize) {
         slot.packet.resize(initialBufferSize);
       }
-      /* but we need to set the IOv pointer and size
-         anyway, because if we resized it the pointer might
-         now be invalid */
+      /* but we need to set the IOv pointer and size anyway,
+         because if the buffer has been resized at any point
+         during the processing (to add EDNS options, for example)
+         the pointer might now be invalid */
       slot.iov.iov_base = &slot.packet.at(0);
       slot.iov.iov_len = slot.packet.size();
     }
@@ -687,9 +688,10 @@ static void MultipleMessagesUDPResponseFromBackendThread(std::shared_ptr<Downstr
         if (slot.packet.size() < (initialBufferSize + 1)) {
           slot.packet.resize((initialBufferSize + 1));
         }
-        /* but we need to set the IOv pointer and size
-           anyway, because if we resized it the pointer might
-           now be invalid */
+        /* but we need to set the IOv pointer and size anyway,
+           because if the buffer has been resized at any point
+           during the processing (to add EDNS options, for example)
+           the pointer might now be invalid */
         slot.iov.iov_base = &slot.packet.at(0);
         slot.iov.iov_len = slot.packet.size();
       }
