@@ -436,6 +436,8 @@ void pdns::settings::rec::setArgsForZoneRelatedSettings(Recursorsettings& settin
   ::arg().set("allow-notify-for-file") = to_arg(settings.incoming.allow_notify_for_file);
   ::arg().set("export-etc-hosts") = to_arg(settings.recursor.export_etc_hosts);
   ::arg().set("serve-rfc1918") = to_arg(settings.recursor.serve_rfc1918);
+  ::arg().set("serve-rfc6303") = to_arg(settings.recursor.serve_rfc6303);
+  ::arg().set("serve-rfc6761") = to_arg(settings.recursor.serve_rfc6761);
 }
 
 void pdns::settings::rec::setArgsForACLRelatedSettings(Recursorsettings& settings)

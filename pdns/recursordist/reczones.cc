@@ -135,6 +135,7 @@ string reloadZoneConfiguration(bool yaml)
       ::arg().preParseFile(configname, "export-etc-hosts", "off");
       ::arg().preParseFile(configname, "serve-rfc1918");
       ::arg().preParseFile(configname, "serve-rfc6303");
+      ::arg().preParseFile(configname, "serve-rfc6761");
       ::arg().preParseFile(configname, "include-dir");
       ::arg().preParse(g_argc, g_argv, "include-dir");
 
@@ -154,6 +155,7 @@ string reloadZoneConfiguration(bool yaml)
         ::arg().preParseFile(filename, "export-etc-hosts", ::arg()["export-etc-hosts"]);
         ::arg().preParseFile(filename, "serve-rfc1918", ::arg()["serve-rfc1918"]);
         ::arg().preParseFile(filename, "serve-rfc6303", ::arg()["serve-rfc6303"]);
+        ::arg().preParseFile(filename, "serve-rfc6761", ::arg()["serve-rfc6761"]);
       }
     }
     // Process command line args potentially overriding what we read from config files
@@ -166,6 +168,7 @@ string reloadZoneConfiguration(bool yaml)
     ::arg().preParse(g_argc, g_argv, "export-etc-hosts");
     ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
     ::arg().preParse(g_argc, g_argv, "serve-rfc6303");
+    ::arg().preParse(g_argc, g_argv, "serve-rfc6761");
 
     auto [newDomainMap, newNotifySet] = parseZoneConfiguration(yaml);
 
@@ -484,6 +487,17 @@ static void processServeRFC6303(std::shared_ptr<SyncRes::domainmap_t>& newMap, L
   makePartialIP6Zone(*newMap, "8.b.d.0.1.0.0.2.ip6.arpa", log);
 }
 
+static void processServeRFC6761(std::shared_ptr<SyncRes::domainmap_t>& newMap, Logr::log_t log)
+{
+  if (!::arg().mustDo("serve-rfc6761")) {
+    return;
+  }
+  log->info(Logr::Notice, "Inserting rfc 6761 private space zones");
+
+  makeEmptyZone(*newMap, "test.", log);
+  makeEmptyZone(*newMap, "invalid.", log);
+}
+
 static void processAllowNotifyFor(shared_ptr<notifyset_t>& newSet)
 {
   vector<string> parts;
@@ -545,8 +559,21 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   processExportEtcHosts(newMap, log);
   processServeRFC1918(newMap, log);
   processServeRFC6303(newMap, log);
+  processServeRFC6761(newMap, log);
   processAllowNotifyFor(newSet);
   processAllowNotifyForFile(newSet, log);
+
+  // RFC 7686 tells us to NXDomain .onion unless the resolver is hooked up to resolve it
+  makeEmptyZone(*newMap, "onion.", log);
+
+  // RFC 8375
+  makeEmptyZone(*newMap, "home.arpa.", log);
+
+  // RFC 9462 says "idem", but for resolver.arpa
+  makeEmptyZone(*newMap, "resolver.arpa.", log);
+
+  // RFC 9665 say "idem", for service.arpa
+  makeEmptyZone(*newMap, "service.arpa.", log);
 
   return {newMap, newSet};
 }
