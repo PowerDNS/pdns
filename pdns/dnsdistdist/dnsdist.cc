@@ -97,7 +97,6 @@
 #include "misc.hh"
 #include "sstuff.hh"
 #include "threadname.hh"
-#include "xsk.hh"
 
 /* Known sins:
 
@@ -544,112 +543,6 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
 
   dnsdist::udp::handleResponseForUDPClient(ids, response, dss, false, false);
   return true;
-}
-
-// listens on a dedicated socket, lobs answers from downstream servers to original requestors
-void responderThread(std::shared_ptr<DownstreamState> dss)
-{
-  auto responderLogger = dnsdist::logging::getTopLogger("udp-response")->withValues("backend.address", Logging::Loggable(dss->d_config.remote));
-
-  try {
-    setThreadName("dnsdist/respond");
-    const size_t initialBufferSize = dnsdist::udp::getInitialUDPPacketBufferSize(false);
-    /* allocate one more byte so we can detect truncation */
-    PacketBuffer response(initialBufferSize + 1);
-    uint16_t queryId = 0;
-    std::vector<int> sockets;
-    sockets.reserve(dss->sockets.size());
-
-    for (;;) {
-      try {
-        if (dss->isStopped()) {
-          break;
-        }
-
-        if (!dss->connected) {
-          /* the sockets are not connected yet, likely because we detected a problem,
-             tried to reconnect and it failed. We will try to reconnect after the next
-             successful health-check (unless reconnectOnUp is false), or when trying
-             to send in the UDP listener thread, but until then we simply need to wait. */
-          dss->waitUntilConnected();
-          continue;
-        }
-
-        dss->pickSocketsReadyForReceiving(sockets);
-
-        /* check a second time here because we might have waited quite a bit
-           since the first check */
-        if (dss->isStopped()) {
-          break;
-        }
-
-        for (const auto& sockDesc : sockets) {
-          /* allocate one more byte so we can detect truncation */
-          // NOLINTNEXTLINE(bugprone-use-after-move): resizing a vector has no preconditions so it is valid to do so after moving it
-          response.resize(initialBufferSize + 1);
-          ssize_t got = recv(sockDesc, response.data(), response.size(), 0);
-
-          if (got == 0 && dss->isStopped()) {
-            break;
-          }
-
-          if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader) || static_cast<size_t>(got) == (initialBufferSize + 1)) {
-            continue;
-          }
-
-          response.resize(static_cast<size_t>(got));
-          const dnsheader_aligned dnsHeader(response.data());
-          queryId = dnsHeader->id;
-
-          auto ids = dss->getState(queryId);
-          if (!ids) {
-            continue;
-          }
-
-          if (!ids->isXSK() && sockDesc != ids->backendFD) {
-            dss->restoreState(queryId, std::move(*ids));
-            continue;
-          }
-
-          dnsdist::configuration::refreshLocalRuntimeConfiguration();
-          if (processResponderPacket(dss, response, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfoResponder) {
-#ifdef HAVE_XSK
-            auto& xskInfo = ids->cs->xskInfoResponder;
-            auto xskPacket = xskInfo->getEmptyFrame();
-            if (!xskPacket) {
-              continue;
-            }
-            xskPacket->setHeader(ids->xskPacketHeader);
-            if (!xskPacket->setPayload(response)) {
-            }
-            if (ids->delayMsec > 0) {
-              xskPacket->addDelay(ids->delayMsec);
-            }
-            xskPacket->updatePacket();
-            xskInfo->pushToSendQueue(*xskPacket);
-            xskInfo->notifyXskSocket();
-#endif /* HAVE_XSK */
-          }
-        }
-      }
-      catch (const std::exception& e) {
-        VERBOSESLOG(infolog("Got an error in UDP responder thread while parsing a response from %s, id %d: %s", dss->d_config.remote.toStringWithPort(), queryId, e.what()),
-                    responderLogger->error(Logr::Info, e.what(), "Got an error in UDP responder thread while parsing a response", "dns.response.id", Logging::Loggable(queryId)));
-      }
-    }
-  }
-  catch (const std::exception& e) {
-    SLOG(errlog("UDP responder thread died because of exception: %s", e.what()),
-         responderLogger->error(Logr::Error, e.what(), "UDP responder thread died because of an exception"));
-  }
-  catch (const PDNSException& e) {
-    SLOG(errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason),
-         responderLogger->error(Logr::Error, e.reason, "UDP responder thread died because of a PowerDNS exception"));
-  }
-  catch (...) {
-    SLOG(errlog("UDP responder thread died because of an exception: %s", "unknown"),
-         responderLogger->info(Logr::Error, "UDP responder thread died because of an unknown exception"));
-  }
 }
 
 RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};

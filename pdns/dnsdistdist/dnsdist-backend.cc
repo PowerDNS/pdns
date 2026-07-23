@@ -368,7 +368,7 @@ void DownstreamState::start()
     }
 #endif /* HAVE_XSK */
 
-    auto tid = std::thread(responderThread, shared_from_this());
+    auto tid = std::thread(dnsdist::udp::responderThread, shared_from_this());
     if (!d_config.d_cpus.empty()) {
       mapThreadToCPUList(tid.native_handle(), d_config.d_cpus);
     }

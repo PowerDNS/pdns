@@ -981,8 +981,6 @@ public:
   [[nodiscard]] std::shared_ptr<const Logr::Logger> getLogger() const;
 };
 
-void responderThread(std::shared_ptr<DownstreamState> dss);
-
 enum ednsHeaderFlags
 {
   EDNS_HEADER_FLAG_NONE = 0,
