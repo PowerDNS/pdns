@@ -213,7 +213,7 @@ void DNSName::packetParser(const char* qpos, size_t len, size_t offset, bool unc
   pos++;
   if (labellen != 0 && pos < view.size()) {
     if (labellen < 0xc0) {
-      abort();
+      throw std::range_error("Invalid label byte during decompression ("+std::to_string(labellen)+")");
     }
 
     if (!uncompress) {

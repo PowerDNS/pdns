@@ -337,7 +337,7 @@ SSQLite3::~SSQLite3()
       continue;
     }
     cerr << "Unable to close down sqlite connection: " << ret << endl;
-    abort();
+    break;
   }
 }
 
