@@ -34,7 +34,7 @@ class Ewma
 public:
   Ewma();
 
-  void submit(int val);
+  void submit(unsigned long val);
   [[nodiscard]] double get10() const;
   [[nodiscard]] double get5() const;
   [[nodiscard]] double get1() const;
@@ -42,31 +42,51 @@ public:
 
 private:
   DTime dt;
-  int d_last{};
+  unsigned long d_last{};
   double d_10{}, d_5{}, d_1{}, d_max{};
+};
+
+class ApiWebServer : public WebServer
+{
+public:
+  ApiWebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string listenaddress, int port);
+  virtual ~ApiWebServer() = default;
+
+  void registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword) override;
+
+protected:
+  AtomicCounter* d_api_queries{nullptr};
+  AtomicCounter* d_api_result_200{nullptr};
+  AtomicCounter* d_api_result_201{nullptr};
+  AtomicCounter* d_api_result_204{nullptr};
+  AtomicCounter* d_api_result_409{nullptr};
+  AtomicCounter* d_api_result_422{nullptr};
+  AtomicCounter* d_api_result_500{nullptr};
 };
 
 class AuthWebServer
 {
 public:
   AuthWebServer();
-  void go(Logr::log_t slog, StatBag& stats);
+  void go(Logr::log_t slog);
   static string makePercentage(const double& val);
 
 private:
   void indexGET(HttpRequest* req, HttpResponse* resp);
   void indexPOST(HttpRequest* req, HttpResponse* resp);
-  void jsonstat(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, std::function<void(HttpRequest*, HttpResponse*)> handler);
   void webThread(Logr::log_t slog);
-  void statThread(Logr::log_t slog, StatBag& stats);
+  void statThread(Logr::log_t slog);
 
   time_t d_start;
   double d_min10{0}, d_min5{0}, d_min1{0};
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
+  Ewma d_api_queries;
   unique_ptr<WebServer> d_ws{nullptr};
   std::string d_unique;
+
+  bool d_doApi{false};
 };
 
 void apiDocs(HttpRequest* req, HttpResponse* resp);

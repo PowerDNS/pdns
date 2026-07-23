@@ -236,7 +236,7 @@ public:
   void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
   typedef std::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
-  void registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method = "", bool allowPassword=false);
+  virtual void registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method = "", bool allowPassword=false);
   void registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method = "");
 
   bool registerConnection() {
