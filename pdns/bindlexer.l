@@ -19,6 +19,27 @@ char *original_filename;
 int include_stack_ptr = 0;
 extern const char *bind_directory;
 
+/* This is the name mangling of BindParser::lexer_error */
+#define LEXER_ERROR _ZN10BindParser11lexer_errorEPKcPci
+extern void LEXER_ERROR(const char *, char *, int);
+
+static void bindlexer_cleanup()
+{
+  /* be sure not to leave any file open */
+  if (yyin != NULL) {
+    fclose(yyin);
+    yyin = NULL;
+  }
+}
+
+static void bindlexer_fatal_error(const char* msg)
+{
+  bindlexer_cleanup();
+  LEXER_ERROR(msg, NULL, 0);
+}
+
+#define YY_FATAL_ERROR bindlexer_fatal_error
+
 %}
 
 %x comment
@@ -28,6 +49,7 @@ extern const char *bind_directory;
 %option nounput
 %option noyy_top_state
 %option noinput
+%option nodefault
 
 %%
 
@@ -41,16 +63,14 @@ extern const char *bind_directory;
 include                 BEGIN(incl);
 <incl>[ \t;]*            /* eat the whitespace */
 <incl>\"[^ \t\n";]+\";        { /* got the include file name */
-	char filename[1024];
+        char filename[1024];
         if ( include_stack_ptr >= MAX_INCLUDE_DEPTH )
             {
-            fprintf( stderr, "Includes nested too deeply\n" );
-            exit( 1 );
+            YY_FATAL_ERROR( "Includes nested too deeply" );
             }
 
         if (strlen(yytext) <= 2) {
-            fprintf( stderr, "Empty include directive\n" );
-            exit( 1 );
+            YY_FATAL_ERROR( "Empty include directive" );
         }
 
         yytext[strlen(yytext)-2]=0;
@@ -68,18 +88,22 @@ include                 BEGIN(incl);
             ret = snprintf(filename, sizeof(filename), "%s/%s", bind_directory, yytext+1);
         }
         if (ret == -1 || ret >= (int)sizeof(filename)) {
-            fprintf( stderr, "Filename '%s' is too long\n",yytext+1);
-            exit( 1 );
+            bindlexer_cleanup();
+            LEXER_ERROR( "name too long", yytext+1, 0);
         }
 
-	if (!(yyin=fopen(filename,"r"))) {
-	  fprintf( stderr, "Unable to open '%s': %s\n",filename,strerror(errno));
-	  exit( 1 );
-	}
+        if (!(yyin=fopen(filename,"r"))) {
+          bindlexer_cleanup();
+          LEXER_ERROR( "unable to open",filename,errno);
+        }
 
         BEGIN(INITIAL);
         yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
 
+   }
+<incl>.*|\n {
+        bindlexer_cleanup();
+        LEXER_ERROR( "Invalid include directive",yytext+1,-1);
    }
 
 

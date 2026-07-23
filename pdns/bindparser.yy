@@ -105,6 +105,38 @@ void BindParser::commit(BindDomainInfo DI)
   d_zonedomains.push_back(DI);
 }
 
+// Although [filename] below could be const, the lack of const modifier is
+// intentional, so that all parameter types are distinct, preventing mangling
+// of that symbol to use compression due to repeated parameter types.
+// This allows bindlexer.l to use a non-ambiguous mangled name.
+// If that paremeter were to be declared const, the mangling could be either
+// _ZN10BindParser11lexer_errorEPKcS1_i
+//   or
+// _ZN10BindParser11lexer_errorEPKcPKci
+// depending on the compiler being used, with no way to know which flavour
+// would be used, at compile-time.
+void BindParser::lexer_error(const char *msg, char *filename, int error)
+{
+  std::string text;
+
+  if (filename == nullptr) {
+    extern char *current_filename;
+    text = std::string("Lexer error in bind configuration '") + string(current_filename) + "' around line " + std::to_string(linenumber) + ": " + std::string(msg);
+  }
+  else {
+    if (error < 0) {
+      text = std::string(msg) + ": '" + std::string(filename) + "'";
+    }
+    else {
+      text = std::string("File '") + std::string(filename) + "': " + std::string(msg);
+      if (error != 0) {
+        text.append(": ").append(strerror(error));
+      }
+    }
+  }
+  throw PDNSException(text);
+}
+
 %}
 
 %token AWORD QUOTEDWORD OBRACE EBRACE SEMICOLON ZONETOK FILETOK OPTIONSTOK
