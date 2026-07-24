@@ -190,7 +190,7 @@ public:
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
   void setNotified(domainid_t id, uint32_t serial) override;
   bool autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb) override;
-  bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account) override;
+  bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info) override;
   bool replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm) override;

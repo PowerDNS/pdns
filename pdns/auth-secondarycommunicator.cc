@@ -293,7 +293,8 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
         SLOG(g_log << Logger::Warning << ctx.logPrefix << "create zone '" << ciCreate.d_zone << "'" << endl,
              ctx.slog->info(Logr::Warning, "Catalog-Zone: create zone", "zone", Logging::Loggable(ciCreate.d_zone)));
         d.kind = !empty(g_memberCatalogGroup) && ciCreate.d_group.count(g_memberCatalogGroup) != 0 ? DomainInfo::Consumer : DomainInfo::Secondary;
-        ctx.domain.backend->createDomain(ciCreate.d_zone, d.kind, ciCreate.d_primaries, "");
+        DomainInfo unused;
+        ctx.domain.backend->createDomain(ciCreate.d_zone, d.kind, ciCreate.d_primaries, "", unused);
 
         ctx.domain.backend->setPrimaries(ciCreate.d_zone, ctx.domain.primaries);
         ctx.domain.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());

@@ -1564,7 +1564,7 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const ZoneName& domain)
   return bbd;
 }
 
-bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& /* nameserver */, const string& account)
+bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& /* nameserver */, const string& account, DomainInfo& info)
 {
   std::string domainname = domain.toStringNoDot();
 
@@ -1625,7 +1625,7 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName
   bbd.updateCtime();
   safePutBBDomainInfo(bbd);
 
-  return true;
+  return getDomainInfo(domain, info, false);
 }
 
 bool Bind2Backend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
