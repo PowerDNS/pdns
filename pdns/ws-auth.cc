@@ -2248,12 +2248,8 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   }
 
   // no going back after this
-  if (!backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""))) {
+  if (!backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""), domainInfo)) {
     throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused");
-  }
-
-  if (!backend.getDomainInfo(zonename, domainInfo)) {
-    throw ApiException("Creating domain '" + zonename.toString() + "' failed: lookup of domain ID failed");
   }
 
   domainInfo.backend->startTransaction(zonename, domainInfo.id);

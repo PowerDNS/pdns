@@ -1134,9 +1134,8 @@ int PacketHandler::tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& 
     return RCode::Refused;
   }
   try {
-    db->createSecondaryDomain(remote.toString(), zonename, nameserver, account);
     DomainInfo di;
-    if (!db->getDomainInfo(zonename, di, false)) {
+    if (!db->createSecondaryDomain(remote.toString(), zonename, nameserver, account, di)) {
       SLOG(g_log << Logger::Error << "Failed to create " << zonename << " for potential autoprimary " << remote << endl,
            d_slog->info(Logr::Error, "Failed to create zone for potential autoprimary", "zone", Logging::Loggable(zonename), "potential autoprimary", Logging::Loggable(remote)));
       return RCode::ServFail;

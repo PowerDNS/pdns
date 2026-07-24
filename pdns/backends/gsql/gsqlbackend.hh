@@ -68,8 +68,8 @@ public:
   bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(domainid_t domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(domainid_t domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
-  bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account) override;
+  bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info) override;
+  bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info) override;
   bool deleteDomain(const ZoneName &domain) override;
   bool autoPrimaryAdd(const AutoPrimary& primary) override;
   bool autoPrimaryRemove(const AutoPrimary& primary) override;

@@ -2469,10 +2469,8 @@ bool LMDBBackend::setPrimaries(const ZoneName& domain, const vector<ComboAddress
   });
 }
 
-bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
+bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info)
 {
-  DomainInfo info;
-
   if (findDomain(domain, info)) {
     throw DBException("Domain '" + domain.toLogString() + "' exists already");
   }
@@ -2490,7 +2488,7 @@ bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
     writeTransientDomainInfo(info);
   }
 
-  return true;
+  return getDomainInfo(domain, info);
 }
 
 void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow)

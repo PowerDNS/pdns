@@ -144,14 +144,14 @@ bool UeberBackend::getDomainInfo(const ZoneName& domain, DomainInfo& domainInfo,
   return false;
 }
 
-bool UeberBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
+bool UeberBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& domainInfo)
 {
   for (auto& backend : backends) {
     // Do not risk passing variant zones to variant-unaware backends.
     if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
       continue;
     }
-    if (backend->createDomain(domain, kind, primaries, account)) {
+    if (backend->createDomain(domain, kind, primaries, account, domainInfo)) {
       return true;
     }
   }

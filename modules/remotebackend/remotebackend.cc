@@ -718,7 +718,7 @@ bool RemoteBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& 
   return true;
 }
 
-bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account)
+bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info)
 {
   Json query = Json::object{
     {"method", "createSlaveDomain"},
@@ -730,7 +730,10 @@ bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneNam
                    }}};
 
   Json answer;
-  return this->send(query) && this->recv(answer);
+  if (!this->send(query) || !this->recv(answer)) {
+    return false;
+  }
+  return getDomainInfo(domain, info, false);
 }
 
 bool RemoteBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qtype, const vector<DNSResourceRecord>& rrset)

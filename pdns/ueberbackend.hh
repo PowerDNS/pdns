@@ -77,7 +77,7 @@ public:
   void getUnfreshSecondaryInfos(vector<DomainInfo>* domains);
   void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
   bool getDomainInfo(const ZoneName& domain, DomainInfo& domainInfo, bool getSerial = true);
-  bool createDomain(const ZoneName& domain, DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account);
+  bool createDomain(const ZoneName& domain, DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& domainInfo);
 
   bool doesDNSSEC();
   bool addDomainKey(const ZoneName& name, const DNSBackend::KeyData& key, int64_t& keyID);

@@ -449,13 +449,13 @@ public:
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const ZoneName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* primaries */, const string& /* account */)
+  virtual bool createDomain(const ZoneName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* primaries */, const string& /* account */, DomainInfo& /* info */)
   {
     return false;
   }
 
   //! called by PowerDNS to create a secondary record for an autoprimary
-  virtual bool createSecondaryDomain(const string& /* ip */, const ZoneName& /* domain */, const string& /* nameserver */, const string& /* account */)
+  virtual bool createSecondaryDomain(const string& /* ip */, const ZoneName& /* domain */, const string& /* nameserver */, const string& /* account */, DomainInfo& /* info */)
   {
     return false;
   }

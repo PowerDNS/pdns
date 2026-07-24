@@ -2004,10 +2004,7 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
   }
 
   // Create zone
-  if (!tgt->createDomain(dstzone, srcinfo.kind, srcinfo.primaries, srcinfo.account)) {
-    throw PDNSException("Failed to create zone " + dstzone.toLogString());
-  }
-  if (!tgt->getDomainInfo(dstzone, dstinfo)) {
+  if (!tgt->createDomain(dstzone, srcinfo.kind, srcinfo.primaries, srcinfo.account, dstinfo)) {
     throw PDNSException("Failed to create zone " + dstzone.toLogString());
   }
 
@@ -2665,8 +2662,7 @@ static int zonemdVerifyFile(const ZoneName& zone, const string& fname) {
 // default metadata, matching the behaviour of the REST API.
 static bool createZoneWithDefaults(UtilBackend &backend, DomainInfo &info, const ZoneName& zone, DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries)
 {
-  backend.createDomain(zone, kind, primaries, "");
-  if (!backend.getDomainInfo(zone, info)) {
+  if (!backend.createDomain(zone, kind, primaries, "", info)) {
     cerr << "Zone '" << zone << "' was not created." << endl;
     return false;
   }
@@ -3707,15 +3703,13 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0].get();
   cout << "Creating secondary zone " << zone << endl;
-  db->createSecondaryDomain("127.0.0.1", zone, "", "_testschema");
-  cout << "Secondary zone created" << endl;
-
   DomainInfo di;
-  // di.backend and B are mostly identical
-  if(!B.getDomainInfo(zone, di) || di.backend == nullptr) {
-    cout << "Can't find zone we just created, aborting" << endl;
+  if (!db->createSecondaryDomain("127.0.0.1", zone, "", "_testschema", di)) {
+    cout << "Can't create secondary zone, aborting" << endl;
     return EXIT_FAILURE;
   }
+  cout << "Secondary zone created" << endl;
+
   db=di.backend;
   DNSResourceRecord rr, rrget;
   cout<<"Starting transaction to feed records"<<endl;
