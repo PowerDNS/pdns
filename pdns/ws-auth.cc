@@ -1805,10 +1805,10 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
 
 static void checkTSIGKey(UeberBackend& backend, const DNSName& keyname, const DNSName& algo, const string& content)
 {
-  DNSName algoFromDB;
+  DNSName algoFromDB{algo};
   string contentFromDB;
   if (backend.getTSIGKey(keyname, algoFromDB, contentFromDB)) {
-    throw HttpConflictException("A TSIG key with the name '" + keyname.toLogString() + "' already exists");
+    throw HttpConflictException("A TSIG key with the name '" + keyname.toLogString() + "' and algorithm '" + algo.toLogString() + "' already exists");
   }
 
   TSIGHashEnum the{};
@@ -1890,7 +1890,14 @@ public:
     keyName(apiZoneIdToName(req->parameters["id"]).operator const DNSName&())
   {
     try {
+      bool algorithm_specified = req->parameters.count("algorithm") != 0;
+      if (algorithm_specified) {
+        algo = DNSName(req->parameters["algorithm"]);
+      }
       if (!backend.getTSIGKey(keyName, algo, content)) {
+        if (algorithm_specified) {
+          throw HttpNotFoundException("TSIG key with name '" + keyName.toLogString() + "' and algorithm '" + req->parameters["algorithm"] + "' not found");
+        }
         throw HttpNotFoundException("TSIG key with name '" + keyName.toLogString() + "' not found");
       }
     }
@@ -1947,8 +1954,8 @@ static void apiServerTSIGKeyDetailPUT(HttpRequest* req, HttpResponse* resp)
   }
   if (tsigKeyData.tsigKey.name != tsigKeyData.keyName) {
     // Remove the old key
-    if (!tsigKeyData.backend.deleteTSIGKey(tsigKeyData.keyName)) {
-      throw HttpInternalServerErrorException("Unable to remove TSIG key '" + tsigKeyData.keyName.toStringNoDot() + "'");
+    if (!tsigKeyData.backend.deleteTSIGKey(tsigKeyData.keyName, tsigKeyData.algo)) {
+      throw HttpInternalServerErrorException("Unable to remove TSIG key '" + tsigKeyData.keyName.toStringNoDot() + "' with algorithm '" + tsigKeyData.algo.toString() + "'");
     }
   }
   resp->setJsonBody(makeJSONTSIGKey(tsigKeyData.tsigKey));
@@ -1957,8 +1964,12 @@ static void apiServerTSIGKeyDetailPUT(HttpRequest* req, HttpResponse* resp)
 static void apiServerTSIGKeyDetailDELETE(HttpRequest* req, HttpResponse* resp)
 {
   TSIGKeyData tsigKeyData{req};
-  if (!tsigKeyData.backend.deleteTSIGKey(tsigKeyData.keyName)) {
-    throw HttpInternalServerErrorException("Unable to remove TSIG key '" + tsigKeyData.keyName.toStringNoDot() + "'");
+  // Delete with name only if no algorithm has been provided
+  if (req->parameters.count("algorithm") == 0) {
+    tsigKeyData.algo.clear();
+  }
+  if (!tsigKeyData.backend.deleteTSIGKey(tsigKeyData.keyName, tsigKeyData.algo)) {
+    throw HttpInternalServerErrorException("Unable to remove TSIG key '" + tsigKeyData.keyName.toStringNoDot() + "' with algorithm '" + tsigKeyData.algo.toString() + "'");
   }
   resp->body = "";
   resp->status = 204;
@@ -3350,6 +3361,8 @@ void AuthWebServer::webThread(Logr::log_t slog)
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailPUT, "PUT");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailDELETE, "DELETE");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>/<algorithm>", apiServerTSIGKeyDetailGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>/<algorithm>", apiServerTSIGKeyDetailDELETE, "DELETE");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", apiServerTSIGKeysGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", apiServerTSIGKeysPOST, "POST");
       d_ws->registerApiHandler("/api/v1/servers/localhost/views", apiServerViewsAllGET, "GET");

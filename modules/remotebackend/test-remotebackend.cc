@@ -226,7 +226,8 @@ BOOST_AUTO_TEST_CASE(test_method_deleteTSIGKey)
   std::string algorithm;
   std::string content;
   BOOST_TEST_MESSAGE("Testing deleteTSIGKey method");
-  BOOST_CHECK_MESSAGE(backendUnderTest->deleteTSIGKey(DNSName("unit.test.")), "did not return true");
+  BOOST_CHECK_MESSAGE(!backendUnderTest->deleteTSIGKey(DNSName("unit.test."), DNSName("my.fantastic.algorithm")), "did not return false");
+  BOOST_CHECK_MESSAGE(backendUnderTest->deleteTSIGKey(DNSName("unit.test."), DNSName()), "did not return true");
 }
 
 BOOST_AUTO_TEST_CASE(test_method_getTSIGKeys)

@@ -251,7 +251,7 @@ public:
   virtual bool setTSIGKey(const DNSName& /* name */, const DNSName& /* algorithm */, const string& /* content */) { return false; }
   virtual bool getTSIGKey(const DNSName& /* name */, DNSName& /* algorithm */, string& /* content */) { return false; }
   virtual bool getTSIGKeys(std::vector<struct TSIGKey>& /* keys */) { return false; }
-  virtual bool deleteTSIGKey(const DNSName& /* name */) { return false; }
+  virtual bool deleteTSIGKey(const DNSName& /* name */, const DNSName& /* algorithm */) { return false; }
 
   virtual bool getBeforeAndAfterNamesAbsolute(domainid_t /* id */, const DNSName& qname, DNSName& /* unhashed */, DNSName& /* before */, DNSName& /* after */)
   {

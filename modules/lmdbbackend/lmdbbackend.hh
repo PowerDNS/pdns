@@ -157,7 +157,7 @@ public:
   // TSIG
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
-  bool deleteTSIGKey(const DNSName& name) override;
+  bool deleteTSIGKey(const DNSName& name, const DNSName& algorithm) override;
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys) override;
 
   // DNSSEC
