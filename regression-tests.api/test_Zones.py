@@ -1025,14 +1025,26 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/" + data["id"]))
         r.raise_for_status()
 
-    def test_retrieve_slave_zone(self):
+    def test_retrieve_secondary_zone(self):
         name, payload, data = self.create_zone(kind="Slave", nameservers=None, masters=["127.0.0.2"])
         print("payload:", payload)
         print("data:", data)
         r = self.session.put(self.url("/api/v1/servers/localhost/zones/" + data["id"] + "/axfr-retrieve"))
         data = r.json()
         print("status for axfr-retrieve:", data)
-        self.assertEqual(data["result"], "Added retrieval request for '" + payload["name"] + "' from primary 127.0.0.2")
+        self.assertEqual(data["result"], "Added retrieval request for '" + name + "' from primary 127.0.0.2")
+
+    def test_retrieve_secondary_zone_from_explicit_primary(self):
+        name, payload, data = self.create_zone(kind="Slave", nameservers=None, masters=["127.0.0.2"])
+        print("payload:", payload)
+        print("data:", data)
+        r = self.session.put(
+            self.url("/api/v1/servers/localhost/zones/" + data["id"] + "/axfr-retrieve"),
+            data=json.dumps({"primary": "127.0.0.53:4242"}),
+        )
+        data = r.json()
+        print("status for axfr-retrieve:", data)
+        self.assertEqual(data["result"], "Added retrieval request for '" + name + "' from primary 127.0.0.53:4242")
 
     def test_notify_master_zone(self):
         name, payload, data = self.create_zone(kind="Master")
