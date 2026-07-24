@@ -12,9 +12,6 @@
 #include "dnsdist-metrics.hh"
 #include "dnsdist-rings.hh"
 
-Rings g_rings;
-shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
-
 #ifndef DISABLE_DYNBLOCKS
 
 BOOST_AUTO_TEST_SUITE(dnsdistdynblocks_hh)

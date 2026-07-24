@@ -24,6 +24,8 @@
 
 #include "dnsdist-rings.hh"
 
+Rings g_rings;
+
 thread_local size_t Rings::t_samplingQueryCounter{0};
 thread_local size_t Rings::t_samplingResponseCounter{0};
 

@@ -339,6 +339,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
   return true;
 }
 
+#ifndef DNSDIST_UNIT_TESTS
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
   // This is a new root span
@@ -371,6 +372,7 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] 
   dnsdist::udp::sendfromto(origFD, response, origDest, origRemote);
   return true;
 }
+#endif /* DNSDIST_UNIT_TESTS */
 
 void handleResponseSent(InternalQueryState& ids, double latencyUs, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend)
 {
@@ -438,8 +440,6 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
   dnsdist::udp::handleResponseForUDPClient(ids, response, dss, false, false);
   return true;
 }
-
-RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
 
 static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoofContent, bool raw)
 {
@@ -604,214 +604,6 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
   }
 
   return !drop;
-}
-
-static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
-{
-  InternalQueryState::rulesAppliedToQuerySetter tpprs(dnsQuestion.ids.rulesAppliedToQuery); // Ensure IDS knows we are past the rules processing when we exit this function
-  auto closer = dnsQuestion.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
-  if (g_rings.shouldRecordQueries()) {
-    g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
-  }
-
-  {
-    const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
-    if (runtimeConfig.d_queryCountConfig.d_enabled) {
-      string qname = dnsQuestion.ids.qname.toLogString();
-      bool countQuery{true};
-      if (runtimeConfig.d_queryCountConfig.d_filter) {
-        auto lock = g_lua.lock();
-        std::tie(countQuery, qname) = runtimeConfig.d_queryCountConfig.d_filter(&dnsQuestion);
-      }
-
-      if (countQuery) {
-        auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
-        if (records->count(qname) == 0) {
-          (*records)[qname] = 0;
-        }
-        (*records)[qname]++;
-      }
-    }
-  }
-
-#ifndef DISABLE_DYNBLOCKS
-  const auto defaultDynBlockAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
-  auto setRCode = [&dnsQuestion](uint8_t rcode) {
-    dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, rcode);
-  };
-
-  /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
-  if (auto* got = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(AddressAndPortRange(dnsQuestion.ids.origRemote, dnsQuestion.ids.origRemote.isIPv4() ? 32 : 128, 16))) {
-    auto updateBlockStats = [&got]() {
-      ++dnsdist::metrics::g_stats.dynBlocked;
-      got->second.blocks++;
-    };
-
-    if (now < got->second.until) {
-      DNSAction::Action action = got->second.action;
-      if (action == DNSAction::Action::None) {
-        action = defaultDynBlockAction;
-      }
-
-      switch (action) {
-      case DNSAction::Action::NoOp:
-        /* do nothing */
-        break;
-
-      case DNSAction::Action::Nxdomain:
-        VERBOSESLOG(infolog("Query from %s turned into NXDomain because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Query turned into NXDomain because of a dynamic rule"));
-        updateBlockStats();
-
-        setRCode(RCode::NXDomain);
-        return true;
-
-      case DNSAction::Action::Refused:
-        VERBOSESLOG(infolog("Query from %s refused because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Query refused because of a dynamic rule"));
-        updateBlockStats();
-
-        setRCode(RCode::Refused);
-        return true;
-
-      case DNSAction::Action::Truncate:
-        if (!dnsQuestion.overTCP()) {
-          VERBOSESLOG(infolog("Query from %s truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                      dnsQuestion.getLogger()->info(Logr::Info, "Query truncated because of a dynamic rule"));
-          updateBlockStats();
-          dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-            header.tc = true;
-            header.qr = true;
-            header.ra = header.rd;
-            header.aa = false;
-            header.ad = false;
-            return true;
-          });
-          return true;
-        }
-        else {
-          VERBOSESLOG(infolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString()),
-                      dnsQuestion.getLogger()->info(Logr::Info, "Query received over TCP *not* truncated because of a dynamic rule"));
-        }
-        break;
-      case DNSAction::Action::NoRecurse:
-        VERBOSESLOG(infolog("Query from %s setting rd=0 because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Setting RD=0 because of a dynamic rule"));
-        updateBlockStats();
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-          header.rd = false;
-          return true;
-        });
-        return true;
-      case DNSAction::Action::SetTag: {
-        if (!got->second.tagSettings) {
-          VERBOSESLOG(infolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort()),
-                      dnsQuestion.getLogger()->info(Logr::Info, "Skipping 'set tag' dynamic rule because of missing options"));
-          break;
-        }
-        const auto& tagName = got->second.tagSettings->d_name;
-        const auto& tagValue = got->second.tagSettings->d_value;
-        VERBOSESLOG(infolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Setting tag on query because of a dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
-        updateBlockStats();
-        dnsQuestion.setTag(tagName, tagValue);
-        // do not return, the whole point it to set a Tag to be able to do further processing in rules
-        break;
-      }
-      default:
-        VERBOSESLOG(infolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Query dropped because of a dynamic rule"));
-        updateBlockStats();
-        return false;
-      }
-    }
-  }
-
-  if (auto* got = dnsdist::DynamicBlocks::getSuffixDynamicRules().lookup(dnsQuestion.ids.qname)) {
-    auto updateBlockStats = [&got]() {
-      ++dnsdist::metrics::g_stats.dynBlocked;
-      got->blocks++;
-    };
-
-    if (now < got->until) {
-      DNSAction::Action action = got->action;
-      if (action == DNSAction::Action::None) {
-        action = defaultDynBlockAction;
-      }
-      switch (action) {
-      case DNSAction::Action::NoOp:
-        /* do nothing */
-        break;
-      case DNSAction::Action::Nxdomain:
-        VERBOSESLOG(infolog("Query from %s turned into NXDomain because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Query turned into NXDomain because of a suffix-based dynamic rule"));
-        updateBlockStats();
-
-        setRCode(RCode::NXDomain);
-        return true;
-      case DNSAction::Action::Refused:
-        VERBOSESLOG(infolog("Query from %s refused because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Query refused because of a suffix-based dynamic rule"));
-        updateBlockStats();
-        setRCode(RCode::Refused);
-        return true;
-      case DNSAction::Action::Truncate:
-        if (!dnsQuestion.overTCP()) {
-          VERBOSESLOG(infolog("Query from %s truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                      dnsQuestion.getLogger()->info(Logr::Info, "Query truncated because of a suffix-based dynamic rule"));
-          updateBlockStats();
-          dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-            header.tc = true;
-            header.qr = true;
-            header.ra = header.rd;
-            header.aa = false;
-            header.ad = false;
-            return true;
-          });
-          return true;
-        }
-        else {
-          VERBOSESLOG(infolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString()),
-                      dnsQuestion.getLogger()->info(Logr::Info, "Query received over TCP *not* truncated because of a dynamic rule"));
-        }
-        break;
-      case DNSAction::Action::NoRecurse:
-        VERBOSESLOG(infolog("Query from %s setting rd=0 because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Setting RD=0 because of a suffix-based dynamic rule"));
-        updateBlockStats();
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-          header.rd = false;
-          return true;
-        });
-        return true;
-      case DNSAction::Action::SetTag: {
-        if (!got->tagSettings) {
-          VERBOSESLOG(infolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort()),
-                      dnsQuestion.getLogger()->info(Logr::Info, "Skipping 'set tag' suffix-based dynamic rule because of missing options"));
-          break;
-        }
-        const auto& tagName = got->tagSettings->d_name;
-        const auto& tagValue = got->tagSettings->d_value;
-        VERBOSESLOG(infolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Setting tag on query because of a suffix-based dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
-        updateBlockStats();
-        dnsQuestion.setTag(tagName, tagValue);
-        // do not return, the whole point it to set a Tag to be able to do further processing in rules
-        break;
-      }
-      default:
-        updateBlockStats();
-        VERBOSESLOG(infolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
-                    dnsQuestion.getLogger()->info(Logr::Info, "Query dropped because of a suffix-based dynamic rule"));
-        return false;
-      }
-    }
-  }
-#endif /* DISABLE_DYNBLOCKS */
-
-  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
-  const auto& queryRules = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::Rules);
-  return applyRulesChainToQuery(queryRules, dnsQuestion);
 }
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck)
@@ -1196,6 +988,215 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
   return dnsResponse.isAsynchronous();
 }
 
+#ifndef DNSDIST_UNIT_TESTS
+static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
+{
+  InternalQueryState::rulesAppliedToQuerySetter tpprs(dnsQuestion.ids.rulesAppliedToQuery); // Ensure IDS knows we are past the rules processing when we exit this function
+  auto closer = dnsQuestion.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+  if (g_rings.shouldRecordQueries()) {
+    g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
+  }
+
+  {
+    const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (runtimeConfig.d_queryCountConfig.d_enabled) {
+      string qname = dnsQuestion.ids.qname.toLogString();
+      bool countQuery{true};
+      if (runtimeConfig.d_queryCountConfig.d_filter) {
+        auto lock = g_lua.lock();
+        std::tie(countQuery, qname) = runtimeConfig.d_queryCountConfig.d_filter(&dnsQuestion);
+      }
+
+      if (countQuery) {
+        auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
+        if (records->count(qname) == 0) {
+          (*records)[qname] = 0;
+        }
+        (*records)[qname]++;
+      }
+    }
+  }
+
+#ifndef DISABLE_DYNBLOCKS
+  const auto defaultDynBlockAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
+  auto setRCode = [&dnsQuestion](uint8_t rcode) {
+    dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, rcode);
+  };
+
+  /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
+  if (auto* got = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(AddressAndPortRange(dnsQuestion.ids.origRemote, dnsQuestion.ids.origRemote.isIPv4() ? 32 : 128, 16))) {
+    auto updateBlockStats = [&got]() {
+      ++dnsdist::metrics::g_stats.dynBlocked;
+      got->second.blocks++;
+    };
+
+    if (now < got->second.until) {
+      DNSAction::Action action = got->second.action;
+      if (action == DNSAction::Action::None) {
+        action = defaultDynBlockAction;
+      }
+
+      switch (action) {
+      case DNSAction::Action::NoOp:
+        /* do nothing */
+        break;
+
+      case DNSAction::Action::Nxdomain:
+        VERBOSESLOG(infolog("Query from %s turned into NXDomain because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query turned into NXDomain because of a dynamic rule"));
+        updateBlockStats();
+
+        setRCode(RCode::NXDomain);
+        return true;
+
+      case DNSAction::Action::Refused:
+        VERBOSESLOG(infolog("Query from %s refused because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query refused because of a dynamic rule"));
+        updateBlockStats();
+
+        setRCode(RCode::Refused);
+        return true;
+
+      case DNSAction::Action::Truncate:
+        if (!dnsQuestion.overTCP()) {
+          VERBOSESLOG(infolog("Query from %s truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                      dnsQuestion.getLogger()->info(Logr::Info, "Query truncated because of a dynamic rule"));
+          updateBlockStats();
+          dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
+            header.tc = true;
+            header.qr = true;
+            header.ra = header.rd;
+            header.aa = false;
+            header.ad = false;
+            return true;
+          });
+          return true;
+        }
+        else {
+          VERBOSESLOG(infolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString()),
+                      dnsQuestion.getLogger()->info(Logr::Info, "Query received over TCP *not* truncated because of a dynamic rule"));
+        }
+        break;
+      case DNSAction::Action::NoRecurse:
+        VERBOSESLOG(infolog("Query from %s setting rd=0 because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Setting RD=0 because of a dynamic rule"));
+        updateBlockStats();
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
+          header.rd = false;
+          return true;
+        });
+        return true;
+      case DNSAction::Action::SetTag: {
+        if (!got->second.tagSettings) {
+          VERBOSESLOG(infolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort()),
+                      dnsQuestion.getLogger()->info(Logr::Info, "Skipping 'set tag' dynamic rule because of missing options"));
+          break;
+        }
+        const auto& tagName = got->second.tagSettings->d_name;
+        const auto& tagValue = got->second.tagSettings->d_value;
+        VERBOSESLOG(infolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Setting tag on query because of a dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
+        updateBlockStats();
+        dnsQuestion.setTag(tagName, tagValue);
+        // do not return, the whole point it to set a Tag to be able to do further processing in rules
+        break;
+      }
+      default:
+        VERBOSESLOG(infolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query dropped because of a dynamic rule"));
+        updateBlockStats();
+        return false;
+      }
+    }
+  }
+
+  if (auto* got = dnsdist::DynamicBlocks::getSuffixDynamicRules().lookup(dnsQuestion.ids.qname)) {
+    auto updateBlockStats = [&got]() {
+      ++dnsdist::metrics::g_stats.dynBlocked;
+      got->blocks++;
+    };
+
+    if (now < got->until) {
+      DNSAction::Action action = got->action;
+      if (action == DNSAction::Action::None) {
+        action = defaultDynBlockAction;
+      }
+      switch (action) {
+      case DNSAction::Action::NoOp:
+        /* do nothing */
+        break;
+      case DNSAction::Action::Nxdomain:
+        VERBOSESLOG(infolog("Query from %s turned into NXDomain because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query turned into NXDomain because of a suffix-based dynamic rule"));
+        updateBlockStats();
+
+        setRCode(RCode::NXDomain);
+        return true;
+      case DNSAction::Action::Refused:
+        VERBOSESLOG(infolog("Query from %s refused because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query refused because of a suffix-based dynamic rule"));
+        updateBlockStats();
+        setRCode(RCode::Refused);
+        return true;
+      case DNSAction::Action::Truncate:
+        if (!dnsQuestion.overTCP()) {
+          VERBOSESLOG(infolog("Query from %s truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                      dnsQuestion.getLogger()->info(Logr::Info, "Query truncated because of a suffix-based dynamic rule"));
+          updateBlockStats();
+          dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
+            header.tc = true;
+            header.qr = true;
+            header.ra = header.rd;
+            header.aa = false;
+            header.ad = false;
+            return true;
+          });
+          return true;
+        }
+        else {
+          VERBOSESLOG(infolog("Query from %s for %s over TCP *not* truncated because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString()),
+                      dnsQuestion.getLogger()->info(Logr::Info, "Query received over TCP *not* truncated because of a dynamic rule"));
+        }
+        break;
+      case DNSAction::Action::NoRecurse:
+        VERBOSESLOG(infolog("Query from %s setting rd=0 because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Setting RD=0 because of a suffix-based dynamic rule"));
+        updateBlockStats();
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
+          header.rd = false;
+          return true;
+        });
+        return true;
+      case DNSAction::Action::SetTag: {
+        if (!got->tagSettings) {
+          VERBOSESLOG(infolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort()),
+                      dnsQuestion.getLogger()->info(Logr::Info, "Skipping 'set tag' suffix-based dynamic rule because of missing options"));
+          break;
+        }
+        const auto& tagName = got->tagSettings->d_name;
+        const auto& tagValue = got->tagSettings->d_value;
+        VERBOSESLOG(infolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Setting tag on query because of a suffix-based dynamic rule", "dnsdist.tag.name", Logging::Loggable(tagName), "dnsdist.tag.value", Logging::Loggable(tagValue)));
+        updateBlockStats();
+        dnsQuestion.setTag(tagName, tagValue);
+        // do not return, the whole point it to set a Tag to be able to do further processing in rules
+        break;
+      }
+      default:
+        updateBlockStats();
+        VERBOSESLOG(infolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort()),
+                    dnsQuestion.getLogger()->info(Logr::Info, "Query dropped because of a suffix-based dynamic rule"));
+        return false;
+      }
+    }
+  }
+#endif /* DISABLE_DYNBLOCKS */
+
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& queryRules = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::Rules);
+  return applyRulesChainToQuery(queryRules, dnsQuestion);
+}
+
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   auto closer = dnsQuestion.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
@@ -1315,3 +1316,4 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
 
   return true;
 }
+#endif /* DNSDIST_UNIT_TESTS */

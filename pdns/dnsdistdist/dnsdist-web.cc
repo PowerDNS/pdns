@@ -37,6 +37,7 @@
 #include "dnsdist-configuration.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-dynbpf.hh"
+#include "dnsdist-ebpf.hh"
 #include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"

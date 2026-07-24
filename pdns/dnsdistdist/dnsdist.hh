@@ -980,8 +980,6 @@ enum ednsHeaderFlags
   EDNS_HEADER_FLAG_DO = 32768
 };
 
-extern shared_ptr<BPFFilter> g_defaultBPFFilter;
-
 void tcpAcceptorThread(const std::vector<ClientState*>& states);
 
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects

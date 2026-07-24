@@ -50,6 +50,7 @@
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-dynbpf.hh"
 #include "dnsdist-discovery.hh"
+#include "dnsdist-ebpf.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
@@ -94,6 +95,9 @@ using std::thread;
 using update_metric_opts_t = LuaAssociativeTable<boost::variant<uint64_t, LuaAssociativeTable<std::string>>>;
 using declare_metric_opts_t = LuaAssociativeTable<boost::variant<bool, std::string>>;
 using opentelemetry_opts_t = LuaAssociativeTable<boost::variant<size_t, LuaArray<std::shared_ptr<RemoteLoggerInterface>>>>;
+
+RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
+string g_outputBuffer;
 
 static boost::tribool s_noLuaSideEffect;
 

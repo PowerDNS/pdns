@@ -24,6 +24,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-ebpf.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-edns.hh"
