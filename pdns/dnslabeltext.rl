@@ -85,6 +85,97 @@ vector<string> segmentDNSText(const string& input )
         return ret;
 };
 
+#ifdef HAVE_LUA_RECORDS
+namespace {
+void appendSplitLua(vector<string>& ret, string& segment, unsigned char c, size_t& splitpos)
+{
+  if(segment.size()>254) {
+    // Try to split at the last "good" split position, if any.
+    if (splitpos != 0) {
+      ret.push_back(segment.substr(0, splitpos));
+      segment.erase(0, splitpos);
+    }
+    else {
+      ret.push_back(segment);
+      segment.clear();
+    }
+    splitpos = 0;
+  }
+  if (::isspace(static_cast<int>(c)) != 0) {
+    splitpos = segment.size();
+  }
+  segment.append(1, c);
+}
+
+}
+
+vector<string> segmentLuaText(const string& input)
+{
+%%{
+        machine luatext;
+        write data;
+        alphtype unsigned char;
+}%%
+        (void)luatext_error;  // silence warnings
+        (void)luatext_en_main;
+        const char *p = input.c_str(), *pe = input.c_str() + input.length();
+        const char* eof = pe;
+        int cs;
+        char val = 0;
+        size_t splitpos{0};
+
+        string segment;
+        vector<string> ret;
+
+        %%{
+                action segmentEnd { 
+                        ret.push_back(segment);
+                        segment.clear();
+                        splitpos = 0;
+                }
+                action segmentBegin { 
+                        segment.clear();
+                        splitpos = 0;
+                }
+
+                action reportEscaped {
+                  char c = *fpc;
+                  appendSplitLua(ret, segment, c, splitpos);
+                }
+                action reportEscapedNumber {
+                  char c = *fpc;
+                  val *= 10;
+                  val += c-'0';
+                  
+                }
+                action doneEscapedNumber {
+                  appendSplitLua(ret, segment, val, splitpos);
+                  val=0;
+                }
+                
+                action reportPlain {
+                  appendSplitLua(ret, segment, *(fpc), splitpos);
+                }
+
+                escaped = '\\' (([^0-9]@reportEscaped) | ([0-9]{3}$reportEscapedNumber%doneEscapedNumber));
+                plain = ((extend-'\\'-'"')|'\n'|'\t') $ reportPlain;
+                txtElement = escaped | plain;
+            
+                main := (('"' txtElement* '"' space?) >segmentBegin %segmentEnd)+;
+
+                # Initialize and execute.
+                write init;
+                write exec;
+        }%%
+
+        if ( cs < luatext_first_final ) {
+                throw runtime_error("Unable to parse DNS LUA '"+input+"'");
+        }
+
+        return ret;
+};
+#endif
+
 
 DNSName::string_t segmentDNSNameRaw(const char* realinput, size_t inputlen)
 {
