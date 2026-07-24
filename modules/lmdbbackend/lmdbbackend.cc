@@ -2192,11 +2192,11 @@ bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 
     key = d_lookupstate.key.getNoStripHeader<string_view>();
     // remove hash from the key so compoundOrdername::get* works
-    key = key.substr(0, key.size() - 256 / 8);
-    if (key.size() == 0) {
-      // removing the hash-sized suffix left us with nothing
+    if (key.size() <= 256 / 8) {
+      // there is nothing left once the hash-sized suffix is removed
       throw DBException("got invalid serialized comment: key too short");
     }
+    key = key.substr(0, key.size() - 256 / 8);
 
     basename = compoundOrdername::getQName(key);
 

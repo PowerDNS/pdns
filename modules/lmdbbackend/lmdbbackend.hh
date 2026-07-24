@@ -217,6 +217,9 @@ private:
     static domainid_t getDomainID(const string_view& key)
     {
       uint32_t ret;
+      if (key.size() < sizeof(ret)) {
+        throw std::out_of_range("LMDB key is too short to hold a domain id");
+      }
       memcpy(&ret, &key[0], sizeof(ret));
       return static_cast<domainid_t>(ntohl(ret));
     }
@@ -226,6 +229,9 @@ private:
       /* www.ds9a.nl -> nl0ds9a0www0
          root -> 0   <- we need this to keep lmdb happy
          nl -> nl0 */
+      if (key.size() < 4 + sizeof(uint16_t)) {
+        throw std::out_of_range("LMDB key is too short to hold a name");
+      }
       DNSName ret;
       auto iter = key.cbegin() + 4;
       auto end = key.cend() - 2;
@@ -249,6 +255,9 @@ private:
     static QType getQType(const string_view& key)
     {
       uint16_t ret;
+      if (key.size() < sizeof(ret)) {
+        throw std::out_of_range("LMDB key is too short to hold a qtype");
+      }
       memcpy(&ret, &key[key.size() - 2], sizeof(ret));
       return QType(ntohs(ret));
     }
