@@ -2489,6 +2489,8 @@ bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
     info.kind = kind;
     info.primaries = primaries;
     info.account = account;
+    info.backend = this;
+    info.serial = 0;
 
     // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     info.id = static_cast<domainid_t>(txn.put(info, 0, d_random_ids, domain.hash()));
@@ -2496,7 +2498,7 @@ bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
     writeTransientDomainInfo(info);
   }
 
-  return getDomainInfo(domain, info);
+  return true;
 }
 
 void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow)

@@ -733,6 +733,8 @@ bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneNam
   if (!this->send(query) || !this->recv(answer)) {
     return false;
   }
+  // Although we know most of the information to be returned in [info], we
+  // do not know the domain id, so we need to query the remote.
   return getDomainInfo(domain, info, false);
 }
 
