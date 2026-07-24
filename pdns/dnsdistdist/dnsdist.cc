@@ -1382,7 +1382,7 @@ int main(int argc, char** argv)
     if (cmdLine.beClient || !cmdLine.command.empty()) {
       if (!loadConfigurationFromFile(cmdLine.config, true, false, setupLogger)) {
 #ifdef COVERAGE
-        exit(EXIT_FAILURE);
+        doExitNicely(EXIT_FAILURE);
 #else
         _exit(EXIT_FAILURE);
 #endif
@@ -1394,7 +1394,7 @@ int main(int argc, char** argv)
       }
       dnsdist::console::doClient(cmdLine.command);
 #ifdef COVERAGE
-      exit(EXIT_SUCCESS);
+      doExitNicely(EXIT_SUCCESS);
 #else
       _exit(EXIT_SUCCESS);
 #endif
@@ -1418,7 +1418,7 @@ int main(int argc, char** argv)
     if (cmdLine.checkConfig) {
       if (!loadConfigurationFromFile(cmdLine.config, false, true, setupLogger)) {
 #ifdef COVERAGE
-        exit(EXIT_FAILURE);
+        doExitNicely(EXIT_FAILURE);
 #else
         _exit(EXIT_FAILURE);
 #endif
@@ -1442,7 +1442,7 @@ int main(int argc, char** argv)
 
     if (!loadConfigurationFromFile(cmdLine.config, false, false, setupLogger)) {
 #ifdef COVERAGE
-      exit(EXIT_FAILURE);
+      doExitNicely(EXIT_FAILURE);
 #else
       _exit(EXIT_FAILURE);
 #endif
