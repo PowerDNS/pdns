@@ -1755,10 +1755,11 @@ class OpenSSLEDDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
 public:
   explicit OpenSSLEDDSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo);
 
-  [[nodiscard]] string getName() const override { return "OpenSSL EdDSA"; }
+  [[nodiscard]] string getName() const override { return (d_algorithm == 18) ? "OpenSSL MLDSA" : "OpenSSL EdDSA"; }
   [[nodiscard]] int getBits() const override;
 
   void create(unsigned int bits) override;
+  void create(unsigned int bits, std::string seed="");
 
   /**
    * \brief Creates an EDDSA key engine from a PEM file.
@@ -1805,6 +1806,14 @@ public:
   using MessageDigestContext = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>;
 
 private:
+#if OPENSSL_VERSION_MAJOR >= 3
+  using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+  using Params = std::unique_ptr<OSSL_PARAM, decltype(&OSSL_PARAM_free)>;
+  auto makeKeyParams(const std::string& group_name, const BIGNUM* privateKey, const std::optional<std::string>& publicKey) const -> Params;
+  [[nodiscard]] auto getPrivateKey() const -> BigNum;
+#endif
+
+
   size_t d_len{0};
   int d_id{0};
 
@@ -1830,6 +1839,12 @@ OpenSSLEDDSADNSCryptoKeyEngine::OpenSSLEDDSADNSCryptoKeyEngine(Logr::log_t slog,
   if (d_algorithm == 16) {
     d_len = 57;
     d_id = NID_ED448;
+  }
+#endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+  if (d_algorithm == 18) {
+    d_len = 32;
+    d_id = NID_ML_DSA_44;
   }
 #endif
   if (d_len == 0) {
@@ -1880,15 +1895,34 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey([[maybe_unused]] std::optional<std
 #endif
 }
 
-void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int /* bits */)
+void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int /* bits */, std::string seed)
 {
   auto pctx = KeyContext(EVP_PKEY_CTX_new_id(d_id, nullptr), EVP_PKEY_CTX_free);
   if (!pctx) {
     throw pdns::OpenSSL::error(getName(), "Context initialization failed");
   }
 
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters builder");
+  }
+
+  if (! seed.empty()) {
+    OSSL_PARAM_BLD_push_octet_string(params_build.get(), OSSL_PKEY_PARAM_ML_DSA_SEED, seed.c_str(), seed.size());
+  }
+
+  auto params = Params(OSSL_PARAM_BLD_to_param(params_build.get()), OSSL_PARAM_free);
+  if (params == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters");
+  }
+
   if (EVP_PKEY_keygen_init(pctx.get()) < 1) {
     throw pdns::OpenSSL::error(getName(), "Keygen initialization failed");
+  }
+
+  int ret = EVP_PKEY_CTX_set_params(pctx.get(), params.get());
+  if (ret < 1) {
+    throw pdns::OpenSSL::error(getName(), "Parameter setting failed");
   }
 
   EVP_PKEY* newKey = nullptr;
@@ -1897,6 +1931,11 @@ void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int /* bits */)
   }
 
   d_edkey.reset(newKey);
+}
+
+void OpenSSLEDDSADNSCryptoKeyEngine::create(unsigned int bits)
+{
+  create(bits, "");
 }
 
 void OpenSSLEDDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename)
@@ -1935,6 +1974,11 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
     algorithm = "16 (ED448)";
   }
 #endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+  if (d_algorithm == 18) {
+    algorithm = "18 (MLDSA44)";
+  }
+#endif
   if (algorithm.empty()) {
     algorithm = " ? (?)";
   }
@@ -1946,8 +1990,14 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
   buf.resize(len);
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
-  if (EVP_PKEY_get_raw_private_key(d_edkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
-    throw pdns::OpenSSL::error(getName(), "Could not get private key from d_edkey");
+  if (d_algorithm == 18) {
+    if (EVP_PKEY_get_octet_string_param(d_edkey.get(), OSSL_PKEY_PARAM_ML_DSA_SEED, reinterpret_cast<unsigned char*>(&buf.at(0)), len, &len) < 1) {
+      throw pdns::OpenSSL::error(getName(), "Could not get private seed from d_edkey");
+    }
+  } else {
+    if (EVP_PKEY_get_raw_private_key(d_edkey.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
+      throw pdns::OpenSSL::error(getName(), "Could not get private key from d_edkey");
+    }
   }
   storvect.emplace_back("PrivateKey", buf);
   return storvect;
@@ -1955,17 +2005,36 @@ DNSCryptoKeyEngine::storvector_t OpenSSLEDDSADNSCryptoKeyEngine::convertToISCVec
 
 std::string OpenSSLEDDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 {
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters builder");
+  }
+
+  OSSL_PARAM_BLD_push_int(params_build.get(), OSSL_SIGNATURE_PARAM_DETERMINISTIC, 1);
+
+  auto params = Params(OSSL_PARAM_BLD_to_param(params_build.get()), OSSL_PARAM_free);
+  if (params == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create signer parameters");
+  }
+
   auto mdctx = MessageDigestContext(EVP_MD_CTX_new(), EVP_MD_CTX_free);
   if (!mdctx) {
     throw pdns::OpenSSL::error(getName(), "MD context initialization failed");
   }
-  if (EVP_DigestSignInit(mdctx.get(), nullptr, nullptr, nullptr, d_edkey.get()) < 1) {
+  if (EVP_DigestSignInit_ex(mdctx.get(), nullptr, nullptr, nullptr, nullptr, d_edkey.get(), params.get()) < 1) {
     throw pdns::OpenSSL::error(getName(), "Unable to initialize signer");
   }
 
+  // FIGURE OUT: set_params failed, so I switched to Init_ex, which does work
+  // int ret = EVP_MD_CTX_set_params(mdctx.get(), params.get());
+  // cerr<<ret<<endl;
+  // if (ret < 1) {
+  //   throw pdns::OpenSSL::error(getName(), "Signer parameter setting failed");
+  // }
+
   string msgToSign = msg;
 
-  size_t siglen = d_len * 2;
+  size_t siglen = (d_algorithm == 18) ? 2420 : d_len * 2;
   string signature;
   signature.resize(siglen);
 
@@ -2006,7 +2075,8 @@ bool OpenSSLEDDSADNSCryptoKeyEngine::verify(const std::string& message, const st
 std::string OpenSSLEDDSADNSCryptoKeyEngine::getPublicKeyString() const
 {
   string buf;
-  size_t len = d_len;
+  size_t len = (d_algorithm == 18) ? 1312 : d_len;
+
   buf.resize(len);
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
@@ -2024,6 +2094,11 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
     throw runtime_error(getName() + " tried to feed an algorithm " + std::to_string(drc.d_algorithm) + " to a " + std::to_string(d_algorithm) + " key");
   }
 
+  if (d_algorithm == 18) {
+    create(32, stormap["privatekey"]);
+    return;
+  }
+
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   d_edkey = Key(EVP_PKEY_new_raw_private_key(d_id, nullptr, reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length()), EVP_PKEY_free);
   if (!d_edkey) {
@@ -2033,14 +2108,14 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
 
 void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
 {
-  if (content.length() != d_len) {
+  if (d_algorithm != 18 && content.length() != d_len) {
     throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
   }
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   const auto* raw = reinterpret_cast<const unsigned char*>(content.c_str());
 
-  d_edkey = Key(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, d_len), EVP_PKEY_free);
+  d_edkey = Key(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, content.length()), EVP_PKEY_free);
   if (!d_edkey) {
     throw pdns::OpenSSL::error(getName(), "Allocation of public key structure failed");
   }
@@ -2066,6 +2141,9 @@ const struct LoaderStruct
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
     DNSCryptoKeyEngine::report(DNSSEC::ED448, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+#endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+    DNSCryptoKeyEngine::report(DNSSEC::MLDSA44, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
   }
 } loaderOpenSSL;
