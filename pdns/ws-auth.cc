@@ -2457,6 +2457,22 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp)
 {
   ZoneData zoneData{req};
 
+  // Allow a preferred primary to be passed in the body.
+  if (!req->body.empty()) {
+    const auto& document = req->json();
+    if (document["primary"].is_string()) {
+      ComboAddress primary_ip;
+      try {
+        primary_ip = ComboAddress(document["primary"].string_value(), 53);
+      }
+      catch (...) {
+        throw ApiException("Invalid primary address");
+      }
+      zoneData.domainInfo.primaries.clear();
+      zoneData.domainInfo.primaries.push_back(primary_ip);
+    }
+  }
+
   if (zoneData.domainInfo.primaries.empty()) {
     throw ApiException("Domain '" + zoneData.zoneName.toString() + "' is not a secondary domain (or has no primary defined)");
   }

@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.19"
+  version: "0.0.20"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -711,10 +711,22 @@ paths:
       - $ref: "#/components/parameters/zone_id"
     put:
       summary: Retrieve slave zone from its master.
-      description: "Fails when zone kind is not Slave, or slave is disabled in the configuration. Clients MUST NOT send a body."
+      description: "Fails when zone kind is not secondary, or secondary operation is disabled in the configuration. Clients need not send a body, unless they want to specify a particular primary server address to use."
       operationId: axfrRetrieveZone
       tags:
         - zones
+      requestBody:
+        required: false
+        description: An optional primary server address to request AXFR from.
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                primary:
+                  type: string
+                  description: The address of the primary server to use.
       responses:
         "200":
           description: OK
