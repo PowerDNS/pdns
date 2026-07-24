@@ -426,6 +426,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_ta)
   BOOST_CHECK_EQUAL(settings.dnssec.negative_trustanchors.size(), 0U);
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchorfile), "");
   BOOST_CHECK_EQUAL(settings.dnssec.trustanchorfile_interval, 24U);
+  BOOST_CHECK_EQUAL(settings.dnssec.nta_extended_error, false);
 
   const std::string yaml2 = R"EOT(dnssec:
   trustanchors:
@@ -438,6 +439,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_ta)
       reason: d
   trustanchorfile: e
   trustanchorfile_interval: 99
+  nta_extended_error: false
 )EOT";
   settings = pdns::rust::settings::rec::parse_yaml_string(yaml2);
   settings.validate();
@@ -449,6 +451,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_ta)
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.negative_trustanchors[0].reason), "d");
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchorfile), "e");
   BOOST_CHECK_EQUAL(settings.dnssec.trustanchorfile_interval, 99U);
+  BOOST_CHECK_EQUAL(settings.dnssec.nta_extended_error, false);
 }
 
 BOOST_AUTO_TEST_CASE(test_yaml_ta_merge)

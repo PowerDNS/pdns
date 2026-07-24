@@ -1296,6 +1296,315 @@ BOOST_AUTO_TEST_CASE(test_dnssec_nta)
   BOOST_CHECK_EQUAL(queriesCount, 1U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_nta_extended_error)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+  const bool savedNtaEde = SyncRes::s_ntaExtendedError;
+  auto restoreNtaEde = pdns::defer([savedNtaEde] { SyncRes::s_ntaExtendedError = savedNtaEde; });
+  SyncRes::s_ntaExtendedError = true;
+
+  primeHints();
+  const DNSName target(".");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  /* Add a NTA for "." */
+  luaconfsCopy.negAnchors[g_rootdnsname] = "NTA for Root";
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (domain == target && type == QType::NS) {
+
+      setLWResult(res, 0, true, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+      }
+
+      addRRSIG(keys, res->d_records, domain, 300);
+
+      addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+    if (domain == target && type == QType::DNSKEY) {
+
+      setLWResult(res, 0, true, false, true);
+
+      /* No DNSKEY */
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE(sr->getExtendedError().has_value());
+  BOOST_CHECK_EQUAL(sr->getExtendedError()->infoCode, static_cast<uint16_t>(EDNSExtendedError::code::NegativeTrustAnchor));
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  /* again, to test that a cache hit still carries the EDE */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE(sr->getExtendedError().has_value());
+  BOOST_CHECK_EQUAL(sr->getExtendedError()->infoCode, static_cast<uint16_t>(EDNSExtendedError::code::NegativeTrustAnchor));
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_insecure_no_nta_no_extended_error)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+  const bool savedNtaEde = SyncRes::s_ntaExtendedError;
+  auto restoreNtaEde = pdns::defer([savedNtaEde] { SyncRes::s_ntaExtendedError = savedNtaEde; });
+  SyncRes::s_ntaExtendedError = true;
+
+  primeHints();
+  const DNSName target(".");
+
+  /* Remove the root DS: the answer is Insecure, but not because of an NTA,
+     so no EDE 33 should be attached. */
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (domain == target && type == QType::NS) {
+
+      setLWResult(res, 0, true, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+      }
+
+      addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_CHECK(!sr->getExtendedError().has_value());
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_nta_extended_error_already_insecure)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+  const bool savedNtaEde = SyncRes::s_ntaExtendedError;
+  auto restoreNtaEde = pdns::defer([savedNtaEde] { SyncRes::s_ntaExtendedError = savedNtaEde; });
+  SyncRes::s_ntaExtendedError = true;
+
+  primeHints();
+  const DNSName target(".");
+
+  /* Insecure because there is no root trust anchor, not because of the NTA. The name is
+     still covered by an NTA, so EDE 33 is expected (coverage, not causation). */
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  luaconfsCopy.negAnchors[g_rootdnsname] = "NTA for Root";
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (domain == target && type == QType::NS) {
+
+      setLWResult(res, 0, true, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+      }
+
+      addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE(sr->getExtendedError().has_value());
+  BOOST_CHECK_EQUAL(sr->getExtendedError()->infoCode, static_cast<uint16_t>(EDNSExtendedError::code::NegativeTrustAnchor));
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_nta_extended_error_disabled)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+  const bool savedNtaEde = SyncRes::s_ntaExtendedError;
+  auto restoreNtaEde = pdns::defer([savedNtaEde] { SyncRes::s_ntaExtendedError = savedNtaEde; });
+  SyncRes::s_ntaExtendedError = false;
+
+  primeHints();
+  const DNSName target(".");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  /* NTA is configured, but the feature is disabled: no EDE must be attached. */
+  luaconfsCopy.negAnchors[g_rootdnsname] = "NTA for Root";
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (domain == target && type == QType::NS) {
+
+      setLWResult(res, 0, true, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+      }
+
+      addRRSIG(keys, res->d_records, domain, 300);
+
+      addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+    if (domain == target && type == QType::DNSKEY) {
+
+      setLWResult(res, 0, true, false, true);
+
+      /* No DNSKEY */
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_CHECK(!sr->getExtendedError().has_value());
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_nta_extended_error_no_validation)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+  const bool savedNtaEde = SyncRes::s_ntaExtendedError;
+  auto restoreNtaEde = pdns::defer([savedNtaEde] { SyncRes::s_ntaExtendedError = savedNtaEde; });
+  SyncRes::s_ntaExtendedError = true;
+
+  primeHints();
+  const DNSName target(".");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  luaconfsCopy.negAnchors[g_rootdnsname] = "NTA for Root";
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (domain == target && type == QType::NS) {
+
+      setLWResult(res, 0, true, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+      }
+
+      addRRSIG(keys, res->d_records, domain, 300);
+
+      addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+    if (domain == target && type == QType::DNSKEY) {
+
+      setLWResult(res, 0, true, false, true);
+
+      /* No DNSKEY */
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  /* a validating query primes the record cache with the Insecure state and gets the EDE */
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE(sr->getExtendedError().has_value());
+  BOOST_CHECK_EQUAL(sr->getExtendedError()->infoCode, static_cast<uint16_t>(EDNSExtendedError::code::NegativeTrustAnchor));
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  /* a non-validating query hits the record cache, inherits the cached Insecure state,
+     but must not get the EDE */
+  sr->setDNSSECValidationRequested(false);
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_CHECK(!sr->getExtendedError().has_value());
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_no_ta)
 {
   std::unique_ptr<SyncRes> sr;

@@ -58,6 +58,7 @@ struct EDNSExtendedError
     UnsupportedNSEC3IterationsValue = 27,
     UnableToConformToPolicy = 28,
     Synthesized = 29,
+    NegativeTrustAnchor = 33,
   };
   uint16_t infoCode;
   std::string extraText;
