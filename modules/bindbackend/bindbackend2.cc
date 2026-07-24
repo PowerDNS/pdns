@@ -1625,7 +1625,15 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName
   bbd.updateCtime();
   safePutBBDomainInfo(bbd);
 
-  return getDomainInfo(domain, info, false);
+  // inline getDomainInfo(domain, info, false) without having to look for BB2DomainInfo again
+  info.id = bbd.d_id;
+  info.zone = domain;
+  info.primaries = bbd.d_primaries;
+  info.last_check = bbd.d_lastcheck;
+  info.backend = this;
+  info.kind = bbd.d_kind;
+  info.serial = 0;
+  return true;
 }
 
 bool Bind2Backend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
