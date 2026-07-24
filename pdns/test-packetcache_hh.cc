@@ -34,7 +34,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    string spacket1((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket1(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, optionsToSkip);
 
     packet.clear();
@@ -42,7 +43,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    string spacket2((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket2(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, optionsToSkip);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
@@ -62,7 +64,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.addOpt(512, 0, 0, ednsOptions);
     pw1.commit();
 
-    string spacket1((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket1(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, optionsToSkip);
 
     packet.clear();
@@ -76,7 +79,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.addOpt(512, 0, 0, ednsOptions);
     pw2.commit();
 
-    string spacket2((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket2(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, optionsToSkip);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
@@ -134,7 +138,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw1.commit();
 
-    string spacket1((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket1(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, optionsToSkip);
 
     packet.clear();
@@ -149,7 +154,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.addOpt(512, 0, 0, ednsOptions);
     pw2.commit();
 
-    string spacket2((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket2(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, optionsToSkip);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
@@ -172,7 +178,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw1.commit();
 
-    string spacket1((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket1(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, optionsToSkip);
 
     packet.clear();
@@ -188,7 +195,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw2.commit();
 
-    string spacket2((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket2(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, optionsToSkip);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
@@ -266,10 +274,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecSimple) {
     pw1.addOpt(512, 0, 0);
     pw1.commit();
 
-    string spacket1((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket1(reinterpret_cast<const char*>(packet.data()), packet.size());
     /* set the RD length to a large value */
-    unsigned char* ptr = reinterpret_cast<unsigned char*>(&spacket1.at(sizeof(dnsheader) + qname.wirelength() + /* qtype and qclass */ 4 + /* OPT root label (1), type (2), class (2) and ttl (4) */ 9));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto* ptr = reinterpret_cast<unsigned char*>(&spacket1.at(sizeof(dnsheader) + qname.wirelength() + /* qtype and qclass */ 4 + /* OPT root label (1), type (2), class (2) and ttl (4) */ 9));
     *ptr = 255;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     *(ptr + 1) = 255;
     /* truncate the end of the OPT header to try to trigger an out of bounds read */
     spacket1.resize(spacket1.size() - 6);
@@ -293,7 +304,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    string spacket1((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket1(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, optionsToSkip);
 
     packet.clear();
@@ -301,7 +313,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    string spacket2((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket2(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, optionsToSkip);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
@@ -321,7 +334,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw1.addOpt(512, 0, 0, ednsOptions);
     pw1.commit();
 
-    string spacket1((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket1(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, optionsToSkip);
 
     packet.clear();
@@ -335,7 +349,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw2.addOpt(512, 0, 0, ednsOptions);
     pw2.commit();
 
-    string spacket2((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket2(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, optionsToSkip);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
@@ -353,12 +368,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     opt.setSource(Netmask("192.0.2.1/32"));
     ednsOptions.clear();
     ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
-    EDNSCookiesOpt cookiesOpt(string("deadbeefdead\x11\xee\x00\x00").c_str(), 16);
+    EDNSCookiesOpt cookiesOpt("deadbeefdead\x11\xee\x00\x00", 16);
     ednsOptions.emplace_back(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString());
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw1.commit();
 
-    string spacket1((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket1(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash1 = PacketCache::canHashPacket(spacket1, optionsToSkip);
 
     packet.clear();
@@ -369,12 +385,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     opt.setSource(Netmask("192.0.2.1/32"));
     ednsOptions.clear();
     ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
-    cookiesOpt.makeFromString(string("deadbeefdead\x67\x44\x00\x00").c_str(), 16);
+    cookiesOpt.makeFromString("deadbeefdead\x67\x44\x00\x00", 16);
     ednsOptions.emplace_back(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString());
     pw2.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw2.commit();
 
-    string spacket2((const char*)&packet[0], packet.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    string spacket2(reinterpret_cast<const char*>(packet.data()), packet.size());
     auto hash2 = PacketCache::canHashPacket(spacket2, optionsToSkip);
 
     BOOST_CHECK_EQUAL(hash1, hash2);
@@ -403,24 +420,29 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheEDNSOptionLengthBound) {
 
   auto makeQuery = [&](const std::string& ecsSource) -> std::string {
     vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, qname, qtype);
-    pw.getHeader()->rd = true;
-    pw.getHeader()->qr = false;
-    pw.getHeader()->id = 0x42;
+    DNSPacketWriter packetWriter(packet, qname, qtype);
+    packetWriter.getHeader()->rd = true;
+    packetWriter.getHeader()->qr = false;
+    packetWriter.getHeader()->id = 0x42;
     opt.setSource(Netmask(ecsSource));
     const std::string ecs = opt.makeOptString();
     ednsOptions.clear();
     ednsOptions.emplace_back(EDNSOptionCode::ECS, ecs);
-    pw.addOpt(512, 0, 0, ednsOptions);
-    pw.commit();
+    packetWriter.addOpt(512, 0, 0, ednsOptions);
+    packetWriter.commit();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     std::string spacket(reinterpret_cast<const char*>(packet.data()), packet.size());
     /* the ECS option is the last thing in the packet; its length field sits two
        bytes before its value. Bump it by 3 so the option claims to run past the
        actual RDATA end, landing in the (rdLen - 3 .. rdLen) window. */
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto* optLen = reinterpret_cast<unsigned char*>(&spacket.at(spacket.size() - ecs.size() - 2));
-    const uint16_t bumped = static_cast<uint16_t>((optLen[0] * 256 + optLen[1]) + 3);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    const auto bumped = static_cast<uint16_t>(((optLen[0] * 256) + optLen[1]) + 3);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     optLen[0] = static_cast<unsigned char>(bumped >> 8);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     optLen[1] = static_cast<unsigned char>(bumped & 0xff);
     return spacket;
   };
