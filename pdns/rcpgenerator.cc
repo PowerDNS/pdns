@@ -360,6 +360,7 @@ void RecordTextReader::xfrSVCBValueList(vector<string> &val) {
 
 void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readability-function-cognitive-complexity)
 {
+  set<SvcParam::SvcParamKey> seenKeys;
   while (d_pos != d_end) {
     skipSpaces();
     if (d_pos == d_end)
@@ -382,6 +383,10 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       key = SvcParam::keyFromString(k, generic);
     } catch (const std::invalid_argument &e) {
       throw RecordTextException(e.what());
+    }
+
+    if (!seenKeys.insert(key).second) {
+      throw RecordTextException("SvcParamKey '" + k + "' appears more than once");
     }
 
     if (d_pos != d_end && d_string.at(d_pos) == '=') {

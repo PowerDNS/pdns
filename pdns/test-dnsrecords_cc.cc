@@ -399,6 +399,8 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (ZONE_CASE(QType::SOA, "ns.rec.test hostmaster.test.rec 20130512010 3600 3600 604800 120")) // too long serial
      (ZONE_CASE(QType::TXT, "\\02unlimited")) // incorrect escape
      (ZONE_CASE(QType::TXT, "\\384excessive")) // incorrect escape
+     (ZONE_CASE(QType::HTTPS, "1 . port=443 port=8080")) // repeated SvcParamKey
+     (ZONE_CASE(QType::SVCB, "1 foo.powerdns.org. alpn=h2 alpn=h3")) // repeated SvcParamKey
 ;
 
   int n=0;
