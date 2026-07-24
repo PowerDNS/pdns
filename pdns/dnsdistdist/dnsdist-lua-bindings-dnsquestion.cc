@@ -37,6 +37,7 @@
 #include <optional>
 #include <string>
 
+#ifndef DISABLE_NON_FFI_DQ_BINDINGS
 static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& key, [[maybe_unused]] const LuaArray<boost::variant<int64_t, std::string>>& values)
 {
 #if !defined(DISABLE_PROTOBUF)
@@ -57,7 +58,6 @@ static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& d
 #endif /* DISABLE_PROTOBUF */
 }
 
-#ifndef DISABLE_NON_FFI_DQ_BINDINGS
 static LuaArray<EDNSOptionValues> EDNSOptionViewsToValues(const EDNSOptionViewMap& ednsOptions)
 {
   LuaArray<EDNSOptionValues> copy;
