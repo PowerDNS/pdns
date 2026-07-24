@@ -113,7 +113,7 @@ static bool cookieTSIsValid(uint32_t timestamp, uint32_t now)
   return rfc1982LessThan(now - 3600, timestamp) && rfc1982LessThan(timestamp, now + 300);
 }
 
-bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source) const
+bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source, [[maybe_unused]] const std::vector<std::string>& oldSecrets) const
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
   if (server.length() != 16 || client.length() != 8) {
@@ -145,7 +145,27 @@ bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unus
                    toHash.length(),
                    reinterpret_cast<const unsigned char*>(secret.data()));
   // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
-  return constantTimeStringEquals(server.substr(8), hashResult);
+  if (constantTimeStringEquals(server.substr(8), hashResult)) {
+    return true;
+  }
+  // Maybe an old secret will match?
+  for (const auto& oldSecret : oldSecrets) {
+    if (oldSecret.length() != crypto_shorthash_KEYBYTES) {
+      return false;
+    }
+    hashResult.clear();
+    hashResult.resize(8);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    crypto_shorthash(reinterpret_cast<unsigned char*>(hashResult.data()),
+                     reinterpret_cast<const unsigned char*>(toHash.data()),
+                     toHash.length(),
+                     reinterpret_cast<const unsigned char*>(oldSecret.data()));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+    if (constantTimeStringEquals(server.substr(8), hashResult)) {
+      return true;
+    }
+  }
+  return false;
 #else
   return false;
 #endif
@@ -184,6 +204,8 @@ bool EDNSCookiesOpt::makeServerCookie([[maybe_unused]] const string& secret, [[m
 #ifdef HAVE_CRYPTO_SHORTHASH
   static_assert(EDNSCookieSecretSize == crypto_shorthash_KEYBYTES * static_cast<size_t>(2), "The EDNSCookieSecretSize is not twice crypto_shorthash_KEYBYTES");
 
+  // We explicitly don't check the old keys, so we always
+  // regenerate the cookie with the active/newest key.
   if (isValid(secret, source) && !shouldRefresh()) {
     return true;
   }

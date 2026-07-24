@@ -57,6 +57,7 @@
 bool DNSPacket::s_doEDNSSubnetProcessing;
 bool DNSPacket::s_doEDNSCookieProcessing;
 string DNSPacket::s_EDNSCookieKey;
+std::vector<std::string> DNSPacket::s_OldEDNSCookieKeys;
 uint16_t DNSPacket::s_udpTruncationThreshold;
 
 DNSPacket::DNSPacket(Logr::log_t slog, bool isQuery): d_isQuery(isQuery), d_slog(slog)
@@ -631,7 +632,7 @@ try
       else if (s_doEDNSCookieProcessing && option.first == EDNSOptionCode::COOKIE) {
         d_haveednscookie = true;
         d_eco.makeFromString(option.second);
-        d_ednscookievalid = d_eco.isValid(s_EDNSCookieKey, getInnerRemote());
+        d_ednscookievalid = d_eco.isValid(s_EDNSCookieKey, getInnerRemote(), s_OldEDNSCookieKeys);
       }
       else {
         // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
