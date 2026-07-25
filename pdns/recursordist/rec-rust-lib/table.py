@@ -2537,6 +2537,24 @@ Individual parts of these zones can still be loaded or forwarded.
         "runtime": ["reload-zones"],
     },
     {
+        "name": "serve_rfc6761",
+        "section": "recursor",
+        "type": LType.Bool,
+        "default": "true",
+        "help": "If we should be authoritative for some of the RFC 6761 Special-Use domains",
+        "doc": """
+This makes the server authoritatively aware of some of the zones in :rfc:`6761`.
+These are:
+
+* .test
+* .invalid
+
+Individual parts of these zones can still be loaded or forwarded.
+""",
+        "versionadded": ["5.4.0"],
+        "runtime": ["reload-zones"],
+    },
+    {
         "name": "serve_stale_extensions",
         "section": "recordcache",
         "type": LType.Uint64,

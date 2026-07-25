@@ -12,11 +12,25 @@ Building
 ^^^^^^^^
 Building using autotools is no longer possible, use meson. See :doc:`appendices/compiling`.
 
+New Settings
+^^^^^^^^^^^^
+
+- The :ref:`setting-yaml-recursor.serve_rfc6761` setting has been introduced to NXDomain .test and .invalid by default, unless any subdomains are forwarded.
+
 Changed Settings
 ^^^^^^^^^^^^^^^^
 The :ref:`incoming-ws-config` YAML struct has been extended to be able to specify an encrypted PKCS12 file to configure TLS key and certificate chain for the embedded web server.
 
 The :ref:`outgoing-tls-configuration` YAML struct has been extended to be able to specify an TLS client certificate to be used for outgoing DoT connections.
+
+Special-Use Domain Names
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The .onion domain is no longer forwarded to any authoritative server but responded to with an NXDomain, as prescribed by :rfc:`7686`.
+
+Any domains under .test and .invalid are no longer forwarded to authoritatives on the internet, but can be individually forwarded or overwritten.
+
+The Special Use Domains :rfc:`home.arpa <8375>`, :rfc:`resolver.arpa <9462>`, and :rfc:`service.arpa <9665>` are no longer forwarded to the internet, but can be individually overwritten or forwarded.
 
 5.1.10, 5.2.8 and 5.3.5
 -----------------------

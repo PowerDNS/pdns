@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "logr.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -53,3 +54,7 @@ void addForwardAndReverseLookupEntries(SyncRes::domainmap_t& newMap,
                                        const std::string& searchSuffix,
                                        const std::vector<std::string>& parts,
                                        Logr::log_t log);
+
+void makeEmptyZone(SyncRes::domainmap_t& newMap,
+                   const std::string zoneName,
+                   Logr::log_t log);
