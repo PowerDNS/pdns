@@ -313,6 +313,7 @@ SSQLite3::SSQLite3(Logr::log_t log, const std::string& database, const std::stri
   }
   m_in_transaction = false;
   sqlite3_busy_handler(m_pDB, busyHandler, nullptr);
+  sqlite3_busy_timeout(m_pDB, 5000);
 
   if (journalmode.length() != 0) {
     executeImpl("PRAGMA journal_mode=" + journalmode);
