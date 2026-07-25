@@ -755,6 +755,10 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
   ::arg().set("soa-edit-spread", "Seconds to spread SOA-EDIT bumps over") = "0";
 
+#ifdef HAVE_P11KIT1
+  ::arg().set("pkcs11", "Enable the use of PKCS#11 providers") = "no";
+#endif
+
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname)) {
     cerr<<"Warning: unable to read configuration file '"<<configname<<"': "<<stringerror()<<endl;

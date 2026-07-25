@@ -359,6 +359,10 @@ static void declareArguments()
   ::arg().set("gss-max-contexts", "The maximum number of simultaneous GSS contexts allowed") = "1000";
 #endif
 
+#ifdef HAVE_P11KIT1
+  ::arg().set("pkcs11", "Enable the use of PKCS#11 providers") = "no";
+#endif
+
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
 
   // explicitly declared outside of HAVE_LUA_RECORDS guard to prevent writes
