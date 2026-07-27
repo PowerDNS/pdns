@@ -166,6 +166,7 @@ public:
     CAP_CREATE = 1 << 4, // Backend supports domain creation
     CAP_VIEWS = 1 << 5, // Backend supports views
     CAP_SEARCH = 1 << 6, // Backend supports record search
+    CAP_DOMAIN_TRANSACTION = 1 << 7, // Backend supports starting transactions in create*Domain()
   };
 
   virtual unsigned int getCapabilities() = 0;
@@ -459,13 +460,13 @@ public:
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const ZoneName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* primaries */, const string& /* account */, DomainInfo& /* info */)
+  virtual bool createDomain(const ZoneName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* primaries */, const string& /* account */, DomainInfo& /* info */, bool /* startTransaction */)
   {
     return false;
   }
 
   //! called by PowerDNS to create a secondary record for an autoprimary
-  virtual bool createSecondaryDomain(const string& /* ip */, const ZoneName& /* domain */, const string& /* nameserver */, const string& /* account */, DomainInfo& /* info */)
+  virtual bool createSecondaryDomain(const string& /* ip */, const ZoneName& /* domain */, const string& /* nameserver */, const string& /* account */, DomainInfo& /* info */, bool /* startTransaction */)
   {
     return false;
   }

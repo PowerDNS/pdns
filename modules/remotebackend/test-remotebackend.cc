@@ -308,7 +308,7 @@ BOOST_AUTO_TEST_CASE(test_method_createSecondaryDomain)
 {
   DomainInfo unused;
   BOOST_TEST_MESSAGE("Testing createSecondaryDomain method");
-  BOOST_CHECK(backendUnderTest->createSecondaryDomain("10.0.0.1", ZoneName("pirate.unit.test."), "", "", unused));
+  BOOST_CHECK(backendUnderTest->createSecondaryDomain("10.0.0.1", ZoneName("pirate.unit.test."), "", "", unused, false));
 }
 
 BOOST_AUTO_TEST_CASE(test_method_feedRecord)

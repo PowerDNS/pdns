@@ -2476,7 +2476,7 @@ bool LMDBBackend::setPrimaries(const ZoneName& domain, const vector<ComboAddress
   });
 }
 
-bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info)
+bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info, bool /* startTransaction */)
 {
   if (findDomain(domain, info)) {
     throw DBException("Domain '" + domain.toLogString() + "' exists already");
