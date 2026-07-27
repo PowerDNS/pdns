@@ -903,7 +903,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
   if (dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize > 1) {
-    MultipleMessagesUDPResponseFromBackendThread(dss);
+    MultipleMessagesUDPResponseFromBackendThread(std::move(dss));
     return;
   }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
