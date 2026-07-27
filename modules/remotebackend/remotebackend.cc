@@ -718,7 +718,7 @@ bool RemoteBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& 
   return true;
 }
 
-bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info)
+bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info, bool /* startTransaction */)
 {
   Json query = Json::object{
     {"method", "createSlaveDomain"},

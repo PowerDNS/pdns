@@ -1932,7 +1932,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& do
   return false;
 }
 
-bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info)
+bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info, bool /* startTransaction */)
 {
   vector<string> primaries_s;
   primaries_s.reserve(primaries.size());
@@ -1959,7 +1959,7 @@ bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
   return getDomainInfo(domain, info, false);
 }
 
-bool GSQLBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info)
+bool GSQLBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info, bool /* startTransaction */)
 {
   string name;
   vector<ComboAddress> primaries({ComboAddress(ipAddress, 53)});
@@ -1988,7 +1988,7 @@ bool GSQLBackend::createSecondaryDomain(const string& ipAddress, const ZoneName&
         primaries = std::move(tmp);
       }
     }
-    createDomain(domain, DomainInfo::Secondary, primaries, account, info);
+    createDomain(domain, DomainInfo::Secondary, primaries, account, info, false);
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new secondary domain '" + domain.toLogString() + "': " + e.txtReason());

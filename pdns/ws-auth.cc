@@ -2248,7 +2248,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   }
 
   // no going back after this
-  if (!backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""), domainInfo)) {
+  if (!backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""), domainInfo, false)) {
     throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused");
   }
 
