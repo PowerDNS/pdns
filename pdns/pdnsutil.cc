@@ -1992,16 +1992,19 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
   DomainInfo dstinfo;
   DNSResourceRecord rr; // NOLINT(readability-identifier-length)
 
+  uint32_t tgt_caps = tgt->getCapabilities();
   // Check target backend fits the requirements (only matters for b2b-migrate)
   // TODO: figure a way to quickly know if there are comments and reject a
   // target backend without comments support
-  if (srcinfo.zone.hasVariant() && (tgt->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+  if (srcinfo.zone.hasVariant() && (tgt_caps & DNSBackend::CAP_VIEWS) == 0) {
     cerr << "Target backend does not support views." << endl;
     throw PDNSException("Failed to create zone");
   }
 
   // Create zone
-  if (!tgt->createDomain(dstzone, srcinfo.kind, srcinfo.primaries, srcinfo.account, dstinfo, false)) {
+  bool makeDomainTransaction = (tgt_caps & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
+  if (!tgt->createDomain(dstzone, srcinfo.kind, srcinfo.primaries, srcinfo.account, dstinfo, makeDomainTransaction)) {
+    tgt->abortTransaction();
     throw PDNSException("Failed to create zone " + dstzone.toLogString());
   }
 
@@ -2012,7 +2015,9 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
 
   rewriteNames = srcinfo.zone != dstzone;
 
-  tgt->startTransaction(dstzone, dstinfo.id);
+  if (!makeDomainTransaction) {
+    tgt->startTransaction(dstzone, dstinfo.id);
+  }
 
   while(src->get(rr)) {
     rr.domain_id = dstinfo.id;
@@ -2659,11 +2664,20 @@ static int zonemdVerifyFile(const ZoneName& zone, const string& fname) {
 // default metadata, matching the behaviour of the REST API.
 static bool createZoneWithDefaults(UtilBackend &backend, DomainInfo &info, const ZoneName& zone, DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries)
 {
-  if (!backend.createDomain(zone, kind, primaries, "", info, false)) {
+  // As we don't know which backend will get to create the zone yet, ask for
+  // a domain transaction anyway, and we'll adjust our expectations after that.
+  bool success = backend.createDomain(zone, kind, primaries, "", info, true /* startTransaction */);
+  bool makeDomainTransaction = info.backend != nullptr && (info.backend->getCapabilities() & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
+  if (!success) {
     cerr << "Zone '" << zone << "' was not created." << endl;
+    if (makeDomainTransaction) {
+      info.backend->abortTransaction();
+    }
     return false;
   }
-  info.backend->startTransaction(zone, static_cast<int>(info.id));
+  if (!makeDomainTransaction) {
+    info.backend->startTransaction(zone, info.id);
+  }
   info.backend->setDomainMetadataOne(zone, "SOA-EDIT-API", "DEFAULT");
   info.backend->commitTransaction();
   return true;
@@ -3701,7 +3715,11 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
   DNSBackend *db = B.backends[0].get();
   cout << "Creating secondary zone " << zone << endl;
   DomainInfo di;
-  if (!db->createSecondaryDomain("127.0.0.1", zone, "", "_testschema", di, false)) {
+  bool makeDomainTransaction = (db->getCapabilities() & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
+  if (!db->createSecondaryDomain("127.0.0.1", zone, "", "_testschema", di, makeDomainTransaction)) {
+    if (makeDomainTransaction) {
+      di.backend->abortTransaction();
+    }
     cout << "Can't create secondary zone, aborting" << endl;
     return EXIT_FAILURE;
   }
@@ -3709,8 +3727,13 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
 
   db=di.backend;
   DNSResourceRecord rr, rrget;
-  cout<<"Starting transaction to feed records"<<endl;
-  db->startTransaction(zone, di.id);
+  if (makeDomainTransaction) {
+    cout<<"Feeding records"<<endl;
+  }
+  else {
+    cout<<"Starting transaction to feed records"<<endl;
+    db->startTransaction(zone, di.id);
+  }
 
   rr.qtype=QType::SOA;
   rr.qname=zone.operator const DNSName&();
