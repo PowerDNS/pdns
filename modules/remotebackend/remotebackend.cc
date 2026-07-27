@@ -810,7 +810,7 @@ bool RemoteBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<D
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::startTransaction(const ZoneName& domain, domainid_t domain_id)
+bool RemoteBackend::startTransactionInternal(const ZoneName& domain, domainid_t domain_id)
 {
   this->d_trxid = time((time_t*)nullptr);
 
@@ -824,6 +824,14 @@ bool RemoteBackend::startTransaction(const ZoneName& domain, domainid_t domain_i
     return false;
   }
   return true;
+}
+bool RemoteBackend::startDomainCreationTransaction(const ZoneName& qname, domainid_t domainId)
+{
+  return startTransactionInternal(qname, domainId);
+}
+bool RemoteBackend::startDomainModificationTransaction(const ZoneName& qname)
+{
+  return startTransactionInternal(qname, UnknownDomainID);
 }
 
 bool RemoteBackend::commitTransaction()

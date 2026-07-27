@@ -145,6 +145,14 @@ bool DNSBackend::searchComments(const string& pattern, size_t maxResults, vector
   return true;
 }
 
+bool DNSBackend::startTransaction(const ZoneName& qname, domainid_t domainId)
+{
+  if (domainId == UnknownDomainID) {
+    return startDomainModificationTransaction(qname);
+  }
+  return startDomainCreationTransaction(qname, domainId);
+}
+
 void BackendFactory::declare(const string& suffix, const string& param, const string& explanation, const string& value)
 {
   string fullname = d_name + suffix + "-" + param;

@@ -2302,7 +2302,26 @@ bool GSQLBackend::feedEnts3(domainid_t domain_id, const DNSName& /* domain */, m
   return true;
 }
 
-bool GSQLBackend::startTransaction(const ZoneName &domain, domainid_t domain_id)
+bool GSQLBackend::startDomainCreationTransaction(const ZoneName &domain, domainid_t domain_id)
+{
+  startDomainModificationTransaction(domain);
+  try {
+    // clang-format off
+    d_DeleteZoneQuery_stmt->
+      bind("domain_id", domain_id)->
+      execute()->
+      reset();
+    // clang-format on
+  }
+  catch (SSqlException &e) {
+    d_inTransaction = false;
+    throw PDNSException("Database failed to delete contents of domain '" + domain.toLogString() + "': "+e.txtReason());
+  }
+
+  return true;
+}
+
+bool GSQLBackend::startDomainModificationTransaction(const ZoneName &domain)
 {
   try {
     reconnectIfNeeded();
@@ -2312,14 +2331,6 @@ bool GSQLBackend::startTransaction(const ZoneName &domain, domainid_t domain_id)
     }
     d_db->startTransaction();
     d_inTransaction = true;
-    if(domain_id != UnknownDomainID) {
-      // clang-format off
-      d_DeleteZoneQuery_stmt->
-        bind("domain_id", domain_id)->
-        execute()->
-        reset();
-      // clang-format on
-    }
   }
   catch (SSqlException &e) {
     d_inTransaction = false;

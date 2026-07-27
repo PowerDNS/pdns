@@ -200,7 +200,8 @@ public:
   void setStale(domainid_t domain_id) override;
   void setFresh(domainid_t domain_id) override;
   void setNotified(domainid_t id, uint32_t serial) override;
-  bool startTransaction(const ZoneName& qname, domainid_t domainId) override;
+  bool startDomainCreationTransaction(const ZoneName& qname, domainid_t domainId) override;
+  bool startDomainModificationTransaction(const ZoneName& qname) override;
   bool feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool commitTransaction() override;
   bool abortTransaction() override;

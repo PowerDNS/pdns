@@ -210,14 +210,8 @@ void Bind2Backend::setFresh(domainid_t domain_id)
   Bind2Backend::setLastCheck(domain_id, time(nullptr));
 }
 
-bool Bind2Backend::startTransaction(const ZoneName& qname, domainid_t domainId)
+bool Bind2Backend::startDomainCreationTransaction(const ZoneName& qname, domainid_t domainId)
 {
-  if (domainId == UnknownDomainID) {
-    d_transaction_tmpname.clear();
-    d_transaction_id = UnknownDomainID;
-    // No support for domain contents deletion
-    return false;
-  }
   if (domainId == 0) {
     throw DBException("domain_id 0 is invalid for this backend.");
   }
@@ -249,6 +243,15 @@ bool Bind2Backend::startTransaction(const ZoneName& qname, domainid_t domainId)
 
     return true;
   }
+  return false;
+}
+
+bool Bind2Backend::startDomainModificationTransaction(const ZoneName& /* qname */)
+{
+  d_transaction_tmpname.clear();
+  d_transaction_id = UnknownDomainID;
+  // No support for domain contents modification, except as a "delete and
+  // recreate in its entirety" operation.
   return false;
 }
 
