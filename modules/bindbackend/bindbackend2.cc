@@ -210,38 +210,46 @@ void Bind2Backend::setFresh(domainid_t domain_id)
   Bind2Backend::setLastCheck(domain_id, time(nullptr));
 }
 
-bool Bind2Backend::startDomainCreationTransaction(const ZoneName& qname, domainid_t domainId)
+bool Bind2Backend::startDomainCreationTransactionInternal(BB2DomainInfo& bbd)
 {
+  d_transaction_qname = bbd.d_name;
+  d_transaction_id = bbd.d_id;
+  d_transaction_tmpname = bbd.main_filename() + "XXXXXX";
+  int fd = mkstemp(&d_transaction_tmpname.at(0));
+  if (fd == -1) {
+    throw DBException("Unable to create a unique temporary zonefile '" + d_transaction_tmpname + "': " + stringerror());
+  }
+
+  d_of = std::make_unique<ofstream>(d_transaction_tmpname);
+  if (!*d_of) {
+    unlink(d_transaction_tmpname.c_str());
+    close(fd);
+    fd = -1;
+    d_of.reset();
+    throw DBException("Unable to open temporary zonefile '" + d_transaction_tmpname + "': " + stringerror());
+  }
+  close(fd);
+  fd = -1;
+
+  *d_of << "; Written by PowerDNS, don't edit!" << endl;
+  *d_of << "; Zone '" << bbd.d_name << "' retrieved from primary " << endl
+        << "; at " << nowTime() << endl; // insert primary info here again
+
+  return true;
+}
+
+bool Bind2Backend::startDomainCreationTransaction(const ZoneName& /* qname */, domainid_t domainId)
+{
+  d_transaction_tmpname.clear();
+  d_transaction_id = UnknownDomainID;
+
   if (domainId == 0) {
     throw DBException("domain_id 0 is invalid for this backend.");
   }
 
-  d_transaction_id = domainId;
-  d_transaction_qname = qname;
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(domainId, &bbd)) {
-    d_transaction_tmpname = bbd.main_filename() + "XXXXXX";
-    int fd = mkstemp(&d_transaction_tmpname.at(0));
-    if (fd == -1) {
-      throw DBException("Unable to create a unique temporary zonefile '" + d_transaction_tmpname + "': " + stringerror());
-    }
-
-    d_of = std::make_unique<ofstream>(d_transaction_tmpname);
-    if (!*d_of) {
-      unlink(d_transaction_tmpname.c_str());
-      close(fd);
-      fd = -1;
-      d_of.reset();
-      throw DBException("Unable to open temporary zonefile '" + d_transaction_tmpname + "': " + stringerror());
-    }
-    close(fd);
-    fd = -1;
-
-    *d_of << "; Written by PowerDNS, don't edit!" << endl;
-    *d_of << "; Zone '" << bbd.d_name << "' retrieved from primary " << endl
-          << "; at " << nowTime() << endl; // insert primary info here again
-
-    return true;
+    return startDomainCreationTransactionInternal(bbd);
   }
   return false;
 }
@@ -250,6 +258,7 @@ bool Bind2Backend::startDomainModificationTransaction(const ZoneName& /* qname *
 {
   d_transaction_tmpname.clear();
   d_transaction_id = UnknownDomainID;
+
   // No support for domain contents modification, except as a "delete and
   // recreate in its entirety" operation.
   return false;
