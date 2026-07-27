@@ -83,7 +83,7 @@ public:
 
   static bool forcedRefresh(Flags flags)
   {
-    return (flags & Refresh) != 0;
+    return (flags & ForcedRefresh) != 0;
   }
   // The type used to pass auth record data to replace(); If the vector is non-empty, the cache will
   // store a shared pointer to the copied data. The shared pointer will be returned by get().  There

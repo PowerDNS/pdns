@@ -2454,20 +2454,85 @@ static void handleRCC(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
   }
 }
 
+static uint32_t keepWarmResolve(const timeval& now, const rec::KeepWarmEntry& element, time_t cooldown, Logr::log_t log)
+{
+  SyncRes resolver(now);
+  resolver.setQNameMinimization(true);
+  resolver.setCacheOnly(true);
+  resolver.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
+  resolver.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
+  int res = -1;
+  std::vector<DNSRecord> ret;
+  const std::string msg = "Exception while resolving";
+  try {
+    // we're only checking the cache here
+    res = resolver.beginResolve(element.d_qname, element.d_qtype, QClass::IN, ret, 0);
+  }
+  catch (const PDNSException& e) {
+    log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
+    ret.clear();
+  }
+  catch (const ImmediateServFailException& e) {
+    log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException"));
+    ret.clear();
+  }
+  catch (const PolicyHitException&) {
+    log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException"));
+    ret.clear();
+  }
+  catch (const std::exception& e) {
+    log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception"));
+    ret.clear();
+  }
+  catch (...) {
+    log->info(Logr::Warning, msg);
+    ret.clear();
+  }
+  uint32_t minttl = cooldown;
+
+  // If no records found, either it did not resolve at all
+  // (e.g. NXDOMAIN or NODATA), or it did not resolve yet because
+  // the task did not run yet. In both cases, pace the work by
+  // putting furter processing to the future.
+
+  if (!ret.empty()) {
+    minttl = std::numeric_limits<uint32_t>::max();
+    bool haveAnswerRecord = false;
+    for (const auto& record : ret) {
+      if (record.d_place == DNSResourceRecord::ANSWER) {
+        haveAnswerRecord = true;
+      }
+      minttl = std::min(minttl, record.d_ttl);
+    }
+    if (haveAnswerRecord && !haveFinalAnswer(element.d_qname, element.d_qtype, res, ret)) {
+      // Common cause: a record in the CNAME chain expired, setting the minttl will trigger a task push below
+      minttl = 0;
+    }
+  }
+  return minttl;
+}
+
 static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>& luaconfsLocal)
 {
   auto log = g_slog->withName("cachewarmer");
 
+  // The current list of names/qtypes we are keeping warm
   static LockGuarded<rec::KeepWarm> s_keepwarm;
   static uint64_t lastgeneration = 0;
 
   auto lock = s_keepwarm.lock();
 
   if (lastgeneration != luaconfsLocal->generation) {
+    // We need to update the list of names/qtypes. We do that by first adding the pairs from the new
+    // config to the list. This will *not* replace existing equivalent entries, so the TTD
+    // information of existing names/qtypes is not overwritten.
     lastgeneration = luaconfsLocal->generation;
     for (const auto& [qname, qtype] : luaconfsLocal->keepWarm) {
       lock->emplace(qname, qtype);
     }
+    // Next, we remove the entries no longer in the config from the current list of names/qtypes.
+    // We use a helper set that is built once, as looking up these entries in a set is much quicker
+    // than walking a vector all the time.
     std::set<std::pair<DNSName, QType>> all;
     std::copy(luaconfsLocal->keepWarm.begin(), luaconfsLocal->keepWarm.end(), std::inserter(all, all.end()));
     for (auto iter = lock->begin(); iter != lock->end();) {
@@ -2480,13 +2545,13 @@ static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>
     }
   }
 
+  // Take a max of batchSize entries to be handle
+  const auto batchSize = std::min(static_cast<size_t>(1000), lock->size());
   std::vector<rec::KeepWarmEntry> toBeHandled;
-
   const auto& sidx = lock->get().template get<rec::KeepWarm::TTDTag>();
   auto siter = sidx.begin();
 
-  const auto batchSize = std::min(static_cast<size_t>(1000), lock->size());
-  const time_t specialTime = 1;
+  const time_t specialTime = 1; // A task was pushed, we should check the result
   const time_t cooldown = 60;
   const time_t almost = 5;
   for (size_t i = 0; i < batchSize && siter != sidx.end(); i++, siter++) {
@@ -2498,69 +2563,22 @@ static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>
   }
 
   for (auto& element : toBeHandled) {
-    if (element.d_ttd == specialTime) {
-      SyncRes resolver(now);
-      resolver.setQNameMinimization(true);
-      resolver.setCacheOnly(true);
-      resolver.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
-      resolver.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
-      std::vector<DNSRecord> ret;
-      int res = -1;
-      const std::string msg = "Exception while resolving";
-      try {
-        res = resolver.beginResolve(element.d_qname, element.d_qtype, QClass::IN, ret, 0);
-      }
-      catch (const PDNSException& e) {
-        log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
-        ret.clear();
-      }
-      catch (const ImmediateServFailException& e) {
-        log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException"));
-        ret.clear();
-      }
-      catch (const PolicyHitException&) {
-        log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException"));
-        ret.clear();
-      }
-      catch (const std::exception& e) {
-        log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception"));
-        ret.clear();
-      }
-      catch (...) {
-        log->info(Logr::Warning, msg);
-        ret.clear();
-      }
-
-      uint32_t minttl = cooldown; // If no records found, either it did not resolve at all, or it did
-                                  // not resolve yet. In both cases, pace the work.
-      if (!ret.empty()) {
-        minttl = std::numeric_limits<uint32_t>::max();
-        bool haveAnswerRecord = false;
-        for (const auto& record : ret) {
-          if (record.d_place == DNSResourceRecord::ANSWER) {
-            haveAnswerRecord = true;
-          }
-          minttl = std::min(minttl, record.d_ttl);
-        }
-        if (haveAnswerRecord && !haveFinalAnswer(element.d_qname, element.d_qtype, res, ret)) {
-          // Common cause: a record in the CNAME chain expired, setting the minttl will trigger a task push below
-          minttl = 0;
-        }
-      }
+    if (element.d_ttd == specialTime) { // a task was pushed and potentially ran, we need to check if it returned a result
+      auto minttl = keepWarmResolve(now, element, cooldown, log);
       lock->modifyTTD(element, now.tv_sec + minttl);
     }
     if (element.d_ttd <= now.tv_sec + almost) { // include non-initialized (0) case
       pushAlmostExpiredTask(element.d_qname, element.d_qtype, now.tv_sec + cooldown, ComboAddress("255.255.255.255"), true);
-      lock->modifyTTD(element, specialTime);
+      lock->modifyTTD(element, specialTime); // we have pushed a task, next iteration will check result
     }
   }
 
   time_t wait = cooldown;
   siter = sidx.begin();
   if (siter != sidx.end()) {
-    wait = siter->d_ttd - now.tv_sec - 1;
-    wait = std::max(static_cast<time_t>(1), wait);
-    wait = std::min(static_cast<time_t>(cooldown), wait);
+    wait = siter->d_ttd - now.tv_sec - 1; // wake up just before the ttd arrives of the first task.
+    wait = std::max(static_cast<time_t>(1), wait); // but sleep at least a second
+    wait = std::min(static_cast<time_t>(cooldown), wait); // and don't sleep longer than cooldown time, for config updates
   }
 
   log->info(Logr::Debug, "Wait", "interval", Logging::Loggable(wait));

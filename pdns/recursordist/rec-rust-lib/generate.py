@@ -123,6 +123,7 @@ class LType(Enum):
     String = auto()
     Uint64 = auto()
 
+
 listOfStringTypes = (LType.ListSocketAddresses, LType.ListStrings, LType.ListSubnets, LType.ListAddressAndInterfaces)
 listOfStructuredTypes = (
     LType.ListAuthZones,

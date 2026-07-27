@@ -2129,7 +2129,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
         LuaConfigItems dummyLuaConfig; // we do not use the converted from YAML LuaConfigItems, but the "real thing"
         pdns::settings::rec::fromBridgeStructToLuaConfig(settings, dummyLuaConfig, dummyProxyMapping, conditions);
         TCPOutConnectionManager::setupOutgoingTLSConfigTables(settings);
-        lci.keepWarm = dummyLuaConfig.keepWarm; // XXX
+        lci.keepWarm = dummyLuaConfig.keepWarm;
         auto generation = g_luaconfs.getLocal()->generation;
         lci.generation = generation + 1;
       }
