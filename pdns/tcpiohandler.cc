@@ -208,7 +208,6 @@ public:
       }
     }
     else {
-#if defined(HAVE_SSL_SET_HOSTFLAGS) // grrr libressl // FIXME this PR: see if libressl still needs this #if, then clean up further
       SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
 #if !defined(OPENSSL_VERSION_MAJOR) || OPENSSL_VERSION_MAJOR < 4
       auto ret = SSL_set1_host(d_conn.get(), d_hostname.c_str());
@@ -218,14 +217,6 @@ public:
       if (ret != 1) {
         throw std::runtime_error("Error setting TLS hostname for certificate validation");
       }
-#else
-      X509_VERIFY_PARAM *param = SSL_get0_param(d_conn.get());
-      /* Enable automatic hostname checks */
-      X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-      if (X509_VERIFY_PARAM_set1_host(param, d_hostname.c_str(), d_hostname.size()) != 1) {
-        throw std::runtime_error("Error setting TLS hostname for certificate validation");
-      }
-#endif
     }
 
     SSL_set_ex_data(d_conn.get(), getConnectionIndex(), this);
