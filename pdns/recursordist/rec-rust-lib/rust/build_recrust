@@ -12,6 +12,9 @@ mytarget=${CARGO_TARGET_DIR-target}
 #echo "mytarget=${mytarget}"
 
 CARGO_PROFILE="release"
+#
+# CARGO_USE_DEV in combination with g++ might give you link errors!
+#
 if [ -n "${CARGO_USE_DEV}" ]; then
     CARGO_PROFILE="dev"
     if [ -n "${CARGO_USE_CLIPPY}" ]; then
