@@ -48,44 +48,6 @@
 #include "misc.hh"
 #include "tcpiohandler.hh"
 
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
-/* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
-
-#include "lock.hh"
-static std::vector<std::mutex> openssllocks;
-
-extern "C" {
-static void openssl_pthreads_locking_callback(int mode, int type, const char *file, int line)
-{
-  if (mode & CRYPTO_LOCK) {
-    openssllocks.at(type).lock();
-
-  } else {
-    openssllocks.at(type).unlock();
-  }
-}
-
-static unsigned long openssl_pthreads_id_callback()
-{
-  return (unsigned long)pthread_self();
-}
-}
-
-static void openssl_thread_setup()
-{
-  openssllocks = std::vector<std::mutex>(CRYPTO_num_locks());
-  CRYPTO_set_id_callback(&openssl_pthreads_id_callback);
-  CRYPTO_set_locking_callback(&openssl_pthreads_locking_callback);
-}
-
-static void openssl_thread_cleanup()
-{
-  CRYPTO_set_locking_callback(nullptr);
-  openssllocks.clear();
-}
-
-#endif /* (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL) */
-
 static std::atomic<uint64_t> s_users;
 
 #if OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
@@ -127,13 +89,6 @@ void registerOpenSSLUser()
     OPENSSL_init_ssl(sslOpts, nullptr);
 #endif /* HAVE_OPENSSL_INIT_CRYPTO */
 
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
-    /* load error strings for both libcrypto and libssl */
-    SSL_load_error_strings();
-    /* load all ciphers and digests needed for TLS support */
-    OpenSSL_add_ssl_algorithms();
-    openssl_thread_setup();
-#endif
     s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
 
     if (s_ticketsKeyIndex == -1) {
@@ -164,18 +119,6 @@ void unregisterOpenSSLUser()
     }
     s_engines.lock()->clear();
 #endif /* PDNS_ENABLE_LIBSSL_ENGINE */
-#if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
-    ERR_free_strings();
-
-    EVP_cleanup();
-
-    CONF_modules_finish();
-    CONF_modules_free();
-    CONF_modules_unload(1);
-
-    CRYPTO_cleanup_all_ex_data();
-    openssl_thread_cleanup();
-#endif
   }
 }
 
