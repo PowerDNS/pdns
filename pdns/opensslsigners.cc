@@ -2122,6 +2122,380 @@ void OpenSSLEDDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& cont
 }
 #endif // HAVE_LIBCRYPTO_EDDSA
 
+#ifdef HAVE_LIBCRYPTO_MLDSA
+class OpenSSLMLDSADNSCryptoKeyEngine : public DNSCryptoKeyEngine
+{
+public:
+  explicit OpenSSLMLDSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo);
+
+  [[nodiscard]] string getName() const override { return "OpenSSL MLDSA"; }
+  [[nodiscard]] int getBits() const override;
+
+  void create(unsigned int bits) override;
+  void create(unsigned int bits, std::string seed="");
+
+  /**
+   * \brief Creates an MLDSA key engine from a PEM file.
+   *
+   * Receives an open file handle with PEM contents and creates an MLDSA key engine.
+   *
+   * \param[in] drc Key record contents to be populated.
+   *
+   * \param[in] inputFile An open file handle to a file containing MLDSA PEM contents.
+   *
+   * \param[in] filename Only used for providing filename information in error messages.
+   *
+   * \return An MLDSA key engine populated with the contents of the PEM file.
+   */
+  void createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename = std::nullopt) override;
+
+  /**
+   * \brief Writes this key's contents to a file.
+   *
+   * Receives an open file handle and writes this key's contents to the
+   * file.
+   *
+   * \param[in] outputFile An open file handle for writing.
+   *
+   * \exception std::runtime_error In case of OpenSSL errors.
+   */
+  void convertToPEMFile(std::FILE& outputFile) const override;
+
+  [[nodiscard]] storvector_t convertToISCVector() const override;
+  [[nodiscard]] std::string sign(const std::string& msg) const override;
+  [[nodiscard]] bool verify(const std::string& message, const std::string& signature) const override;
+  [[nodiscard]] std::string getPublicKeyString() const override;
+  void fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap) override;
+  void fromPublicKeyString(const std::string& content) override;
+  [[nodiscard]] bool checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const override;
+
+  static std::unique_ptr<DNSCryptoKeyEngine> maker(Logr::log_t slog, unsigned int algorithm)
+  {
+    return make_unique<OpenSSLMLDSADNSCryptoKeyEngine>(slog, algorithm);
+  }
+
+  using Key = unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
+  using KeyContext = std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)>;
+  using MessageDigestContext = std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)>;
+
+private:
+#if OPENSSL_VERSION_MAJOR >= 3
+  using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+  using Params = std::unique_ptr<OSSL_PARAM, decltype(&OSSL_PARAM_free)>;
+  auto makeKeyParams(const std::string& group_name, const BIGNUM* privateKey, const std::optional<std::string>& publicKey) const -> Params;
+  [[nodiscard]] auto getPrivateKey() const -> BigNum;
+#endif
+
+
+  size_t d_len{0};
+  int d_id{0};
+
+  Key d_key;
+};
+
+OpenSSLMLDSADNSCryptoKeyEngine::OpenSSLMLDSADNSCryptoKeyEngine(Logr::log_t slog, unsigned int algo) :
+  DNSCryptoKeyEngine(slog, algo),
+  d_key(Key(nullptr, EVP_PKEY_free))
+{
+  int ret = RAND_status();
+  if (ret != 1) {
+    throw runtime_error(OpenSSLMLDSADNSCryptoKeyEngine::getName() + " insufficient entropy");
+  }
+
+#ifdef HAVE_LIBCRYPTO_ED25519
+  if (d_algorithm == 15) {
+    d_len = 32;
+    d_id = NID_ED25519;
+  }
+#endif
+#ifdef HAVE_LIBCRYPTO_ED448
+  if (d_algorithm == 16) {
+    d_len = 57;
+    d_id = NID_ED448;
+  }
+#endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+  if (d_algorithm == 18) {
+    d_len = 32;
+    d_id = NID_ML_DSA_44;
+  }
+#endif
+  if (d_len == 0) {
+    throw runtime_error(OpenSSLMLDSADNSCryptoKeyEngine::getName() + " unknown algorithm " + std::to_string(d_algorithm));
+  }
+}
+
+int OpenSSLMLDSADNSCryptoKeyEngine::getBits() const
+{
+  return (int)d_len << 3;
+}
+
+bool OpenSSLMLDSADNSCryptoKeyEngine::checkKey([[maybe_unused]] std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const
+{
+#if OPENSSL_VERSION_MAJOR >= 3
+  auto ctx = KeyContext{EVP_PKEY_CTX_new_from_pkey(nullptr, d_key.get(), nullptr), EVP_PKEY_CTX_free};
+  if (ctx == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Failed to create context to check key");
+  }
+
+  bool retval = true;
+
+  auto addOpenSSLErrorMessageOnFail = [errorMessages, &retval](const int errorCode, const auto defaultErrorMessage) {
+    // Error code of -2 means the check is not supported for the algorithm, which is fine.
+    if (errorCode != 1 && errorCode != -2) {
+      retval = false;
+
+      if (errorMessages.has_value()) {
+        const auto* errorMessage = ERR_reason_error_string(ERR_get_error());
+        if (errorMessage == nullptr) {
+          errorMessages->get().push_back(defaultErrorMessage);
+        }
+        else {
+          errorMessages->get().emplace_back(errorMessage);
+        }
+      }
+    }
+  };
+
+  addOpenSSLErrorMessageOnFail(EVP_PKEY_param_check(ctx.get()), getName() + "Unknown OpenSSL error during key param check");
+  addOpenSSLErrorMessageOnFail(EVP_PKEY_public_check(ctx.get()), getName() + "Unknown OpenSSL error during public key check");
+  addOpenSSLErrorMessageOnFail(EVP_PKEY_private_check(ctx.get()), getName() + "Unknown OpenSSL error during private key check");
+  addOpenSSLErrorMessageOnFail(EVP_PKEY_pairwise_check(ctx.get()), getName() + "Unknown OpenSSL error during key pairwise check");
+
+  return retval;
+#else
+  return (d_key ? true : false);
+#endif
+}
+
+void OpenSSLMLDSADNSCryptoKeyEngine::create(unsigned int /* bits */, std::string seed)
+{
+  auto pctx = KeyContext(EVP_PKEY_CTX_new_id(d_id, nullptr), EVP_PKEY_CTX_free);
+  if (!pctx) {
+    throw pdns::OpenSSL::error(getName(), "Context initialization failed");
+  }
+
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters builder");
+  }
+
+  if (! seed.empty()) {
+    OSSL_PARAM_BLD_push_octet_string(params_build.get(), OSSL_PKEY_PARAM_ML_DSA_SEED, seed.c_str(), seed.size());
+  }
+
+  auto params = Params(OSSL_PARAM_BLD_to_param(params_build.get()), OSSL_PARAM_free);
+  if (params == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters");
+  }
+
+  if (EVP_PKEY_keygen_init(pctx.get()) < 1) {
+    throw pdns::OpenSSL::error(getName(), "Keygen initialization failed");
+  }
+
+  int ret = EVP_PKEY_CTX_set_params(pctx.get(), params.get());
+  if (ret < 1) {
+    throw pdns::OpenSSL::error(getName(), "Parameter setting failed");
+  }
+
+  EVP_PKEY* newKey = nullptr;
+  if (EVP_PKEY_keygen(pctx.get(), &newKey) < 1) {
+    throw pdns::OpenSSL::error(getName(), "Key generation failed");
+  }
+
+  d_key.reset(newKey);
+}
+
+void OpenSSLMLDSADNSCryptoKeyEngine::create(unsigned int bits)
+{
+  create(bits, "");
+}
+
+void OpenSSLMLDSADNSCryptoKeyEngine::createFromPEMFile(DNSKEYRecordContent& drc, std::FILE& inputFile, std::optional<std::reference_wrapper<const std::string>> filename)
+{
+  drc.d_algorithm = d_algorithm;
+  d_key = Key(PEM_read_PrivateKey(&inputFile, nullptr, nullptr, nullptr), &EVP_PKEY_free);
+  if (d_key == nullptr) {
+    if (filename.has_value()) {
+      throw pdns::OpenSSL::error(getName(), "Failed to read private key from PEM file `" + filename->get() + "`");
+    }
+
+    throw pdns::OpenSSL::error(getName(), "Failed to read private key from PEM contents");
+  }
+}
+
+void OpenSSLMLDSADNSCryptoKeyEngine::convertToPEMFile(std::FILE& outputFile) const
+{
+  auto ret = PEM_write_PrivateKey(&outputFile, d_key.get(), nullptr, nullptr, 0, nullptr, nullptr);
+  if (ret == 0) {
+    throw pdns::OpenSSL::error(getName(), "Could not convert private key to PEM");
+  }
+}
+
+DNSCryptoKeyEngine::storvector_t OpenSSLMLDSADNSCryptoKeyEngine::convertToISCVector() const
+{
+  storvector_t storvect;
+  string algorithm;
+
+#ifdef HAVE_LIBCRYPTO_ED25519
+  if (d_algorithm == 15) {
+    algorithm = "15 (ED25519)";
+  }
+#endif
+#ifdef HAVE_LIBCRYPTO_ED448
+  if (d_algorithm == 16) {
+    algorithm = "16 (ED448)";
+  }
+#endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+  if (d_algorithm == 18) {
+    algorithm = "18 (MLDSA44)";
+  }
+#endif
+  if (algorithm.empty()) {
+    algorithm = " ? (?)";
+  }
+
+  storvect.emplace_back("Algorithm", algorithm);
+
+  string buf;
+  size_t len = d_len;
+  buf.resize(len);
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  if (d_algorithm == 18) {
+    if (EVP_PKEY_get_octet_string_param(d_key.get(), OSSL_PKEY_PARAM_ML_DSA_SEED, reinterpret_cast<unsigned char*>(&buf.at(0)), len, &len) < 1) {
+      throw pdns::OpenSSL::error(getName(), "Could not get private seed from d_key");
+    }
+  } else {
+    if (EVP_PKEY_get_raw_private_key(d_key.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
+      throw pdns::OpenSSL::error(getName(), "Could not get private key from d_key");
+    }
+  }
+  storvect.emplace_back("PrivateKey", buf);
+  return storvect;
+}
+
+std::string OpenSSLMLDSADNSCryptoKeyEngine::sign(const std::string& msg) const
+{
+  auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
+  if (params_build == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key's parameters builder");
+  }
+
+  OSSL_PARAM_BLD_push_int(params_build.get(), OSSL_SIGNATURE_PARAM_DETERMINISTIC, 1);
+
+  auto params = Params(OSSL_PARAM_BLD_to_param(params_build.get()), OSSL_PARAM_free);
+  if (params == nullptr) {
+    throw pdns::OpenSSL::error(getName(), "Could not create signer parameters");
+  }
+
+  auto mdctx = MessageDigestContext(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  if (!mdctx) {
+    throw pdns::OpenSSL::error(getName(), "MD context initialization failed");
+  }
+  if (EVP_DigestSignInit_ex(mdctx.get(), nullptr, nullptr, nullptr, nullptr, d_key.get(), params.get()) < 1) {
+    throw pdns::OpenSSL::error(getName(), "Unable to initialize signer");
+  }
+
+  // FIGURE OUT: set_params failed, so I switched to Init_ex, which does work
+  // int ret = EVP_MD_CTX_set_params(mdctx.get(), params.get());
+  // cerr<<ret<<endl;
+  // if (ret < 1) {
+  //   throw pdns::OpenSSL::error(getName(), "Signer parameter setting failed");
+  // }
+
+  string msgToSign = msg;
+
+  size_t siglen = (d_algorithm == 18) ? 2420 : d_len * 2;
+  string signature;
+  signature.resize(siglen);
+
+  if (EVP_DigestSign(mdctx.get(),
+                     // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+                     reinterpret_cast<unsigned char*>(&signature.at(0)), &siglen,
+                     // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+                     reinterpret_cast<unsigned char*>(&msgToSign.at(0)), msgToSign.length())
+      < 1) {
+    throw pdns::OpenSSL::error(getName(), "Signing error");
+  }
+
+  return signature;
+}
+
+bool OpenSSLMLDSADNSCryptoKeyEngine::verify(const std::string& message, const std::string& signature) const
+{
+  auto ctx = MessageDigestContext(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  if (!ctx) {
+    throw pdns::OpenSSL::error(getName(), "MD context initialization failed");
+  }
+  if (EVP_DigestVerifyInit(ctx.get(), nullptr, nullptr, nullptr, d_key.get()) < 1) {
+    throw pdns::OpenSSL::error(getName(), "Unable to initialize signer");
+  }
+
+  auto ret = EVP_DigestVerify(ctx.get(),
+                              // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+                              reinterpret_cast<const unsigned char*>(&signature.at(0)), signature.length(),
+                              // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+                              reinterpret_cast<const unsigned char*>(&message.at(0)), message.length());
+  if (ret < 0) {
+    throw pdns::OpenSSL::error(getName(), "Verification failure");
+  }
+
+  return (ret == 1);
+}
+
+std::string OpenSSLMLDSADNSCryptoKeyEngine::getPublicKeyString() const
+{
+  string buf;
+  size_t len = (d_algorithm == 18) ? 1312 : d_len;
+
+  buf.resize(len);
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  if (EVP_PKEY_get_raw_public_key(d_key.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
+    throw pdns::OpenSSL::error(getName(), "Unable to get public key from key struct");
+  }
+
+  return buf;
+}
+
+void OpenSSLMLDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::map<std::string, std::string>& stormap)
+{
+  drc.d_algorithm = atoi(stormap["algorithm"].c_str());
+  if (drc.d_algorithm != d_algorithm) {
+    throw runtime_error(getName() + " tried to feed an algorithm " + std::to_string(drc.d_algorithm) + " to a " + std::to_string(d_algorithm) + " key");
+  }
+
+  if (d_algorithm == 18) {
+    create(32, stormap["privatekey"]);
+    return;
+  }
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  d_key = Key(EVP_PKEY_new_raw_private_key(d_id, nullptr, reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length()), EVP_PKEY_free);
+  if (!d_key) {
+    throw pdns::OpenSSL::error(getName(), "Could not create key structure from private key");
+  }
+}
+
+void OpenSSLMLDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
+{
+  if (d_algorithm != 18 && content.length() != d_len) {
+    throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
+  }
+
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  const auto* raw = reinterpret_cast<const unsigned char*>(content.c_str());
+
+  d_key = Key(EVP_PKEY_new_raw_public_key(d_id, nullptr, raw, content.length()), EVP_PKEY_free);
+  if (!d_key) {
+    throw pdns::OpenSSL::error(getName(), "Allocation of public key structure failed");
+  }
+}
+#endif // HAVE_LIBCRYPTO_MLDSA
+
+
 namespace
 {
 const struct LoaderStruct
@@ -2143,7 +2517,7 @@ const struct LoaderStruct
     DNSCryptoKeyEngine::report(DNSSEC::ED448, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
 #endif
 #ifdef HAVE_LIBCRYPTO_ML_DSA_44
-    DNSCryptoKeyEngine::report(DNSSEC::MLDSA44, &OpenSSLEDDSADNSCryptoKeyEngine::maker);
+    DNSCryptoKeyEngine::report(DNSSEC::MLDSA44, &OpenSSLMLDSADNSCryptoKeyEngine::maker);
 #endif
   }
 } loaderOpenSSL;
