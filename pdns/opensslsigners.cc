@@ -2057,7 +2057,7 @@ public:
   [[nodiscard]] int getBits() const override;
 
   void create(unsigned int bits) override;
-  void create(unsigned int bits, std::string seed="");
+  void create(unsigned int bits, std::string seed);
 
   /**
    * \brief Creates an MLDSA key engine from a PEM file.
