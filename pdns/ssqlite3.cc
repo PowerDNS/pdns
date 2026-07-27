@@ -297,10 +297,19 @@ SSQLite3::SSQLite3(Logr::log_t log, const std::string& database, const std::stri
   d_slog = log;
   m_dolog = false;
 
-  if (access(database.c_str(), F_OK) == -1) {
-    if (!creat) {
+  if (access(database.c_str(), W_OK) == -1) {
+    if (!creat && errno == ENOENT) {
       throw SSqlException("SQLite database '" + database + "' does not exist yet");
     }
+    if (errno == EACCES) {
+      throw SSqlException("SQLite database '" + database + "' is not writable");
+    }
+    // Other errors will cause sqlite3_open() to fail anyway. We needed to
+    // explicitly check for write access here, for SQLite < 3.46 in some
+    // configuration will leak file descriptors if the database can not be
+    // open read-write; refer to
+    // https://github.com/PowerDNS/pdns/issues/13952#issuecomment-2008254248
+    // for details.
   }
   else {
     if (creat) {
