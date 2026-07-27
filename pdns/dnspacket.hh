@@ -171,6 +171,7 @@ public:
   static bool s_doEDNSSubnetProcessing;
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
+  static std::vector<std::string> s_OldEDNSCookieKeys;
   EDNSSubnetOpts d_eso;
 
 #ifdef ENABLE_GSS_TSIG

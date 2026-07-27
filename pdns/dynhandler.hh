@@ -56,3 +56,4 @@ string DLSuckRequests(const vector<string> &parts, Utility::pid_t ppid, Logr::lo
 string DLTokenLogin(const vector<string>&parts, Utility::pid_t ppid, Logr::log_t slog);
 string DLUptimeHandler(const vector<string>&parts, Utility::pid_t ppid, Logr::log_t slog);
 string DLVersionHandler(const vector<string>&parts, Utility::pid_t ppid, Logr::log_t slog);
+string DLManageCookieSecret(const vector<string>&parts, Utility::pid_t ppid, Logr::log_t slog);
