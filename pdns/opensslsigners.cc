@@ -2111,7 +2111,6 @@ private:
   [[nodiscard]] auto getPrivateKey() const -> BigNum;
 #endif
 
-
   size_t d_len{0};
   int d_id{0};
 
@@ -2193,7 +2192,7 @@ void OpenSSLMLDSADNSCryptoKeyEngine::create(unsigned int /* bits */, std::string
     throw pdns::OpenSSL::error(getName(), "Could not create key's parameters builder");
   }
 
-  if (! seed.empty()) {
+  if (!seed.empty()) {
     OSSL_PARAM_BLD_push_octet_string(params_build.get(), OSSL_PKEY_PARAM_ML_DSA_SEED, seed.c_str(), seed.size());
   }
 
@@ -2382,7 +2381,6 @@ void OpenSSLMLDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& cont
   }
 }
 #endif // HAVE_LIBCRYPTO_MLDSA
-
 
 namespace
 {
