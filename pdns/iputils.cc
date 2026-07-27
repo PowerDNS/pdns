@@ -473,7 +473,7 @@ pdns::expected<size_t, int> sendMsgWithOptions(int socketDesc, const void* buffe
     }
   } while (true);
 
-  return 0;
+  // NOTREACHED
 }
 
 template class NetmaskTree<bool, Netmask>;

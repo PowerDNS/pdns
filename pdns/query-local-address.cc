@@ -102,7 +102,7 @@ namespace pdns
         itf = Interface{ parts.at(1), idx };
       }
 
-      AddressAndInterface tmp{ComboAddress{addr}, itf};
+      AddressAndInterface tmp{ComboAddress{addr}, std::move(itf)};
       if (tmp.d_address.isIPv4()) {
         g_localQueryAddresses4.emplace_back(std::move(tmp));
         continue;
