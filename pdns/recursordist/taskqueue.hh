@@ -52,8 +52,15 @@ struct ResolveTask
   uint16_t d_qtype;
   // Deadline is not part of index and not used by operator<()
   time_t d_deadline;
-  // Whether to run this task in regular mode (false) or in the mode that refreshes almost expired tasks
-  bool d_refreshMode;
+  // Whether to run this task in normal mode (None) or in the mode that refreshes almost expired
+  // rrsets (Regular) or in Forced Mode
+  enum RefreshMode : uint8_t
+  {
+    None,
+    Refresh,
+    Forced
+  };
+  RefreshMode d_refreshMode;
   // Use a function pointer as comparing std::functions is a nuisance
   using TaskFunction = void (*)(const struct timeval& now, bool logErrors, const ResolveTask& task);
   TaskFunction d_func;
@@ -122,7 +129,7 @@ private:
                               composite_key<ResolveTask,
                                             member<ResolveTask, DNSName, &ResolveTask::d_qname>,
                                             member<ResolveTask, uint16_t, &ResolveTask::d_qtype>,
-                                            member<ResolveTask, bool, &ResolveTask::d_refreshMode>,
+                                            member<ResolveTask, ResolveTask::RefreshMode, &ResolveTask::d_refreshMode>,
                                             member<ResolveTask, ResolveTask::TaskFunction, &ResolveTask::d_func>,
                                             member<ResolveTask, ComboAddress, &ResolveTask::d_ip>,
                                             member<ResolveTask, Netmask, &ResolveTask::d_netmask>>>,
