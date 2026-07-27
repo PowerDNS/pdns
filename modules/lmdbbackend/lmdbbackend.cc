@@ -1639,7 +1639,11 @@ bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNS
 // NOLINTNEXTLINE(readability-identifier-length)
 bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
-  // zonk qname/qtype within domain_id (go through qname, check domain_id && qtype)
+  DomainInfo info;
+  if (!findDomain(domain_id, info)) {
+    return false;
+  }
+
   shared_ptr<RecordsRWTransaction> txn;
   bool needCommit = false;
   if (d_rwtxn && d_transactiondomainid == domain_id) {
@@ -1650,11 +1654,6 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     //    cout<<"Making a new RW txn for replace rrset"<<endl;
     txn = getRecordsRWTransaction(domain_id);
     needCommit = true;
-  }
-
-  DomainInfo info;
-  if (!findDomain(domain_id, info)) {
-    return false;
   }
 
   DNSName relative = qname.makeRelative(info.zone);
@@ -3227,6 +3226,12 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
 bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool isNsec3)
 {
   //  cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< ", " << qtype << endl;
+  DomainInfo info;
+  if (!findDomain(domain_id, info)) {
+    //    cout<<"Could not find domain_id "<<domain_id <<endl;
+    return false;
+  }
+
   shared_ptr<RecordsRWTransaction> txn;
   bool needCommit = false;
   if (d_rwtxn && d_transactiondomainid == domain_id) {
@@ -3239,12 +3244,6 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     needCommit = true;
   }
 
-  DomainInfo info;
-  if (!findDomain(domain_id, info)) {
-    //    cout<<"Could not find domain_id "<<domain_id <<endl;
-    return false;
-  }
-
   DNSName rel = qname.makeRelative(info.zone);
 
   compoundOrdername co;
@@ -3254,6 +3253,9 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   MDBOutVal key, val;
   if (cursor.prefix(matchkey, key, val) != 0) {
     // cout << "Could not find anything"<<endl;
+    if (needCommit) {
+      txn->txn->abort();
+    }
     return false;
   }
 
@@ -3316,6 +3318,11 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
 bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
   // cout << __PRETTY_FUNCTION__<< ": "<< domain_id << ", insert.size() "<<insert.size()<<", "<<erase.size()<<", " <<remove<<endl;
+  DomainInfo info;
+  if (!findDomain(domain_id, info)) {
+    // cout <<"No such domain with id "<<domain_id<<endl;
+    return false;
+  }
 
   bool needCommit = false;
   shared_ptr<RecordsRWTransaction> txn;
@@ -3327,12 +3334,6 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
     //    cout<<"Making a new RW txn for delete domain"<<endl;
     txn = getRecordsRWTransaction(domain_id);
     needCommit = true;
-  }
-
-  DomainInfo info;
-  if (!findDomain(domain_id, info)) {
-    // cout <<"No such domain with id "<<domain_id<<endl;
-    return false;
   }
 
   // if remove is set, all ENTs should be removed
