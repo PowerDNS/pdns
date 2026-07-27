@@ -162,6 +162,7 @@ public:
   bool d_wasRejectedLastReload{false}; //!< if the domain was rejected during Bind2Backend::queueReloadAndStore
   bool d_nsec3zone{false};
   NSEC3PARAMRecordContent d_nsec3param;
+  bool d_pending{false};
 
   // Sugar for the main filename. Only use if d_fileinfo is NOT empty!
   const std::string& main_filename() const { return d_fileinfo.front().first; }
@@ -250,7 +251,7 @@ private:
   static bool safeRemoveBBDomainInfo(const ZoneName& name);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const ZoneName& name, NSEC3PARAMRecordContent* ns3p);
-  static void setLastCheck(domainid_t domain_id, time_t lastcheck);
+  void setLastCheck(domainid_t domain_id, time_t lastcheck);
   bool getNSEC3PARAMuncached(const ZoneName& name, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
