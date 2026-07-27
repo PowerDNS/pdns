@@ -315,6 +315,7 @@ private:
   bool d_upgradeContent;
 
   BB2DomainInfo createDomainEntry(const ZoneName& domain); //!< does not insert in s_state
+  bool startDomainCreationTransactionInternal(BB2DomainInfo& bbd);
 
   void queueReloadAndStore(domainid_t id);
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
