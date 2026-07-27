@@ -398,6 +398,7 @@ bool SyncRes::s_save_parent_ns_set;
 unsigned int SyncRes::s_max_busy_dot_probes;
 unsigned int SyncRes::s_max_CNAMES_followed;
 bool SyncRes::s_addExtendedResolutionDNSErrors;
+bool SyncRes::s_ntaExtendedError;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG(x)                       \
@@ -649,6 +650,20 @@ bool SyncRes::addAdditionals(QType qtype, vector<DNSRecord>& ret, unsigned int d
   return additionalsNotInCache;
 }
 
+/* An NTA covers its whole subtree, but haveNegativeTrustAnchor() only matches a zone
+   exactly, so we walk the name up to the root to decide coverage. */
+static bool isCoveredByNTA(const std::map<DNSName, std::string>& negAnchors, const DNSName& name)
+{
+  std::string reason;
+  DNSName node(name);
+  do {
+    if (haveNegativeTrustAnchor(negAnchors, node, reason)) {
+      return true;
+    }
+  } while (node.chopOff());
+  return false;
+}
+
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass, vector<DNSRecord>& ret, unsigned int depth)
 {
@@ -688,6 +703,25 @@ int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass
   int res = doResolve(qname, qtype, ret, depth, beenthere, context);
   d_queryValidationState = context.state;
   d_extendedError = context.extendedError;
+
+  /* EDE 33 signals that an NTA is in effect for this name (coverage, not causation).
+     Consult negAnchors directly rather than via getTA(), so cache hits are covered too;
+     the answer-owner check catches a CNAME chased into an NTA. shouldValidate() keeps
+     the EDE off for queries not subject to validation, even on a cache hit. */
+  if (s_ntaExtendedError && shouldValidate() && !d_extendedError && d_queryValidationState == vState::Insecure) {
+    auto luaLocal = g_luaconfs.getLocal();
+    if (!luaLocal->negAnchors.empty()) {
+      bool covered = isCoveredByNTA(luaLocal->negAnchors, qname);
+      for (auto iter = ret.cbegin(); !covered && iter != ret.cend(); ++iter) {
+        if (iter->d_place == DNSResourceRecord::ANSWER) {
+          covered = isCoveredByNTA(luaLocal->negAnchors, iter->d_name);
+        }
+      }
+      if (covered) {
+        d_extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::NegativeTrustAnchor), ""};
+      }
+    }
+  }
 
   if (shouldValidate()) {
     if (d_queryValidationState != vState::Indeterminate) {

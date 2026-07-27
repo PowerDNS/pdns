@@ -2286,6 +2286,7 @@ static int serviceMain(Logr::log_t log)
   s_statisticsInterval = ::arg().asNum("statistics-interval");
 
   SyncRes::s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
+  SyncRes::s_ntaExtendedError = ::arg().mustDo("nta-extended-error");
 
   if (::arg().asNum("aggressive-nsec-cache-size") > 0) {
     if (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode == DNSSECMode::ValidateForLog || g_dnssecmode == DNSSECMode::Process) {

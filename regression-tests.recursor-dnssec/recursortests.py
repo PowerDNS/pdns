@@ -946,6 +946,14 @@ distributor-threads={threads}
         # This function is called before every tests
         super(RecursorTest, self).setUp()
 
+    @staticmethod
+    def getEDE(message):
+        """Return the first EDNS Extended Error (EDNS option 15) in message, or None."""
+        for option in message.options:
+            if option.otype == 15:
+                return option
+        return None
+
     ## Functions for comparisons
     def assertMessageHasFlags(self, msg, flags, ednsflags=[]):
         """Asserts that msg has all the flags from flags set

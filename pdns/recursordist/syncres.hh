@@ -484,6 +484,11 @@ public:
     return d_queryValidationState;
   }
 
+  const std::optional<EDNSExtendedError>& getExtendedError() const
+  {
+    return d_extendedError;
+  }
+
   [[nodiscard]] bool getDNSSECLimitHit() const
   {
     return d_validationContext.d_limitHit;
@@ -579,6 +584,7 @@ public:
   static int s_event_trace_enabled;
   static bool s_save_parent_ns_set;
   static bool s_addExtendedResolutionDNSErrors;
+  static bool s_ntaExtendedError;
 
   static bool eventTraceEnabled(int flag)
   {
