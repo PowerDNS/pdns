@@ -2248,11 +2248,20 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   }
 
   // no going back after this
-  if (!backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""), domainInfo, false)) {
+  // As we don't know which backend will get to create the zone yet, ask for
+  // a domain transaction anyway, and we'll adjust our expectations after that.
+  bool success = backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""), domainInfo, true /* startTransaction */);
+  bool makeDomainTransaction = domainInfo.backend != nullptr && (domainInfo.backend->getCapabilities() & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
+  if (!success) {
+    if (makeDomainTransaction) {
+      domainInfo.backend->abortTransaction();
+    }
     throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused");
   }
 
-  domainInfo.backend->startTransaction(zonename, domainInfo.id);
+  if (!makeDomainTransaction) {
+    domainInfo.backend->startTransaction(zonename, domainInfo.id);
+  }
 
   try {
     // will be overridden by updateDomainSettingsFromDocument, if given in document.
