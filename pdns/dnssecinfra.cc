@@ -614,7 +614,9 @@ bool DNSCryptoKeyEngine::isDigestSupported(uint8_t digest)
 {
   try {
     unsigned int algo = digestToAlgorithmNumber(digest);
-    return isAlgorithmSupported(algo);
+    const makers_t& makers = getMakers();
+    auto iter = makers.find(algo);
+    return iter != makers.cend();
   }
   catch(const std::exception& e) {
     return false;
