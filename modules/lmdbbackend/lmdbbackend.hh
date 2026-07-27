@@ -80,7 +80,8 @@ public:
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial = true) override;
   bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info) override;
 
-  bool startTransaction(const ZoneName& domain, domainid_t domain_id = UnknownDomainID) override;
+  bool startDomainCreationTransaction(const ZoneName& domain, domainid_t domain_id) override;
+  bool startDomainModificationTransaction(const ZoneName& domain) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;

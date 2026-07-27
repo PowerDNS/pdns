@@ -302,19 +302,29 @@ public:
   //! existing data for that domain if id is != UnknownDomainID. In this case,
   //! the id MUST match the DomainInfo information for qname, or very bad things
   //! will happen.
-  //! FIXME: replace this with a bool to make this a less error-prone interface.
-  virtual bool startTransaction(const ZoneName& /* qname */, domainid_t /* id */ = UnknownDomainID)
+  //! This is a legacy interface. Code should use one of the
+  //! startDomain*Transaction below.
+  bool startTransaction(const ZoneName& /* qname */, domainid_t /* id */ = UnknownDomainID);
+
+  //! starts the transaction for replacing existing domain qname of id domainId.
+  virtual bool startDomainCreationTransaction(const ZoneName& /* qname */, domainid_t /* domainId */)
   {
     return false;
   }
 
-  //! commits the transaction started by startTransaction
+  //! starts the transaction for modifying existing domain qname.
+  virtual bool startDomainModificationTransaction(const ZoneName& /* qname */)
+  {
+    return false;
+  }
+
+  //! commits the transaction started by start*Transaction
   virtual bool commitTransaction()
   {
     return false;
   }
 
-  //! aborts the transaction started by startTransaction, should leave state unaltered
+  //! aborts the transaction started by start*Transaction, should leave state unaltered
   virtual bool abortTransaction()
   {
     return false;
@@ -333,7 +343,7 @@ public:
   {
   }
 
-  //! feeds a record to a zone, needs a call to startTransaction first
+  //! feeds a record to a zone, needs a call to start*Transaction first
   virtual bool feedRecord(const DNSResourceRecord& /* rr */, const DNSName& /* ordername */, bool /* ordernameIsNSEC3 */ = false)
   {
     return false; // no problem!

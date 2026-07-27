@@ -62,7 +62,8 @@ public:
   bool list(const ZoneName &target, domainid_t domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
-  bool startTransaction(const ZoneName &domain, domainid_t domain_id=UnknownDomainID) override;
+  bool startDomainCreationTransaction(const ZoneName &domain, domainid_t domain_id) override;
+  bool startDomainModificationTransaction(const ZoneName &domain) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;

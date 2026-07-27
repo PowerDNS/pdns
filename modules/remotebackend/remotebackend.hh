@@ -195,7 +195,8 @@ public:
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm) override;
   bool feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool startTransaction(const ZoneName& domain, domainid_t domain_id) override;
+  bool startDomainCreationTransaction(const ZoneName& qname, domainid_t domainId) override;
+  bool startDomainModificationTransaction(const ZoneName& qname) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
@@ -256,4 +257,5 @@ private:
   };
 
   void parseDomainInfo(const json11::Json& obj, DomainInfo& di);
+  bool startTransactionInternal(const ZoneName& domain, domainid_t domain_id);
 };
