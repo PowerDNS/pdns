@@ -19,9 +19,7 @@ char *original_filename;
 int include_stack_ptr = 0;
 extern const char *bind_directory;
 
-/* This is the name mangling of BindParser::lexer_error */
-#define LEXER_ERROR _ZN10BindParser11lexer_errorEPKcPci
-extern void LEXER_ERROR(const char *, char *, int);
+extern void lexer_error(const char*, const char*, int);
 
 static void bindlexer_cleanup()
 {
@@ -35,7 +33,7 @@ static void bindlexer_cleanup()
 static void bindlexer_fatal_error(const char* msg)
 {
   bindlexer_cleanup();
-  LEXER_ERROR(msg, NULL, 0);
+  lexer_error(msg, NULL, 0);
 }
 
 #define YY_FATAL_ERROR bindlexer_fatal_error
@@ -89,12 +87,12 @@ include                 BEGIN(incl);
         }
         if (ret == -1 || ret >= (int)sizeof(filename)) {
             bindlexer_cleanup();
-            LEXER_ERROR( "name too long", yytext+1, 0);
+            lexer_error( "name too long", yytext+1, 0);
         }
 
         if (!(yyin=fopen(filename,"r"))) {
           bindlexer_cleanup();
-          LEXER_ERROR( "unable to open",filename,errno);
+          lexer_error( "unable to open",filename,errno);
         }
 
         BEGIN(INITIAL);
@@ -103,7 +101,7 @@ include                 BEGIN(incl);
    }
 <incl>.*|\n {
         bindlexer_cleanup();
-        LEXER_ERROR( "Invalid include directive",yytext+1,-1);
+        lexer_error( "Invalid include directive",yytext+1,-1);
    }
 
 
