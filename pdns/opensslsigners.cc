@@ -2127,18 +2127,6 @@ OpenSSLMLDSADNSCryptoKeyEngine::OpenSSLMLDSADNSCryptoKeyEngine(Logr::log_t slog,
     throw runtime_error(OpenSSLMLDSADNSCryptoKeyEngine::getName() + " insufficient entropy");
   }
 
-#ifdef HAVE_LIBCRYPTO_ED25519
-  if (d_algorithm == 15) {
-    d_len = 32;
-    d_id = NID_ED25519;
-  }
-#endif
-#ifdef HAVE_LIBCRYPTO_ED448
-  if (d_algorithm == 16) {
-    d_len = 57;
-    d_id = NID_ED448;
-  }
-#endif
 #ifdef HAVE_LIBCRYPTO_ML_DSA_44
   if (d_algorithm == 18) {
     d_len = 32;
@@ -2262,16 +2250,6 @@ DNSCryptoKeyEngine::storvector_t OpenSSLMLDSADNSCryptoKeyEngine::convertToISCVec
   storvector_t storvect;
   string algorithm;
 
-#ifdef HAVE_LIBCRYPTO_ED25519
-  if (d_algorithm == 15) {
-    algorithm = "15 (ED25519)";
-  }
-#endif
-#ifdef HAVE_LIBCRYPTO_ED448
-  if (d_algorithm == 16) {
-    algorithm = "16 (ED448)";
-  }
-#endif
 #ifdef HAVE_LIBCRYPTO_ML_DSA_44
   if (d_algorithm == 18) {
     algorithm = "18 (MLDSA44)";
@@ -2288,14 +2266,8 @@ DNSCryptoKeyEngine::storvector_t OpenSSLMLDSADNSCryptoKeyEngine::convertToISCVec
   buf.resize(len);
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
-  if (d_algorithm == 18) {
-    if (EVP_PKEY_get_octet_string_param(d_key.get(), OSSL_PKEY_PARAM_ML_DSA_SEED, reinterpret_cast<unsigned char*>(&buf.at(0)), len, &len) < 1) {
-      throw pdns::OpenSSL::error(getName(), "Could not get private seed from d_key");
-    }
-  } else {
-    if (EVP_PKEY_get_raw_private_key(d_key.get(), reinterpret_cast<unsigned char*>(&buf.at(0)), &len) < 1) {
-      throw pdns::OpenSSL::error(getName(), "Could not get private key from d_key");
-    }
+  if (EVP_PKEY_get_octet_string_param(d_key.get(), OSSL_PKEY_PARAM_ML_DSA_SEED, reinterpret_cast<unsigned char*>(&buf.at(0)), len, &len) < 1) {
+    throw pdns::OpenSSL::error(getName(), "Could not get private seed from d_key");
   }
   storvect.emplace_back("PrivateKey", buf);
   return storvect;
@@ -2332,7 +2304,7 @@ std::string OpenSSLMLDSADNSCryptoKeyEngine::sign(const std::string& msg) const
 
   string msgToSign = msg;
 
-  size_t siglen = (d_algorithm == 18) ? 2420 : d_len * 2;
+  size_t siglen = 2420;
   string signature;
   signature.resize(siglen);
 
@@ -2373,7 +2345,7 @@ bool OpenSSLMLDSADNSCryptoKeyEngine::verify(const std::string& message, const st
 std::string OpenSSLMLDSADNSCryptoKeyEngine::getPublicKeyString() const
 {
   string buf;
-  size_t len = (d_algorithm == 18) ? 1312 : d_len;
+  size_t len = 1312;
 
   buf.resize(len);
 
@@ -2392,21 +2364,12 @@ void OpenSSLMLDSADNSCryptoKeyEngine::fromISCMap(DNSKEYRecordContent& drc, std::m
     throw runtime_error(getName() + " tried to feed an algorithm " + std::to_string(drc.d_algorithm) + " to a " + std::to_string(d_algorithm) + " key");
   }
 
-  if (d_algorithm == 18) {
-    create(32, stormap["privatekey"]);
-    return;
-  }
-
-  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
-  d_key = Key(EVP_PKEY_new_raw_private_key(d_id, nullptr, reinterpret_cast<unsigned char*>(&stormap["privatekey"].at(0)), stormap["privatekey"].length()), EVP_PKEY_free);
-  if (!d_key) {
-    throw pdns::OpenSSL::error(getName(), "Could not create key structure from private key");
-  }
+  create(32, stormap["privatekey"]);
 }
 
 void OpenSSLMLDSADNSCryptoKeyEngine::fromPublicKeyString(const std::string& content)
 {
-  if (d_algorithm != 18 && content.length() != d_len) {
+  if (content.length() != 1312) {
     throw runtime_error(getName() + " wrong public key length for algorithm " + std::to_string(d_algorithm));
   }
 
