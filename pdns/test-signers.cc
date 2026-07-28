@@ -621,7 +621,7 @@ static const SignerParams mldsa44 = SignerParams{
   .rfcFlags = 257,
 
   .algorithm = DNSSEC::MLDSA44,
-  .isDeterministic = true,
+  .isDeterministic = false,
 
   // ideally this pem would only contain the seed
   .pem = "-----BEGIN PRIVATE KEY-----\n"
