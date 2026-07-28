@@ -162,7 +162,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
           }
 
           if (doOptions) { // update zone options
-            if (doTransaction && (inTransaction = ctx.domain.backend->startTransaction(ctx.domain.zone))) {
+            if (doTransaction && (inTransaction = ctx.domain.backend->startDomainModificationTransaction(ctx.domain.zone))) {
               SLOG(g_log << Logger::Warning << ctx.logPrefix << "backend transaction started" << endl,
                    ctx.slog->info(Logr::Warning, "Catalog-Zone: backend transaction started"));
               doTransaction = false;
@@ -174,7 +174,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
           }
 
           if (doType) { // update zone type
-            if (doTransaction && (inTransaction = ctx.domain.backend->startTransaction(ctx.domain.zone))) {
+            if (doTransaction && (inTransaction = ctx.domain.backend->startDomainModificationTransaction(ctx.domain.zone))) {
               SLOG(g_log << Logger::Warning << ctx.logPrefix << "backend transaction started" << endl,
                    ctx.slog->info(Logr::Warning, "Catalog-Zone: backend transaction started"));
               doTransaction = false;
@@ -187,7 +187,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
           }
 
           if (ctx.domain.primaries != ciDB.d_primaries) { // update primaries
-            if (doTransaction && (inTransaction = ctx.domain.backend->startTransaction(ctx.domain.zone))) {
+            if (doTransaction && (inTransaction = ctx.domain.backend->startDomainModificationTransaction(ctx.domain.zone))) {
               SLOG(g_log << Logger::Warning << ctx.logPrefix << "backend transaction started" << endl,
                    ctx.slog->info(Logr::Warning, "Catalog-Zone: backend transaction started"));
               doTransaction = false;
@@ -228,7 +228,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
             SLOG(g_log << Logger::Warning << ctx.logPrefix << "zone '" << d.zone << "' owner change without state reset, old catalog '" << d.catalog << "', new catalog '" << ctx.domain.zone << "'" << endl,
                  ctx.slog->info(Logr::Warning, "Catalog-Zone: owner change without state reset", "zone", Logging::Loggable(d.zone), "old catalog", Logging::Loggable(d.catalog), "new catalog", Logging::Loggable(ctx.domain.zone)));
 
-            if (doTransaction && (inTransaction = ctx.domain.backend->startTransaction(ctx.domain.zone))) {
+            if (doTransaction && (inTransaction = ctx.domain.backend->startDomainModificationTransaction(ctx.domain.zone))) {
               SLOG(g_log << Logger::Warning << ctx.logPrefix << "backend transaction started" << endl,
                    ctx.slog->info(Logr::Warning, "Catalog-Zone: backend transaction started"));
               doTransaction = false;
@@ -268,7 +268,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
       }
 
       if (remove) { // delete zone
-        if (doTransaction && (inTransaction = ctx.domain.backend->startTransaction(ctx.domain.zone))) {
+        if (doTransaction && (inTransaction = ctx.domain.backend->startDomainModificationTransaction(ctx.domain.zone))) {
           SLOG(g_log << Logger::Warning << ctx.logPrefix << "backend transaction started" << endl,
                ctx.slog->info(Logr::Warning, "Catalog-Zone: backend transaction started"));
           doTransaction = false;
@@ -284,7 +284,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
       }
 
       if (create) { // create zone
-        if (doTransaction && (inTransaction = ctx.domain.backend->startTransaction(ctx.domain.zone))) {
+        if (doTransaction && (inTransaction = ctx.domain.backend->startDomainModificationTransaction(ctx.domain.zone))) {
           SLOG(g_log << Logger::Warning << ctx.logPrefix << "backend transaction started" << endl,
                ctx.slog->info(Logr::Warning, "Catalog-Zone: backend transaction started"));
           doTransaction = false;
@@ -577,7 +577,7 @@ void CommunicatorClass::ixfrSuck(const TSIGTriplet& tsig, const ComboAddress& la
         grouped[{ZoneName(x.d_name), x.d_type}].second.push_back(x);
       }
 
-      ctx.domain.backend->startTransaction(ctx.domain.zone, UnknownDomainID);
+      ctx.domain.backend->startDomainModificationTransaction(ctx.domain.zone);
       for (const auto& g : grouped) { // NOLINT(readability-identifier-length)
         vector<DNSRecord> rrset;
         {
@@ -974,7 +974,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
         }
       }
     }
-    transaction = ctx.domain.backend->startTransaction(domain, ctx.domain.id);
+    transaction = ctx.domain.backend->startDomainCreationTransaction(domain, ctx.domain.id);
     SLOG(g_log << Logger::Info << ctx.logPrefix << "storage transaction started" << endl,
          ctx.slog->info(Logr::Info, "AXFR: storage transaction started"));
 

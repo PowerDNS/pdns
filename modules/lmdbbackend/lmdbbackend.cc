@@ -1991,6 +1991,7 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
 
   for (auto id : idvec) {
 
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     startDomainCreationTransaction(domain, id);
 
     { // Remove metadata
@@ -2031,8 +2032,12 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
     txn.commit();
   }
 
-  // Use startTransaction() here as transactionDomainId might be UnknownDomainID
-  startTransaction(transactionDomain, transactionDomainId);
+  if (transactionDomainId == UnknownDomainID) {
+    startDomainModificationTransaction(transactionDomain);
+  }
+  else {
+    startDomainCreationTransaction(transactionDomain, transactionDomainId);
+  }
 
   return true;
 }
