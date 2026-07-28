@@ -519,6 +519,7 @@ void IncomingHTTP2Connection::writeToSocket(bool socketReady)
 
     if (newState == IOState::Done) {
       d_pendingWrite = false;
+      d_lastIOBlocked = false; // setting this does matter, because it is used in IncomingTCPConnectionState::queueResponse
       d_out.clear();
       d_outPos = 0;
       if (active() && !d_connectionClosing) {
@@ -1270,6 +1271,7 @@ IOState IncomingHTTP2Connection::readHTTPData()
 
     if (got > 0) {
       /* we got something */
+      d_lastIOBlocked = false; // setting this does matter, because it is used in IncomingTCPConnectionState::queueResponse
       auto readlen = nghttp2_session_mem_recv(d_session.get(), d_in.data(), d_in.size());
       /* as long as we don't require a pause by returning nghttp2_error.NGHTTP2_ERR_PAUSE from a CB,
          all data should be consumed before returning */
