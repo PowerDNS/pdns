@@ -334,7 +334,13 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     throw std::runtime_error("Stream ID collision");
   }
 
-  /* if data_prd is not NULL, it provides data which will be sent in subsequent DATA frames. In this case, a method that allows request message bodies (https://tools.ietf.org/html/rfc7231#section-4) must be specified with :method key (e.g. POST). This function does not take ownership of the data_prd. The function copies the members of the data_prd. If data_prd is NULL, HEADERS have END_STREAM set.
+  /* if data_prd is not NULL, it provides data which will be sent in subsequent DATA frames.
+     In this case, a method that allows request message bodies (https://tools.ietf.org/html/rfc7231#section-4)
+     must be specified with :method key (e.g. POST).
+     This function does not take ownership of the data_prd. The function copies the members of the data_prd.
+     If data_prd is NULL, HEADERS have END_STREAM set.
+     If you are considering moving to nghttp2_data_provider2, please be aware that this does not exist
+     in nghttp2 1.43 as shipped by Debian 11, Ubuntu 22.04 and EL 9.
    */
   nghttp2_data_provider data_provider;
 
@@ -431,7 +437,7 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
 
         auto sendCode = nghttp2_session_send(conn->d_session.get());
         if (sendCode != 0) {
-          throw std::runtime_error("Fatal error while flushing HTTP data: " + std::string(nghttp2_strerror(static_cast<int>(sendCode))));
+          throw std::runtime_error("Fatal error while flushing HTTP data: " + std::string(nghttp2_strerror(sendCode)));
         }
       }
 
@@ -558,7 +564,7 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
 {
   (void)session;
   (void)flags;
-  DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
+  auto* conn = static_cast<DoHConnectionToBackend*>(user_data);
   bool bufferWasEmpty = conn->d_out.empty();
   if (!conn->d_proxyProtocolPayloadSent && !conn->d_proxyProtocolPayload.empty()) {
     conn->d_out.insert(conn->d_out.end(), conn->d_proxyProtocolPayload.begin(), conn->d_proxyProtocolPayload.end());
@@ -600,7 +606,7 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
 int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
 {
   (void)session;
-  DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
+  auto* conn = static_cast<DoHConnectionToBackend*>(user_data);
 #if 0
   // cerr<<"Frame type is "<<std::to_string(frame->hd.type)<<endl;
   switch (frame->hd.type) {
@@ -631,7 +637,7 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
   }
 
   /* is this the last frame for this stream? */
-  else if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+  else if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) != 0) {
     auto stream = conn->d_currentStreams.find(frame->hd.stream_id);
     if (stream != conn->d_currentStreams.end()) {
       stream->second.d_finished = true;
@@ -674,7 +680,7 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 {
   (void)session;
   (void)flags;
-  DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
+  auto* conn = static_cast<DoHConnectionToBackend*>(user_data);
   auto stream = conn->d_currentStreams.find(stream_id);
   if (stream == conn->d_currentStreams.end()) {
     VERBOSESLOG(infolog("Unable to match the stream ID %d to a known one!", stream_id),
@@ -720,8 +726,7 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, StreamID stream_id, uint32_t error_code, void* user_data)
 {
   (void)session;
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
-  auto* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
+  auto* conn = static_cast<DoHConnectionToBackend*>(user_data);
 
   if (error_code == 0) {
     return 0;
@@ -772,7 +777,7 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
 {
   (void)session;
   (void)flags;
-  DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
+  auto* conn = static_cast<DoHConnectionToBackend*>(user_data);
 
   const std::string status(":status");
   if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
@@ -851,23 +856,23 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
 
   callbacks.reset();
 
-  nghttp2_settings_entry iv[] = {
+  std::array<nghttp2_settings_entry, 3> settings{
     /* rfc7540 section-8.2.2:
        "Advertising a SETTINGS_MAX_CONCURRENT_STREAMS value of zero disables
        server push by preventing the server from creating the necessary
        streams."
     */
-    {NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 0},
-    {NGHTTP2_SETTINGS_ENABLE_PUSH, 0},
+    nghttp2_settings_entry{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 0},
+    nghttp2_settings_entry{NGHTTP2_SETTINGS_ENABLE_PUSH, 0},
     /* we might want to make the initial window size configurable, but 16M is a large enough default */
-    {NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, 16 * 1024 * 1024}};
+    nghttp2_settings_entry{NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, 16 * 1024 * 1024}};
   /* client 24 bytes magic string will be sent by nghttp2 library */
-  int rv = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, iv, sizeof(iv) / sizeof(*iv));
-  if (rv != 0) {
+  auto value = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, settings.data(), settings.size());
+  if (value != 0) {
     d_connectionDied = true;
     ++d_ds->tcpDiedSendingQuery;
-    VERBOSESLOG(infolog("Could not submit SETTINGS: %s", nghttp2_strerror(rv)),
-                ConnectionToBackend::getLogger()->error(Logr::Info, nghttp2_strerror(rv), "Could not submit SETTINGS"));
+    VERBOSESLOG(infolog("Could not submit SETTINGS: %s", nghttp2_strerror(value)),
+                ConnectionToBackend::getLogger()->error(Logr::Info, nghttp2_strerror(value), "Could not submit SETTINGS"));
     return;
   }
 }
@@ -875,7 +880,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
 static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
   (void)pipefd;
-  auto threadData = boost::any_cast<DoHClientThreadData*>(param);
+  auto* threadData = boost::any_cast<DoHClientThreadData*>(param);
 
   std::unique_ptr<CrossProtocolQuery> cpq{nullptr};
   try {

@@ -693,7 +693,13 @@ void IncomingHTTP2Connection::notifyIOError(const struct timeval& now, TCPRespon
 
 bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID streamID, IncomingHTTP2Connection::PendingQuery& context, uint16_t responseCode, const HeadersMap& customResponseHeaders, const std::string& contentType, bool addContentType)
 {
-  /* if data_prd is not NULL, it provides data which will be sent in subsequent DATA frames. In this case, a method that allows request message bodies (https://tools.ietf.org/html/rfc7231#section-4) must be specified with :method key (e.g. POST). This function does not take ownership of the data_prd. The function copies the members of the data_prd. If data_prd is NULL, HEADERS have END_STREAM set.
+  /* if data_prd is not NULL, it provides data which will be sent in subsequent DATA frames.
+     In this case, a method that allows request message bodies (https://tools.ietf.org/html/rfc7231#section-4)
+     must be specified with :method key (e.g. POST).
+     This function does not take ownership of the data_prd. The function copies the members of the data_prd.
+     If data_prd is NULL, HEADERS have END_STREAM set.
+     If you are considering moving to nghttp2_data_provider2, please be aware that this does not exist
+     in nghttp2 1.43 as shipped by Debian 11, Ubuntu 22.04 and EL 9.
    */
   nghttp2_data_provider data_provider;
 
@@ -1273,7 +1279,7 @@ IOState IncomingHTTP2Connection::readHTTPData()
 
       auto sendCode = nghttp2_session_send(d_session.get());
       if (sendCode != 0) {
-        throw std::runtime_error("Fatal error while flushing HTTP data: " + std::string(nghttp2_strerror(static_cast<int>(sendCode))));
+        throw std::runtime_error("Fatal error while flushing HTTP data: " + std::string(nghttp2_strerror(sendCode)));
       }
     }
   }
