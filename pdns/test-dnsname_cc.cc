@@ -849,8 +849,8 @@ BOOST_AUTO_TEST_CASE(test_name_length_too_long_from_wire) {
 }
 
 BOOST_AUTO_TEST_CASE(test_name_length_too_long_from_wire_compressed) {
-  string name("\x0a""wwwwwwwwww""\x00""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x05""stats""\x05""stats""\x02""fr""\xc0""\x00", 266);
-  BOOST_CHECK_THROW(DNSName dn(name.c_str(), name.size(), 12, true), std::range_error);
+  string name("\x0a""wwwwwwwwww""\x00""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x03""www""\x05""stats""\x05""stats""\x02""fr""\xc0""\x00", 265);
+  BOOST_CHECK_THROW(DNSName(name.c_str(), name.size(), 12, true), std::range_error);
 }
 
 BOOST_AUTO_TEST_CASE(test_compression) { // Compression test
