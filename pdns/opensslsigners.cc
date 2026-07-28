@@ -50,9 +50,6 @@
 #include "dnssecinfra.hh"
 #include "dnssec.hh"
 
-void openssl_thread_setup() {}
-void openssl_thread_cleanup() {}
-
 /* seeding PRNG */
 void openssl_seed()
 {

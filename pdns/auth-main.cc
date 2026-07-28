@@ -1612,7 +1612,6 @@ int main(int argc, char** argv)
     }
 #endif
 
-    openssl_thread_setup();
     openssl_seed();
 
 #ifdef HAVE_LUA_RECORDS
