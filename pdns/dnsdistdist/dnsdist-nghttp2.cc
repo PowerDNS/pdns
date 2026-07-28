@@ -802,12 +802,13 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
 int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data)
 {
   (void)session;
-  DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
+  const auto* conn = static_cast<const DoHConnectionToBackend*>(user_data);
   VERBOSESLOG(infolog("Error in HTTP/2 connection: %s (%d)", std::string(msg, len), lib_error_code),
               conn->getLogger()->error(Logr::Info, std::string(msg, len), "Error in HTTP/2 connection", "nghttp2.error_code", Logging::Loggable(lib_error_code)));
 
-  conn->d_connectionDied = true;
-  ++conn->d_ds->tcpDiedReadingResponse;
+  /* nothing to do except logging here, the library will take
+     care of closing the offending stream if possible, or the whole
+     connection if needed. */
 
   return 0;
 }
