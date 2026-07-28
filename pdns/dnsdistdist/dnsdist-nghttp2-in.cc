@@ -1235,14 +1235,14 @@ int IncomingHTTP2Connection::on_data_chunk_recv_callback(nghttp2_session* sessio
 int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data)
 {
   (void)session;
-  auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
+  const auto* conn = static_cast<const IncomingHTTP2Connection*>(user_data);
 
   VERBOSESLOG(infolog("Error in HTTP/2 connection from %s: %s (%d)", conn->d_ci.remote.toStringWithPort(), std::string(msg, len), lib_error_code),
               conn->getLogger()->error(Logr::Info, std::string(msg, len), "Error on DoH connection", "nghttp2.error_code", Logging::Loggable(lib_error_code)));
-  conn->d_connectionClosing = true;
-  conn->d_needFlush = true;
-  nghttp2_session_terminate_session(conn->d_session.get(), NGHTTP2_NO_ERROR);
 
+  /* nothing to do except logging here, the library will take
+     care of closing the offending stream if possible, or the whole
+     connection if needed. */
   return 0;
 }
 
