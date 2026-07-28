@@ -866,6 +866,28 @@ BOOST_AUTO_TEST_CASE(test_name_length_too_long_from_wire) {
   BOOST_CHECK_THROW(DNSName(name.c_str(), name.size(), 0, true), std::range_error);
 }
 
+BOOST_AUTO_TEST_CASE(test_name_length_too_long_from_wire_compressed) { // Length of a compressed name is the sum of every part
+
+  // two chunks of three 63-byte labels, the second one pointing at the first:
+  // each chunk fits on its own, the name they spell out together does not
+  string name;
+  for (size_t label = 0; label < 3; label++) {
+    name.append(1, '\x3f');
+    name.append(63, 'a');
+  }
+  name.append(1, '\x00');
+
+  const size_t second = name.size();
+  for (size_t label = 0; label < 3; label++) {
+    name.append(1, '\x3f');
+    name.append(63, 'b');
+  }
+  name.append(1, '\xc0');
+  name.append(1, '\x00');
+
+  BOOST_CHECK_THROW(DNSName(name.c_str(), name.size(), second, true), std::range_error);
+}
+
 BOOST_AUTO_TEST_CASE(test_compression) { // Compression test
 
   string name("\x03""com\x00""\x07""example\xc0""\x00""\x03""www\xc0""\x05", 21);

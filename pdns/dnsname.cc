@@ -145,6 +145,8 @@ size_t DNSName::parsePacketUncompressed(const pdns::views::UnsignedCharView& vie
 {
   const size_t initialPos = pos;
   const size_t neededSizeForFinalLabel = /* final empty label length */ (d_storage.empty() ? 1U : 0U);
+  // what a previous compression pointer already gathered, including the final empty label we are about to override
+  const size_t alreadyStoredLength = d_storage.size();
   size_t totalLength = 0;
   unsigned char labellen = 0;
 
@@ -170,7 +172,7 @@ size_t DNSName::parsePacketUncompressed(const pdns::views::UnsignedCharView& vie
     }
     checkLabelLength(labellen);
     // reserve one byte for the label length, plus one byte for the final empty label if we were empty before
-    if (totalLength + labellen > s_maxDNSNameLength - (neededSizeForFinalLabel + 1)) {
+    if (alreadyStoredLength + totalLength + labellen > s_maxDNSNameLength - (neededSizeForFinalLabel + 1)) {
       throw std::range_error("name too long to append");
     }
     if (pos + labellen >= view.size()) {
