@@ -695,7 +695,7 @@ struct Fixture
     }
 
     BOOST_TEST_MESSAGE("Setting up signer params:");
-#if 0
+
     addSignerParams(DNSSEC::RSASHA256, "RSA SHA256", rsaSha256SignerParams);
 
 #ifdef HAVE_LIBCRYPTO_ECDSA
@@ -709,7 +709,6 @@ struct Fixture
 
 #if defined(HAVE_LIBCRYPTO_ED448)
     addSignerParams(DNSSEC::ED448, "ED448", ed448);
-#endif
 #endif
 
 #if defined(HAVE_LIBCRYPTO_ML_DSA_44)
