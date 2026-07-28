@@ -799,14 +799,12 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
   return 0;
 }
 
-int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data)
+int DoHConnectionToBackend::on_error_callback([[maybe_unused]] nghttp2_session* session, int lib_error_code, const char* msg, size_t len, [[maybe_unused]] void* user_data)
 {
-  (void)session;
   vinfolog("Error in HTTP/2 connection: %s (%d)", std::string(msg, len), lib_error_code);
-
-  DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
-  conn->d_connectionDied = true;
-  ++conn->d_ds->tcpDiedReadingResponse;
+  /* nothing to do except logging here, the library will take
+     care of closing the offending stream if possible, or the whole
+     connection if needed. */
 
   return 0;
 }
