@@ -299,14 +299,6 @@ public:
     return false;
   }
 
-  //! starts the transaction for updating domain qname, destroying all
-  //! existing data for that domain if id is != UnknownDomainID. In this case,
-  //! the id MUST match the DomainInfo information for qname, or very bad things
-  //! will happen.
-  //! This is a legacy interface. Code should use one of the
-  //! startDomain*Transaction below.
-  bool startTransaction(const ZoneName& /* qname */, domainid_t /* id */ = UnknownDomainID);
-
   //! starts the transaction for replacing existing domain qname of id domainId.
   virtual bool startDomainCreationTransaction(const ZoneName& /* qname */, domainid_t /* domainId */)
   {
