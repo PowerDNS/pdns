@@ -1409,7 +1409,7 @@ compile-time.
 -  Boolean
 -  Default: yes
 
-.. versionadded:: 5.2.0
+.. versionadded:: 5.1.4
 
 Add NAPTR `a` and `s` records to the additional answer section.
 
