@@ -297,19 +297,25 @@ SSQLite3::SSQLite3(Logr::log_t log, const std::string& database, const std::stri
   d_slog = log;
   m_dolog = false;
 
+  int flags{SQLITE_OPEN_READWRITE};
+  if (creat) {
+    flags |= SQLITE_OPEN_CREATE;
+  }
   if (access(database.c_str(), W_OK) == -1) {
     if (!creat && errno == ENOENT) {
       throw SSqlException("SQLite database '" + database + "' does not exist yet");
     }
-    if (errno == EACCES) {
-      throw SSqlException("SQLite database '" + database + "' is not writable");
-    }
-    // Other errors will cause sqlite3_open() to fail anyway. We needed to
-    // explicitly check for write access here, for SQLite < 3.46 in some
-    // configuration will leak file descriptors if the database can not be
-    // open read-write; refer to
+    // We needed to explicitly check for write access here, for SQLite < 3.46
+    // in some configuration will leak file descriptors if the database can not
+    // be open read-write; refer to
     // https://github.com/PowerDNS/pdns/issues/13952#issuecomment-2008254248
     // for details.
+    if (errno == EACCES) {
+      flags &= ~SQLITE_OPEN_READWRITE;
+      flags |= SQLITE_OPEN_READONLY;
+      SLOG(g_log << Logger::Warning << "SQLite database '" << database << "' will be open in read-only mode due to filesystem permissions" << endl,
+           d_slog->info(Logr::Warning, "SQLite database will be open in read-only mode due to filesystem permissions", "database", Logging::Loggable(database)));
+    }
   }
   else {
     if (creat) {
@@ -317,7 +323,7 @@ SSQLite3::SSQLite3(Logr::log_t log, const std::string& database, const std::stri
     }
   }
 
-  if (sqlite3_open(database.c_str(), &m_pDB) != SQLITE_OK) {
+  if (sqlite3_open_v2(database.c_str(), &m_pDB, flags, nullptr) != SQLITE_OK) {
     throw SSqlException("Could not connect to the SQLite database '" + database + "'");
   }
   m_in_transaction = false;
