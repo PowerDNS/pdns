@@ -31,4 +31,9 @@ $PDNSUTIL -s $ARGS zone list bug.less
 # Check that pdnsutil zone check reports the invalid records
 $PDNSUTIL $ARGS zone check bug.less
 
+# Check that pdnsutil zone edit deletes the invalid records (causing zone
+# check to no longer report any)
+env EDITOR=true $PDNSUTIL $ARGS zone edit bug.less < /dev/null
+$PDNSUTIL $ARGS zone check bug.less
+
 exit 0
