@@ -491,7 +491,7 @@ Overrides :ref:`setting-default-soa-edit`
 -  String
 -  Default: DEFAULT
 
-.. versionadded:: 5.2.0
+.. versionadded:: 5.1.0
 
 The default :ref:`metadata-soa-edit-api` metadata value for zones created via
 the API when the zone creation request does not include the ``soa_edit_api`` field.
@@ -1409,7 +1409,7 @@ compile-time.
 -  Boolean
 -  Default: yes
 
-.. versionadded:: 5.2.0
+.. versionadded:: 5.1.4
 
 Add NAPTR `a` and `s` records to the additional answer section.
 
