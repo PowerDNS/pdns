@@ -126,7 +126,7 @@ $(document).ready(function() {
                          appendCellToRow(row, latency);
                          appendCellToRow(row, tcpLatency);
                          appendCellToRow(row, b["queries"]);
-                         appendCellToRow(row, b["reused"]);
+                         appendCellToRow(row, b["reuseds"]);
                          appendCellToRow(row, b["qps"].toFixed(2));
                          appendCellToRow(row, b["outstanding"]);
                          appendCellToRow(row, b["weight"]);
