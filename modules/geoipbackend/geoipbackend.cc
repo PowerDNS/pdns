@@ -1135,9 +1135,22 @@ bool GeoIPBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_
       globfree(&glob_result);
       pathname.str("");
       pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << key.flags << "." << nextid << "." << (key.active ? "1" : "0") << ".key";
-      ofstream ofs(pathname.str().c_str());
-      ofs.write(key.content.c_str(), key.content.size());
-      ofs.close();
+      auto keyFile = pdns::openFileForWriting(pathname.str(), 0600, true, false);
+      if (!keyFile) {
+        int error = errno;
+        SLOG(g_log << Logger::Error << "Cannot create key file " << pathname.str() << ": " << stringerror(error) << endl,
+             d_slog->error(Logr::Error, stringerror(error), "Cannot create key file", "file", Logging::Loggable(pathname.str())));
+        return false;
+      }
+      if (fwrite(key.content.c_str(), 1, key.content.size(), keyFile.get()) != key.content.size()) {
+        int error = errno;
+        SLOG(g_log << Logger::Error << "Cannot write key file " << pathname.str() << ": " << stringerror(error) << endl,
+             d_slog->error(Logr::Error, stringerror(error), "Cannot write key file", "file", Logging::Loggable(pathname.str())));
+        keyFile.reset();
+        unlink(pathname.str().c_str());
+        return false;
+      }
+      keyFile.reset();
       keyId = nextid;
       return true;
     }
