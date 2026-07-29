@@ -555,6 +555,8 @@ def get_cpp_parameters(struct_name, parameters, skip_name):
             field = f"DNSName(std::string({field}))"
         elif ptype == "ComboAddress":
             field = f"ComboAddress(std::string({field}))"
+        elif ptype == "OptionalComboAddress":
+            field = f"{field}.empty() ? std::nullopt : std::optional<ComboAddress>(std::string({field}))"
         elif ptype == "String":
             field = f"std::string({field})"
         elif ptype == "ResponseConfig":
