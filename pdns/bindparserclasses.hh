@@ -87,9 +87,18 @@ class BindParser
   void setVerbose(bool verbose);
   void addAlsoNotify(const string &host);
   set<string> & getAlsoNotify() { return this->alsoNotify; } 
+
+  static void lexer_error(const char *msg, const char *filename, int error);
+
 private:
   string d_dir{"."};
   set<string> alsoNotify;
   vector<BindDomainInfo> d_zonedomains;
   bool d_verbose{false};
 };
+
+extern "C" {
+
+void lexer_error(const char *msg, const char *filename, int error);
+
+}
