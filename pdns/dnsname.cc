@@ -127,6 +127,8 @@ static void checkLabelLength(uint8_t length)
 size_t DNSName::parsePacketUncompressed(const UnsignedCharView& view, size_t pos, bool uncompress)
 {
   const size_t initialPos = pos;
+  auto existingSize = d_storage.size();
+  const size_t neededSizeForFinalLabel = /* final empty label length */ (existingSize == 0 ? 1U : 0U);
   size_t totalLength = 0;
   unsigned char labellen = 0;
 
@@ -151,23 +153,26 @@ size_t DNSName::parsePacketUncompressed(const UnsignedCharView& view, size_t pos
       throw std::range_error("Found an invalid label length in qname (only one of the first two bits is set)");
     }
     checkLabelLength(labellen);
-    // reserve one byte for the label length
-    if (totalLength + labellen > s_maxDNSNameLength - 1) {
+
+    // reserve one byte for the label length, plus one byte for the final empty label if we were empty before
+    if ((existingSize + totalLength + labellen + 1U + neededSizeForFinalLabel) > s_maxDNSNameLength) {
       throw std::range_error("name too long to append");
     }
     if (pos + labellen >= view.size()) {
       throw std::range_error("Found an invalid label length in qname");
     }
     pos += labellen;
-    totalLength += 1 + labellen;
+    totalLength += 1U + labellen;
   }
   while (pos < view.size());
 
   if (totalLength != 0) {
-    auto existingSize = d_storage.size();
     if (existingSize > 0) {
       // remove the last label count, we are about to override it */
       --existingSize;
+    }
+    if ((existingSize + totalLength + 1U) > s_maxDNSNameLength) {
+      throw std::range_error("name too long to append");
     }
     d_storage.reserve(existingSize + totalLength + 1);
     d_storage.resize(existingSize + totalLength);
