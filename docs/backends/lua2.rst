@@ -13,13 +13,15 @@ Lua2 Backend
 * Comments: No
 * Search: Yes\*
 * Views: No
-* API: Read-Write
+* API: Read-only\**
 * :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes\*
 * Module name: lua2
 * Launch name: ``lua2``
 
 \* If the responder (your script) implements ``dns_get_all_domains``, see below.
+
+\** Except for the notification timestamp, if the responder (your script) implements ``dns_set_notified``, see below.
 
 This is a rewrite of existing Lua backend.
 This backend is stub between your Lua script and PowerDNS authoritative server.

@@ -112,11 +112,8 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
           else if (item.second.which() == 3) {
             rec.qtype = boost::get<string>(item.second);
           }
-          else if (item.second.which() == 4) {
+          else { // assuming item.second.which() == 4 here
             rec.qtype = boost::get<QType>(item.second);
-          }
-          else {
-            throw PDNSException("Unsupported value for type");
           }
         }
         else if (item.first == "name") {
@@ -131,7 +128,12 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
           rec.domain_id = boost::get<int>(item.second);
         }
         else if (item.first == "auth") {
-          rec.auth = boost::get<bool>(item.second);
+          if (item.second.which() == 1) {
+            rec.auth = boost::get<int>(item.second) != 0;
+          }
+          else { // assuming item.second.which() == 0 here
+            rec.auth = boost::get<bool>(item.second);
+          }
         }
         else if (item.first == "last_modified") {
           rec.last_modified = static_cast<time_t>(boost::get<int>(item.second));
@@ -156,7 +158,9 @@ void Lua2BackendAPIv2::parseLookup(const lookup_result_t& result)
         }
       }
       catch (const std::exception& e) {
-        throw PDNSException("Unable to parse " + item.first + " value in lookup or list result: " + e.what());
+        std::stringstream value;
+        value << item.second;
+        throw PDNSException("Unable to parse " + item.first + " value (" + value.str() + ") of variant type " + std::to_string(item.second.which()) + " in lookup or list result: " + e.what());
       }
     }
     if (d_debug_log) {
@@ -226,6 +230,11 @@ bool Lua2BackendAPIv2::get(DNSResourceRecord& drr)
   drr = std::move(d_result.front());
   d_result.pop_front();
   return true;
+}
+
+void Lua2BackendAPIv2::lookupEnd()
+{
+  d_result.clear();
 }
 
 string Lua2BackendAPIv2::directBackendCmd(const string& querystr)
@@ -299,7 +308,9 @@ void Lua2BackendAPIv2::parseDomainInfo(const domaininfo_result_t& row, DomainInf
       }
     }
     catch (const std::exception& e) {
-      throw PDNSException("Unable to parse " + item.first + " value in domaininfo result: " + e.what());
+      // We can't get a printable version of the contents, because of the
+      // vector<string> case, which is not OutputStreamable.
+      throw PDNSException("Unable to parse " + item.first + " value of variant type " + std::to_string(item.second.which()) + " in domaininfo result: " + e.what());
     }
   }
   info.backend = this;
@@ -457,10 +468,20 @@ bool Lua2BackendAPIv2::getDomainKeys(const ZoneName& name, std::vector<DNSBacken
           key.flags = static_cast<unsigned int>(boost::get<int>(item.second));
         }
         else if (item.first == "active") {
-          key.active = boost::get<bool>(item.second);
+          if (item.second.which() == 1) {
+            key.active = boost::get<int>(item.second) != 0;
+          }
+          else { // assuming item.second.which() == 0 here
+            key.active = boost::get<bool>(item.second);
+          }
         }
         else if (item.first == "published") {
-          key.published = boost::get<bool>(item.second);
+          if (item.second.which() == 1) {
+            key.published = boost::get<int>(item.second) != 0;
+          }
+          else { // assuming item.second.which() == 0 here
+            key.published = boost::get<bool>(item.second);
+          }
         }
         else {
           SLOG(g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl,
@@ -468,7 +489,9 @@ bool Lua2BackendAPIv2::getDomainKeys(const ZoneName& name, std::vector<DNSBacken
         }
       }
       catch (const std::exception& e) {
-        throw PDNSException("Unable to parse " + item.first + " value in keydata result: " + e.what());
+        std::stringstream value;
+        value << item.second;
+        throw PDNSException("Unable to parse " + item.first + " value (" + value.str() + ") of variant type " + std::to_string(item.second.which()) + " in keydata result: " + e.what());
       }
     }
     if (d_debug_log) {
