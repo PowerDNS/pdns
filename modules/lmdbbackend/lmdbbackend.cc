@@ -1560,7 +1560,7 @@ bool LMDBBackend::hasOrphanedNSEC3Record(MDBRWCursor& cursor, domainid_t domain_
 }
 
 // d_rwtxn must be set here (must be called within a transaction)
-bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3)
+bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3) // NOLINT(readability-identifier-length)
 {
   LMDBResourceRecord lrr(r);
   lrr.qname.makeUsRelative(d_transactiondomain);
@@ -1651,7 +1651,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
   }
 
   DNSName relative = qname.makeRelative(info.zone);
-  compoundOrdername co;
+  compoundOrdername co; // NOLINT(readability-identifier-length)
   string match;
   if (qt.getCode() == QType::ANY) {
     // Check for an existing NSEC3 record. If one exists, we need to also
@@ -3231,11 +3231,12 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
 
   DNSName rel = qname.makeRelative(info.zone);
 
-  compoundOrdername co;
+  compoundOrdername co; // NOLINT(readability-identifier-length)
   string matchkey = co(domain_id, rel);
 
   auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->rdbi);
-  MDBOutVal key, val;
+  MDBOutVal key{};
+  MDBOutVal val{};
   if (cursor.prefix(matchkey, key, val) != 0) {
     // cout << "Could not find anything"<<endl;
     return false;
