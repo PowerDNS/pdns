@@ -68,7 +68,7 @@ class AuthWebServer
 {
 public:
   AuthWebServer(StatBag& stats);
-  void go(Logr::log_t slog, StatBag& stats);
+  void go(Logr::log_t slog);
   static string makePercentage(const double& val);
 
 private:
@@ -87,6 +87,7 @@ private:
   std::string d_unique;
 
   bool d_doApi{false};
+  StatBag& d_stats;
 };
 
 void apiDocs(HttpRequest* req, HttpResponse* resp);
