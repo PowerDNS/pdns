@@ -423,7 +423,13 @@ void WebServer::logRequest(const HttpRequest& req, [[maybe_unused]] const ComboA
           first = false;
           g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
         }
-        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+        bool redacted = h.first == "x-api-key";
+        if (redacted) {
+          g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": (redacted)"<<endl;
+        }
+        else {
+          g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+        }
       }
 
       if (req.body.empty()) {
