@@ -2484,7 +2484,8 @@ bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
     info.primaries = primaries;
     info.account = account;
 
-    txn.put(info, 0, d_random_ids, domain.hash());
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+    info.id = static_cast<domainid_t>(txn.put(info, 0, d_random_ids, domain.hash()));
     txn.commit();
     writeTransientDomainInfo(info);
   }
