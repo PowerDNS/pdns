@@ -646,7 +646,7 @@ inline ComboAddress makeComboAddress(const string& str)
 {
   ComboAddress address;
   address.sin4.sin_family = AF_INET;
-  if (inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
+  if (makeIPv4sockaddr(str, &address.sin4) < 0) {
     address.sin4.sin_family = AF_INET6;
     if (makeIPv6sockaddr(str, &address.sin6) < 0) {
       throw NetmaskException("Unable to convert '" + str + "' to a netmask");

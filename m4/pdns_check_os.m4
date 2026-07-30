@@ -9,7 +9,6 @@ AC_DEFUN([PDNS_CHECK_OS],[
     ;;
   solaris2.8 | solaris2.9 )
     AC_DEFINE(NEED_POSIX_TYPEDEF,,[If POSIX typedefs need to be defined])
-    AC_DEFINE(NEED_INET_NTOP_PROTO,,[If your OS is so broken that it needs an additional prototype])
     LIBS="-lposix4 -lpthread $LIBS"
     CXXFLAGS="-D_REENTRANT $CXXFLAGS"
     have_solaris="yes"

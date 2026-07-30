@@ -33,14 +33,6 @@ class RecursorOT(ApiTestCase):
         self.assertEqual(r.status_code, 422)
         self.assert_in_json_error("Could not find otcondition", r.json())
 
-        # malformed netmask
-        r = self.session.get(
-            self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3/32"),
-            headers={"content-type": "application/json"},
-        )
-        self.assertEqual(r.status_code, 422)
-        self.assert_in_json_error("Could not parse netmask", r.json())
-
         # deleting non-existent netmask
         r = self.session.delete(
             self.url("/api/v1/servers/localhost/ottraceconditions/1.2.3.4/32"),

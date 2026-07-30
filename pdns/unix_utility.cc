@@ -36,13 +36,6 @@
 #include <sys/types.h>
 #include <sys/select.h>
 
-#ifdef NEED_INET_NTOP_PROTO
-extern "C" {
-const char *inet_ntop(int af, const void *src, char *dst, size_t cnt);
-}
-#endif
-
-
 #include "namespaces.hh"
 
 
@@ -115,11 +108,6 @@ void Utility::setBindAny([[maybe_unused]] int af, [[maybe_unused]] sock_t sock)
          g_slog->withName("runtime")->error(Logr::Warning, err, "Warning: SO_BINDANY setsockopt failed"));
   }
 #endif
-}
-
-const char *Utility::inet_ntop(int af, const char *src, char *dst, size_t size)
-{
-  return ::inet_ntop(af,src,dst,size);
 }
 
 unsigned int Utility::sleep(unsigned int sec)
