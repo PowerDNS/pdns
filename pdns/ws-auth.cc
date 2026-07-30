@@ -59,9 +59,9 @@ using json11::Json;
 
 Ewma::Ewma() { dt.set(); }
 
-void Ewma::submit(int val)
+void Ewma::submit(unsigned long val)
 {
-  int rate = val - d_last;
+  unsigned long rate = val - d_last;
   double difft = dt.udiff() / 1000000.0;
   dt.set();
 
@@ -93,15 +93,85 @@ double Ewma::getMax() const
   return d_max;
 }
 
-static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype);
-static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp);
+ApiWebServer::ApiWebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string listenaddress, int port, StatBag& stats) :
+  WebServer(std::move(ccm), std::move(listenaddress), port)
+{
+  bool doApi = arg().mustDo("api");
 
-AuthWebServer::AuthWebServer() :
-  d_start(time(nullptr))
+  if (doApi) {
+    d_api_queries = &(*stats.getPointer("api-queries"));
+    d_api_result_200 = &(*stats.getPointer("api-result-200"));
+    d_api_result_201 = &(*stats.getPointer("api-result-201"));
+    d_api_result_204 = &(*stats.getPointer("api-result-204"));
+    d_api_result_409 = &(*stats.getPointer("api-result-409"));
+    d_api_result_422 = &(*stats.getPointer("api-result-422"));
+    d_api_result_500 = &(*stats.getPointer("api-result-500"));
+  }
+}
+
+void ApiWebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword)
+{
+  auto func = [handler, allowPassword, this](HttpRequest* req, HttpResponse* resp) {
+    AtomicCounter* counter{nullptr};
+    try {
+      if (d_api_queries != nullptr) {
+        (*d_api_queries)++;
+      }
+      apiWrapper(handler, req, resp, allowPassword);
+      switch (resp->status) {
+      case 200:
+        counter = d_api_result_200;
+        break;
+      case 201:
+        counter = d_api_result_201;
+        break;
+      case 204:
+        counter = d_api_result_204;
+        break;
+      case 409:
+        counter = d_api_result_409;
+        break;
+      case 422:
+        counter = d_api_result_422;
+        break;
+      }
+      if (counter != nullptr) {
+        (*counter)++;
+      }
+    }
+    catch (HttpInternalServerErrorException&) {
+      counter = d_api_result_500;
+      if (counter != nullptr) {
+        (*counter)++;
+      }
+      throw;
+    }
+  };
+  registerBareHandler(url, func, method);
+}
+
+static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp);
+static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype);
+
+AuthWebServer::AuthWebServer(StatBag& stats) :
+  d_start(time(nullptr)), d_stats(stats)
 
 {
-  if (arg().mustDo("webserver") || arg().mustDo("api")) {
-    d_ws = std::make_unique<WebServer>(std::make_shared<ConcurrentConnectionManager>(arg().asNum("webserver-max-concurrent-connections")), arg()["webserver-address"], arg().asNum("webserver-port"));
+  d_doApi = arg().mustDo("api");
+
+  // Register API-specific statistics
+  if (d_doApi) {
+    d_stats.declare("api-queries", "Number of API queries received");
+    d_stats.declare("api-result-200", "Number of API queries returning HTTP status code 200");
+    d_stats.declare("api-result-201", "Number of API queries returning HTTP status code 201");
+    d_stats.declare("api-result-204", "Number of API queries returning HTTP status code 204");
+    d_stats.declare("api-result-409", "Number of API queries returning HTTP status code 409");
+    d_stats.declare("api-result-422", "Number of API queries returning HTTP status code 422");
+    d_stats.declare("api-result-500", "Number of API queries returning HTTP status code 500");
+  }
+
+  if (arg().mustDo("webserver") || d_doApi) {
+    d_ws = std::make_unique<ApiWebServer>(std::make_shared<ConcurrentConnectionManager>(arg().asNum("webserver-max-concurrent-connections")), arg()["webserver-address"], arg().asNum("webserver-port"), d_stats);
     if (g_slogStructured) {
       d_ws->setSLog(g_slog->withName("webserver"));
     }
@@ -122,16 +192,16 @@ AuthWebServer::AuthWebServer() :
   }
 }
 
-void AuthWebServer::go(Logr::log_t slog, StatBag& stats)
+void AuthWebServer::go(Logr::log_t slog)
 {
   // Compute a unique random value used for indexPOST validation
   std::array<char, 32> buf{};
   dns_random(buf.data(), buf.size());
   d_unique = Base64Encode(std::string(buf.data(), buf.size()));
-  S.doRings();
+  d_stats.doRings();
   std::thread webT([this, &slog]() { webThread(slog); });
   webT.detach();
-  std::thread statT([this, &slog, &stats]() { statThread(slog, stats); });
+  std::thread statT([this, &slog]() { statThread(slog, d_stats); });
   statT.detach();
 }
 
@@ -140,11 +210,14 @@ void AuthWebServer::statThread(Logr::log_t slog, StatBag& stats)
   try {
     setThreadName("pdns/statHelper");
     for (;;) {
-      d_queries.submit(static_cast<int>(stats.read("udp-queries")));
-      d_cachehits.submit(static_cast<int>(stats.read("packetcache-hit")));
-      d_cachemisses.submit(static_cast<int>(stats.read("packetcache-miss")));
-      d_qcachehits.submit(static_cast<int>(stats.read("query-cache-hit")));
-      d_qcachemisses.submit(static_cast<int>(stats.read("query-cache-miss")));
+      d_queries.submit(stats.read("udp-queries"));
+      d_cachehits.submit(stats.read("packetcache-hit"));
+      d_cachemisses.submit(stats.read("packetcache-miss"));
+      d_qcachehits.submit(stats.read("query-cache-hit"));
+      d_qcachemisses.submit(stats.read("query-cache-miss"));
+      if (d_doApi) {
+        d_api_queries.submit(stats.read("api-queries"));
+      }
       Utility::sleep(1);
     }
   }
@@ -179,11 +252,11 @@ static string htmlescape(const string& inputString)
   return result;
 }
 
-static void printtable(ostringstream& ret, const string& ringname, const std::string& unique, const string& title, int limit = 10)
+static void printtable(StatBag& stats, ostringstream& ret, const string& ringname, const std::string& unique, const string& title, int limit = 10)
 {
   unsigned int tot = 0;
   int entries = 0;
-  vector<pair<string, unsigned int>> ring = S.getRing(ringname);
+  vector<pair<string, unsigned int>> ring = stats.getRing(ringname);
 
   for (const auto& entry : ring) {
     tot += entry.second;
@@ -212,7 +285,7 @@ static void printtable(ostringstream& ret, const string& ringname, const std::st
   constexpr std::array<uint64_t, 7> sizes{10, 100, 500, 1000, 10000, 500000, 0};
   for (const auto size : sizes) {
     ret << "<option value=\"" << size << "\"";
-    if (S.getRingSize(ringname) == size) {
+    if (stats.getRingSize(ringname) == size) {
       ret << " selected";
     }
     ret << ">" << size << "</option>";
@@ -238,13 +311,13 @@ static void printtable(ostringstream& ret, const string& ringname, const std::st
   ret << "</table></div>" << endl;
 }
 
-static void printvars(ostringstream& ret)
+static void printvars(StatBag& stats, ostringstream& ret)
 {
   ret << "<div class=panel><h2>Variables</h2><table class=\"data\">" << endl;
 
-  vector<string> entries = S.getEntries();
+  vector<string> entries = stats.getEntries();
   for (const auto& entry : entries) {
-    ret << "<tr><td>" << entry << "</td><td>" << S.read(entry) << "</td><td>" << S.getDescrip(entry) << "</td>" << endl;
+    ret << "<tr><td>" << entry << "</td><td>" << stats.read(entry) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
   }
 
   ret << "</table></div>" << endl;
@@ -301,21 +374,28 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
 
   ret << "Backend query load, 1, 5, 10 minute averages: " << std::setprecision(3) << (int)d_qcachemisses.get1() << ", " << (int)d_qcachemisses.get5() << ", " << (int)d_qcachemisses.get10() << ". Max queries/second: " << (int)d_qcachemisses.getMax() << "<br>" << endl;
 
-  ret << "Total queries: " << S.read("udp-queries") << ". Question/answer latency: " << static_cast<double>(S.read("latency")) / 1000.0 << "ms</p><br>" << endl;
+  ret << "Total queries: " << d_stats.read("udp-queries") << ". Question/answer latency: " << static_cast<double>(d_stats.read("latency")) / 1000.0 << "ms<br>" << endl;
+
+  if (d_doApi) {
+    ret << "API Queries/second, 1, 5, 10 minute averages:  " << std::setprecision(3) << (int)d_api_queries.get1() << ", " << (int)d_api_queries.get5() << ", " << (int)d_api_queries.get10() << ". Max queries/second: " << (int)d_api_queries.getMax() << "<br>" << endl;
+  }
+
+  ret << "</p>" << endl;
+
   const auto& ringname = req->getvars["ring"];
   if (ringname.empty()) {
-    auto entries = S.listRings();
+    auto entries = d_stats.listRings();
     for (const auto& entry : entries) {
-      printtable(ret, entry, d_unique, S.getRingTitle(entry));
+      printtable(d_stats, ret, entry, d_unique, d_stats.getRingTitle(entry));
     }
 
-    printvars(ret);
+    printvars(d_stats, ret);
     if (arg().mustDo("webserver-print-arguments")) {
       printargs(ret);
     }
   }
-  else if (S.ringExists(ringname)) {
-    printtable(ret, ringname, d_unique, S.getRingTitle(ringname), 100);
+  else if (d_stats.ringExists(ringname)) {
+    printtable(d_stats, ret, ringname, d_unique, d_stats.getRingTitle(ringname), 100);
   }
 
   ret << "</div></div>" << endl;
@@ -335,8 +415,8 @@ void AuthWebServer::indexPOST(HttpRequest* req, HttpResponse* resp)
 
   string ring = req->postvars["resetring"];
   if (!ring.empty()) {
-    if (S.ringExists(ring)) {
-      S.resetRing(ring);
+    if (d_stats.ringExists(ring)) {
+      d_stats.resetRing(ring);
     }
     resp->status = 302;
     resp->headers["Location"] = req->url.path;
@@ -346,8 +426,8 @@ void AuthWebServer::indexPOST(HttpRequest* req, HttpResponse* resp)
   ring = req->postvars["resizering"];
   if (!ring.empty()) {
     int size = std::stoi(req->postvars["size"]);
-    if (S.ringExists(ring) && size > 0 && size <= 500000 && S.getRingSize(ring) != static_cast<unsigned int>(size)) {
-      S.resizeRing(ring, size);
+    if (d_stats.ringExists(ring) && size > 0 && size <= 500000 && d_stats.getRingSize(ring) != static_cast<unsigned int>(size)) {
+      d_stats.resizeRing(ring, size);
     }
     resp->status = 302;
     resp->headers["Location"] = req->url.path;
