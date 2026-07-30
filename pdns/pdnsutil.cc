@@ -2184,11 +2184,12 @@ static bool spawnEditor(const std::string& editor, std::string_view tmpfile, int
 
 // Fill the file `tmpnam' (possibly already open if `tmpfd' is valid) with the
 // contents of zone `info', in bind format.
-// Returns the zone records in sorted order, with the file closed and `tmpfd'
-// reset to -1.
-static std::vector<DNSRecord>fillTempZoneFile(int& tmpfd, const char* tmpnam, DomainInfo& info)
+// Returns the zone records in sorted order, as well as the number of invalid
+// records, with the file closed and `tmpfd' reset to -1.
+static std::vector<DNSRecord>fillTempZoneFile(int& tmpfd, const char* tmpnam, DomainInfo& info, unsigned int& invalid)
 {
   std::vector<DNSRecord> records;
+  invalid = 0;
 
   info.backend->list(info.zone, info.id);
   if (tmpfd < 0 && (tmpfd = open(tmpnam, O_CREAT | O_WRONLY | O_TRUNC, 0600)) < 0) {
@@ -2198,8 +2199,13 @@ static std::vector<DNSRecord>fillTempZoneFile(int& tmpfd, const char* tmpnam, Do
   if (write(tmpfd, header.data(), header.length()) < 0) {
     unixDie("Writing zone to temporary file");
   }
+  std::vector<std::pair<std::string, std::string>> invalid_report;
   DNSResourceRecord resrec;
-  while (info.backend->get(resrec)) {
+  while (info.backend->get_unsafe(resrec, invalid_report)) {
+    if (!invalid_report.empty()) {
+      ++invalid;
+      continue;
+    }
     if (resrec.qtype.getCode() == QType::ENT) {
       continue;
     }
@@ -2390,13 +2396,14 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
 
   vector<DNSRecord> pre;
   vector<DNSRecord> post;
+  unsigned int invalid{0};
   map<pair<DNSName,uint16_t>, string> changed;
 
   enum { CREATEZONEFILE, EDITFILE, INVALIDZONE, ASKAPPLY, ASKSOA, VALIDATE, APPLY } state{CREATEZONEFILE};
   while (true) {
     switch (state) {
     case CREATEZONEFILE:
-      pre = fillTempZoneFile(tmpfd, static_cast<const char *>(tmpnam), info);
+      pre = fillTempZoneFile(tmpfd, static_cast<const char *>(tmpnam), info, invalid);
       //state = EDITFILE;
       [[fallthrough]];
     case EDITFILE:
@@ -2474,7 +2481,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
           changed[{diff.d_name,diff.d_type}]+=str.str();
         }
       }
-      if (changed.empty()) {
+      if (changed.empty() && invalid == 0) {
         cout<<endl<<"No changes to apply."<<endl;
         return(EXIT_SUCCESS);
       }
@@ -2485,6 +2492,9 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
         // records need updates, but not the text representation anymore (we
         // will use the contents of `post' for that purpose).
         change.second.clear();
+      }
+      if (invalid != 0) {
+        cout << invalid << " ill-formed records will get removed (use 'zone check' for details)" << endl;
       }
       // If the SOA record has not been modified, ask the user if they want to
       // update the serial number.
@@ -2560,21 +2570,33 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
     case APPLY:
       // Free some memory
       pre.clear();
-      info.backend->startTransaction(zone, UnknownDomainID);
-      {
-        map<pair<DNSName,uint16_t>, vector<DNSRecord>> grouped;
-        for (const auto& rec : post) {
-          grouped[{rec.d_name,rec.d_type}].push_back(rec);
+      // If there are invalid records, we'll recreate the complete zone, as
+      // this is the only reliable way to make them disappear.
+      if (invalid != 0) {
+        info.backend->startTransaction(zone, info.id);
+        for (const auto& record : post) {
+          DNSResourceRecord resrec = DNSResourceRecord::fromWire(record);
+          resrec.domain_id = info.id;
+          info.backend->feedRecord(resrec, DNSName());
         }
-        for(const auto& change : changed) {
-          vector<DNSResourceRecord> records;
-          for(const DNSRecord& rec : grouped[change.first]) {
-            DNSResourceRecord resrec = DNSResourceRecord::fromWire(rec);
-            resrec.domain_id = info.id;
-            records.push_back(std::move(resrec));
+      }
+      else {
+        info.backend->startTransaction(zone, UnknownDomainID);
+        {
+          map<pair<DNSName,uint16_t>, vector<DNSRecord>> grouped;
+          for (const auto& rec : post) {
+            grouped[{rec.d_name,rec.d_type}].push_back(rec);
           }
-          auto [qname, qtype] = change.first;
-          info.backend->replaceRRSet(info.id, qname, QType(qtype), records);
+          for(const auto& change : changed) {
+            vector<DNSResourceRecord> records;
+            for(const DNSRecord& rec : grouped[change.first]) {
+              DNSResourceRecord resrec = DNSResourceRecord::fromWire(rec);
+              resrec.domain_id = info.id;
+              records.push_back(std::move(resrec));
+            }
+            auto [qname, qtype] = change.first;
+            info.backend->replaceRRSet(info.id, qname, QType(qtype), records);
+          }
         }
       }
       post.clear();
