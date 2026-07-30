@@ -22,9 +22,9 @@ also be explicitly enabled using :ref:`setting-views` in the configuration
 file.
 
 It is available in the :doc:`LMDB <backends/lmdb>` backend, and in the
-generic SQL backends via a per-backend setting, e.g.
-:ref:`setting-gpgsql-views` for the :doc:`PostgreSQL backend
-<backends/generic-postgresql>`.
+:doc:`PostgreSQL backend <backends/generic-postgresql>`, where support is
+enabled automatically when the ``networks`` and ``views`` tables are present
+in the database schema.
 
 Concepts
 --------

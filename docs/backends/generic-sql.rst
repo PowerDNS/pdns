@@ -386,8 +386,8 @@ For listing/modifying comments.
 Views queries
 ^^^^^^^^^^^^^
 
-For :doc:`Views <../views>` support. Only used when views processing is
-enabled for the backend (e.g. :ref:`setting-gpgsql-views`).
+For :doc:`Views <../views>` support. Only used when the backend has detected
+the ``networks`` and ``views`` tables in the database schema.
 
 -  ``view-list-query``: Called to list all views. Returns fields: view.
 -  ``view-list-zones-query``: Called to list all zone variants within a

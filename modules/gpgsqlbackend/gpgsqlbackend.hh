@@ -35,4 +35,8 @@ public:
 protected:
   void reconnect() override;
   bool inTransaction() override;
+  std::string viewsDetectionQuery() const override
+  {
+    return "SELECT CASE WHEN to_regclass('views') IS NOT NULL AND to_regclass('networks') IS NOT NULL THEN 1 ELSE 0 END";
+  }
 };

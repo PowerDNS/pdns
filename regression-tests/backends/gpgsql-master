@@ -16,7 +16,6 @@ module-dir=$PDNS_MODULE_PATH
 launch=gpgsql
 gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER
-gpgsql-views=yes
 
 zone-cache-refresh-interval=120
 logging-structured

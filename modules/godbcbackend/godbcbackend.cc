@@ -73,7 +73,6 @@ public:
     declare(suffix, "username", "User to connect as", "powerdns");
     declare(suffix, "password", "Password to connect with", "");
     declare(suffix, "dnssec", "Enable DNSSEC processing", "no");
-    declare(suffix, "views", "Enable views for this backend", "no");
 
     string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE";
 
