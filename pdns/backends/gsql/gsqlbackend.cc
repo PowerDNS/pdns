@@ -31,12 +31,53 @@
 #include "pdns/arguments.hh"
 #include "pdns/base32.hh"
 #include "pdns/dnssecinfra.hh"
+#include "pdns/lock.hh"
 #include <boost/algorithm/string.hpp>
 #include <sstream>
 #include <boost/format.hpp>
 #include <boost/scoped_ptr.hpp>
 
 #define ASSERT_ROW_COLUMNS(query, row, num) { if (row.size() != num) { throw PDNSException(std::string(query) + " returned wrong number of columns, expected "  #num  ", got " + std::to_string(row.size())); } }
+
+// Variant of the above for queries which may return one extra, trailing
+// column (the SOA owner name, used to filter out SOA records not at the
+// zone apex - missing in setups with pre-Views custom queries).
+static void assertRowColumnsOptionalExtra(const char* query, const SSqlStatement::row_t& row, size_t num)
+{
+  if (row.size() != num && row.size() != num + 1) {
+    throw PDNSException(std::string(query) + " returned wrong number of columns, expected " + std::to_string(num) + " or " + std::to_string(num + 1) + ", got " + std::to_string(row.size()));
+  }
+}
+
+// When the row carries the optional trailing SOA owner name column, check
+// that the SOA record sits at the zone apex: the owner name must match the
+// variantless zone name. Zones broken by bugs or human error can contain
+// stray SOA records below the apex (see #17051); rows for such records must
+// be ignored. Rows without the column (pre-Views custom queries) or with an
+// empty owner name (LEFT JOIN rows for zones without SOA) pass the check.
+// This function is safe to invoke on rows with unparsed contents: all
+// parsing happens within, and no exception escapes. When the zone column
+// itself does not parse, the row passes the check, so that the existing
+// error handling in the callers can report it as usual.
+static bool soaRowAtApex(const SSqlStatement::row_t& row, size_t nameColumn, size_t zoneColumn)
+{
+  if (row.size() <= nameColumn || row[nameColumn].empty()) {
+    return true;
+  }
+  ZoneName zone;
+  try {
+    zone = ZoneName(row[zoneColumn]);
+  }
+  catch (...) {
+    return true;
+  }
+  try {
+    return DNSName(row[nameColumn]) == zone.operator const DNSName&();
+  }
+  catch (...) {
+    return false;
+  }
+}
 
 GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 {
@@ -56,18 +97,6 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   }
   catch (const ArgException&) {
     d_upgradeContent = false;
-  }
-
-  d_views = mustDo("views");
-
-  if (d_views) {
-    d_ViewListQuery = getArg("view-list-query");
-    d_ViewListZonesQuery = getArg("view-list-zones-query");
-    d_ViewAddZoneQuery = getArg("view-add-zone-query");
-    d_ViewDelZoneQuery = getArg("view-del-zone-query");
-    d_NetworkSetQuery = getArg("network-set-query");
-    d_NetworkUnsetQuery = getArg("network-unset-query");
-    d_NetworkListQuery = getArg("network-list-query");
   }
 
   d_NoIdQuery=getArg("basic-query");
@@ -227,8 +256,63 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_NetworkListQuery_stmt = nullptr;
 }
 
+void GSQLBackend::detectViews()
+{
+  // Determine whether this backend supports Views by probing for the
+  // presence of the views-related tables. The probe query is supplied by
+  // the derived backend (an empty query means no Views support) and is
+  // expected to return a single row whose first column is "1" when both
+  // tables exist. Backend objects are created frequently, so the probe runs
+  // only once per backend configuration; all instances share the result.
+  const std::string probe = viewsDetectionQuery();
+  if (probe.empty() || !d_db) {
+    d_views = false;
+    return;
+  }
+
+  static LockGuarded<std::map<std::string, bool>> s_viewsDetected;
+
+  bool cached = false;
+  {
+    auto detected = s_viewsDetected.lock();
+    auto iter = detected->find(getPrefix());
+    if (iter != detected->end()) {
+      d_views = iter->second;
+      cached = true;
+    }
+  }
+  if (!cached) {
+    // Probe outside of the lock, so that backends of unrelated
+    // configurations do not serialize on it; concurrent probes for the
+    // same configuration are harmless, as they yield the same result.
+    bool present = false;
+    try {
+      auto stmt = d_db->prepare(probe, 0);
+      SSqlStatement::result_t result;
+      stmt->execute()->getResult(result);
+      present = !result.empty() && !result[0].empty() && result[0][0] == "1";
+    }
+    catch (const SSqlException&) {
+      present = false;
+    }
+    (*s_viewsDetected.lock())[getPrefix()] = present;
+    d_views = present;
+  }
+
+  if (d_views) {
+    d_ViewListQuery = getArg("view-list-query");
+    d_ViewListZonesQuery = getArg("view-list-zones-query");
+    d_ViewAddZoneQuery = getArg("view-add-zone-query");
+    d_ViewDelZoneQuery = getArg("view-del-zone-query");
+    d_NetworkSetQuery = getArg("network-set-query");
+    d_NetworkUnsetQuery = getArg("network-unset-query");
+    d_NetworkListQuery = getArg("network-list-query");
+  }
+}
+
 void GSQLBackend::allocateStatements()
 {
+  detectViews();
   if (d_db) {
     d_NoIdQuery_stmt = d_db->prepare(d_NoIdQuery, 2);
     d_IdQuery_stmt = d_db->prepare(d_IdQuery, 3);
@@ -629,8 +713,12 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
   vector<string> primaries;
 
   unfreshDomains->reserve(d_result.size());
-  for (const auto& row : d_result) { // id, name, type, master, last_check, catalog, content
-    ASSERT_ROW_COLUMNS("info-all-secondaries-query", row, 6);
+  for (const auto& row : d_result) { // id, name, type, master, last_check, content, [SOA owner name]
+    assertRowColumnsOptionalExtra("info-all-secondaries-query", row, 6);
+
+    if (!soaRowAtApex(row, 6, 1)) {
+      continue;
+    }
 
     try {
       di.zone = ZoneName(row[1]);
@@ -744,8 +832,12 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
   CatalogInfo ci;
 
   updatedDomains.reserve(d_result.size());
-  for (const auto& row : d_result) { // id, name, type, notified_serial, options, catalog, content
-    ASSERT_ROW_COLUMNS("info-all-primary-query", row, 7);
+  for (const auto& row : d_result) { // id, name, type, notified_serial, options, catalog, content, [SOA owner name]
+    assertRowColumnsOptionalExtra("info-all-primary-query", row, 7);
+
+    if (!soaRowAtApex(row, 7, 1)) {
+      continue;
+    }
 
     di.backend = this;
 
@@ -883,9 +975,12 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
   }
 
   members.reserve(d_result.size());
-  for (const auto& row : d_result) { // id, zone, type, options, [master]
+  for (const auto& row : d_result) { // id, zone, type, options, [master (consumer) / SOA owner name (producer)]
     if (type == CatalogInfo::CatalogType::Producer) {
-      ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 4);
+      assertRowColumnsOptionalExtra("info-producer/consumer-members-query", row, 4);
+      if (!soaRowAtApex(row, 4, 1)) {
+        continue;
+      }
     }
     else {
       ASSERT_ROW_COLUMNS("info-producer/consumer-members-query", row, 5);
@@ -2301,7 +2396,12 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
     SSqlStatement::row_t row;
     while (d_getAllDomainsQuery_stmt->hasNextRow()) {
       d_getAllDomainsQuery_stmt->nextRow(row);
-      ASSERT_ROW_COLUMNS("get-all-domains-query", row, 9);
+      assertRowColumnsOptionalExtra("get-all-domains-query", row, 9);
+
+      if (!soaRowAtApex(row, 9, 1)) {
+        continue;
+      }
+
       DomainInfo di;
       pdns::checked_stoi_into(di.id, row[0]);
       try {

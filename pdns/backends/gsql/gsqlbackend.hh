@@ -54,6 +54,12 @@ public:
 protected:
   virtual void allocateStatements();
   virtual void freeStatements();
+  // Engine-specific SQL probing for the existence of the views-related
+  // tables ("views" and "networks"). Returns a query yielding a single row
+  // whose first column is "1" when both tables exist, or an empty string if
+  // this backend does not implement Views support.
+  virtual std::string viewsDetectionQuery() const { return {}; }
+  void detectViews();
 
 public:
   unsigned int getCapabilities() override;
