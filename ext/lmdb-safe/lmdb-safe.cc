@@ -263,28 +263,28 @@ MDBRWTransactionImpl::~MDBRWTransactionImpl()
 void MDBRWTransactionImpl::commit()
 {
   closeRORWCursors();
-  if (!d_txn) {
-    return;
+  if (d_txn != nullptr) {
+    int retCode = mdb_txn_commit(d_txn);
+    // Upon failure, mdb_txn_commit() performs an mdb_txn_abort() call,
+    // so we need to consider the transaction aborted and correctly
+    // deallocated.
+    d_txn = nullptr;
+    environment().decRWTX();
+    if (retCode != 0) {
+      throw std::runtime_error("committing: " + std::string(mdb_strerror(retCode)));
+    }
   }
-
-  if(int rc = mdb_txn_commit(d_txn)) {
-    throw std::runtime_error("committing: " + std::string(mdb_strerror(rc)));
-  }
-  environment().decRWTX();
-  d_txn = nullptr;
 }
 
 void MDBRWTransactionImpl::abort()
 {
   closeRORWCursors();
-  if (!d_txn) {
-    return;
+  if (d_txn != nullptr) {
+    mdb_txn_abort(d_txn);
+    d_txn = nullptr;
+    // prevent the RO destructor from cleaning up the transaction itself
+    environment().decRWTX();
   }
-
-  mdb_txn_abort(d_txn);
-  // prevent the RO destructor from cleaning up the transaction itself
-  environment().decRWTX();
-  d_txn = nullptr;
 }
 
 MDBROTransactionImpl::MDBROTransactionImpl(MDBEnv *parent, MDB_txn *txn):
@@ -338,7 +338,7 @@ void MDBROTransactionImpl::abort()
 {
   closeROCursors();
   // if d_txn is non-nullptr here, either the transaction object was invalidated earlier (e.g. by moving from it), or it is an RW transaction which has already cleaned up the d_txn pointer (with an abort).
-  if (d_txn) {
+  if (d_txn != nullptr) {
     d_parent->decROTX();
     mdb_txn_abort(d_txn); // this appears to work better than abort for r/o database opening
     d_txn = nullptr;
@@ -349,7 +349,7 @@ void MDBROTransactionImpl::commit()
 {
   closeROCursors();
   // if d_txn is non-nullptr here, either the transaction object was invalidated earlier (e.g. by moving from it), or it is an RW transaction which has already cleaned up the d_txn pointer (with an abort).
-  if (d_txn) {
+  if (d_txn != nullptr) {
     d_parent->decROTX();
     mdb_txn_commit(d_txn); // this appears to work better than abort for r/o database opening
     d_txn = nullptr;
