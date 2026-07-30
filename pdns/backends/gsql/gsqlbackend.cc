@@ -932,6 +932,10 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   if(!d_dnssecQueries)
     return false;
 
+  if (!d_inTransaction) {
+    throw PDNSException("updateDNSSECOrderNameAndAuth called outside of transaction");
+  }
+
   if (!ordername.empty()) {
     if (qtype == QType::ANY) {
       try {
@@ -1010,6 +1014,10 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
 
 bool GSQLBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
+  if (!d_inTransaction) {
+    throw PDNSException("updateEmptyNonTerminals called outside of transaction");
+  }
+
   if(remove) {
     try {
       reconnectIfNeeded();
@@ -2126,12 +2134,12 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
 // NOLINTNEXTLINE(readability-identifier-length)
 bool GSQLBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
+  if (!d_inTransaction) {
+    throw PDNSException("replaceRRSet called outside of transaction");
+  }
+
   try {
     reconnectIfNeeded();
-
-    if (!d_inTransaction) {
-      throw PDNSException("replaceRRSet called outside of transaction");
-    }
 
     if (qt != QType::ANY) {
       if (d_upgradeContent) {
@@ -2432,12 +2440,12 @@ bool GSQLBackend::feedComment(const Comment& comment)
 // NOLINTNEXTLINE(readability-identifier-length)
 bool GSQLBackend::replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
 {
+  if (!d_inTransaction) {
+    throw PDNSException("replaceComments called outside of transaction");
+  }
+
   try {
     reconnectIfNeeded();
-
-    if (!d_inTransaction) {
-      throw PDNSException("replaceComments called outside of transaction");
-    }
 
     // clang-format off
     d_DeleteCommentRRsetQuery_stmt->

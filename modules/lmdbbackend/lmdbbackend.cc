@@ -1559,8 +1559,8 @@ bool LMDBBackend::hasOrphanedNSEC3Record(MDBRWCursor& cursor, domainid_t domain_
   return seenNSEC3 && !seenOther;
 }
 
-// d_rwtxn must be set here
-bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3)
+// d_rwtxn must be set here (must be called within a transaction)
+bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3) // NOLINT(readability-identifier-length)
 {
   LMDBResourceRecord lrr(r);
   lrr.qname.makeUsRelative(d_transactiondomain);
@@ -1635,36 +1635,30 @@ bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNS
   return true;
 }
 
-// might be called within a transaction, might also be called alone
+// d_rwtxn must be set here (must be called within a transaction on this domain)
 // NOLINTNEXTLINE(readability-identifier-length)
 bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
+  // Paranoia
+  if (!d_rwtxn || domain_id != d_transactiondomainid) {
+    throw DBException("replaceRRSet invoked without an active transaction on the domain");
+  }
+
   DomainInfo info;
+  // We need to get the domain name in order to make names relative
   if (!findDomain(domain_id, info)) {
     return false;
   }
 
-  shared_ptr<RecordsRWTransaction> txn;
-  bool needCommit = false;
-  if (d_rwtxn && d_transactiondomainid == domain_id) {
-    txn = d_rwtxn;
-    //    cout<<"Reusing open transaction"<<endl;
-  }
-  else {
-    //    cout<<"Making a new RW txn for replace rrset"<<endl;
-    txn = getRecordsRWTransaction(domain_id);
-    needCommit = true;
-  }
-
   DNSName relative = qname.makeRelative(info.zone);
-  compoundOrdername co;
+  compoundOrdername co; // NOLINT(readability-identifier-length)
   string match;
   if (qt.getCode() == QType::ANY) {
     // Check for an existing NSEC3 record. If one exists, we need to also
     // remove the back chain record.
-    deleteNSEC3RecordPair(txn, domain_id, relative);
+    deleteNSEC3RecordPair(d_rwtxn, domain_id, relative);
     match = co(domain_id, relative);
-    deleteDomainRecords(*txn, match);
+    deleteDomainRecords(*d_rwtxn, match);
     // Update key if insertions are to follow
     if (!rrset.empty()) {
       match = co(domain_id, relative, rrset.front().qtype.getCode());
@@ -1672,14 +1666,14 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
   }
   else {
     if (qt.getCode() == QType::NSEC3) {
-      deleteNSEC3RecordPair(txn, domain_id, relative);
+      deleteNSEC3RecordPair(d_rwtxn, domain_id, relative);
       // Compute key if insertions are to follow
       if (!rrset.empty()) {
         match = co(domain_id, relative, qt.getCode());
       }
     }
     else {
-      auto cursor = txn->txn->getCursor(txn->db->rdbi);
+      auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->rdbi);
       MDBOutVal key{};
       MDBOutVal val{};
       bool hadOrderName{false};
@@ -1695,7 +1689,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
       // pair as well.
       if (rrset.empty()) {
         if (hadOrderName && hasOrphanedNSEC3Record(cursor, domain_id, relative)) {
-          deleteNSEC3RecordPair(txn, domain_id, relative);
+          deleteNSEC3RecordPair(d_rwtxn, domain_id, relative);
         }
       }
     }
@@ -1713,11 +1707,8 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     }
     std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
     serializeToBuffer(ser, adjustedRRSet);
-    txn->txn->put_header_in_place(txn->db->rdbi, match, ser);
+    d_rwtxn->txn->put_header_in_place(d_rwtxn->db->rdbi, match, ser);
   }
-
-  if (needCommit)
-    txn->txn->commit();
 
   return true;
 }
@@ -3223,39 +3214,31 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
   return true;
 }
 
+// d_rwtxn must be set here (must be called within a transaction on this domain)
 bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool isNsec3)
 {
   //  cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< ", " << qtype << endl;
+  // Paranoia
+  if (!d_rwtxn || domain_id != d_transactiondomainid) {
+    throw DBException("updateDNSSECOrderNameAndAuth invoked without an active transaction on the domain");
+  }
+
   DomainInfo info;
   if (!findDomain(domain_id, info)) {
     //    cout<<"Could not find domain_id "<<domain_id <<endl;
     return false;
   }
 
-  shared_ptr<RecordsRWTransaction> txn;
-  bool needCommit = false;
-  if (d_rwtxn && d_transactiondomainid == domain_id) {
-    txn = d_rwtxn;
-    //    cout<<"Reusing open transaction"<<endl;
-  }
-  else {
-    //    cout<<"Making a new RW txn for " << __PRETTY_FUNCTION__ <<endl;
-    txn = getRecordsRWTransaction(domain_id);
-    needCommit = true;
-  }
-
   DNSName rel = qname.makeRelative(info.zone);
 
-  compoundOrdername co;
+  compoundOrdername co; // NOLINT(readability-identifier-length)
   string matchkey = co(domain_id, rel);
 
-  auto cursor = txn->txn->getCursor(txn->db->rdbi);
-  MDBOutVal key, val;
+  auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->rdbi);
+  MDBOutVal key{};
+  MDBOutVal val{};
   if (cursor.prefix(matchkey, key, val) != 0) {
     // cout << "Could not find anything"<<endl;
-    if (needCommit) {
-      txn->txn->abort();
-    }
     return false;
   }
 
@@ -3302,38 +3285,30 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   if (!keepNSEC3) {
     // NSEC3 link to be removed: need to remove an existing pair, if any
     if (hadOrderName) {
-      deleteNSEC3RecordPair(txn, domain_id, rel);
+      deleteNSEC3RecordPair(d_rwtxn, domain_id, rel);
     }
   }
   else if (hasOrderName) {
     // NSEC3 link to be added or updated
-    writeNSEC3RecordPair(txn, domain_id, rel, ordername);
+    writeNSEC3RecordPair(d_rwtxn, domain_id, rel, ordername);
   }
 
-  if (needCommit)
-    txn->txn->commit();
   return false;
 }
 
+// d_rwtxn must be set here (must be called within a transaction on this domain)
 bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
   // cout << __PRETTY_FUNCTION__<< ": "<< domain_id << ", insert.size() "<<insert.size()<<", "<<erase.size()<<", " <<remove<<endl;
+  // Paranoia
+  if (!d_rwtxn || domain_id != d_transactiondomainid) {
+    throw DBException("updateEmptyNonTerminals invoked without an active transaction on the domain");
+  }
+
   DomainInfo info;
   if (!findDomain(domain_id, info)) {
     // cout <<"No such domain with id "<<domain_id<<endl;
     return false;
-  }
-
-  bool needCommit = false;
-  shared_ptr<RecordsRWTransaction> txn;
-  if (d_rwtxn && d_transactiondomainid == domain_id) {
-    txn = d_rwtxn;
-    //    cout<<"Reusing open transaction"<<endl;
-  }
-  else {
-    //    cout<<"Making a new RW txn for delete domain"<<endl;
-    txn = getRecordsRWTransaction(domain_id);
-    needCommit = true;
   }
 
   // if remove is set, all ENTs should be removed
@@ -3344,7 +3319,7 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
     // deleteDomainRecords() would do, as we also need to remove
     // NSEC3 records for these ENT, if any.
     {
-      auto cursor = txn->txn->getCursor(txn->db->rdbi);
+      auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->rdbi);
       MDBOutVal key{};
       MDBOutVal val{};
       std::vector<DNSName> names;
@@ -3369,7 +3344,7 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
           }
         } while (cursor.next(key, val) == 0);
         for (const auto& qname : names) {
-          deleteNSEC3RecordPair(txn, domain_id, qname);
+          deleteNSEC3RecordPair(d_rwtxn, domain_id, qname);
         }
         names.clear();
       }
@@ -3384,12 +3359,12 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
       // If the given ENT record actually exists, and has a matching NSEC3
       // record, check if there are any other records with the same name,
       // and remove the NSEC3 record if not, to not leave a dangling record.
-      if (txn->txn->get(txn->db->rdbi, match, val) == 0) {
+      if (d_rwtxn->txn->get(d_rwtxn->db->rdbi, match, val) == 0) {
         bool hadOrderName = peekAtHasOrderName(val.get<string_view>());
-        txn->txn->del(txn->db->rdbi, match);
-        auto cursor = txn->txn->getCursor(txn->db->rdbi);
+        d_rwtxn->txn->del(d_rwtxn->db->rdbi, match);
+        auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->rdbi);
         if (hadOrderName && hasOrphanedNSEC3Record(cursor, domain_id, name)) {
-          deleteNSEC3RecordPair(txn, domain_id, name);
+          deleteNSEC3RecordPair(d_rwtxn, domain_id, name);
         }
       }
     }
@@ -3401,11 +3376,8 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
     lrr.auth = true;
     std::string ser = MDBRWTransactionImpl::stringWithEmptyHeader();
     serializeToBuffer(ser, lrr);
-    txn->txn->put_header_in_place(txn->db->rdbi, order(domain_id, lrr.qname, QType::ENT), ser);
+    d_rwtxn->txn->put_header_in_place(d_rwtxn->db->rdbi, order(domain_id, lrr.qname, QType::ENT), ser);
     // cout <<" +"<<name<<endl;
-  }
-  if (needCommit) {
-    txn->txn->commit();
   }
   return false;
 }
