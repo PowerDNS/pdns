@@ -30,6 +30,9 @@
 #include <deque>
 #include "inflighter.cc"
 //#include "malloctrace.hh"
+
+bool g_slogStructured{false};
+
 StatBag S;
 bool g_quiet;
 std::unique_ptr<ofstream> g_powerdns;
@@ -137,9 +140,9 @@ struct SendReceive
       dr.content.clear();
       dr.ttl=0;
       for(const auto& a : mdp.d_answers) {
-        if(a.first.d_type == QType::TXT) {
-          dr.content=a.first.d_content->getZoneRepresentation();
-          dr.ttl=a.first.d_ttl;
+        if(a.d_type == QType::TXT) {
+          dr.content=a.getContent()->getZoneRepresentation();
+          dr.ttl=a.d_ttl;
         }
       }
       if(dr.content.empty()) 
@@ -157,7 +160,7 @@ struct SendReceive
     d_idqueue.push_back(id);
   }
   
-  void deliverAnswer(NSQuery& domain, const DNSResult& dr, unsigned int usec)
+  void deliverAnswer(NSQuery& domain, const DNSResult& dr, unsigned int /* usec */)
   {
     cout<<domain.a.toString()<<"\t"<<domain.qname<<"\t";
     for(const auto& n : domain.nsnames)
@@ -206,7 +209,7 @@ struct SendReceiveRes
     if (setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val)) != 0)
        cerr<<"Failed to turn on SO_REUSEADDR: " << stringerror() << endl;
     if (connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen()) != 0)
-       throw DNSException("connect(" + remote.toStringWithPort() + ") failed: " + stringerror());
+       throw PDNSException("connect(" + remote.toStringWithPort() + ") failed: " + stringerror());
     for(unsigned int id =0 ; id < std::numeric_limits<uint16_t>::max(); ++id) 
       d_idqueue.push_back(id);
   }
@@ -270,12 +273,12 @@ struct SendReceiveRes
       dr.rcode = mdp.d_header.rcode;
       dr.addrs.clear();
       for(const auto& a : mdp.d_answers) {
-        if(a.first.d_name != mdp.d_qname) 
+        if(a.d_name != mdp.d_qname) 
           continue;
-        if(a.first.d_type == QType::A || a.first.d_type == QType::AAAA) {
+        if(a.d_type == QType::A || a.d_type == QType::AAAA) {
           if(!g_quiet)
-            cout<<a.first.d_content->getZoneRepresentation()<<endl;
-          dr.addrs.push_back(getAddr(a.first));
+            cout<<a.getContent()->getZoneRepresentation()<<endl;
+          dr.addrs.push_back(getAddr(a));
         }
       }
       ++g_count;
@@ -293,7 +296,7 @@ struct SendReceiveRes
     d_idqueue.push_back(id);
   }
   
-  void deliverAnswer(DNSName& domain, const RESResult& dr, unsigned int usec)
+  void deliverAnswer(DNSName& domain, const RESResult& dr, unsigned int /* usec */)
   {
     d_out[domain]=dr.addrs;
     cout<<domain<<"\t"<<dr.rcode<<'\t';
@@ -416,18 +419,21 @@ try
 {
   g_quiet=true;
   reportAllTypes();
-  string mode=argv[1];
-  if(mode == "parse-zone") {
+  string mode;
+  if (argc > 1) {
+    mode = argv[1];
+  }
+  if(mode == "parse-zone" && argc > 2) {
     unsigned int limit = 0;
     if(argc > 3)
       limit = atoi(argv[3]);
 
     return parseZone(argv[2], limit);
   }
-  else if(mode=="resolve-ns") {
+  else if(mode=="resolve-ns" && argc > 2) {
     return resolveNS(string(argv[2])+".needres");
   }
-  else if(mode=="scan-ns") {
+  else if(mode=="scan-ns" && argc > 2) {
     ifstream ns(string(argv[2])+".nameservers");
     g_powerdns = std::make_unique<std::ofstream>(string(argv[2]) + ".powerdns");
     string line;
@@ -512,7 +518,7 @@ try
       }
     }
   }
-  else if(mode=="score-ns") {
+  else if(mode=="score-ns" && argc > 2) {
     std::unordered_set<DNSName> powerdns;
     ifstream ifs(string(argv[2])+".powerdns");
     string line;
@@ -546,7 +552,7 @@ try
     cerr<<"\n";
   }
   else {
-    cerr<<"Unknown mode "<<argv[1]<<endl;
+    cerr<<"Unknown mode "<<mode<<endl;
   }
   //  cout<<g_mtracer->topAllocatorsString(20)<<endl;
 }
