@@ -459,8 +459,8 @@ bool MOADNSParser::hasEDNS() const
     return false;
   }
 
-  for (const auto& record : d_answers) {
-    if (record.d_place == DNSResourceRecord::ADDITIONAL && record.d_type == QType::OPT && record.d_name.isRoot()) {
+  for (const auto& record : getAnswers(DNSResourceRecord::Place::ADDITIONAL)) {
+    if (record.d_type == QType::OPT && record.d_name.isRoot()) {
       return true;
     }
   }
