@@ -19,7 +19,7 @@ endif
 # libcrypto using the mechanisms provided by meson (e.g. pkg-config). If that cannot be
 # found, then look in some hard-coded paths below.
 if opt_libcrypto_path == ''
-  dep_libcrypto = dependency('libcrypto', required: false)
+  dep_libcrypto = dependency('libcrypto', version: '>= 1.1', required: true)
 else
   ssldirs = [opt_libcrypto_path]
 endif
@@ -112,7 +112,7 @@ conf.set(
 )
 
 conf.set('HAVE_LIBCRYPTO', dep_libcrypto.found(), description: 'OpenSSL libcrypto-based signers')
-summary('OpenSSL libcrypto', dep_libcrypto.found(), bool_yn: true, section: 'Crypto')
+summary('OpenSSL libcrypto version', dep_libcrypto.version(), section: 'Crypto')
 
 subdir('ecdsa')                 # ECDSA signers
 subdir('eddsa')                 # EDDSA signers

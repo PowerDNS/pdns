@@ -200,19 +200,14 @@ public:
     }
 
     if (hostIsAddr) {
-#if (OPENSSL_VERSION_NUMBER >= 0x10002000L)
       X509_VERIFY_PARAM *param = SSL_get0_param(d_conn.get());
       /* Enable automatic IP checks */
       X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
       if (X509_VERIFY_PARAM_set1_ip_asc(param, d_hostname.c_str()) != 1) {
         throw std::runtime_error("Error setting TLS IP for certificate validation");
       }
-#else
-      /* no validation for you, see https://wiki.openssl.org/index.php/Hostname_validation */
-#endif
     }
     else {
-#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && defined(HAVE_SSL_SET_HOSTFLAGS) // grrr libressl
       SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
 #if !defined(OPENSSL_VERSION_MAJOR) || OPENSSL_VERSION_MAJOR < 4
       auto ret = SSL_set1_host(d_conn.get(), d_hostname.c_str());
@@ -222,16 +217,6 @@ public:
       if (ret != 1) {
         throw std::runtime_error("Error setting TLS hostname for certificate validation");
       }
-#elif (OPENSSL_VERSION_NUMBER >= 0x10002000L)
-      X509_VERIFY_PARAM *param = SSL_get0_param(d_conn.get());
-      /* Enable automatic hostname checks */
-      X509_VERIFY_PARAM_set_hostflags(param, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
-      if (X509_VERIFY_PARAM_set1_host(param, d_hostname.c_str(), d_hostname.size()) != 1) {
-        throw std::runtime_error("Error setting TLS hostname for certificate validation");
-      }
-#else
-      /* no hostname validation for you, see https://wiki.openssl.org/index.php/Hostname_validation */
-#endif
     }
 
     SSL_set_ex_data(d_conn.get(), getConnectionIndex(), this);
@@ -852,14 +837,6 @@ public:
       }
 
       SSL_CTX_set_verify(d_tlsCtx.get(), SSL_VERIFY_PEER, nullptr);
-#if (OPENSSL_VERSION_NUMBER < 0x10002000L)
-#if defined(DNSDIST)
-      SLOG(warnlog("TLS hostname validation requested but not supported for OpenSSL < 1.0.2"),
-           dnsdist::logging::getTopLogger("openssl-client-side")->info(Logr::Warning, "TLS hostname validation requested but not supported for OpenSSL < 1.0.2"));
-#else /* DNSDIST */
-      warnlog("TLS hostname validation requested but not supported for OpenSSL < 1.0.2");
-#endif /* DNSDIST */
-#endif /* OPENSSL_VERSION_NUMBER < 0x10002000L */
     }
 
     /* we need to set SSL_SESS_CACHE_CLIENT for the "new ticket" callback (below) to be called,

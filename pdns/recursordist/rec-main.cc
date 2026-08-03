@@ -2333,7 +2333,6 @@ static int serviceMain(Logr::log_t log)
   }
 #endif
 
-  openssl_thread_setup();
   openssl_seed();
 
   gid_t newgid = 0;
