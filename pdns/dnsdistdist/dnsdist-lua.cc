@@ -136,13 +136,14 @@ static std::shared_ptr<const Logr::Logger> getLogger(const std::string_view cont
 
 using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>, std::shared_ptr<XskSocket>>>;
 
-static void parseLocalBindVars(std::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections, bool& enableProxyProtocol)
+static void parseLocalBindVars(std::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections, bool& enableProxyProtocol, bool& forwardViaUDPFirst)
 {
   if (vars) {
     LuaArray<int> setCpus;
 
     getOptionalValue<bool>(vars, "reusePort", reusePort);
     getOptionalValue<bool>(vars, "enableProxyProtocol", enableProxyProtocol);
+    getOptionalValue<bool>(vars, "forwardViaUDPFirst", forwardViaUDPFirst);
     getOptionalValue<int>(vars, "tcpFastOpenQueueSize", tcpFastOpenQueueSize);
     getOptionalValue<int>(vars, "tcpListenQueueSize", tcpListenQueueSize);
     getOptionalValue<int>(vars, "maxConcurrentTCPConnections", tcpMaxConcurrentConnections);
@@ -820,8 +821,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     bool enableProxyProtocol = true;
+    bool forwardViaUDPFirst = false;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, forwardViaUDPFirst);
 
     auto frontends = dnsdist::configuration::getImmutableConfiguration().d_frontends;
     try {
@@ -848,6 +850,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (tcpMaxConcurrentConnections > 0) {
         tcpCS->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
+      tcpCS->d_forwardViaUDPFirst = forwardViaUDPFirst;
 
 #ifdef HAVE_XSK
       std::shared_ptr<XskSocket> socket;
@@ -892,8 +895,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     bool enableProxyProtocol = true;
+    bool forwardViaUDPFirst = false;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, forwardViaUDPFirst);
 
     try {
       ComboAddress loc(addr, 53);
@@ -909,6 +913,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (tcpMaxConcurrentConnections > 0) {
         tcpCS->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
+      tcpCS->d_forwardViaUDPFirst = forwardViaUDPFirst;
 #ifdef HAVE_XSK
       std::shared_ptr<XskSocket> socket;
       parseXskVars(vars, socket);
@@ -1607,8 +1612,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::set<int> cpus;
     std::vector<DNSCryptContext::CertKeyPaths> certKeys;
     bool enableProxyProtocol = true;
+    bool forwardViaUDPFirst = false;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, forwardViaUDPFirst);
     checkAllParametersConsumed("addDNSCryptBind", vars);
 
     if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
@@ -1661,6 +1667,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (tcpMaxConcurrentConnections > 0) {
         clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
+      clientState->d_forwardViaUDPFirst = forwardViaUDPFirst;
 
       dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_frontends.push_back(std::move(clientState));
@@ -2343,9 +2350,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
     bool enableProxyProtocol = true;
     bool padResponses = false;
+    bool forwardViaUDPFirst = false;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, forwardViaUDPFirst);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
       getOptionalValue<std::string>(vars, "serverTokens", frontend->d_serverTokens);
       getOptionalValue<std::string>(vars, "provider", frontend->d_tlsContext->d_provider);
@@ -2466,9 +2474,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
     bool enableProxyProtocol = true;
     bool padResponses = false;
+    bool forwardViaUDPFirst = false;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, forwardViaUDPFirst);
       if (maxInFlightQueriesPerConn > 0) {
         frontend->d_quicheParams.d_maxInFlight = maxInFlightQueriesPerConn;
       }
@@ -2507,6 +2516,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto clientState = std::make_shared<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, padResponses);
     clientState->doh3Frontend = std::move(frontend);
     clientState->d_additionalAddresses = std::move(additionalAddresses);
+    clientState->d_forwardViaUDPFirst = forwardViaUDPFirst;
 
     dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_frontends.push_back(std::move(clientState));
@@ -2543,9 +2553,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
     bool enableProxyProtocol = true;
     bool padResponses = false;
+    bool forwardViaUDPFirst = false;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol, forwardViaUDPFirst);
       if (maxInFlightQueriesPerConn > 0) {
         frontend->d_quicheParams.d_maxInFlight = maxInFlightQueriesPerConn;
       }
@@ -2584,6 +2595,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto clientState = std::make_shared<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol, padResponses);
     clientState->doqFrontend = std::move(frontend);
     clientState->d_additionalAddresses = std::move(additionalAddresses);
+    clientState->d_forwardViaUDPFirst = forwardViaUDPFirst;
 
     dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_frontends.push_back(std::move(clientState));
@@ -2914,9 +2926,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
     bool enableProxyProtocol = true;
     bool padResponses = false;
+    bool forwardViaUDPFirst = false;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConns, enableProxyProtocol);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConns, enableProxyProtocol, forwardViaUDPFirst);
 
       getOptionalValue<std::string>(vars, "provider", frontend->d_provider);
       boost::algorithm::to_lower(frontend->d_provider);
@@ -2987,6 +3000,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (tcpMaxConcurrentConns > 0) {
         clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConns;
       }
+
+      clientState->d_forwardViaUDPFirst = forwardViaUDPFirst;
 
       dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_frontends.push_back(std::move(clientState));
