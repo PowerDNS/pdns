@@ -2163,6 +2163,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_dname)
 {
   auto cache = make_unique<AggressiveNSECCache>(10000);
   g_recCache = std::make_unique<MemRecursorCache>();
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 200;
 
   const DNSName zone("powerdns.com");
   time_t now = time(nullptr);
