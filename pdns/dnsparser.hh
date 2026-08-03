@@ -551,8 +551,8 @@ public:
 
     partial_vector(const std::vector<T>& base, size_type start, size_type end) : d_base(base), d_start(start), d_end(end) {}
 
-    iterator begin() const { return d_base.cbegin() + d_start; }
-    iterator end() const { return d_base.cbegin() + d_end; }
+    [[nodiscard]] iterator begin() const { return d_base.cbegin() + d_start; }
+    [[nodiscard]] iterator end() const { return d_base.cbegin() + d_end; }
 
   private:
     const std::vector<T>& d_base;
@@ -560,7 +560,7 @@ public:
     size_type d_end;
   };
 
-  const partial_vector<DNSRecord> getAnswers(DNSResourceRecord::Place section) const
+  [[nodiscard]] partial_vector<DNSRecord> getAnswers(int section) const
   {
     switch (section) {
     case DNSResourceRecord::Place::ANSWER:
@@ -569,6 +569,8 @@ public:
       return partial_vector<DNSRecord>(d_answers, d_header.ancount, d_header.ancount + d_header.nscount);
     case DNSResourceRecord::Place::ADDITIONAL:
       return partial_vector<DNSRecord>(d_answers, d_header.ancount + d_header.nscount, d_answers.size());
+    case -DNSResourceRecord::Place::ADDITIONAL: // Note the minus sign: everything BUT the additional section
+      return partial_vector<DNSRecord>(d_answers, 0, d_header.ancount + d_header.nscount);
     default:
       throw MOADNSException("Invalid set of answers requested");
     }
