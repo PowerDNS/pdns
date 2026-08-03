@@ -2,12 +2,7 @@ Dynamic DNS Update (RFC 2136)
 =============================
 
 Starting with the PowerDNS Authoritative Server 3.4.0, DNS update
-support is available. There are a number of items NOT supported:
-
--  There is no support for SIG (TSIG and GSS\*TSIG are supported);
--  WKS records are specifically mentioned in the RFC, we don't
-   specifically care about WKS records;
--  Anything we forgot....
+support is available.
 
 The implementation requires the backend to support a number of new
 operations. Currently, the following backends have been modified to
