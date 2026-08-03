@@ -48,6 +48,7 @@ enum RRSetFlags : unsigned int
 //   *) no exact duplicates
 //   *) no duplicates for QTypes that can only be present once per RRset
 //   *) hostnames are hostnames
-void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<pair<DNSResourceRecord, string>>& errors);
+//   *) no mismatching TTL (if asked in flags)
+void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<std::tuple<Logr::Priority, DNSResourceRecord, string>>& diagnostics);
 
 } // namespace Check
