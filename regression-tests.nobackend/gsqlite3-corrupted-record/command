@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
-rm -f pdns-gsqlite3.conf pdns.sqlite3
+rm -f pdns-gsqlite3.conf pdns.sqlite3*
 
 cat > pdns-gsqlite3.conf << __EOF__
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
 module-dir=../regression-tests/modules
+loglevel=4
 __EOF__
 
 ARGS="--config-dir=. --config-name=gsqlite3"
@@ -25,11 +26,19 @@ $PDNSUTIL $ARGS rrset add bug.less never.bug.less A 1.2.3.4
 echo "UPDATE records SET name='this-name-turns-out-to-be-an-invalid-dns-name-because-it-is-way-larger-than-sixty-three-characters-and-this-is-not-allowed-for-labels.bug.less' WHERE name='no.bug.less';" | sqlite3 pdns.sqlite3 2>&1
 echo "UPDATE records SET ordername='..' WHERE name='never.bug.less';" | sqlite3 pdns.sqlite3 2>&1
 
+# Make the database file non-writable, and let pdnsutil cope.
+chmod -w pdns.sqlite3
+
 # Check that pdnsutil zone list doesn't show the invalid records
 $PDNSUTIL -s $ARGS zone list bug.less
 
 # Check that pdnsutil zone check reports the invalid records
 $PDNSUTIL $ARGS zone check bug.less
+
+# For the sake of the following tests... note the wildcard, for the database
+# being read-only may cause sqlite to create -wal and -shm files read-only
+# as well.
+chmod +w pdns.sqlite3*
 
 # Check that pdnsutil zone edit deletes the invalid records (causing zone
 # check to no longer report any)
