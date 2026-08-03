@@ -70,10 +70,33 @@ class AuthTSIG(ApiTestCase, AuthTSIGHelperMixin):
 
     def test_remove_key(self):
         """
-        Create a key and attempt to delete it
+        Create two keys with the same name but different algorithm and attempt to delete them in one operation
         """
         name, payload, data = self.create_tsig_key()
+        name2, payload2, data2 = self.create_tsig_key(name=name, algorithm="hmac-sha512")
+        self.assertEqual(name, name2)
         r = self.session.delete(self.url("/api/v1/servers/localhost/tsigkeys/" + data["id"]))
+        self.assertEqual(r.status_code, 204)
+        r = self.session.get(self.url("/api/v1/servers/localhost/tsigkeys"), headers={"accept": "application/json"})
+        self.assertEqual(r.status_code, 200)
+        keys = r.json()
+        self.assertEqual(len([key for key in keys if key["name"] == name]), 0)
+
+    def test_remove_key_with_algorithm(self):
+        """
+        Create two keys with the same name but different algorithm, and attempt to delete them one by one
+        """
+        name, payload, data = self.create_tsig_key()
+        name2, payload2, data2 = self.create_tsig_key(name=name, algorithm="hmac-sha512")
+        self.assertEqual(name, name2)
+        r = self.session.delete(self.url("/api/v1/servers/localhost/tsigkeys/" + data["id"] + "/" + data["algorithm"]))
+        self.assertEqual(r.status_code, 204)
+        r = self.session.get(self.url("/api/v1/servers/localhost/tsigkeys"), headers={"accept": "application/json"})
+        self.assertEqual(r.status_code, 200)
+        keys = r.json()
+        data2["key"] = ""  # key contents won't be returned
+        self.assertEqual([key for key in keys if key["name"] == name], [data2])
+        r = self.session.delete(self.url("/api/v1/servers/localhost/tsigkeys/" + data["id"] + "/" + data2["algorithm"]))
         self.assertEqual(r.status_code, 204)
         r = self.session.get(self.url("/api/v1/servers/localhost/tsigkeys"), headers={"accept": "application/json"})
         self.assertEqual(r.status_code, 200)
