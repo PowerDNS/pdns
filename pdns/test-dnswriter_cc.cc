@@ -407,4 +407,34 @@ BOOST_AUTO_TEST_CASE(test_NodeOrLocatorID) {
     0, 0, 0, 1}));
 }
 
+#ifdef HAVE_LUA_RECORDS
+BOOST_AUTO_TEST_CASE(test_luasplit) {
+  DNSName name("powerdns.com.");
+
+  vector<uint8_t> packet;
+  DNSPacketWriter pwR(packet, name, QType::LUA, QClass::IN, 0);
+  pwR.getHeader()->qr = 1;
+
+  pwR.startRecord(name, QType::LUA, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+  // Example given in #12845
+  string chunk1{";local first_choice = ifurlup('http://a-really-really-long-string-to-test-lua-record-replication.domain.example.org:8081/metrics', {{'10.255.255.10', '10.255.255.11'}}, {backupSelector='all'}); local second_choice = ifportup(8081,{'10.255.255.12',"};
+  string chunk2{" '10.255.255.13'}, {backupSelector='all'}); if(#first_choice > 1) then return second_choice else return first_choice end"};
+  auto txt = std::string("\"") + chunk1 + chunk2 + std::string("\"");
+  pwR.xfrType(QType::A);
+  auto startpos = pwR.size();
+  pwR.xfrLua(txt);
+  pwR.commit();
+
+  string spacket(packet.begin(), packet.end());
+
+  // Check that it has been split in chunk1 and chunk2
+  BOOST_CHECK_EQUAL(static_cast<unsigned char>(spacket.at(startpos)), chunk1.size());
+  BOOST_CHECK_EQUAL(spacket.substr(startpos + 1, chunk1.size()), chunk1);
+  BOOST_CHECK_EQUAL(static_cast<unsigned char>(spacket.at(startpos + 1 + chunk1.size())), chunk2.size());
+  BOOST_CHECK_EQUAL(spacket.substr(startpos + 1 + chunk1.size() + 1, chunk2.size()), chunk2);
+
+  BOOST_CHECK_NO_THROW(MOADNSParser mdp(false, spacket));
+}
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()

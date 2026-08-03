@@ -146,6 +146,13 @@ public:
     text=getText(multi, lenField);
   }
 
+#ifdef HAVE_LUA_RECORDS
+  void xfrLua(string &text)
+  {
+    xfrText(text, true);
+  }
+#endif
+
   void xfrUnquotedText(string &text, bool lenField){
     text=getUnquotedText(lenField);
   }
