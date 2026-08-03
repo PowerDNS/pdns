@@ -1085,14 +1085,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   // We skip this check for the additional section records, which may be TSIG,
   // for which the label is the dnskey, and would not pass the isPartOf
   // validation.
-  for (const auto& rec : mdp.getAnswers(DNSResourceRecord::Place::ANSWER)) {
-    if (!rec.d_name.isPartOf(ctx.di.zone)) {
-      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Received update/record out of zone, sending NotZone." << endl,
-           ctx.slog->info(Logr::Error, "Update: received update/record out of zone, sending NotZone"));
-      return RCode::NotZone;
-    }
-  }
-  for (const auto& rec : mdp.getAnswers(DNSResourceRecord::Place::AUTHORITY)) {
+  for (const auto& rec : mdp.getAnswers(-DNSResourceRecord::Place::ADDITIONAL)) { // Note the minus sign: we check everything BUT the additional section
     if (!rec.d_name.isPartOf(ctx.di.zone)) {
       SLOG(g_log << Logger::Error << ctx.msgPrefix << "Received update/record out of zone, sending NotZone." << endl,
            ctx.slog->info(Logr::Error, "Update: received update/record out of zone, sending NotZone"));
