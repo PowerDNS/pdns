@@ -1,7 +1,11 @@
 import dns
+import os
 from recursortests import RecursorTest
 
-class TestWellKnown(RecursorTest):
+
+@pytest.mark.external
+@pytest.mark.xfail(os.environ.get("GITHUB_ACTIONS") == "true", reason="GH actions have flaky net")
+class WellKnownTest(RecursorTest):
     _auths_zones = None
     _confdir = 'WellKnown'
     _roothints = None
