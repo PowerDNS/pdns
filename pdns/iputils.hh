@@ -809,6 +809,11 @@ public:
       }
       // still here, now match remaining bits
       uint8_t bits = d_bits % 8;
+      if (bits == 0) {
+        // no partial byte left to match, and lhs[index] would be one past the
+        // address for a /128
+        return true;
+      }
       auto mask = static_cast<uint8_t>(~(0xFF >> bits));
 
       return ((lhs[index]) == (rhs[index] & mask));
