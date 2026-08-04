@@ -358,7 +358,12 @@ void ComboAddress::truncate(unsigned int bits) noexcept
 
   memset(start + len - tozero/8, 0, tozero/8); // blot out the whole bytes on the right
 
-  auto bitsleft=tozero % 8; // 2 bits left to clear
+  auto bitsleft = tozero % 8; // 2 bits left to clear
+  if (bitsleft == 0) {
+    // the memset() above cleared whole bytes only, and for 0 bits the byte we
+    // would look at is the one before the address
+    return;
+  }
 
   // a b c d, to truncate to 22 bits, we just zeroed 'd' and need to zero 2 bits from c
   // so and by '11111100', which is ~((1<<2)-1)  = ~3
