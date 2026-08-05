@@ -569,6 +569,7 @@ test_sources += files(
   src_dir / 'test-dnsdist-ipcrypt2_cc.cc',
   src_dir / 'test-dnsdistdynblocks_hh.cc',
   src_dir / 'test-dnsdistedns.cc',
+  src_dir / 'test-dnsdistgenericcache_hh.cc',
   src_dir / 'test-dnsdistkvs_cc.cc',
   src_dir / 'test-dnsdistlbpolicies_cc.cc',
   src_dir / 'test-dnsdist-lua-ffi.cc',
