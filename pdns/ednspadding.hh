@@ -24,3 +24,10 @@
 #include <string>
 
 std::string makeEDNSPaddingOptString(size_t bytes);
+
+namespace rfc8467
+{
+// Constants from RFC8467 4.1 "Recommended Strategy: Block-Length Padding"
+constexpr size_t clientPaddingBlockSize = 128;
+constexpr size_t serverPaddingBlockSize = 468;
+}

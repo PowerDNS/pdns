@@ -236,6 +236,7 @@ pdns_server_SOURCES = \
 	dynmessenger.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednspadding.cc ednspadding.hh \
 	ednssubnet.cc ednssubnet.hh \
 	expected.hh \
 	gettime.cc gettime.hh \
@@ -373,6 +374,7 @@ pdnsutil_SOURCES = \
 	dynlistener.cc \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednspadding.cc ednspadding.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
@@ -749,6 +751,7 @@ ixfrdist_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednspadding.cc ednspadding.hh \
 	ednssubnet.cc ednssubnet.hh \
 	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
@@ -1408,6 +1411,7 @@ testrunner_SOURCES = \
 	dnswriter.cc \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednspadding.cc ednspadding.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
