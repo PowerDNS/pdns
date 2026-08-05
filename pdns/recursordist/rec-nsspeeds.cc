@@ -222,13 +222,13 @@ size_t nsspeeds_t::putPB(time_t cutoff, const std::string& pbuf)
     return inserted;
   }
   catch (const std::runtime_error& e) {
-    log->error(Logr::Error, e.what(), "Runtime exception processing cache dump");
+    log->error(Logr::Error, e.what(), "Runtime exception processing nsspeed dump");
   }
   catch (const std::exception& e) {
-    log->error(Logr::Error, e.what(), "Exception processing cache dump");
+    log->error(Logr::Error, e.what(), "Exception processing nsspeed dump");
   }
   catch (...) {
-    log->info(Logr::Error, "Other exception processing cache dump");
+    log->info(Logr::Error, "Other exception processing nsspeed dump");
   }
   return 0;
 }
