@@ -748,7 +748,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
         numberOfLabelsOfParentZone = std::min(numberOfLabelsOfParentZone, static_cast<uint8_t>(signer.countLabels()));
 
         if (!qname.isPartOf(signer)) {
-          VLOG(log, qname << ": is not part of the signer (" << signer << ")!" << endl);
+          VLOG(log, qname << ": Qname " << qname << " is not part of the signer " << signer << ", ignoring" << endl);
           continue;
         }
 
@@ -860,6 +860,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
             }
 
             if (!closestEncloser.isPartOf(signer)) {
+              VLOG(log, qname << ": Closest encloser " << closestEncloser << " is not part of the signer " << signer << ", ignoring" << endl);
               continue;
             }
 
@@ -970,6 +971,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
             }
 
             if (!nextCloser.isPartOf(signer)) {
+              VLOG(log, qname << ": Next closer " << nextCloser << " is not part of the signer " << signer << ", ignoring" << endl);
               continue;
             }
 
