@@ -3351,6 +3351,54 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         data = self.get_zone(name, rrset_name="rec42." + name)
         self.assertEqual(data["record_count"], 1)
 
+    @unittest.skipIf(is_auth_lmdb(), "Needs to perform partial lookup")
+    def test_partial_list(self):
+        name, payload, zone = self.create_zone()
+        rrsets = []
+        # We create records with the same name lengths, for simplicity.
+        for record in range(10, 99):
+            rrset = {
+                "changetype": "replace",
+                "name": "rec" + str(record) + "." + name,
+                "type": "A",
+                "ttl": 3600,
+                "records": [{"content": "192.168.0." + str(record), "disabled": False}],
+            }
+            rrsets.append(rrset)
+        payload = {"rrsets": rrsets}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
+        self.assert_success(r)
+        # Ask for records 11 to 30 in the zone, thus rec21 to rec40.
+        # This exercizes the partialList method.
+        data = self.get_zone(name, rrsets="true", start="11", limit="20")
+        rrsets = data.get("rrsets")
+        self.assertEqual(len(rrsets), 20)
+        check = [False] * 100
+        for record in range(10, 99):
+            check[record] = False
+        for record in rrsets:
+            id = int(record["name"][3:5])
+            check[id] = True
+        # Make sure that we have correctly seen each of the 21-40 and no
+        # other record.
+        for record in range(100):
+            if record >= 21 and record <= 40:
+                self.assertEqual(check[record], True)
+            else:
+                self.assertEqual(check[record], False)
+        # Query again for a single record using name with and without type,
+        # to exercize the partialLookup method.
+        data = self.get_zone(name, rrsets="true", rrset_name="rec42." + name, start="0", limit="10")
+        rrsets = data.get("rrsets")
+        self.assertEqual(len(rrsets), 1)
+        data = self.get_zone(name, rrsets="true", rrset_name="rec42." + name, rrset_type="MX", start="0", limit="10")
+        rrsets = data.get("rrsets")
+        self.assertEqual(len(rrsets), 0)
+
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ZonesApiTestCase, AuthZonesHelperMixin):

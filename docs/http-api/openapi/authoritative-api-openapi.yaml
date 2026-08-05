@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.20"
+  version: "0.0.21"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -649,6 +649,16 @@ paths:
           schema:
             type: boolean
             default: true
+        - name: start
+          in: query
+          description: Used with the "limit" parameter to Limit output to the subset of "limit" records starting at position "start".
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: Used with the "start" parameter to Limit output to the subset of "limit" records starting at position "start".
+          schema:
+            type: integer
       responses:
         "200":
           description: A Zone

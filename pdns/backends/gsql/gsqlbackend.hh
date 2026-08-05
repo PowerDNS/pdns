@@ -59,7 +59,9 @@ public:
   unsigned int getCapabilities() override;
   void lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket *p=nullptr) override;
   void APILookup(const QType &qtype, const DNSName &qname, domainid_t domain_id, bool include_disabled = false) override;
+  bool partialLookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, size_t offset, size_t limit, bool include_disabled) override;
   bool list(const ZoneName &target, domainid_t domain_id, bool include_disabled=false) override;
+  bool partialList(const ZoneName &target, domainid_t domain_id, size_t offset, size_t limit, bool include_disabled) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
   bool startTransaction(const ZoneName &domain, domainid_t domain_id=UnknownDomainID) override;
@@ -159,9 +161,12 @@ private:
   string d_ANYIdQuery;
 
   string d_APIIdQuery;
+  string d_APIIdPartialQuery;
   string d_APIANYIdQuery;
+  string d_APIANYIdPartialQuery;
 
   string d_listQuery;
+  string d_listPartialQuery;
   string d_listSubZoneQuery;
   string d_logprefix;
 
@@ -243,8 +248,11 @@ private:
   unique_ptr<SSqlStatement> d_ANYNoIdQuery_stmt;
   unique_ptr<SSqlStatement> d_ANYIdQuery_stmt;
   unique_ptr<SSqlStatement> d_APIIdQuery_stmt;
+  unique_ptr<SSqlStatement> d_APIIdPartialQuery_stmt;
   unique_ptr<SSqlStatement> d_APIANYIdQuery_stmt;
+  unique_ptr<SSqlStatement> d_APIANYIdPartialQuery_stmt;
   unique_ptr<SSqlStatement> d_listQuery_stmt;
+  unique_ptr<SSqlStatement> d_listPartialQuery_stmt;
   unique_ptr<SSqlStatement> d_listSubZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_PrimaryOfDomainsZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoOfDomainsZoneQuery_stmt;

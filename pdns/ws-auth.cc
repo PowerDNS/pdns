@@ -568,6 +568,29 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
     vector<DNSResourceRecord> records;
     vector<Comment> comments;
     size_t recordCount{0};
+    size_t recordOffset{0};
+    size_t recordLimit{0};
+
+    // It would have made sense to use "rrset_count" and "rrset_start" as
+    // query parameters to specify the subset to return. But this would
+    // create some confusion with "record_count", so better use short
+    // names which should hopefully be clear enough.
+    if (req->getvars.count("start") != 0) {
+      try {
+        pdns::checked_stoi_into(recordOffset, req->getvars["start"]);
+      }
+      catch (std::logic_error&) {
+        throw ApiException("Invalid value for 'start'");
+      }
+    }
+    if (req->getvars.count("limit") != 0) {
+      try {
+        pdns::checked_stoi_into(recordLimit, req->getvars["limit"]);
+      }
+      catch (std::logic_error&) {
+        throw ApiException("Invalid value for 'limit'");
+      }
+    }
 
     QType qType = QType::ANY;
     DNSName qName;
@@ -576,7 +599,14 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
     {
       DNSResourceRecord resourceRecord;
       if (req->getvars.count("rrset_name") == 0) {
-        domainInfo.backend->list(zonename, static_cast<int>(domainInfo.id), true); // incl. disabled
+        if (recordLimit != 0) {
+          if (!domainInfo.backend->partialList(zonename, domainInfo.id, recordOffset, recordLimit, true /* include disabled */)) {
+            throw ApiException("Backend for '" + zonename.toLogString() + "' does not support partial listing of contents");
+          }
+        }
+        else {
+          domainInfo.backend->list(zonename, domainInfo.id, true); // incl. disabled
+        }
       }
       else {
         qName = DNSName(req->getvars["rrset_name"]);
@@ -584,7 +614,14 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
           qType = req->getvars["rrset_type"];
         }
         bool include_disabled = boolFromHttpRequest(req, "include_disabled", true);
-        domainInfo.backend->APILookup(qType, qName, static_cast<int>(domainInfo.id), include_disabled);
+        if (recordLimit != 0) {
+          if (!domainInfo.backend->partialLookup(qType, qName, domainInfo.id, recordOffset, recordLimit, include_disabled)) {
+            throw ApiException("Backend for '" + zonename.toLogString() + "' does not support partial listing of contents");
+          }
+        }
+        else {
+          domainInfo.backend->APILookup(qType, qName, domainInfo.id, include_disabled);
+        }
       }
       while (domainInfo.backend->get(resourceRecord)) {
         if (resourceRecord.qtype.getCode() == 0) {
@@ -596,6 +633,10 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
         }
       }
       if (returnRRSets) {
+        // We could consider skipping that sort operation if recordLimit != 0,
+        // as this should have caused the backend to sort the results already;
+        // but the sorting order used by the backend might be different than
+        // this one.
         sort(records.begin(), records.end(), [](const DNSResourceRecord& rrA, const DNSResourceRecord& rrB) {
           /* if you ever want to update this comparison function,
              please be aware that you will also need to update the conditions in the code merging
@@ -618,6 +659,18 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
       while (domainInfo.backend->getComment(comment)) {
         if ((qName.empty() || comment.qname == qName) && (qType == QType::ANY || comment.qtype == qType)) {
           comments.push_back(comment);
+        }
+      }
+      // If we have asked for a subset of the records, remove comments
+      // which do not apply to the subset.
+      if (recordLimit != 0) {
+        for (auto iter = comments.begin(); iter != comments.end();) {
+          if (std::find_if(records.begin(), records.end(), [iter](const DNSResourceRecord& rec) { return rec.qname == iter->qname && rec.qtype == iter->qtype; }) != records.end()) {
+            ++iter;
+          }
+          else {
+            iter = comments.erase(iter);
+          }
         }
       }
       sort(comments.begin(), comments.end(), [](const Comment& rrA, const Comment& rrB) {

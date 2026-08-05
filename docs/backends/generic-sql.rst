@@ -238,16 +238,17 @@ queries must return the following fields in order:
 Please note that the names of the fields are not relevant, but the order
 is!
 
--  ``basic-query``: This is the most used query, needed for doing 1:1
-   lookups of qtype/name values.
+-  ``basic-query``: This is the most used query, needed for doing 1:1 lookups of qtype/name values.
 -  ``id-query``: Used for doing lookups within a domain.
+-  ``api-id-query``: Used for doing lookups within a domain from the HTTP API, similar to ``id-query`` above but allowing disabled records to be returned.
 -  ``any-query``: For doing ANY queries. Also used internally.
--  ``any-id-query``: For doing ANY queries within a domain. Also used
-   internally.
--  ``list-query``: For doing AXFRs, lists all records in the zone. Also
-   used internally.
--  ``list-subzone-query``: For doing RFC 2136 DNS Updates, lists all
-   records below a zone.
+-  ``any-id-query``: For doing ANY queries within a domain. Also used internally.
+-  ``api-id-partial-query``: similar to ``api-id-query`` above, but returning a subset of its results.
+-  ``api-any-id-query``: For doing ANY queries within a domain from the HTTP API, similar to ``any-id-query`` above but allowing disabled records to be returned.
+-  ``api-any-id-partial-query``: similar to ``api-any-id-query`` above, but returning a subset of its results.
+-  ``list-query``: For doing AXFRs, lists all records in the zone. Also used internally.
+-  ``list-partial-query``: similar to ``list-query`` above, but returning a subset of its results.
+-  ``list-subzone-query``: For doing RFC 2136 DNS Updates, lists all records below a zone.
 -  ``search-records-query``: To search for records on name and content.
 
 DNSSEC queries

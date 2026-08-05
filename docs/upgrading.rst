@@ -16,6 +16,13 @@ NAPTR additional answers
 
 Since version 5.0, the information of the `a` and `s` NAPTR records are added to the additional answers section. This behaviour can be disabled by setting :ref:`setting-naptr-additional-processing` to `no`.
 
+New SQL queries for partial zone lookups
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Three new queries have been added to the SQL backends, to return subsets of zone contents. These three queries are similar to existing queries, but add "ORDER BY", "LIMIT" and "OFFSET" clauses to the "SELECT" statement, in order to return a subset of the query results.
+
+These three queries, named ``api-id-partial-query``, ``api-any-id-partial-query`` and ``list-partial-query``, supplement the ``api-id-query``, ``api-any-id-query`` and ``list-query`` queries. If you use non-default values for these queries, you might need to add matching "partial" flavours.
+
 5.0.x to 5.1.x
 --------------
 

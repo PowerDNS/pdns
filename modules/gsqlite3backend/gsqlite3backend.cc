@@ -94,10 +94,17 @@ public:
     declare(suffix, "any-query", "Any query", record_query + " disabled=0 and name=:qname");
     declare(suffix, "any-id-query", "Any with ID query", record_query + " disabled=0 and name=:qname and domain_id=:domain_id");
 
-    declare(suffix, "api-id-query", "API basic with ID query", record_query + " (disabled=0 or :include_disabled) and type=:qtype and name=:qname and domain_id=:domain_id");
-    declare(suffix, "api-any-id-query", "API any with ID query", record_query + " (disabled=0 or :include_disabled) and name=:qname and domain_id=:domain_id");
+    string api_id_query = record_query + " (disabled=0 or :include_disabled) and type=:qtype and name=:qname and domain_id=:domain_id";
+    declare(suffix, "api-id-query", "API basic with ID query", api_id_query);
+    string partial_query_suffix = " order by name,type,content limit :limit offset :offset";
+    declare(suffix, "api-id-partial-query", "API basic with ID query (partial results)", api_id_query + partial_query_suffix);
+    string api_any_id_query = record_query + " (disabled=0 or :include_disabled) and name=:qname and domain_id=:domain_id";
+    declare(suffix, "api-any-id-query", "API any with ID query", api_any_id_query);
+    declare(suffix, "api-any-id-partial-query", "API any with ID query (partial results)", api_any_id_query + partial_query_suffix);
 
-    declare(suffix, "list-query", "AXFR query", "SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE (disabled=0 OR :include_disabled) and domain_id=:domain_id order by name, type");
+    string list_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE (disabled=0 OR :include_disabled) and domain_id=:domain_id";
+    declare(suffix, "list-query", "AXFR query", list_query + " order by name,type");
+    declare(suffix, "list-partial-query", "AXFR query (partial results)", list_query + partial_query_suffix);
     declare(suffix, "list-subzone-query", "Subzone listing", record_query + " disabled=0 and (name=:zone OR name like :wildzone) and domain_id=:domain_id");
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=:domain_id and type is null");
