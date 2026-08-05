@@ -625,8 +625,13 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const Con
 #endif /* defined(HAVE_XSK) */
 
   const auto& autoUpgradeConf = config.auto_upgrade;
+  const auto& autoRedirectConf = config.auto_redirect;
   if (autoUpgradeConf.enabled && downstream->getProtocol() != dnsdist::Protocol::DoT && downstream->getProtocol() != dnsdist::Protocol::DoH) {
-    dnsdist::ServiceDiscovery::addUpgradeableServer(downstream, autoUpgradeConf.interval, std::string(autoUpgradeConf.pool), autoUpgradeConf.doh_key, autoUpgradeConf.keep);
+    dnsdist::ServiceDiscovery::addUpgradeableServer(downstream, autoUpgradeConf.interval, std::string(autoUpgradeConf.pool), autoUpgradeConf.doh_key, autoUpgradeConf.keep, autoRedirectConf.enabled, autoRedirectConf.retry_interval, std::string(autoRedirectConf.pool), autoRedirectConf.doh_key, autoRedirectConf.keep, autoRedirectConf.max_follow_count);
+  }
+
+  if (autoRedirectConf.enabled && (downstream->getProtocol() == dnsdist::Protocol::DoT || downstream->getProtocol() == dnsdist::Protocol::DoH)) {
+    dnsdist::ServiceDiscovery::addRedirectableServer(downstream, autoRedirectConf.retry_interval, std::string(autoRedirectConf.pool), autoRedirectConf.doh_key, autoRedirectConf.keep, autoRedirectConf.max_follow_count);
   }
 
   return downstream;
