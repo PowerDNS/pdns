@@ -1284,8 +1284,8 @@ static uint32_t peekAtTtl(const string_view& buffer)
 /* A note on the design.
 
    If you ask a question without a zone id (this can be the case for lookup(),
-   and of course also for startTransaction if you don't want to delete the
-   domain contents), we lookup the best zone id for you, and answer from that.
+   and of course also for startDomainModificationTransaction), we lookup the
+   best zone id for you, and answer from that.
 
    The index we use is "zoneid,canonical relative name". This index is also used
    for AXFR.
@@ -1404,43 +1404,38 @@ void LMDBBackend::updateDomainInfo(const DomainInfo& info)
   writeTransientDomainInfo(info);
 }
 
-/* Here's the complicated story. Other backends have just one transaction, which is either
-   on or not.
-
-   You can't call feedRecord without a transaction started with startTransaction.
-
-   However, other functions can be called after startTransaction() or without startTransaction()
-     (like updateDNSSECOrderNameAndAuth)
-
-
-
-*/
-
-bool LMDBBackend::startTransaction(const ZoneName& domain, domainid_t domain_id)
+bool LMDBBackend::startDomainCreationTransaction(const ZoneName& domain, domainid_t domain_id)
 {
-  // cout <<"startTransaction("<<domain<<", "<<domain_id<<")"<<endl;
-  domainid_t real_id = domain_id;
-  if (real_id == UnknownDomainID) {
-    DomainInfo info;
-    if (!findDomain(domain, info)) {
-      return false;
-    }
-    real_id = info.id;
-  }
   if (d_rwtxn) {
     throw DBException("Attempt to start a transaction while one was open already");
   }
-  d_rwtxn = getRecordsRWTransaction(real_id);
+  d_rwtxn = getRecordsRWTransaction(domain_id);
   d_txnorder = false;
-
   d_transactiondomain = domain;
-  d_transactiondomainid = real_id;
-  if (domain_id != UnknownDomainID) {
-    compoundOrdername order;
-    string match = order(domain_id);
-    LMDBBackend::deleteDomainRecords(*d_rwtxn, match);
-  }
+  d_transactiondomainid = domain_id;
 
+  // In the current state of transactions, the domain must be created in the
+  // domains table first, so that its domain id can be passed to this function.
+  compoundOrdername order;
+  string match = order(domain_id);
+  LMDBBackend::deleteDomainRecords(*d_rwtxn, match);
+
+  return true;
+}
+
+bool LMDBBackend::startDomainModificationTransaction(const ZoneName& domain)
+{
+  if (d_rwtxn) {
+    throw DBException("Attempt to start a transaction while one was open already");
+  }
+  DomainInfo info;
+  if (!findDomain(domain, info)) {
+    return false;
+  }
+  d_rwtxn = getRecordsRWTransaction(info.id);
+  d_txnorder = false;
+  d_transactiondomain = domain;
+  d_transactiondomainid = info.id;
   return true;
 }
 
@@ -1966,9 +1961,12 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
     throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a transaction");
   }
 
+  // Save the current transaction details, and abort it.
+  // TODO: this needs to be revisited to allow this to be part of a larger
+  // transaction without having to abort it. Or should this call be rejected
+  // if a transaction is active?
   int transactionDomainId = d_transactiondomainid;
   ZoneName transactionDomain = d_transactiondomain;
-
   abortTransaction();
 
   LmdbIdVec idvec;
@@ -1992,7 +1990,8 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
 
   for (auto id : idvec) {
 
-    startTransaction(domain, id);
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+    startDomainCreationTransaction(domain, id);
 
     { // Remove metadata
       auto txn = d_tmeta->getRWTransaction();
@@ -2032,7 +2031,12 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
     txn.commit();
   }
 
-  startTransaction(transactionDomain, transactionDomainId);
+  if (transactionDomainId == UnknownDomainID) {
+    startDomainModificationTransaction(transactionDomain);
+  }
+  else {
+    startDomainCreationTransaction(transactionDomain, transactionDomainId);
+  }
 
   return true;
 }
@@ -2468,10 +2472,8 @@ bool LMDBBackend::setPrimaries(const ZoneName& domain, const vector<ComboAddress
   });
 }
 
-bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
+bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info, bool /* startTransaction */)
 {
-  DomainInfo info;
-
   if (findDomain(domain, info)) {
     throw DBException("Domain '" + domain.toLogString() + "' exists already");
   }
@@ -2482,6 +2484,8 @@ bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
     info.kind = kind;
     info.primaries = primaries;
     info.account = account;
+    info.backend = this;
+    info.serial = 0;
 
     // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     info.id = static_cast<domainid_t>(txn.put(info, 0, d_random_ids, domain.hash()));

@@ -67,10 +67,10 @@ following methods are relevant:
         {
         public:
         virtual unsigned int getCapabilities()=0;
-        virtual void lookup(const QType &qtype, const string &qdomain, domainid_t zoneId, DNSPacket *pkt_p=nullptr)=0;
-        virtual bool list(const string &target, domainid_t domain_id)=0;
+        virtual void lookup(const QType &qtype, const DNSName &qdomain, domainid_t zoneId, DNSPacket *pkt_p=nullptr)=0;
+        virtual bool list(const ZoneName &target, domainid_t domain_id)=0;
         virtual bool get(DNSResourceRecord &r)=0;
-        virtual bool getSOA(const string &name, domainid_t zoneId, SOAData &soadata);
+        virtual bool getSOA(const ZoneName &name, domainid_t zoneId, SOAData &soadata);
         };
 
 Note that the first four methods must be implemented. ``getSOA()`` has
@@ -164,12 +164,12 @@ furthermore, only about its A record:
     public:
       unsigned int getCapabilities() override { return 0; }
 
-      bool list(const string &target, domainid_t id)
+      bool list(const ZoneName &target, domainid_t id, bool include_disabled)
       {
         return false; // we don't support pdnsutil zone list or AXFR
       }
 
-      void lookup(const QType &type, const string &qdomain, domainid_t zoneId, DNSPacket *p)
+      void lookup(const QType &type, const DNSName &qdomain, domainid_t zoneId, DNSPacket *p)
       {
         if(type.getCode()!=QType::A || qdomain!="random.powerdns.com")  // we only know about random.powerdns.com A
           d_answer="";                                                  // no answer
@@ -355,7 +355,7 @@ Methods
 * `CAP_DNSSEC`     Backend implements :ref:`backend-dnssec`.
 * `CAP_LIST`       Backend implements `list`, for AXFR or `pdnsutil zone list`
 
-.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, domainid_t zoneId, DNSPacket *pkt=nullptr)
+.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const DNSName &qdomain, domainid_t zoneId, DNSPacket *pkt=nullptr)
 
   This function is used to initiate a straight lookup for a record of name
   'qdomain' and type 'qtype'. A QType can be converted into an integer by
@@ -422,7 +422,7 @@ Methods
 
   Should throw an PDNSException in case a database error occurred.
 
-.. cpp:function:: bool DNSBackend::getSOA(const string &name, domainid_t zoneId, SOAData &soadata)
+.. cpp:function:: bool DNSBackend::getSOA(const ZoneName &name, domainid_t zoneId, SOAData &soadata)
 
   If the backend considers itself authoritative over domain ``name``, of
   id ``zoneId`` if known (otherwise, ``UnknownDomainID``), this method should
@@ -562,14 +562,15 @@ The following excerpt from the DNSBackend shows the relevant functions:
           class DNSBackend {
           public:
                /* ... */
-               virtual bool getDomainInfo(const string &domain, DomainInfo &di, bool getSerial = true);
+               virtual bool getDomainInfo(const ZoneName &domain, DomainInfo &di, bool getSerial = true);
                virtual bool isPrimary(const ComboAddress& ipAddress);
-               virtual bool startTransaction(const string &qname, domainid_t id);
+               virtual bool startTransaction(const ZoneName &qname, domainid_t id);
                virtual bool commitTransaction();
                virtual bool abortTransaction();
                virtual bool feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3 = false);
                virtual void getUnfreshSecondaryInfos(vector<DomainInfo>* domains);
                virtual void setFresh(domainid_t id);
+               virtual void deleteContents(domainid_t id);
                /* ... */
          }
 
@@ -628,13 +629,13 @@ this zone.
   When called, the backend should examine its list of secondary domains and
   add any unfresh ones to the domains vector.
 
-.. cpp:function:: bool DomainInfo::getDomainInfo(const string &name, DomainInfo & di, boot getSerial)
+.. cpp:function:: bool DomainInfo::getDomainInfo(const ZoneName &name, DomainInfo & di, boot getSerial)
 
   This is like ``getUnfreshSecondaryInfos``, but for a specific domain. If the
   backend considers itself authoritative for the named zone, ``di`` should
   be filled out, and 'true' be returned. Otherwise, return false.
 
-.. cpp:function:: bool DomainInfo::startTransaction(const string &qname, domainid_t id)
+.. cpp:function:: bool DomainInfo::startTransaction(const ZoneName &qname, domainid_t id)
 
   When called, the backend should start a transaction that can be
   committed or rolled back atomically later on. In SQL terms, this
@@ -695,7 +696,7 @@ implement the following method:
 
                 class DNSBackend
                 {
-                   virtual bool autoPrimaryBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
+                   virtual bool autoPrimaryBackend(const string &ip, const ZoneName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db)
                 };
 
 This function gets called with the IP address of the potential
@@ -830,23 +831,23 @@ In order for a backend to support domain metadata, the following operations have
     class DNSBackend {
     public:
       /* ... */
-      virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
-      virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
-      virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
+      virtual bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string> >& meta);
+      virtual bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta);
+      virtual bool setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta);
       /* ... */
     }
 
-.. cpp:function:: virtual bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
+.. cpp:function:: virtual bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string> >& meta)
 
   Fills 'meta' with the value(s) of all kinds for zone 'name'. Returns true if the domain metadata operation are supported, regardless
   of whether there is any data for this zone.
 
-.. cpp:function:: virtual bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+.. cpp:function:: virtual bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 
   Fills 'meta' with the value(s) of the specified kind for zone 'name'. Returns true if the domain metadata operation are supported, regardless
   of whether there is any data of this kind for this zone.
 
-.. cpp:function:: virtual bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
+.. cpp:function:: virtual bool setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta)
 
   Store the values from 'meta' for the specified kind for zone 'name', discarding existing values if any. An empty meta is equivalent to a deletion request.
   Returns true if the values have been correctly stored, and false otherwise.
@@ -899,13 +900,13 @@ In order for a backend to support DNSSEC, quite a few number of additional opera
       virtual bool feedEnts3(domainid_t domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
 
       /* keys management */
-      virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
-      virtual bool removeDomainKey(const DNSName& name, unsigned int id);
-      virtual bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id);
-      virtual bool activateDomainKey(const DNSName& name, unsigned int id);
-      virtual bool deactivateDomainKey(const DNSName& name, unsigned int id);
-      virtual bool publishDomainKey(const DNSName& name, unsigned int id);
-      virtual bool unpublishDomainKey(const DNSName& name, unsigned int id);
+      virtual bool getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys);
+      virtual bool removeDomainKey(const ZoneName& name, unsigned int id);
+      virtual bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id);
+      virtual bool activateDomainKey(const ZoneName& name, unsigned int id);
+      virtual bool deactivateDomainKey(const ZoneName& name, unsigned int id);
+      virtual bool publishDomainKey(const ZoneName& name, unsigned int id);
+      virtual bool unpublishDomainKey(const ZoneName& name, unsigned int id);
 
       /* ... */
     }
