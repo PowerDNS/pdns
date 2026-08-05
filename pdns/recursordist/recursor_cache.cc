@@ -1148,6 +1148,7 @@ static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const D
       authRecord.d_clen = auth.get_uint32();
       break;
     default:
+      auth.skip();
       break;
     }
   }
@@ -1219,6 +1220,7 @@ bool MemRecursorCache::putRecordSet(T& message)
       cacheEntry.d_tcp = message.get_bool();
       break;
     default:
+      message.skip();
       break;
     }
   }
@@ -1287,6 +1289,9 @@ size_t MemRecursorCache::putRecordSets(const std::string& pbuf)
         ++count;
         break;
       }
+      default:
+        full.skip();
+        break;
       }
     }
     log->info(Logr::Info, "Processed cache dump", "processed", Logging::Loggable(count), "inserted", Logging::Loggable(inserted));
