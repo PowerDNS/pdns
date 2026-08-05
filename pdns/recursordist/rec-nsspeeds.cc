@@ -133,11 +133,17 @@ bool nsspeeds_t::putPBEntry(time_t cutoff, T& message)
         case PBNSSpeedMap::required_int32_last:
           last = map.get_int32();
           break;
+        default:
+          map.skip();
+          break;
         }
       }
       entry.insert(address, val, last);
       break;
     }
+    default:
+      message.skip();
+      break;
     }
   }
   if (!entry.stale(cutoff)) {
@@ -202,6 +208,9 @@ size_t nsspeeds_t::putPB(time_t cutoff, const std::string& pbuf)
         ++theCount;
         break;
       }
+      default:
+        full.skip();
+        break;
       }
     }
     log->info(Logr::Info, "Processed nsspeed dump", "processed", Logging::Loggable(theCount), "inserted", Logging::Loggable(inserted));
