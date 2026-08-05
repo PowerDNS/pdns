@@ -2581,7 +2581,6 @@ static time_t keepCacheWarm(const timeval& now, LocalStateHolder<LuaConfigItems>
     wait = std::min(static_cast<time_t>(cooldown), wait); // and don't sleep longer than cooldown time, for config updates
   }
 
-  log->info(Logr::Debug, "Wait", "interval", Logging::Loggable(wait));
   return wait;
 }
 
