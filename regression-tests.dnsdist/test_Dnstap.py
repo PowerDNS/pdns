@@ -368,19 +368,22 @@ class TestDnstapOverRemoteLoggerPool(DNSDistTest):
         sock.listen(100)
 
         def handle_connection(conn):
-            data = None
-            while True:
-                data = conn.recv(2)
-                if not data:
-                    break
-                (datalen,) = struct.unpack("!H", data)
-                data = conn.recv(datalen)
-                if not data:
-                    break
+            try:
+                data = None
+                while True:
+                    data = conn.recv(2)
+                    if not data:
+                        break
+                    (datalen,) = struct.unpack("!H", data)
+                    data = conn.recv(datalen)
+                    if not data:
+                        break
 
-                cls._remoteLoggerQueue.put(data, True, timeout=2.0)
-
-            conn.close()
+                    cls._remoteLoggerQueue.put(data, True, timeout=2.0)
+            except Exception as e:
+                print(f"Error in handle_connection (RemoteLogger): {e}")
+            finally:
+                conn.close()
 
         threads = []
 
@@ -742,10 +745,13 @@ class TestDnstapOverRemotePoolUnixLogger(DNSDistTest):
         sock.listen(100)
 
         def handle_connection(conn):
-            fstrm_handle_bidir_connection(
-                conn, lambda data: cls._fstrmLoggerQueue.put(data, True, timeout=2.0), exit_early=True
-            )
-            conn.close()
+            try:
+                fstrm_handle_bidir_connection(conn, lambda data: \
+                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0), exit_early=True)
+            except Exception as e:
+                print(f"Error in handle_connection (FrameStream): {e}")
+            finally:
+                conn.close()
 
         threads = []
 
@@ -998,10 +1004,13 @@ class TestDnstapOverRemotePoolTcpLogger(DNSDistTest):
         sock.listen(100)
 
         def handle_connection(conn):
-            fstrm_handle_bidir_connection(
-                conn, lambda data: cls._fstrmLoggerQueue.put(data, True, timeout=2.0), exit_early=True
-            )
-            conn.close()
+            try:
+                fstrm_handle_bidir_connection(conn, lambda data: \
+                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0), exit_early=True)
+            except Exception as e:
+                print(f"Error in handle_connection (FrameStream): {e}")
+            finally:
+                conn.close()
 
         threads = []
 
