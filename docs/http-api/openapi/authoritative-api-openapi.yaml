@@ -165,31 +165,6 @@ paths:
         default:
           $ref: "#/components/responses/Error"
 
-  "/servers/{server_id}/config/{config_setting_name}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - name: config_setting_name
-        in: path
-        required: true
-        description: The name of the setting to retrieve
-        schema:
-          type: string
-    get:
-      summary: "Returns a specific ConfigSetting for a single server"
-      description: "NOT IMPLEMENTED"
-      operationId: getConfigSetting
-      tags:
-        - config
-      responses:
-        "200":
-          description: List of config values
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ConfigSetting"
-        default:
-          $ref: "#/components/responses/Error"
-
   "/servers/{server_id}/networks":
     parameters:
       - $ref: "#/components/parameters/server_id"
