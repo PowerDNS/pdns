@@ -950,8 +950,8 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
 {
   eo->d_extFlags=0;
   if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
-    for(const MOADNSParser::answers_t::value_type& val :  mdp.d_answers) {
-      if(val.d_place == DNSResourceRecord::ADDITIONAL && val.d_type == QType::OPT) {
+    for(const auto& val : mdp.getAnswers(DNSResourceRecord::Place::ADDITIONAL)) {
+      if(val.d_type == QType::OPT) {
         eo->d_packetsize=val.d_class;
 
         EDNS0Record stuff;
