@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.20"
+  version: "0.0.21"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -575,7 +575,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Zones"
+                $ref: "#/components/schemas/ZonesWithoutRRSets"
         default:
           $ref: "#/components/responses/Error"
     post:
@@ -1035,7 +1035,7 @@ components:
       items:
         $ref: "#/components/schemas/Server"
 
-    Zone:
+    ZoneWithoutRRSets:
       title: Zone
       description: This represents an authoritative DNS Zone.
       type: object
@@ -1062,14 +1062,6 @@ components:
             - "Producer"
             - "Consumer"
           description: "Zone kind, one of “Native”, “Master”, “Slave”, “Producer”, “Consumer”"
-        record_count:
-          type: integer
-          description: "The number of records in this zone (for zones/{zone_id} endpoint only; omitted during GET on the .../zones list endpoint)"
-        rrsets:
-          type: array
-          items:
-            $ref: "#/components/schemas/RRSet"
-          description: "RRSets in this zone (for zones/{zone_id} endpoint only; omitted during GET on the .../zones list endpoint)"
         serial:
           type: integer
           description: "The SOA serial number"
@@ -1136,10 +1128,32 @@ components:
         last_check:
           type: integer
 
+    Zone:
+      title: Zone
+      description: This represents an authoritative DNS Zone.
+      allOf:
+        - $ref: "#/components/schemas/ZonesWithoutRRSets"
+        - type: object
+          additionalProperties: false
+          properties:
+            record_count:
+              type: integer
+              description: "The number of records in this zone"
+            rrsets:
+              type: array
+              items:
+                $ref: "#/components/schemas/RRSet"
+              description: "RRSets in this zone"
+
     Zones:
       type: array
       items:
         $ref: "#/components/schemas/Zone"
+
+    ZonesWithoutRRSets:
+      type: array
+      items:
+        $ref: "#/components/schemas/ZoneWithoutRRSets"
 
     RRSet:
       title: RRSet
