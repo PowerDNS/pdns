@@ -2,6 +2,73 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.1.1
+  :released: 6th of August 2026
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17858
+    :tickets: 17797, 17790
+
+    Account for the existing content when parsing labels
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17860
+    :tickets: 17835
+
+    Do not index past the address for byte-aligned prefixes
+
+.. changelog::
+  :version: 2.0.8
+  :released: 6th of August 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17861
+    :tickets: 17835
+
+    Do not index past the address for byte-aligned prefixes
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17859
+    :tickets: 17797, 17790
+
+    Account for the existing content when parsing labels
+
+.. changelog::
+  :version: 1.9.16
+  :released: 6th of August 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17863
+    :tickets: 17835
+
+    Do not index past the address for byte-aligned prefixes
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17862
+    :tickets: 17797, 17790
+
+    Dnsname: Account for the existing content when parsing labels
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17803
+    :tickets: 14130
+
+    Fix TCP I/O timeout and callback being used for HTTP/2
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17669
+
+    Upgrade to h2o 2.2.6-pdns4 in our packages (CVE-2026-49975)
+
+.. changelog::
   :version: 2.1.0
   :released: 2nd of July 2026
 

@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2026072201 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2026080601 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -144,7 +144,8 @@ auth-4.9.12.security-status                             60 IN TXT "3 Upgrade now
 auth-4.9.13.security-status                             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-05.html"
 auth-4.9.14.security-status                             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-06.html"
 auth-4.9.15.security-status                             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-07.html"
-auth-4.9.16.security-status                             60 IN TXT "1 OK"
+auth-4.9.16.security-status                             60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-11.html"
+auth-4.9.17.security-status                             60 IN TXT "1 OK"
 auth-5.0.0-alpha1.security-status                       60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-05.html"
 auth-5.0.0-beta1.security-status                        60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-05.html"
 auth-5.0.0.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-05.html"
@@ -153,13 +154,15 @@ auth-5.0.2.security-status                              60 IN TXT "3 Upgrade now
 auth-5.0.3.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-05.html"
 auth-5.0.4.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-06.html"
 auth-5.0.5.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-07.html"
-auth-5.0.6.security-status                              60 IN TXT "1 OK"
+auth-5.0.6.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-11.html"
+auth-5.0.7.security-status                              60 IN TXT "1 OK"
 auth-5.1.0-alpha1.security-status                       60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
 auth-5.1.0-beta1.security-status                        60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 auth-5.1.0.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-07.html"
 auth-5.1.1.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-07.html"
-auth-5.1.2.security-status                              60 IN TXT "1 OK"
-auth-5.1.3.security-status                              60 IN TXT "1 OK"
+auth-5.1.2.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-11.html"
+auth-5.1.3.security-status                              60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/authoritative/security-advisories/powerdns-advisory-2026-11.html"
+auth-5.1.4.security-status                              60 IN TXT "1 OK"
 
 ; Auth Debian
 auth-3.4.1-2.debian.security-status                     60 IN TXT "3 Upgrade now, see https://docs.powerdns.com/authoritative/appendices/EOL.html"
@@ -455,7 +458,8 @@ recursor-5.2.8.security-status                          60 IN TXT "3 Upgrade now
 recursor-5.2.9.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-08.html"
 recursor-5.2.10.security-status                         60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-08.html"
 recursor-5.2.11.security-status                         60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-10.html"
-recursor-5.2.12.security-status                         60 IN TXT "1 OK"
+recursor-5.2.12.security-status                         60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-11.html"
+recursor-5.2.13.security-status                         60 IN TXT "1 OK"
 
 recursor-5.3.0-alpha1.security-status                   60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
 recursor-5.3.0-alpha2.security-status                   60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
@@ -470,7 +474,8 @@ recursor-5.3.5.security-status                          60 IN TXT "3 Upgrade now
 recursor-5.3.6.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-08.html"
 recursor-5.3.7.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-08.html"
 recursor-5.3.8.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-10.html"
-recursor-5.3.9.security-status                          60 IN TXT "1 OK"
+recursor-5.3.9.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-11.html"
+recursor-5.3.10.security-status                         60 IN TXT "1 OK"
 
 recursor-5.4.0-alpha1.security-status                   60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
 recursor-5.4.0-beta1.security-status                    60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
@@ -479,7 +484,8 @@ recursor-5.4.0.security-status                          60 IN TXT "3 Upgrade now
 recursor-5.4.1.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-08.html"
 recursor-5.4.2.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-08.html"
 recursor-5.4.3.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-10.html"
-recursor-5.4.4.security-status                          60 IN TXT "1 OK"
+recursor-5.4.4.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2026-11.html"
+recursor-5.4.5.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://docs.powerdns.com/recursor/appendices/EOL.html"
@@ -661,7 +667,8 @@ dnsdist-1.9.11.security-status                             60 IN TXT "3 Upgrade 
 dnsdist-1.9.12.security-status                             60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-04.html"
 dnsdist-1.9.13.security-status                             60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-09.html"
 dnsdist-1.9.14.security-status                             60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-09.html"
-dnsdist-1.9.15.security-status                             60 IN TXT "1 OK"
+dnsdist-1.9.15.security-status                             60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-11.html"
+dnsdist-1.9.16.security-status                             60 IN TXT "1 OK"
 dnsdist-2.0.0-alpha1.security-status                       60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 dnsdist-2.0.0-alpha2.security-status                       60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 dnsdist-2.0.0-beta1.security-status                        60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
@@ -674,9 +681,12 @@ dnsdist-2.0.3.security-status                              60 IN TXT "3 Upgrade 
 dnsdist-2.0.4.security-status                              60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-09.html"
 dnsdist-2.0.5.security-status                              60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-09.html"
 dnsdist-2.0.6.security-status                              60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-09.html"
-dnsdist-2.0.7.security-status                              60 IN TXT "1 OK"
+dnsdist-2.0.7.security-status                              60 IN TXT "3 3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-11.html"
+dnsdist-2.0.8.security-status                              60 IN TXT "1 OK"
 dnsdist-2.1.0-alpha1.security-status                       60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 dnsdist-2.1.0-beta1.security-status                        60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 dnsdist-2.1.0-beta2.security-status                        60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 dnsdist-2.1.0-rc1.security-status                          60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
-dnsdist-2.1.0.security-status                              60 IN TXT "1 OK"
+dnsdist-2.1.0.security-status                              60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-11.html"
+dnsdist-2.1.1.security-status                              60 IN TXT "1 OK"
+

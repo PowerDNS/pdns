@@ -4,6 +4,31 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.13
+  :released: 6th of August 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17849
+    :tickets: 17797, 17790
+
+    Account for the existing content when parsing labels.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17852
+    :tickets: 17835
+
+    Do not index past the address for byte-aligned prefixes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17845
+    :tickets: 17772, 17786
+
+    Fix disabling algo 8 also disables DS digest 2.
+
+.. changelog::
   :version: 5.2.12
   :released: 22nd of July 2026
 

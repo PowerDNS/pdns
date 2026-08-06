@@ -1,6 +1,44 @@
 Changelogs for 5.1.x
 ====================
 
+.. changelog::
+  :version: 5.1.4
+  :released: 6th of August 2026
+
+  This is release 5.1.4 of the Authoritative Server.
+  It contains bug fixes, as well as a minor feature and a security fix.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.1.x.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17810
+
+    Allow NAPTR additional processing to be disabled
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17811, 17814
+
+    more lmdb stability
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17818
+
+    Account for the existing content when parsing labels
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17839
+
+    geoipbackend: create DNSSEC key files with mode 0600
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17846
+
+    iputils: do not index past the address for byte-aligned prefixes
 
 .. changelog::
   :version: 5.1.3
@@ -8,6 +46,8 @@ Changelogs for 5.1.x
 
   This is release 5.1.3 of the Authoritative Server.
   It contains one new double feature and a few bug fixes.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.1.x.
 
   .. change::
     :tags: New Features

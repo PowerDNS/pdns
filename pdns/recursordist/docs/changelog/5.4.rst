@@ -4,6 +4,52 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.4.5
+  :released: 6th of August 2026
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17836
+    :tickets: 16986
+
+    Add ubuntu-resolute build target.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17840
+    :tickets: 17786
+
+    Fix disabling algo 8 also disables DS digest 2.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17847
+    :tickets: 17797, 17790
+
+    Account for the existing content when parsing labels.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17850
+    :tickets: 17835
+
+    Do not index past the address for byte-aligned prefixes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17853
+    :tickets: 17157
+
+    Fix DNAME interaction with aggressive use of NSEC3
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17854
+    :tickets: 17156
+
+    Fix DNSSEC validation of wildcard-expanded proof.
+
+.. changelog::
   :version: 5.4.4
   :released: 22nd of July 2026
 
