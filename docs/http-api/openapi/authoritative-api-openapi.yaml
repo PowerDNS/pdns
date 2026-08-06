@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.20"
+  version: "0.0.21"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -36,9 +36,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Server"
+                $ref: "#/components/schemas/Servers"
         default:
           $ref: "#/components/responses/Error"
 
@@ -164,31 +162,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ConfigSetting"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/config/{config_setting_name}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - name: config_setting_name
-        in: path
-        required: true
-        description: The name of the setting to retrieve
-        schema:
-          type: string
-    get:
-      summary: "Returns a specific ConfigSetting for a single server"
-      description: "NOT IMPLEMENTED"
-      operationId: getConfigSetting
-      tags:
-        - config
-      responses:
-        "200":
-          description: List of config values
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ConfigSetting"
         default:
           $ref: "#/components/responses/Error"
 
@@ -573,13 +546,11 @@ paths:
           description: "“true” (default) or “false”, whether to include the “dnssec” and “edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster."
       responses:
         "200":
-          description: An array of Zones
+          description: List of Zones
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Zone"
+                $ref: "#/components/schemas/ZonesWithoutRRSets"
         default:
           $ref: "#/components/responses/Error"
     post:
@@ -1140,10 +1111,108 @@ components:
         last_check:
           type: integer
 
+    ZoneWithoutRRSets:
+      title: Zone
+      description: This represents an authoritative DNS Zone.
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: "Opaque zone id (string), assigned by the server, should not be interpreted by the application. Guaranteed to be safe for embedding in URLs."
+        name:
+          type: string
+          description: "Name of the zone (e.g. “example.com.”) MUST have a trailing dot"
+        type:
+          type: string
+          description: "Set to “Zone”"
+        url:
+          type: string
+          description: "API endpoint for this zone"
+        kind:
+          type: string
+          enum:
+            - "Native"
+            - "Master"
+            - "Slave"
+            - "Producer"
+            - "Consumer"
+          description: "Zone kind, one of “Native”, “Master”, “Slave”, “Producer”, “Consumer”"
+        serial:
+          type: integer
+          description: "The SOA serial number"
+        notified_serial:
+          type: integer
+          description: "The SOA serial notifications have been sent out for"
+        edited_serial:
+          type: integer
+          description: "The SOA serial as seen in query responses. Calculated using the SOA-EDIT metadata, default-soa-edit and default-soa-edit-signed settings"
+        masters:
+          type: array
+          items:
+            type: string
+          description: "List of IP addresses configured as a master for this zone (“Slave” type zones only)"
+        dnssec:
+          type: boolean
+          description: "Whether or not this zone is DNSSEC signed (inferred from presigned being true XOR presence of at least one cryptokey with active being true)"
+        nsec3param:
+          type: string
+          description: "The NSEC3PARAM record"
+        nsec3narrow:
+          type: boolean
+          description: "Whether or not the zone uses NSEC3 narrow"
+        presigned:
+          type: boolean
+          description: "Whether or not the zone is pre-signed"
+        soa_edit:
+          type: string
+          description: "The SOA-EDIT metadata item"
+        soa_edit_api:
+          type: string
+          description: "The SOA-EDIT-API metadata item"
+        api_rectify:
+          type: boolean
+          description: "Whether or not the zone will be rectified on data changes via the API"
+        zone:
+          type: string
+          description: "MAY contain a BIND-style zone file when creating a zone"
+        catalog:
+          type: string
+          description: "The catalog this zone is a member of"
+        account:
+          type: string
+          description: "MAY be set. Its value is defined by local policy"
+        nameservers:
+          type: array
+          items:
+            type: string
+          description: "MAY be sent in client bodies during creation, and MUST NOT be sent by the server. Simple list of strings of nameserver names, including the trailing dot. Not required for slave zones."
+        master_tsig_key_ids:
+          type: array
+          items:
+            type: string
+          description: "The id of the TSIG keys used for master operation in this zone"
+          externalDocs:
+            url: "https://doc.powerdns.com/authoritative/tsig.html#provisioning-outbound-axfr-access"
+        slave_tsig_key_ids:
+          type: array
+          items:
+            type: string
+          description: "The id of the TSIG keys used for slave operation in this zone"
+          externalDocs:
+            url: "https://doc.powerdns.com/authoritative/tsig.html#provisioning-signed-notification-and-axfr-requests"
+        last_check:
+          type: integer
+
     Zones:
       type: array
       items:
         $ref: "#/components/schemas/Zone"
+
+    ZonesWithoutRRSets:
+      type: array
+      items:
+        $ref: "#/components/schemas/ZoneWithoutRRSets"
 
     RRSet:
       title: RRSet
