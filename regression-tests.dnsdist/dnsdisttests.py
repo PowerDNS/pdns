@@ -274,6 +274,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         else:
             cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._dnsDistPort)
 
+        cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._consolePort)
+
+        web_port = getattr(cls, '_webServerPort', None)
+        if web_port is not None:
+            cls.waitForTCPSocket(cls._dnsDistListeningAddr, web_port)
+
         if cls._dnsdist.poll() is not None:
             print(f"\n*** startDNSDist log for {logFile} ***")
             with open(logFile, "r") as fdLog:
