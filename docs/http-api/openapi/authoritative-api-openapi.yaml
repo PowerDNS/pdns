@@ -36,9 +36,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Server"
+                $ref: "#/components/schemas/Servers"
         default:
           $ref: "#/components/responses/Error"
 
@@ -573,13 +571,11 @@ paths:
           description: "“true” (default) or “false”, whether to include the “dnssec” and “edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster."
       responses:
         "200":
-          description: An array of Zones
+          description: List of Zones
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Zone"
+                $ref: "#/components/schemas/Zones"
         default:
           $ref: "#/components/responses/Error"
     post:
