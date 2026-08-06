@@ -2,6 +2,43 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.17
+  :released: 6th of August 2026
+
+  This is release 4.9.17 of the Authoritative Server.
+  It contains bug fixes, as well as a security fix.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17841
+    :tickets: 17835
+
+    iputils: do not index past the address for byte-aligned prefixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17837
+    :tickets: 17824
+
+    geoipbackend: create DNSSEC key files with mode 0600
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17813
+    :tickets: 17774
+
+    more lmdb stability
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17820
+    :tickets: 17797
+
+    Account for the existing content when parsing labels
+
+.. changelog::
   :version: 4.9.16
   :released: 25th of June 2026
 

@@ -2,6 +2,50 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.7
+  :released: 6th of August 2026
+
+  This is release 5.0.7 of the Authoritative Server.
+  It contains bug fixes, as well as a security fix.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17842
+    :tickets: 17835
+
+    iputils: do not index past the address for byte-aligned prefixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17838
+    :tickets: 17824
+
+    geoipbackend: create DNSSEC key files with mode 0600
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17812
+    :tickets: 17774
+
+    more lmdb stability
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17819
+    :tickets: 17797
+
+    Account for the existing content when parsing label
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17633
+    :tickets: 16965
+
+    Use the proper size after processing a proxy protocol payload
+
+.. changelog::
   :version: 5.0.6
   :released: 25th of June 2026
 
