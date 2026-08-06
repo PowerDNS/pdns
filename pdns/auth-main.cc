@@ -1116,13 +1116,30 @@ static void daemonize()
   }
 }
 
-static int cpid;
+static bool axe(pid_t pid)
+{
+  if (kill(pid, SIGTERM) != 0) {
+    // Either already gone or we can't signal it anyway, there is nothing we can do.
+    return false;
+  }
+  // Give a few seconds (well, 2) to the process to disappear
+  for (unsigned int cycles = 2 * 10; cycles != 0; --cycles) {
+    Utility::usleep(100UL * 1000UL);
+    if (kill(pid, 0) != 0 && errno == ESRCH) {
+      return true; // process has died
+    }
+  }
+  // Process is taking time to exit, use a larger hammer
+  return kill(pid, SIGKILL) == 0;
+}
+
+static pid_t cpid;
 static void takedown(int /* i */)
 {
-  if (cpid) {
+  if (cpid != 0) {
     SLOG(g_log << Logger::Error << "Guardian is killed, taking down children with us" << endl,
          g_slog->withName("guardian")->info(Logr::Error, "Guardian is killed, taking down children with us"));
-    kill(cpid, SIGKILL);
+    axe(cpid);
     exit(0);
   }
 }
@@ -1161,9 +1178,7 @@ static std::mutex g_guardian_lock;
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
 static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */, Logr::log_t /* slog */)
 {
-  kill(cpid, SIGKILL); // why?
-  kill(cpid, SIGKILL); // why?
-  sleep(1);
+  axe(cpid);
   return "ok";
 }
 
