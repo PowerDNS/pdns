@@ -171,7 +171,7 @@ AuthWebServer::AuthWebServer(StatBag& stats) :
   }
 
   if (arg().mustDo("webserver") || d_doApi) {
-    d_ws = std::make_unique<ApiWebServer>(std::make_shared<ConcurrentConnectionManager>(arg().asNum("webserver-max-concurrent-connections")), arg()["webserver-address"], arg().asNum("webserver-port"), d_stats);
+    d_ws = std::make_unique<ApiWebServer>(std::make_shared<ConcurrentConnectionManager>(arg().asNum<size_t>("webserver-max-concurrent-connections")), arg()["webserver-address"], arg().asNum<uint16_t>("webserver-port"), d_stats);
     if (g_slogStructured) {
       d_ws->setSLog(g_slog->withName("webserver"));
     }
@@ -184,7 +184,7 @@ AuthWebServer::AuthWebServer(StatBag& stats) :
     acl.toMasks(::arg()["webserver-allow-from"]);
     d_ws->setACL(acl);
 
-    d_ws->setMaxBodySize(::arg().asNum("webserver-max-bodysize"));
+    d_ws->setMaxBodySize(::arg().asBoundedNum<ssize_t>("webserver-max-bodysize", 0, std::numeric_limits<ssize_t>::max() / 1024 / 1024));
     d_ws->setConnectionTimeout(::arg().asNum("webserver-connection-timeout"));
 
     d_ws->setCrossOriginRequestHeader(arg()["webserver-cross-origin-request-header"]);
@@ -871,8 +871,8 @@ static void checkDefaultDNSSECAlgos()
 {
   int k_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-ksk-algorithm"]);
   int z_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-zsk-algorithm"]);
-  int k_size = arg().asNum("default-ksk-size");
-  int z_size = arg().asNum("default-zsk-size");
+  auto k_size = arg().asNum<size_t>("default-ksk-size");
+  auto z_size = arg().asNum<size_t>("default-zsk-size");
 
   // Sanity check DNSSEC parameters
   if (!::arg()["default-zsk-algorithm"].empty()) {
@@ -908,8 +908,8 @@ static void addDefaultDNSSECKeys(DNSSECKeeper& dnssecKeeper, const ZoneName& zon
   checkDefaultDNSSECAlgos();
   int k_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-ksk-algorithm"]);
   int z_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-zsk-algorithm"]);
-  int k_size = arg().asNum("default-ksk-size");
-  int z_size = arg().asNum("default-zsk-size");
+  auto k_size = arg().asNum<size_t>("default-ksk-size");
+  auto z_size = arg().asNum<size_t>("default-zsk-size");
 
   if (k_algo != -1) {
     int64_t keyID{-1};
@@ -1669,7 +1669,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
   int64_t insertedId = -1;
 
   if (privatekey.is_null()) {
-    int bits = keyOrZone ? ::arg().asNum("default-ksk-size") : ::arg().asNum("default-zsk-size");
+    auto bits = keyOrZone ? ::arg().asNum<size_t>("default-ksk-size") : ::arg().asNum<size_t>("default-zsk-size");
     auto docbits = document["bits"];
     if (!docbits.is_null()) {
       if (!docbits.is_number() || (fmod(docbits.number_value(), 1.0) != 0) || docbits.int_value() < 0) {
@@ -1811,8 +1811,8 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
   stringtok(zonedata, zonestring, "\r\n");
 
   ZoneParserTNG zpt(zonedata, zonename);
-  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
-  zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
+  zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
+  zpt.setMaxIncludes(::arg().asNum<size_t>("max-include-depth"));
 
   bool seenSOA = false;
 
@@ -2188,7 +2188,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   DNSResourceRecord autorr;
   autorr.qname = zonename.operator const DNSName&();
   autorr.auth = true;
-  autorr.ttl = ::arg().asNum("default-ttl");
+  autorr.ttl = ::arg().asNum<uint32_t>("default-ttl");
 
   if (!have_soa && zonekind != DomainInfo::Secondary && zonekind != DomainInfo::Consumer) {
     // synthesize a SOA record so the zone "really" exists

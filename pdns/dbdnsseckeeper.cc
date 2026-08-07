@@ -229,7 +229,7 @@ bool DNSSECKeeper::getFromMeta(const ZoneName& zname, const std::string& key, st
     d_metaUpdate=false;
   }
 
-  static int ttl = ::arg().asNum("zone-metadata-cache-ttl");
+  static auto ttl = ::arg().asNum<uint32_t>("zone-metadata-cache-ttl");
 
   if(!((++s_ops) % 100000)) {
     cleanup();
@@ -341,7 +341,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent*
     return false;
   }
 
-  static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
+  static auto maxNSEC3Iterations=::arg().asNum<uint16_t>("max-nsec3-iterations");
   if(ns3p != nullptr) {
     *ns3p = NSEC3PARAMRecordContent(value);
     if (ns3p->d_iterations > maxNSEC3Iterations && !isPresigned(zname, useCache)) {
@@ -370,7 +370,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent*
  */
 bool DNSSECKeeper::checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg)
 {
-  static int maxNSEC3Iterations=::arg().asNum("max-nsec3-iterations");
+  static auto maxNSEC3Iterations=::arg().asNum<uint16_t>("max-nsec3-iterations");
   bool ret = true;
   if (ns3p.d_iterations > maxNSEC3Iterations) {
     msg += "Number of NSEC3 iterations is above 'max-nsec3-iterations'.";
@@ -545,7 +545,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const ZoneName& zname)
 
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache)
 {
-  static int ttl = ::arg().asNum("dnssec-key-cache-ttl");
+  static auto ttl = ::arg().asNum<uint32_t>("dnssec-key-cache-ttl");
   // coverity[store_truncates_time_t]
   unsigned int now = time(nullptr);
 
@@ -872,7 +872,7 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
 
     std::unordered_map<DNSName,bool> nonterm;
     bool doent{true};
-    uint32_t maxent = ::arg().asNum("max-ent-entries");
+    auto maxent = ::arg().asNum<uint32_t>("max-ent-entries");
 
     std::unordered_map<DNSName,RecordStatus>::const_iterator it;
     for (const auto& qname: qnames) {

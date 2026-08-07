@@ -2581,7 +2581,7 @@ bool GSQLBackend::searchComments(const string &pattern, size_t maxResults, vecto
 
 void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 {
-  static const int defaultTTL = ::arg().asNum( "default-ttl" );
+  static const auto defaultTTL = ::arg().asNum<uint32_t>("default-ttl");
 
   if (row[1].empty())
       r.ttl = defaultTTL;
@@ -2640,7 +2640,7 @@ void GSQLBackend::extractRecord_unsafe(SSqlStatement::row_t& row, DNSResourceRec
   invalid.clear();
 
   try {
-    static const int defaultTTL = ::arg().asNum( "default-ttl" );
+    static const auto defaultTTL = ::arg().asNum<uint32_t>("default-ttl");
 
     if (row[1].empty()) {
       rec.ttl = defaultTTL;

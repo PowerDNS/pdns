@@ -319,8 +319,8 @@ int main( int argc, char* argv[] )
                                                 cerr << "Parsing file: " << i.filename << ", domain: " << i.name << endl;
                                                 g_zonename = i.name;
                                                 ZoneParserTNG zpt(i.filename, i.name, BP.getDirectory());
-                                                zpt.setMaxGenerateSteps(args.asNum("max-generate-steps"));
-                                                zpt.setMaxIncludes(args.asNum("max-include-depth"));
+                                                zpt.setMaxGenerateSteps(args.asNum<size_t>("max-generate-steps"));
+                                                zpt.setMaxIncludes(args.asNum<size_t>("max-include-depth"));
                                                 DNSResourceRecord rr;
                                                 while(zpt.get(rr)) {
                                                         callback(g_domainid, rr.qname, rr.qtype.toString(), encode_non_ascii(rr.content), rr.ttl);
@@ -349,7 +349,7 @@ int main( int argc, char* argv[] )
 
                         g_zonename = ZoneName(args["zone-name"]);
                         ZoneParserTNG zpt(args["zone-file"], g_zonename);
-                        zpt.setMaxGenerateSteps(args.asNum("max-generate-steps"));
+                        zpt.setMaxGenerateSteps(args.asNum<size_t>("max-generate-steps"));
                         DNSResourceRecord rr;
                         while(zpt.get(rr)) {
                                 callback(g_domainid, rr.qname, rr.qtype.toString(), encode_non_ascii(rr.content), rr.ttl);
