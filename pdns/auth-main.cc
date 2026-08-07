@@ -241,6 +241,8 @@ static void declareArguments()
   ::arg().setSwitch("prevent-self-notification", "Don't send notifications to what we think is ourself") = "yes";
   ::arg().setSwitch("any-to-tcp", "Answer ANY queries with tc=1, shunting to TCP") = "yes";
   ::arg().setSwitch("edns-subnet-processing", "If we should act on EDNS Subnet options") = "no";
+  ::arg().setSwitch("edns-scope-mask-ipv4", "EDNS scope mask to use for IPv4 addresses") = "0";
+  ::arg().setSwitch("edns-scope-mask-ipv6", "EDNS scope mask to use for IPv6 addresses") = "0";
   ::arg().set("delay-notifications", "Configure a delay to send out notifications, no delay by default") = "0";
 
   ::arg().set("edns-cookie-secret", "When set, set a server cookie when responding to a query with a Client cookie (in hex)") = "";
@@ -848,6 +850,8 @@ static void mainthread()
 
   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
   DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
+  DNSPacket::s_ECSscopeMaskIPv4 = ::arg().asBoundedNum<uint8_t>("edns-scope-mask-ipv4", 0, 32);
+  DNSPacket::s_ECSscopeMaskIPv6 = ::arg().asBoundedNum<uint8_t>("edns-scope-mask-ipv6", 0, 128);
   PacketHandler::s_SVCAutohints = ::arg().mustDo("svc-autohints");
   PacketHandler::s_NAPTRprocessing = ::arg().mustDo("naptr-additional-processing");
 

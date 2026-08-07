@@ -56,6 +56,8 @@
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 bool DNSPacket::s_doEDNSCookieProcessing;
+uint8_t DNSPacket::s_ECSscopeMaskIPv4;
+uint8_t DNSPacket::s_ECSscopeMaskIPv6;
 string DNSPacket::s_EDNSCookieKey;
 uint16_t DNSPacket::s_udpTruncationThreshold;
 
@@ -235,9 +237,6 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     return;
   }
 
-  DNSZoneRecord rr;
-  vector<DNSZoneRecord>::iterator pos;
-
   // we now need to order rrs so that the different sections come at the right place
   // we want a stable sort, based on the d_place field
 
@@ -314,11 +313,12 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection || d_haveednscookie) {
     try {
       uint8_t maxScopeMask=0;
-      for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
-        maxScopeMask = max(maxScopeMask, pos->scopeMask);
+      bool doCommit{true};
+      for(const auto& dzr : d_rrs) {
+        maxScopeMask = max(maxScopeMask, dzr.scopeMask);
 
-        pw.startRecord(pos->dr.d_name, pos->dr.d_type, pos->dr.d_ttl, pos->dr.d_class, pos->dr.d_place);
-        pos->dr.getContent()->toPacket(pw);
+        pw.startRecord(dzr.dr.d_name, dzr.dr.d_type, dzr.dr.d_ttl, dzr.dr.d_class, dzr.dr.d_place);
+        dzr.dr.getContent()->toPacket(pw);
         if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
           if (throwsOnTruncation) {
             throw PDNSException("attempt to write an oversized chunk, see https://docs.powerdns.com/authoritative/settings.html#workaround-11804");
@@ -326,15 +326,17 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
           pw.rollback();
           pw.truncate();
           pw.getHeader()->tc=1;
-          goto noCommit;
+          doCommit = false;
+          break;
         }
       }
 
-      // if(!pw.getHeader()->tc) // protect against double commit from addSignature
-
-      if(!d_rrs.empty()) pw.commit();
-
-      noCommit:;
+      if (doCommit) {
+        // if(!pw.getHeader()->tc) // protect against double commit from addSignature
+        if(!d_rrs.empty()) {
+          pw.commit();
+        }
+      }
 
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
@@ -343,13 +345,20 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
           maxScopeMask = d_span.getBits();
         }
         else {
+          // tighten the scopeMask if configured to do so
+          if (d_eso.getFamily() == AF_INET) {
+            maxScopeMask = max(maxScopeMask, s_ECSscopeMaskIPv4);
+          }
+          else {
+            maxScopeMask = max(maxScopeMask, s_ECSscopeMaskIPv6);
+          }
           // use the scopeMask from the resolver, if it is greater - issue #5469
           maxScopeMask = max(maxScopeMask, eso.getScopePrefixLength());
         }
         eso.setScopePrefixLength(maxScopeMask);
 
         string opt = eso.makeOptString();
-        opts.emplace_back(8, opt); // 'EDNS SUBNET'
+        opts.emplace_back(EDNSOptionCode::ECS, opt);
       }
 
       if (d_haveednscookie && d_eco.isWellFormed()) {
@@ -624,7 +633,7 @@ try
       }
       else if(s_doEDNSSubnetProcessing && (option.first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
         if (EDNSSubnetOpts::getFromString(option.second, &d_eso)) {
-          //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
+          //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.getScope().toString()<<", family = "<<d_eso.getFamily()<<endl;
           d_haveednssubnet=true;
         }
       }

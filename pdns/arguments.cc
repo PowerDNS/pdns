@@ -288,27 +288,6 @@ uid_t ArgvMap::asUid(const string& arg)
   return uid;
 }
 
-int ArgvMap::asNum(const string& arg, int def)
-{
-  if (!parmIsset(arg)) {
-    throw ArgException(string("Undefined but needed argument: '") + arg + "'");
-  }
-
-  // use default for empty values
-  if (d_params[arg].empty()) {
-    return def;
-  }
-
-  const auto* cptr_orig = d_params[arg].c_str();
-  char* cptr_ret = nullptr;
-  auto retval = static_cast<int>(strtol(cptr_orig, &cptr_ret, 0));
-  if (retval == 0 && cptr_ret == cptr_orig) {
-    throw ArgException("'" + arg + "' value '" + string(cptr_orig) + string("' is not a valid number"));
-  }
-
-  return retval;
-}
-
 bool ArgvMap::isEmpty(const string& arg)
 {
   if (!parmIsset(arg)) {
