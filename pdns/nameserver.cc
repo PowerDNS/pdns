@@ -101,7 +101,7 @@ void UDPNameserver::bindAddresses()
   int s;
   // for(vector<string>::const_iterator i=locals.begin();i!=locals.end();++i) {
   for (const auto &local : locals) {
-    ComboAddress locala(local, ::arg().asNum("local-port"));
+    ComboAddress locala(local, ::arg().asNum<uint16_t>("local-port"));
 
     s = socket(locala.sin4.sin_family, SOCK_DGRAM, 0);
 

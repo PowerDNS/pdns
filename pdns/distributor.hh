@@ -165,7 +165,7 @@ template<class Answer, class Question, class Backend>SingleThreadDistributor<Ans
 }
 
 template<class Answer, class Question, class Backend>MultiThreadDistributor<Answer,Question,Backend>::MultiThreadDistributor(int numberOfThreads, Logr::log_t slog) :
-  d_last_started(time(nullptr)), d_overloadQueueLength(::arg().asNum("overload-queue-length")), d_maxQueueLength(::arg().asNum("max-queue-length")), d_num_threads(numberOfThreads)
+  d_last_started(time(nullptr)), d_overloadQueueLength(::arg().asNum<unsigned int>("overload-queue-length")), d_maxQueueLength(::arg().asNum<unsigned int>("max-queue-length")), d_num_threads(numberOfThreads)
 {
   d_slog = slog;
   if (numberOfThreads < 1) {
@@ -201,7 +201,7 @@ template<class Answer, class Question, class Backend>void MultiThreadDistributor
 
   try {
     auto b = make_unique<Backend>(d_slog); // this will answer our questions
-    int queuetimeout = ::arg().asNum("queue-limit");
+    auto queuetimeout = ::arg().asBoundedNum<int>("queue-limit", 0, INT_MAX);
     auto& receiver = d_receivers.at(ournum);
 
     for (;;) {

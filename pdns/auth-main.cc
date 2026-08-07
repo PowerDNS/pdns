@@ -802,57 +802,52 @@ static void mainthread()
   if (!::arg()["setuid"].empty())
     newuid = strToUID(::arg()["setuid"]);
 
-  g_anyToTcp = ::arg().mustDo("any-to-tcp");
-  g_8bitDNS = ::arg().mustDo("8bit-dns");
-  g_logDNSQueries = ::arg().mustDo("log-dns-queries");
-  g_soa_edit_spread = ::arg().asNum("soa-edit-spread");
-  if (g_soa_edit_spread > 604800) {
-    SLOG(g_log << Logger::Error << "Value " << ::arg()["soa-edit-spread"] << " for soa-edit-spread too large" << endl,
-         slog->error(Logr::Error, "Out of range", "Invalid value", "soa-edit-spread", Logging::Loggable(::arg()["soa-edit-spread"])));
+  try {
+    g_anyToTcp = ::arg().mustDo("any-to-tcp");
+    g_8bitDNS = ::arg().mustDo("8bit-dns");
+    g_logDNSQueries = ::arg().mustDo("log-dns-queries");
 
-    exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
-  }
+    g_soa_edit_spread = ::arg().asBoundedNum<uint32_t>("soa-edit-spread", 0, 604800);
 
-  if (::arg()["rrsig-expiry-extend"] == "soa-edit-spread") {
-    g_rrsig_expiry_extend = g_soa_edit_spread;
-  }
-  else {
-    g_rrsig_expiry_extend = ::arg().asNum("rrsig-expiry-extend");
-
-    if (g_rrsig_expiry_extend > 31536000) {
-      SLOG(g_log << Logger::Error << "Value " << ::arg()["rrsig-expiry-extend"] << " for rrsig-expiry-extend too large" << endl,
-           slog->error(Logr::Error, "Out of range", "Invalid value", "rrsig-expiry-extend", Logging::Loggable(::arg()["rrsig-expiry-extend"])));
-
-      exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+    if (::arg()["rrsig-expiry-extend"] == "soa-edit-spread") {
+      g_rrsig_expiry_extend = g_soa_edit_spread;
     }
-  }
+    else {
+      g_rrsig_expiry_extend = ::arg().asBoundedNum<uint32_t>("rrsig-expiry-extend", 0, 31536000);
+    }
 
 #ifdef HAVE_LUA_RECORDS
-  g_doLuaRecord = ::arg().mustDo("enable-lua-records");
-  g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
-  g_luaRecordExecLimit = ::arg().asNum("lua-records-exec-limit");
-  g_luaRecordInsertWhitespace = ::arg().mustDo("lua-records-insert-whitespace");
-  g_luaHealthChecksInterval = ::arg().asNum("lua-health-checks-interval");
-  g_luaConsistentHashesExpireDelay = ::arg().asNum("lua-consistent-hashes-expire-delay");
-  g_luaConsistentHashesCleanupInterval = ::arg().asNum("lua-consistent-hashes-cleanup-interval");
-  g_luaHealthChecksExpireDelay = ::arg().asNum("lua-health-checks-expire-delay");
+    g_doLuaRecord = ::arg().mustDo("enable-lua-records");
+    g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
+    g_luaRecordExecLimit = ::arg().asNum("lua-records-exec-limit");
+    g_luaRecordInsertWhitespace = ::arg().mustDo("lua-records-insert-whitespace");
+    g_luaHealthChecksInterval = ::arg().asNum<time_t>("lua-health-checks-interval");
+    g_luaConsistentHashesExpireDelay = ::arg().asNum<time_t>("lua-consistent-hashes-expire-delay");
+    g_luaConsistentHashesCleanupInterval = ::arg().asNum<time_t>("lua-consistent-hashes-cleanup-interval");
+    g_luaHealthChecksExpireDelay = ::arg().asNum<time_t>("lua-health-checks-expire-delay");
 #endif
 #ifdef ENABLE_GSS_TSIG
-  g_doGssTSIG = ::arg().mustDo("enable-gss-tsig");
-  if (g_doGssTSIG) {
-    GssContext::s_maxGssContexts = ::arg().asNum("gss-max-contexts");
-  }
+    g_doGssTSIG = ::arg().mustDo("enable-gss-tsig");
+    if (g_doGssTSIG) {
+      GssContext::s_maxGssContexts = ::arg().asNum<unsigned int>("gss-max-contexts");
+    }
 #endif
-  g_views = ::arg().mustDo("views");
-  g_memberCatalogGroup = ::arg()["member-catalog-group"];
+    g_views = ::arg().mustDo("views");
+    g_memberCatalogGroup = ::arg()["member-catalog-group"];
 
-  DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
-  DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
-  PacketHandler::s_SVCAutohints = ::arg().mustDo("svc-autohints");
-  PacketHandler::s_NAPTRprocessing = ::arg().mustDo("naptr-additional-processing");
+    DNSPacket::s_udpTruncationThreshold = std::max(static_cast<uint16_t>(512), ::arg().asNum<uint16_t>("udp-truncation-threshold"));
+    DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
+    PacketHandler::s_SVCAutohints = ::arg().mustDo("svc-autohints");
+    PacketHandler::s_NAPTRprocessing = ::arg().mustDo("naptr-additional-processing");
 
-  g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
-  g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+    g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
+    g_proxyProtocolMaximumSize = ::arg().asNum<size_t>("proxy-protocol-maximum-size");
+  }
+  catch (ArgException& exc) {
+    SLOG(g_log << Logger::Error << "Fatal error: " << exc.reason << endl,
+         slog->error(Logr::Error, exc.reason, "Fatal error"));
+    exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+  }
 
   if (::arg()["edns-cookie-secret"].size() != 0) {
     // User wants cookie processing
@@ -905,11 +900,11 @@ static void mainthread()
   // (no more checks yet)
 
   PC.setSLog(slog);
-  PC.setTTL(::arg().asNum("cache-ttl"));
-  PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
+  PC.setTTL(::arg().asNum<uint32_t>("cache-ttl"));
+  PC.setMaxEntries(::arg().asNum<uint64_t>("max-packet-cache-entries"));
   QC.setSLog(slog);
-  QC.setMaxEntries(::arg().asNum("max-cache-entries"));
-  DNSSECKeeper::setMaxEntries(::arg().asNum("max-cache-entries"));
+  QC.setMaxEntries(::arg().asNum<uint64_t>("max-cache-entries"));
+  DNSSECKeeper::setMaxEntries(::arg().asNum<uint64_t>("max-cache-entries"));
 
   if (!PC.enabled() && ::arg().mustDo("log-dns-queries")) {
     SLOG(g_log << Logger::Warning << "Packet cache disabled, logging queries without HIT/MISS" << endl,
@@ -969,13 +964,12 @@ static void mainthread()
     bool hadKeyError = false;
     int kskAlgo{0}, zskAlgo{0};
     for (const string algotype : {"ksk", "zsk"}) {
-      int algo, size;
       std::string key = "default-" + algotype + "-algorithm";
       if (::arg()[key].empty())
         continue;
-      algo = DNSSECKeeper::shorthand2algorithm(::arg()[key]);
+      int algo = DNSSECKeeper::shorthand2algorithm(::arg()[key]);
       std::string sizekey = "default-" + algotype + "-size";
-      size = ::arg().asNum(sizekey);
+      auto size = ::arg().asNum<size_t>(sizekey);
       if (algo == -1) {
         SLOG(g_log << Logger::Error << "Error: " << key << " set to unknown algorithm: " << ::arg()[key] << endl,
              slog->info(Logr::Error, "Unknown algorithm specified", "setting", Logging::Loggable(key), "algorithm", Logging::Loggable(::arg()[key])));
@@ -1025,7 +1019,7 @@ static void mainthread()
 
   // Setup the zone cache
   g_zoneCache.setSLog(slog);
-  g_zoneCache.setRefreshInterval(::arg().asNum("zone-cache-refresh-interval"));
+  g_zoneCache.setRefreshInterval(::arg().asNum<uint32_t>("zone-cache-refresh-interval"));
   if (g_zoneCache.getRefreshInterval() != 0) {
     if (!updateZoneCache(slog)) {
       exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
@@ -1044,7 +1038,7 @@ static void mainthread()
 
   s_tcpNameserver->go(); // tcp nameserver launch
 
-  unsigned int max_rthreads = ::arg().asNum("receiver-threads", 1);
+  auto max_rthreads = ::arg().asNum<unsigned int>("receiver-threads", 1);
   s_distributors.resize(max_rthreads);
   for (unsigned int n = 0; n < max_rthreads; ++n) {
     std::thread t(qthread, n);
@@ -1689,7 +1683,7 @@ int main(int argc, char** argv)
       _exit(99);
     }
 
-    if (!::arg().asNum("local-port")) {
+    if (::arg().asNum<uint16_t>("local-port") == 0) {
       SLOG(g_log << Logger::Error << "Unable to launch, binding to no port or port 0 makes no sense" << endl,
            startupLog->info(Logr::Error, "Unable to launch, no proper local-port configured"));
       exit(99); // this isn't going to fix itself either
@@ -1744,7 +1738,7 @@ int main(int argc, char** argv)
     DynListener::registerFunc("XFR-QUEUE", &DLSuckRequests, "Get all requests for XFR in queue");
 
     if (!::arg()["tcp-control-address"].empty()) {
-      DynListener* dlTCP = new DynListener(g_slog, ComboAddress(::arg()["tcp-control-address"], ::arg().asNum("tcp-control-port")));
+      auto* dlTCP = new DynListener(g_slog, ComboAddress(::arg()["tcp-control-address"], ::arg().asNum<uint16_t>("tcp-control-port")));
       dlTCP->go();
     }
 
@@ -1767,7 +1761,7 @@ int main(int argc, char** argv)
     s_udpNameserver = std::make_shared<UDPNameserver>(g_slog); // this fails when we are not root, throws exception
     s_udpReceivers.push_back(s_udpNameserver);
 
-    size_t rthreads = ::arg().asNum("receiver-threads", 1);
+    auto rthreads = ::arg().asNum<size_t>("receiver-threads", 1);
     if (rthreads > 1 && s_udpNameserver->canReusePort()) {
       s_udpReceivers.resize(rthreads);
 

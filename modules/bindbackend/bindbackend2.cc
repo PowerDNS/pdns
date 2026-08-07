@@ -592,8 +592,8 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
 
   auto records = std::make_shared<recordstorage_t>();
   ZoneParserTNG zpt(bbd->main_filename(), bbd->d_name, s_binddirectory, d_upgradeContent);
-  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
-  zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
+  zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
+  zpt.setMaxIncludes(::arg().asNum<size_t>("max-include-depth"));
   DNSResourceRecord rr;
   string hashed;
   while (zpt.get(rr)) {
@@ -932,7 +932,7 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
   std::unordered_set<DNSName> qnames;
   std::unordered_map<DNSName, bool> nonterm;
 
-  uint32_t maxent = ::arg().asNum("max-ent-entries");
+  auto maxent = ::arg().asNum<uint32_t>("max-ent-entries");
 
   for (const auto& bdr : *records)
     qnames.insert(bdr.qname);

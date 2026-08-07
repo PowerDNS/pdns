@@ -1099,7 +1099,7 @@ unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tc
 #ifdef TCP_DEFER_ACCEPT
   auto first = true;
 #endif
-  const uint16_t defaultLocalPort = ::arg().asNum("local-port");
+  const auto defaultLocalPort = ::arg().asNum<uint16_t>("local-port");
   const vector<string> defaultVector = {"127.0.0.1", "::1"};
   const auto configIsDefault = localAddresses == defaultVector;
 
