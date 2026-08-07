@@ -7,25 +7,7 @@ import cookiesoption
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
-class TestGenericCache(DNSDistTest):
-    _config_template = """
-    cache = newObjectCache("test", { maxEntries = 1000 })
-    function store(dq)
-        cache:insert(dq.remoteaddr:toString(), "some value")
-        return DNSAction.None, ""
-    end
-    function dropWhenExists(dq)
-        if cache:contains(dq.remoteaddr:toString()) then
-            cache:remove(dq.remoteaddr:toString())
-            return DNSAction.Refused
-        end
-        return DNSAction.None, ""
-    end
-    addAction("store.cache.tests.powerdns.com.", LuaAction(store))
-    addAction("read.cache.tests.powerdns.com.", LuaAction(dropWhenExists))
-    newServer{address="127.0.0.1:%d"}
-    """
-
+class CacheTests(object):
     def testExistsCheck(self):
         """
         Cache: Refused when value is cached
@@ -108,3 +90,69 @@ class TestGenericCache(DNSDistTest):
         (_, receivedResponse) = self.sendUDPQuery(query, response)
         self.assertTrue(receivedResponse)
         self.assertEqual(receivedResponse, response)
+
+
+class TestGenericCache(DNSDistTest, CacheTests):
+    _config_template = """
+    cache = newObjectCache("test", { maxEntries = 1000 })
+    function store(dq)
+        cache:insert(dq.remoteaddr:toString(), "some value")
+        return DNSAction.None, ""
+    end
+    function dropWhenExists(dq)
+        if cache:contains(dq.remoteaddr:toString()) then
+            cache:remove(dq.remoteaddr:toString())
+            return DNSAction.Refused
+        end
+        return DNSAction.None, ""
+    end
+    addAction("store.cache.tests.powerdns.com.", LuaAction(store))
+    addAction("read.cache.tests.powerdns.com.", LuaAction(dropWhenExists))
+    newServer{address="127.0.0.1:%d"}
+    """
+
+
+class TestGenericCacheYaml(DNSDistTest, CacheTests):
+    _yaml_config_template = """---
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+generic_caches:
+  object:
+    - name: "test-cache"
+      max_entries: 1000
+
+query_rules:
+  - name: Lua store to cache rule
+    selector:
+      type: Regex
+      expression: store.*
+    action:
+      type: Lua
+      function_code: |
+        function store(dq)
+            local cache = getObjectFromYAMLConfiguration("test-cache")
+            cache:insert(dq.remoteaddr:toString(), "some value")
+            return DNSAction.None, ""
+        end
+        return store
+
+  - name: Lua read from cache rule
+    selector:
+      type: Regex
+      expression: read.*
+    action:
+      type: Lua
+      function_code: |
+        function dropWhenExists(dq)
+            local cache = getObjectFromYAMLConfiguration("test-cache")
+            if cache:contains(dq.remoteaddr:toString()) then
+                cache:remove(dq.remoteaddr:toString())
+                return DNSAction.Refused
+            end
+            return DNSAction.None, ""
+        end
+        return dropWhenExists
+    """
+    _yaml_config_params = ["_testServerPort"]
