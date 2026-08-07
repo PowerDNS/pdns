@@ -83,7 +83,7 @@ void carbonDumpThread(Logr::log_t slog)
           continue;
         }
       }
-      sleep(arg().asNum("carbon-interval"));
+      sleep(arg().asNum<unsigned int>("carbon-interval")); // NOLINT(concurrency-mt-unsafe): yes, sleep may be implemented using SIGALRM. But it's 2026 now.
     }
   }
   catch(std::exception& e) {

@@ -735,8 +735,9 @@ static void loadMainConfig(const std::string& configdir)
   }
 
   BackendMakers(g_slog).launch(::arg()["launch"]); // vrooooom!
-  if(::arg().asNum("loglevel") >= 3) // so you can't kill our errors
-    g_log.toConsole((Logger::Urgency)::arg().asNum("loglevel"));
+  if(s_logUrgency >= LOG_ERR) { // so you can't kill our errors
+    g_log.toConsole(s_logUrgency);
+  }
 
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
@@ -2233,8 +2234,8 @@ static bool parseZoneFile(const char* tmpnam, int& errorline, std::vector<DNSRec
 {
   records.clear();
   ZoneParserTNG zpt(tmpnam, g_rootzonename, "", ::arg().mustDo("upgrade-unknown-types"));
-  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
-  zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
+  zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
+  zpt.setMaxIncludes(::arg().asNum<size_t>("max-include-depth"));
   DNSResourceRecord zrr;
   try {
     while(zpt.get(zrr)) {
@@ -2627,7 +2628,7 @@ static int xcryptIP(bool encrypt, const std::string& ip, const std::string& rkey
 
 static int zonemdVerifyFile(const ZoneName& zone, const string& fname) {
   ZoneParserTNG zpt(fname, zone, "", true);
-  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+  zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
 
   bool validationDone, validationOK;
 
@@ -2699,7 +2700,7 @@ static int loadZone(const ZoneName& zone, const string& fname) {
   DNSBackend* db = di.backend;
   ZoneParserTNG zpt(fname, zone, "", ::arg().mustDo("upgrade-unknown-types"));
   zpt.setDefaultTTL(::arg().asNum("default-ttl"));
-  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+  zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
 
   DNSResourceRecord rr;
   if(!db->startTransaction(zone, di.id)) {
@@ -2756,7 +2757,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
   DNSResourceRecord rr;
   rr.qname = zone.operator const DNSName&();
   rr.auth = true;
-  rr.ttl = ::arg().asNum("default-ttl");
+  rr.ttl = ::arg().asNum<uint32_t>("default-ttl");
   rr.qtype = "SOA";
 
   string soa = ::arg()["default-soa-content"];
@@ -2805,7 +2806,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
       }
     }
 
-    if (::arg().asNum("zone-cache-refresh-interval") != 0) {
+    if (::arg().asNum<uint32_t>("zone-cache-refresh-interval") != 0) {
       cout << "If the authoritative server is running, be sure to refresh its zone cache" << endl << "with 'pdns_control rediscover'" << endl;
     }
   }
@@ -2873,7 +2874,7 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
   }
 
   rr.qtype = DNSRecordContent::TypeToNumber(cmds.at(2));
-  rr.ttl = ::arg().asNum("default-ttl");
+  rr.ttl = ::arg().asNum<uint32_t>("default-ttl");
   rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;
@@ -3183,7 +3184,7 @@ static void testSpeed(const ZoneName& zone, int cores)
 static void verifyCrypto(const string& zone)
 {
   ZoneParserTNG zpt(zone);
-  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+  zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
   DNSResourceRecord rr;
   DNSKEYRecordContent drc;
   RRSIGRecordContent rrc;
@@ -3425,7 +3426,7 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
     }
   }
 
-  g_soa_edit_spread = ::arg().asNum("soa-edit-spread");
+  g_soa_edit_spread = ::arg().asBoundedNum<uint32_t>("soa-edit-spread", 0, 604800);
   if (g_verbose && g_soa_edit_spread > 0) {
     auto [inception, _] = getStartOfWeek();
     auto delay = weekSpreadDelay(zone);
@@ -3611,20 +3612,12 @@ static bool secureZone(DNSSECKeeper& dsk, const ZoneName& zone)
 
   // parse attribute
   string k_algo = ::arg()["default-ksk-algorithm"];
-  int k_size = ::arg().asNum("default-ksk-size");
+  auto k_size = ::arg().asNum<size_t>("default-ksk-size");
   string z_algo = ::arg()["default-zsk-algorithm"];
-  int z_size = ::arg().asNum("default-zsk-size");
-
-  if (k_size < 0) {
-     throw runtime_error("KSK key size must be equal to or greater than 0");
-  }
+  auto z_size = ::arg().asNum<size_t>("default-zsk-size");
 
   if (k_algo.empty() && z_algo.empty()) {
      throw runtime_error("Zero algorithms given for KSK+ZSK in total");
-  }
-
-  if (z_size < 0) {
-     throw runtime_error("ZSK key size must be equal to or greater than 0");
   }
 
   if(dsk.isSecuredZone(zone)) {
@@ -4292,7 +4285,7 @@ static int addZoneKey(vector<string>& cmds, const std::string_view synopsis)
   // Try to get algorithm, bits & ksk or zsk from commandline
   bool keyOrZone=true; // default to KSK
   int tmp_algo=0;
-  int bits=0;
+  size_t bits=0;
   int algorithm=-1;
   bool active=false;
   bool published=true;
@@ -4329,16 +4322,10 @@ static int addZoneKey(vector<string>& cmds, const std::string_view synopsis)
   // Use configuration defaults for missing values
   if (bits == 0) {
     if (keyOrZone) {
-      bits = ::arg().asNum("default-ksk-size");
-      if (bits < 0) {
-         throw runtime_error("Default KSK key size must be equal to or greater than 0");
-      }
+      bits = ::arg().asNum<size_t>("default-ksk-size");
     }
     else {
-      bits = ::arg().asNum("default-zsk-size");
-      if (bits < 0) {
-         throw runtime_error("Default ZSK key size must be equal to or greater than 0");
-      }
+      bits = ::arg().asNum<size_t>("default-zsk-size");
     }
   }
   if (algorithm == -1) {

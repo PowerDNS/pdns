@@ -513,11 +513,11 @@ void CommunicatorClass::ixfrSuck(const TSIGTriplet& tsig, const ComboAddress& la
       return;
     }
 
-    uint16_t xfrTimeout = ::arg().asNum("axfr-fetch-timeout");
+    auto xfrTimeout = ::arg().asNum<uint16_t>("axfr-fetch-timeout");
     soatimes drsoa_soatimes = {ctx.domain.serial, 0, 0, 0, 0};
     DNSRecord drsoa;
     drsoa.setContent(std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, drsoa_soatimes));
-    auto deltas = getIXFRDeltas(ctx.slog, ctx.remote, ctx.domain.zone.operator const DNSName&(), drsoa, xfrTimeout, false, tsig, laddr.sin4.sin_family != 0 ? &laddr : nullptr, ((size_t)::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
+    auto deltas = getIXFRDeltas(ctx.slog, ctx.remote, ctx.domain.zone.operator const DNSName&(), drsoa, xfrTimeout, false, tsig, laddr.sin4.sin_family != 0 ? &laddr : nullptr, (::arg().asNum<size_t>("xfr-max-received-mbytes")) * 1024 * 1024);
     ctx.numDeltas = deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<ctx.domain.serial<<", applying.."<<endl;
 
@@ -685,9 +685,9 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
 
 static vector<DNSResourceRecord> doAxfr(const TSIGTriplet& tt, const ComboAddress& laddr, unique_ptr<AuthLua4>& pdl, XFRContext& ctx) // NOLINT(readability-identifier-length)
 {
-  uint16_t axfr_timeout = ::arg().asNum("axfr-fetch-timeout");
+  auto axfr_timeout = ::arg().asNum<uint16_t>("axfr-fetch-timeout");
   vector<DNSResourceRecord> rrs;
-  AXFRRetriever retriever(ctx.slog, ctx.remote, ctx.domain.zone, tt, (laddr.sin4.sin_family == 0) ? nullptr : &laddr, ((size_t)::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024, axfr_timeout);
+  AXFRRetriever retriever(ctx.slog, ctx.remote, ctx.domain.zone, tt, (laddr.sin4.sin_family == 0) ? nullptr : &laddr, (::arg().asNum<size_t>("xfr-max-received-mbytes")) * 1024 * 1024, axfr_timeout);
   Resolver::res_t recs;
   bool first = true;
   bool firstNSEC3{true};
@@ -1013,7 +1013,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
     }
 
     bool doent = true;
-    uint32_t maxent = ::arg().asNum("max-ent-entries");
+    auto maxent = ::arg().asNum<uint32_t>("max-ent-entries");
     DNSName shorter;
     DNSName ordername;
     set<DNSName> rrterm;
@@ -1479,7 +1479,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P) // NOLINT(readability
     if (ssr.d_freshness.count(di.id) == 0) { // If we don't have an answer for the domain
       auto [newCount, nextCheck] = markAsFailed(di.zone);
       if (newCount == 1) {
-        SLOG(g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << " from " << remote.toStringWithPortExcept(53) << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl,
+        SLOG(g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << " from " << remote.toStringWithPortExcept(53) << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << ::arg().asNum<uint32_t>("default-ttl") << " seconds. Skipping SOA checks until " << humanTime(nextCheck) << endl,
              d_slog->info(Logr::Warning, "Unable to retrieve SOA for the first time", "zone", Logging::Loggable(di.zone), "remote", Logging::Loggable(remote.toStringWithPortExcept(53)), "SOA checks skipped until", Logging::Loggable(humanTime(nextCheck))));
       }
       else if (newCount % 10 == 0) {
@@ -1620,7 +1620,7 @@ std::pair<uint64_t, time_t> CommunicatorClass::markAsFailed(const ZoneName& doma
   if (failedEntry != data->d_failedSecondaryRefresh.end()) {
     newCount = data->d_failedSecondaryRefresh[domain].first + 1;
   }
-  time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl")); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+  time_t nextCheck = now + std::min(newCount * d_tickinterval, static_cast<uint64_t>(::arg().asNum<uint32_t>("default-ttl"))); // NOLINT(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
   data->d_failedSecondaryRefresh[domain] = {newCount, nextCheck};
   return std::make_pair(newCount, nextCheck);
 }

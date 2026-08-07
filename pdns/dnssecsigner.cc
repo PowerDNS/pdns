@@ -92,12 +92,12 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
   if(doCache) {
     /* we add some jitter here so not all your secondaries start pruning their caches at the very same millisecond */
     time_t weekno = (time(nullptr) - dns_random(3600)) / static_cast<time_t>(86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
-    const static int maxcachesize=::arg().asNum("max-signature-cache-entries", INT_MAX);
+    const static auto maxcachesize=::arg().asNum<size_t>("max-signature-cache-entries", INT_MAX);
 
     signaturecache_t oldsigs;
     {
       auto signatures = g_signatures.write_lock();
-      if (g_cacheweekno < weekno || signatures->size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
+      if (g_cacheweekno < weekno || signatures->size() >= maxcachesize) {  // blunt but effective (C) Habbie, mind04
         SLOG(g_log<<Logger::Warning<<"Cleared signature cache."<<endl,
              g_slog->info(Logr::Warning, "Cleared signature cache."));
         std::swap(oldsigs, *signatures);

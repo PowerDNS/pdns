@@ -333,7 +333,7 @@ int RecThreadInfo::runThreads(Logr::log_t log)
 
 void RecThreadInfo::makeThreadPipes(Logr::log_t log)
 {
-  auto pipeBufferSize = ::arg().asNum("distribution-pipe-buffer-size");
+  auto pipeBufferSize = ::arg().asNum<size_t>("distribution-pipe-buffer-size");
   if (pipeBufferSize > 0) {
     log->info(Logr::Info, "Resizing the buffer of the distribution pipe", "size", Logging::Loggable(pipeBufferSize));
   }
@@ -831,7 +831,7 @@ static void checkSocketDir(Logr::log_t log)
 static void setupNODThread(Logr::log_t log)
 {
   if (g_nodEnabled) {
-    uint32_t num_cells = ::arg().asNum("new-domain-db-size");
+    auto num_cells = ::arg().asNum<uint32_t>("new-domain-db-size");
     g_nodDBp = std::make_unique<nod::NODDB>(num_cells);
     try {
       g_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
@@ -844,8 +844,8 @@ static void setupNODThread(Logr::log_t log)
       log->info(Logr::Error, "Could not initialize domain tracking");
       _exit(1);
     }
-    if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
-      g_nodDBp->setSnapshotInterval(::arg().asNum("new-domain-db-snapshot-interval"));
+    if (::arg().asNum<unsigned int>("new-domain-db-snapshot-interval") > 0) {
+      g_nodDBp->setSnapshotInterval(::arg().asNum<unsigned int>("new-domain-db-snapshot-interval"));
       std::thread thread([tid = std::this_thread::get_id()]() {
         g_nodDBp->housekeepingThread(tid);
       });
@@ -853,7 +853,7 @@ static void setupNODThread(Logr::log_t log)
     }
   }
   if (g_udrEnabled) {
-    uint32_t num_cells = ::arg().asNum("unique-response-db-size");
+    auto num_cells = ::arg().asNum<uint32_t>("unique-response-db-size");
     g_udrDBp = std::make_unique<nod::UniqueResponseDB>(num_cells);
     try {
       g_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
@@ -866,8 +866,8 @@ static void setupNODThread(Logr::log_t log)
       log->info(Logr::Error, "Could not initialize unique response tracking");
       _exit(1);
     }
-    if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
-      g_udrDBp->setSnapshotInterval(::arg().asNum("new-domain-db-snapshot-interval"));
+    if (::arg().asNum<unsigned int>("new-domain-db-snapshot-interval") > 0) {
+      g_udrDBp->setSnapshotInterval(::arg().asNum<unsigned int>("new-domain-db-snapshot-interval"));
       std::thread thread([tid = std::this_thread::get_id()]() {
         g_udrDBp->housekeepingThread(tid);
       });
@@ -1456,7 +1456,7 @@ void parseACLs()
   auto allowFrom = parseACL("allow-from-file", "allow-from", log);
 
   if (allowFrom->empty()) {
-    if (::arg()["local-address"] != "127.0.0.1" && ::arg().asNum("local-port") == 53) {
+    if (::arg()["local-address"] != "127.0.0.1" && ::arg().asNum<uint16_t>("local-port") == 53) {
       log->info(Logr::Warning, "WARNING: Allowing queries from all IP addresses - this can be a security risk!");
     }
     allowFrom = nullptr;
@@ -1717,11 +1717,11 @@ static int initDNSSEC(Logr::log_t log)
   }
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
-  g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
-  g_maxRRSIGsPerRecordToConsider = ::arg().asNum("max-rrsigs-per-record");
-  g_maxNSEC3sPerRecordToConsider = ::arg().asNum("max-nsec3s-per-record");
-  g_maxDNSKEYsToConsider = ::arg().asNum("max-dnskeys");
-  g_maxDSsToConsider = ::arg().asNum("max-ds-per-zone");
+  g_maxNSEC3Iterations = ::arg().asNum<uint16_t>("nsec3-max-iterations");
+  g_maxRRSIGsPerRecordToConsider = ::arg().asNum<uint16_t>("max-rrsigs-per-record");
+  g_maxNSEC3sPerRecordToConsider = ::arg().asNum<uint16_t>("max-nsec3s-per-record");
+  g_maxDNSKEYsToConsider = ::arg().asNum<uint16_t>("max-dnskeys");
+  g_maxDSsToConsider = ::arg().asNum<uint16_t>("max-ds-per-zone");
 
   vector<string> nums;
   bool automatic = true;
@@ -1764,117 +1764,117 @@ static void initDontQuery(Logr::log_t log)
 
 static int initSyncRes(Logr::log_t log)
 {
-  SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
-  SyncRes::s_minimumECSTTL = ::arg().asNum("ecs-minimum-ttl-override");
-  SyncRes::s_maxnegttl = ::arg().asNum("max-negative-ttl");
-  SyncRes::s_maxbogusttl = ::arg().asNum("max-cache-bogus-ttl");
-  SyncRes::s_maxcachettl = max(::arg().asNum("max-cache-ttl"), 15);
+  try {
+    SyncRes::s_minimumTTL = ::arg().asNum<unsigned int>("minimum-ttl-override");
+    SyncRes::s_minimumECSTTL = ::arg().asNum<unsigned int>("ecs-minimum-ttl-override");
+    SyncRes::s_maxnegttl = ::arg().asNum<unsigned int>("max-negative-ttl");
+    SyncRes::s_maxbogusttl = ::arg().asNum<unsigned int>("max-cache-bogus-ttl");
+    SyncRes::s_maxcachettl = max(::arg().asNum<unsigned int>("max-cache-ttl"), 15U);
 
-  SyncRes::s_packetcachettl = ::arg().asNum("packetcache-ttl");
-  // Cap the packetcache-servfail-ttl and packetcache-negative-ttl to packetcache-ttl
-  SyncRes::s_packetcacheservfailttl = std::min(static_cast<unsigned int>(::arg().asNum("packetcache-servfail-ttl")), SyncRes::s_packetcachettl);
-  SyncRes::s_packetcachenegativettl = std::min(static_cast<unsigned int>(::arg().asNum("packetcache-negative-ttl")), SyncRes::s_packetcachettl);
+    SyncRes::s_packetcachettl = ::arg().asNum<unsigned int>("packetcache-ttl");
+    // Cap the packetcache-servfail-ttl and packetcache-negative-ttl to packetcache-ttl
+    SyncRes::s_packetcacheservfailttl = std::min(::arg().asNum<unsigned int>("packetcache-servfail-ttl"), SyncRes::s_packetcachettl);
+    SyncRes::s_packetcachenegativettl = std::min(::arg().asNum<unsigned int>("packetcache-negative-ttl"), SyncRes::s_packetcachettl);
 
-  SyncRes::s_serverdownmaxfails = ::arg().asNum("server-down-max-fails");
-  SyncRes::s_serverdownthrottletime = ::arg().asNum("server-down-throttle-time");
-  SyncRes::s_unthrottle_n = ::arg().asNum("bypass-server-throttling-probability");
-  SyncRes::s_nonresolvingnsmaxfails = ::arg().asNum("non-resolving-ns-max-fails");
-  SyncRes::s_nonresolvingnsthrottletime = ::arg().asNum("non-resolving-ns-throttle-time");
-  SyncRes::s_serverID = ::arg()["server-id"];
-  // This bound is dynamically adjusted in SyncRes, depending on qname minimization being active
-  SyncRes::s_maxqperq = ::arg().asNum("max-qperq");
-  SyncRes::s_maxbytesperq = ::arg().asNum("max-bytesperq");
-  SyncRes::s_maxnsperresolve = ::arg().asNum("max-ns-per-resolve");
-  SyncRes::s_maxnsaddressqperq = ::arg().asNum("max-ns-address-qperq");
-  SyncRes::s_maxtotusec = 1000 * ::arg().asNum("max-total-msec");
-  SyncRes::s_maxdepth = ::arg().asNum("max-recursion-depth");
-  SyncRes::s_maxvalidationsperq = ::arg().asNum("max-signature-validations-per-query");
-  SyncRes::s_maxnsec3iterationsperq = ::arg().asNum("max-nsec3-hash-computations-per-query");
-  SyncRes::s_rootNXTrust = ::arg().mustDo("root-nx-trust");
-  SyncRes::s_refresh_ttlperc = ::arg().asNum("refresh-on-ttl-perc");
-  SyncRes::s_locked_ttlperc = ::arg().asNum("record-cache-locked-ttl-perc");
-  RecursorPacketCache::s_refresh_ttlperc = SyncRes::s_refresh_ttlperc;
-  SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
-  SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
+    SyncRes::s_serverdownmaxfails = ::arg().asNum<unsigned int>("server-down-max-fails");
+    SyncRes::s_serverdownthrottletime = ::arg().asNum<unsigned int>("server-down-throttle-time");
+    SyncRes::s_unthrottle_n = ::arg().asNum<unsigned int>("bypass-server-throttling-probability");
+    SyncRes::s_nonresolvingnsmaxfails = ::arg().asNum<unsigned int>("non-resolving-ns-max-fails");
+    SyncRes::s_nonresolvingnsthrottletime = ::arg().asNum<unsigned int>("non-resolving-ns-throttle-time");
+    SyncRes::s_serverID = ::arg()["server-id"];
+    // This bound is dynamically adjusted in SyncRes, depending on qname minimization being active
+    SyncRes::s_maxqperq = ::arg().asNum<unsigned int>("max-qperq");
+    SyncRes::s_maxbytesperq = ::arg().asNum<unsigned int>("max-bytesperq");
+    SyncRes::s_maxnsperresolve = ::arg().asNum<unsigned int>("max-ns-per-resolve");
+    SyncRes::s_maxnsaddressqperq = ::arg().asNum<unsigned int>("max-ns-address-qperq");
+    SyncRes::s_maxtotusec = 1000 * ::arg().asNum<unsigned int>("max-total-msec");
+    SyncRes::s_maxdepth = ::arg().asNum<unsigned int>("max-recursion-depth");
+    SyncRes::s_maxvalidationsperq = ::arg().asNum<unsigned int>("max-signature-validations-per-query");
+    SyncRes::s_maxnsec3iterationsperq = ::arg().asNum<unsigned int>("max-nsec3-hash-computations-per-query");
+    SyncRes::s_rootNXTrust = ::arg().mustDo("root-nx-trust");
+    SyncRes::s_refresh_ttlperc = ::arg().asNum<unsigned int>("refresh-on-ttl-perc");
+    SyncRes::s_locked_ttlperc = ::arg().asNum<unsigned int>("record-cache-locked-ttl-perc");
+    RecursorPacketCache::s_refresh_ttlperc = SyncRes::s_refresh_ttlperc;
+    SyncRes::s_tcp_fast_open = ::arg().asNum("tcp-fast-open");
+    SyncRes::s_tcp_fast_open_connect = ::arg().mustDo("tcp-fast-open-connect");
 
-  SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
-  SyncRes::s_event_trace_enabled = ::arg().asNum("event-trace-enabled");
-  SyncRes::s_save_parent_ns_set = ::arg().mustDo("save-parent-ns-set");
-  SyncRes::s_max_busy_dot_probes = ::arg().asNum("max-busy-dot-probes");
-  SyncRes::s_max_CNAMES_followed = ::arg().asNum("max-cnames-followed");
-  {
-    uint64_t sse = ::arg().asNum("serve-stale-extensions");
-    if (sse > std::numeric_limits<uint16_t>::max()) {
-      log->info(Logr::Error, "Illegal serve-stale-extensions value; range = 0..65536", "value", Logging::Loggable(sse));
-      return 1;
-    }
+    SyncRes::s_dot_to_port_853 = ::arg().mustDo("dot-to-port-853");
+    SyncRes::s_event_trace_enabled = ::arg().asNum("event-trace-enabled");
+    SyncRes::s_save_parent_ns_set = ::arg().mustDo("save-parent-ns-set");
+    SyncRes::s_max_busy_dot_probes = ::arg().asNum<unsigned int>("max-busy-dot-probes");
+    SyncRes::s_max_CNAMES_followed = ::arg().asNum<unsigned int>("max-cnames-followed");
+    auto sse = ::arg().asNum<uint16_t>("serve-stale-extensions");
     MemRecursorCache::s_maxServedStaleExtensions = sse;
     NegCache::s_maxServedStaleExtensions = sse;
-  }
-  MemRecursorCache::s_maxRRSetSize = ::arg().asNum("max-rrset-size");
-  MemRecursorCache::s_limitQTypeAny = ::arg().mustDo("limit-qtype-any");
+    MemRecursorCache::s_maxRRSetSize = ::arg().asNum<uint16_t>("max-rrset-size");
+    MemRecursorCache::s_limitQTypeAny = ::arg().mustDo("limit-qtype-any");
 
-  if (SyncRes::s_tcp_fast_open_connect) {
-    checkFastOpenSysctl(true, log);
-    checkTFOconnect(log);
-  }
-  SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
-  SyncRes::s_ecsipv6limit = ::arg().asNum("ecs-ipv6-bits");
-  SyncRes::clearECSStats();
-  SyncRes::s_ecsipv4cachelimit = ::arg().asNum("ecs-ipv4-cache-bits");
-  SyncRes::s_ecsipv6cachelimit = ::arg().asNum("ecs-ipv6-cache-bits");
-  SyncRes::s_ecsipv4nevercache = ::arg().mustDo("ecs-ipv4-never-cache");
-  SyncRes::s_ecsipv6nevercache = ::arg().mustDo("ecs-ipv6-never-cache");
-  SyncRes::s_ecscachelimitttl = ::arg().asNum("ecs-cache-limit-ttl");
-
-  SyncRes::s_qnameminimization = ::arg().mustDo("qname-minimization");
-  SyncRes::s_minimize_one_label = ::arg().asNum("qname-minimize-one-label");
-  SyncRes::s_max_minimize_count = ::arg().asNum("qname-max-minimize-count");
-
-  SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
-  string value = ::arg()["nothing-below-nxdomain"];
-  if (value == "yes") {
-    SyncRes::s_hardenNXD = SyncRes::HardenNXD::Yes;
-  }
-  else if (value == "no") {
-    SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
-  }
-  else if (value != "dnssec") {
-    log->info(Logr::Error, "Unknown nothing-below-nxdomain mode", "mode", Logging::Loggable(value));
-    return 1;
-  }
-
-  if (!::arg().isEmpty("ecs-scope-zero-address")) {
-    ComboAddress scopeZero(::arg()["ecs-scope-zero-address"]);
-    SyncRes::setECSScopeZeroAddress(Netmask(scopeZero, scopeZero.isIPv4() ? 32 : 128));
-  }
-  else {
-    Netmask netmask;
-    bool done = false;
-
-    auto addr = pdns::getNonAnyQueryLocalAddress(AF_INET).d_address;
-    if (addr.sin4.sin_family != 0) {
-      netmask = Netmask(addr, 32);
-      done = true;
+    if (SyncRes::s_tcp_fast_open_connect) {
+      checkFastOpenSysctl(true, log);
+      checkTFOconnect(log);
     }
-    if (!done) {
-      addr = pdns::getNonAnyQueryLocalAddress(AF_INET6).d_address;
+    SyncRes::s_ecsipv4limit = ::arg().asNum<uint8_t>("ecs-ipv4-bits");
+    SyncRes::s_ecsipv6limit = ::arg().asNum<uint8_t>("ecs-ipv6-bits");
+    SyncRes::clearECSStats();
+    SyncRes::s_ecsipv4cachelimit = ::arg().asNum<uint8_t>("ecs-ipv4-cache-bits");
+    SyncRes::s_ecsipv6cachelimit = ::arg().asNum<uint8_t>("ecs-ipv6-cache-bits");
+    SyncRes::s_ecsipv4nevercache = ::arg().mustDo("ecs-ipv4-never-cache");
+    SyncRes::s_ecsipv6nevercache = ::arg().mustDo("ecs-ipv6-never-cache");
+    SyncRes::s_ecscachelimitttl = ::arg().asNum<unsigned int>("ecs-cache-limit-ttl");
+
+    SyncRes::s_qnameminimization = ::arg().mustDo("qname-minimization");
+    SyncRes::s_minimize_one_label = ::arg().asNum<unsigned int>("qname-minimize-one-label");
+    SyncRes::s_max_minimize_count = ::arg().asNum<unsigned int>("qname-max-minimize-count");
+
+    SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
+    string value = ::arg()["nothing-below-nxdomain"];
+    if (value == "yes") {
+      SyncRes::s_hardenNXD = SyncRes::HardenNXD::Yes;
+    }
+    else if (value == "no") {
+      SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
+    }
+    else if (value != "dnssec") {
+      log->info(Logr::Error, "Unknown nothing-below-nxdomain mode", "mode", Logging::Loggable(value));
+      return 1;
+    }
+
+    if (!::arg().isEmpty("ecs-scope-zero-address")) {
+      ComboAddress scopeZero(::arg()["ecs-scope-zero-address"]);
+      SyncRes::setECSScopeZeroAddress(Netmask(scopeZero, scopeZero.isIPv4() ? 32 : 128));
+    }
+    else {
+      Netmask netmask;
+      bool done = false;
+
+      auto addr = pdns::getNonAnyQueryLocalAddress(AF_INET).d_address;
       if (addr.sin4.sin_family != 0) {
-        netmask = Netmask(addr, 128);
+        netmask = Netmask(addr, 32);
         done = true;
       }
+      if (!done) {
+        addr = pdns::getNonAnyQueryLocalAddress(AF_INET6).d_address;
+        if (addr.sin4.sin_family != 0) {
+          netmask = Netmask(addr, 128);
+          done = true;
+        }
+      }
+      if (!done) {
+        netmask = Netmask(ComboAddress("127.0.0.1"), 32);
+      }
+      SyncRes::setECSScopeZeroAddress(netmask);
     }
-    if (!done) {
-      netmask = Netmask(ComboAddress("127.0.0.1"), 32);
-    }
-    SyncRes::setECSScopeZeroAddress(netmask);
-  }
 
-  SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-allow-list"]);
-  SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
-  g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
-  SyncRes::s_outAnyToTcp = ::arg().mustDo("out-any-to-tcp");
-  return 0;
+    SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-allow-list"]);
+    SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
+    g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
+    SyncRes::s_outAnyToTcp = ::arg().mustDo("out-any-to-tcp");
+    return 0;
+  }
+  catch (ArgException& A) {
+    log->error(Logr::Error, A.reason, "Fatal error");
+    return 1;
+  }
 }
 
 static unsigned int initDistribution(Logr::log_t log)
@@ -1976,23 +1976,13 @@ static int initForks(Logr::log_t log)
 
 static int initPorts(Logr::log_t log)
 {
-  int port = ::arg().asNum("udp-source-port-min");
-  if (port < 1024 || port > 65535) {
-    log->info(Logr::Error, "Unable to launch, udp-source-port-min is not a valid port number");
-    return 99; // this isn't going to fix itself either
-  }
-  g_minUdpSourcePort = port;
-  port = ::arg().asNum("udp-source-port-max");
-  if (port < 1024 || port > 65535 || port < g_minUdpSourcePort) {
-    log->info(Logr::Error, "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min");
-    return 99; // this isn't going to fix itself either
-  }
-  g_maxUdpSourcePort = port;
+  g_minUdpSourcePort = ::arg().asBoundedNum<uint16_t>("udp-source-port-min", 1024, 65535);
+  g_maxUdpSourcePort = ::arg().asBoundedNum<uint16_t>("udp-source-port-max", g_minUdpSourcePort, 65535);
   g_avoidUdpSourcePorts.resize(std::numeric_limits<uint16_t>::max() + 1);
   std::vector<string> parts{};
   stringtok(parts, ::arg()["udp-source-port-avoid"], ", ");
   for (const auto& part : parts) {
-    port = std::stoi(part);
+    auto port = std::stoi(part);
     if (port < 1024 || port > 65535) {
       log->info(Logr::Error, "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part));
       return 99; // this isn't going to fix itself either
@@ -2163,7 +2153,7 @@ static int serviceMain(Logr::log_t log)
   if (ret != 0) {
     return ret;
   }
-  g_maxCacheEntries = ::arg().asNum("max-cache-entries");
+  g_maxCacheEntries = ::arg().asNum<uint32_t>("max-cache-entries");
 
   auto luaResult = luaconfig(false);
   if (luaResult.d_ret != 0) {
@@ -2181,7 +2171,7 @@ static int serviceMain(Logr::log_t log)
     log->info(Logr::Notice, "PowerDNS Recursor itself will distribute queries over threads");
   }
 
-  g_outgoingEDNSBufsize = ::arg().asNum("edns-outgoing-bufsize");
+  g_outgoingEDNSBufsize = ::arg().asNum<uint16_t>("edns-outgoing-bufsize");
 
   if (::arg()["trace"] == "fail") {
     SyncRes::setDefaultLogMode(SyncRes::Store);
@@ -2211,27 +2201,27 @@ static int serviceMain(Logr::log_t log)
       }
     }
   }
-  g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+  g_proxyProtocolMaximumSize = ::arg().asNum<size_t>("proxy-protocol-maximum-size");
 
   ret = initDNS64(log);
   if (ret != 0) {
     return ret;
   }
-  g_networkTimeoutMsec = ::arg().asNum("network-timeout");
+  g_networkTimeoutMsec = ::arg().asNum<unsigned int>("network-timeout");
 
   { // Reduce scope of locks (otherwise Coverity induces from this line the global vars below should be
     // protected by a mutex)
     std::tie(*g_initialDomainMap.lock(), *g_initialAllowNotifyFor.lock()) = parseZoneConfiguration(g_yamlSettings);
   }
 
-  g_latencyStatSize = ::arg().asNum("latency-statistic-size");
+  g_latencyStatSize = ::arg().asNum<uint64_t>("latency-statistic-size");
 
   g_logCommonErrors = ::arg().mustDo("log-common-errors");
   g_logRPZChanges = ::arg().mustDo("log-rpz-changes");
 
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
   g_allowNoRD = ::arg().mustDo("allow-no-rd");
-  g_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
+  g_udpTruncationThreshold = ::arg().asNum<uint16_t>("udp-truncation-threshold");
 
   g_lowercaseOutgoing = ::arg().mustDo("lowercase-outgoing");
 
@@ -2246,30 +2236,30 @@ static int serviceMain(Logr::log_t log)
     log->info(Logr::Error, "Unknown edns-padding-mode", "edns-padding-mode", Logging::Loggable(::arg()["edns-padding-mode"]));
     return 1;
   }
-  g_paddingTag = ::arg().asNum("edns-padding-tag");
+  g_paddingTag = ::arg().asNum<unsigned int>("edns-padding-tag");
   g_paddingOutgoing = ::arg().mustDo("edns-padding-out");
   g_ECSHardening = ::arg().mustDo("edns-subnet-harden");
 
   // Ignong errors return value, as YAML parsing already checked the format of the entries.
   enableOutgoingCookies(::arg().mustDo("outgoing-cookies"), ::arg()["outgoing-cookies-unsupported"]);
 
-  RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
-  RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum("threads"));
-  RecThreadInfo::setNumTaskThreads(::arg().asNum("taskthreads"));
+  RecThreadInfo::setNumDistributorThreads(::arg().asNum<unsigned int>("distributor-threads"));
+  RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum<unsigned int>("threads"));
+  RecThreadInfo::setNumTaskThreads(::arg().asNum<unsigned int>("taskthreads"));
   if (RecThreadInfo::numUDPWorkers() < 1) {
     log->info(Logr::Warning, "Asked to run with 0 threads, raising to 1 instead");
     RecThreadInfo::setNumUDPWorkerThreads(1);
   }
-  RecThreadInfo::setNumTCPWorkerThreads(::arg().asNum("tcp-threads"));
+  RecThreadInfo::setNumTCPWorkerThreads(::arg().asNum<unsigned int>("tcp-threads"));
   if (RecThreadInfo::numTCPWorkers() < 1) {
     log->info(Logr::Warning, "Asked to run with 0 TCP threads, raising to 1 instead");
     RecThreadInfo::setNumTCPWorkerThreads(1);
   }
 
-  g_maxMThreads = ::arg().asNum("max-mthreads");
+  g_maxMThreads = ::arg().asNum<unsigned int>("max-mthreads");
 
-  int64_t maxInFlight = ::arg().asNum("max-concurrent-requests-per-tcp-connection");
-  if (maxInFlight < 1 || maxInFlight > USHRT_MAX || maxInFlight >= g_maxMThreads) {
+  auto maxInFlight = ::arg().asBoundedNum<uint32_t>("max-concurrent-requests-per-tcp-connection", 1, USHRT_MAX);
+  if (maxInFlight >= g_maxMThreads) {
     log->info(Logr::Warning, "Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)");
     TCPConnection::s_maxInFlight = 10;
   }
@@ -2277,29 +2267,29 @@ static int serviceMain(Logr::log_t log)
     TCPConnection::s_maxInFlight = maxInFlight;
   }
 
-  int64_t millis = ::arg().asNum("tcp-out-max-idle-ms");
+  auto millis = ::arg().asNum<time_t>("tcp-out-max-idle-ms");
   TCPOutConnectionManager::s_maxIdleTime = timeval{millis / 1000, (static_cast<suseconds_t>(millis) % 1000) * 1000};
-  TCPOutConnectionManager::s_maxIdlePerAuth = ::arg().asNum("tcp-out-max-idle-per-auth");
-  TCPOutConnectionManager::s_maxQueries = ::arg().asNum("tcp-out-max-queries");
-  TCPOutConnectionManager::s_maxIdlePerThread = ::arg().asNum("tcp-out-max-idle-per-thread");
+  TCPOutConnectionManager::s_maxIdlePerAuth = ::arg().asNum<size_t>("tcp-out-max-idle-per-auth");
+  TCPOutConnectionManager::s_maxQueries = ::arg().asNum<size_t>("tcp-out-max-queries");
+  TCPOutConnectionManager::s_maxIdlePerThread = ::arg().asNum<size_t>("tcp-out-max-idle-per-thread");
 
   g_gettagNeedsEDNSOptions = ::arg().mustDo("gettag-needs-edns-options");
 
-  s_statisticsInterval = ::arg().asNum("statistics-interval");
+  s_statisticsInterval = ::arg().asNum<time_t>("statistics-interval");
 
   SyncRes::s_addExtendedResolutionDNSErrors = ::arg().mustDo("extended-resolution-errors");
   SyncRes::s_ntaExtendedError = ::arg().mustDo("nta-extended-error");
 
-  if (::arg().asNum("aggressive-nsec-cache-size") > 0) {
+  if (::arg().asNum<uint64_t>("aggressive-nsec-cache-size") > 0) {
     if (g_dnssecmode == DNSSECMode::ValidateAll || g_dnssecmode == DNSSECMode::ValidateForLog || g_dnssecmode == DNSSECMode::Process) {
-      g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(::arg().asNum("aggressive-nsec-cache-size"));
+      g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(::arg().asNum<uint64_t>("aggressive-nsec-cache-size"));
     }
     else {
       log->info(Logr::Warning, "Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring");
     }
   }
 
-  AggressiveNSECCache::s_nsec3DenialProofMaxCost = ::arg().asNum("aggressive-cache-max-nsec3-hash-cost");
+  AggressiveNSECCache::s_nsec3DenialProofMaxCost = ::arg().asNum<uint64_t>("aggressive-cache-max-nsec3-hash-cost");
   AggressiveNSECCache::s_maxNSEC3CommonPrefix = static_cast<uint8_t>(std::round(std::log2(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio"))));
   log->info(Logr::Debug, "NSEC3 aggressive cache tuning", "aggressive-cache-min-nsec3-hit-ratio", Logging::Loggable(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio")), "maxCommonPrefixBits", Logging::Loggable(AggressiveNSECCache::s_maxNSEC3CommonPrefix));
 
@@ -2315,13 +2305,13 @@ static int serviceMain(Logr::log_t log)
   auto forks = initForks(log);
 
   g_tcpTimeout = ::arg().asNum("client-tcp-timeout");
-  g_maxTCPClients = ::arg().asNum("max-tcp-clients");
-  g_maxTCPPerClient = ::arg().asNum("max-tcp-per-client");
-  g_tcpMaxQueriesPerConn = ::arg().asNum("max-tcp-queries-per-connection");
-  g_maxUDPQueriesPerRound = ::arg().asNum("max-udp-queries-per-round");
+  g_maxTCPClients = ::arg().asNum<unsigned int>("max-tcp-clients");
+  g_maxTCPPerClient = ::arg().asNum<unsigned int>("max-tcp-per-client");
+  g_tcpMaxQueriesPerConn = ::arg().asNum<size_t>("max-tcp-queries-per-connection");
+  g_maxUDPQueriesPerRound = ::arg().asNum<size_t>("max-udp-queries-per-round");
 
   g_useKernelTimestamp = ::arg().mustDo("protobuf-use-kernel-timestamp");
-  g_maxChainLength = ::arg().asNum("max-chain-length");
+  g_maxChainLength = ::arg().asNum<unsigned int>("max-chain-length");
 
   checkOrFixFDS(listeningSockets, log);
   checkOrFixLinuxMapCountLimits(log);
@@ -2868,8 +2858,8 @@ static void recLoop()
   time_t last_stat = 0;
   time_t last_carbon = 0;
   time_t last_lua_maintenance = 0;
-  time_t carbonInterval = ::arg().asNum("carbon-interval");
-  time_t luaMaintenanceInterval = ::arg().asNum("lua-maintenance-interval");
+  auto carbonInterval = ::arg().asNum<time_t>("carbon-interval");
+  auto luaMaintenanceInterval = ::arg().asNum<time_t>("lua-maintenance-interval");
 
   auto& threadInfo = RecThreadInfo::self();
 
@@ -2998,10 +2988,10 @@ static void recursorThread()
       }
     }
 
-    if (unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numUDPWorkers(); ringsize != 0) {
+    if (auto ringsize = ::arg().asNum<unsigned int>("stats-ringbuffer-entries") / RecThreadInfo::numUDPWorkers(); ringsize != 0) {
       t_remotes = std::make_unique<addrringbuf_t>();
       if (RecThreadInfo::weDistributeQueries()) {
-        t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numDistributors());
+        t_remotes->set_capacity(ringsize / RecThreadInfo::numDistributors());
       }
       else {
         t_remotes->set_capacity(ringsize);
@@ -3022,7 +3012,7 @@ static void recursorThread()
       t_bogusqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
       t_bogusqueryring->set_capacity(ringsize);
     }
-    g_multiTasker = std::make_unique<MT_t>(::arg().asNum("stack-size"), ::arg().asNum("stack-cache-size"));
+    g_multiTasker = std::make_unique<MT_t>(::arg().asNum<size_t>("stack-size"), ::arg().asNum<size_t>("stack-cache-size"));
     threadInfo.setMT(g_multiTasker.get());
 
     {
@@ -3179,7 +3169,7 @@ static void handleRuntimeDefaults(Logr::log_t log)
 {
 #ifdef HAVE_FIBER_SANITIZER
   // Asan needs more stack
-  if (::arg().asNum("stack-size") == 200000) { // the default in table.py
+  if (::arg().asNum<size_t>("stack-size") == 200000) { // the default in table.py
     ::arg().set("stack-size", "stack size per mthread") = "600000";
   }
 #endif
@@ -3406,25 +3396,25 @@ int main(int argc, char** argv)
 
     handleRuntimeDefaults(startupLog);
 
-    if (auto ttl = ::arg().asNum("system-resolver-ttl"); ttl != 0) {
+    if (auto ttl = ::arg().asNum<uint32_t>("system-resolver-ttl"); ttl != 0) {
       time_t interval = ttl;
-      if (::arg().asNum("system-resolver-interval") != 0) {
-        interval = ::arg().asNum("system-resolver-interval");
+      if (::arg().asNum<time_t>("system-resolver-interval") != 0) {
+        interval = ::arg().asNum<time_t>("system-resolver-interval");
       }
       bool selfResolveCheck = ::arg().mustDo("system-resolver-self-resolve-check");
       // Cannot use SyncRes::s_serverID, it is not set yet
       pdns::RecResolve::setInstanceParameters(arg()["server-id"], ttl, interval, selfResolveCheck, []() { reloadZoneConfiguration(g_yamlSettings); });
     }
 
-    MemRecursorCache::s_maxEntrySize = ::arg().asNum("max-recordcache-entry-size");
+    MemRecursorCache::s_maxEntrySize = ::arg().asNum<uint32_t>("max-recordcache-entry-size");
     NegCache::s_maxEntrySize = MemRecursorCache::s_maxEntrySize;
     AggressiveNSECCache::s_maxEntrySize = MemRecursorCache::s_maxEntrySize;
-    RecursorPacketCache::s_maxEntrySize = ::arg().asNum("max-packetcache-entry-size");
-    g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
-    g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
+    RecursorPacketCache::s_maxEntrySize = ::arg().asNum<uint32_t>("max-packetcache-entry-size");
+    g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum<size_t>("record-cache-shards"));
+    g_negCache = std::make_unique<NegCache>(::arg().asNum<size_t>("record-cache-shards") / 8);
     if (!::arg().mustDo("disable-packetcache")) {
-      g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
-      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("packetcache-shards"));
+      g_maxPacketCacheEntries = ::arg().asNum<uint32_t>("max-packetcache-entries");
+      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum<size_t>("packetcache-shards"));
     }
 
     ret = serviceMain(startupLog);

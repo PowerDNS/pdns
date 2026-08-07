@@ -380,7 +380,7 @@ static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& su
 LWResult::Result arecvfrom(PacketBuffer& packet, const ComboAddress& fromAddr, size_t& len,
                            uint16_t qid, const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now)
 {
-  static const unsigned int nearMissLimit = ::arg().asNum("spoof-nearmiss-max");
+  static const auto nearMissLimit = ::arg().asNum<unsigned int>("spoof-nearmiss-max");
 
   auto pident = std::make_shared<PacketID>();
   pident->fd = fileDesc;
@@ -2031,7 +2031,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
   runTaskOnce(g_logCommonErrors);
 
-  static const size_t stackSizeThreshold = 9 * ::arg().asNum("stack-size") / 10;
+  static const auto stackSizeThreshold = 9 * ::arg().asNum<size_t>("stack-size") / 10;
   if (g_multiTasker->getMaxStackUsage() >= stackSizeThreshold) {
     resolver.d_slog->info(Logr::Error, "Reached mthread stack usage of 90%",
                           "stackUsage", Logging::Loggable(g_multiTasker->getMaxStackUsage()),
@@ -2780,7 +2780,7 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, 
     throw PDNSException("No local address specified");
   }
 
-  const uint16_t defaultLocalPort = ::arg().asNum("local-port");
+  const auto defaultLocalPort = ::arg().asNum<uint16_t>("local-port");
   const vector<string> defaultVector = {"127.0.0.1", "::1"};
   const auto configIsDefault = localAddresses == defaultVector;
 

@@ -237,7 +237,7 @@ bool Bind2Backend::getNSEC3PARAMuncached(const ZoneName& name, NSEC3PARAMRecordC
   else
     return false; // No NSEC3 zone
 
-  static int maxNSEC3Iterations = ::arg().asNum("max-nsec3-iterations");
+  static auto maxNSEC3Iterations = ::arg().asNum<uint16_t>("max-nsec3-iterations");
   if (ns3p) {
     auto tmp = std::dynamic_pointer_cast<NSEC3PARAMRecordContent>(DNSRecordContent::make(QType::NSEC3PARAM, 1, value));
     *ns3p = *tmp;

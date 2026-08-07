@@ -92,7 +92,6 @@ public:
   bool parseFile(const string& fname, const string& arg, bool lax); //<! parse one line
   bool parmIsset(const string& var); //!< Checks if a parameter is set to *a* value
   bool mustDo(const string& var); //!< if a switch is given, if we must do something (--help)
-  int asNum(const string& arg, int def = 0); //!< return a variable value as a number or the default if the variable is empty
   mode_t asMode(const string& arg); //!< return value interpreted as octal number
   uid_t asUid(const string& arg); //!< return user id, resolves if necessary
   gid_t asGid(const string& arg); //!< return group id, resolves if necessary
@@ -107,6 +106,41 @@ public:
   bool isEmpty(const string& arg); //!< checks if variable has value
   void setDefault(const string& var, const string& value);
   void setDefaults();
+
+  template <typename T>
+  T asBoundedNum(const string& arg, T minval, T maxval, T def = 0)
+  {
+    if (!parmIsset(arg)) {
+      throw ArgException(string("Undefined but needed argument: '") + arg + "'");
+    }
+
+    // use default for empty values
+    const std::string& param = d_params[arg];
+    if (param.empty()) {
+      return def;
+    }
+
+    try {
+      size_t unused{0};
+      T retval = pdns::checked_stoi<T>(param, &unused, 0);
+      if (retval < minval || retval > maxval) {
+        throw std::out_of_range("oh no!");
+      }
+      return retval;
+    }
+    catch (std::invalid_argument&) {
+      throw ArgException("'" + arg + "' value '" + param + string("' is not a valid number"));
+    }
+    catch (std::out_of_range&) {
+      throw ArgException("'" + arg + "' value '" + param + string("' value is out of [" + std::to_string(minval) + ".." + std::to_string(maxval) + "] range"));
+    }
+  }
+
+  template <typename T = int>
+  T asNum(const string& arg, T def = 0)
+  {
+    return asBoundedNum<T>(arg, std::numeric_limits<T>::min(), std::numeric_limits<T>::max(), def);
+  }
 
   vector<string> list();
   [[nodiscard]] string getHelp(const string& item) const
