@@ -235,9 +235,6 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     return;
   }
 
-  DNSZoneRecord rr;
-  vector<DNSZoneRecord>::iterator pos;
-
   // we now need to order rrs so that the different sections come at the right place
   // we want a stable sort, based on the d_place field
 
@@ -314,11 +311,12 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection || d_haveednscookie) {
     try {
       uint8_t maxScopeMask=0;
-      for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
-        maxScopeMask = max(maxScopeMask, pos->scopeMask);
+      bool doCommit{true};
+      for(const auto& dzr : d_rrs) {
+        maxScopeMask = max(maxScopeMask, dzr.scopeMask);
 
-        pw.startRecord(pos->dr.d_name, pos->dr.d_type, pos->dr.d_ttl, pos->dr.d_class, pos->dr.d_place);
-        pos->dr.getContent()->toPacket(pw);
+        pw.startRecord(dzr.dr.d_name, dzr.dr.d_type, dzr.dr.d_ttl, dzr.dr.d_class, dzr.dr.d_place);
+        dzr.dr.getContent()->toPacket(pw);
         if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
           if (throwsOnTruncation) {
             throw PDNSException("attempt to write an oversized chunk, see https://docs.powerdns.com/authoritative/settings.html#workaround-11804");
@@ -326,15 +324,17 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
           pw.rollback();
           pw.truncate();
           pw.getHeader()->tc=1;
-          goto noCommit;
+          doCommit = false;
+          break;
         }
       }
 
-      // if(!pw.getHeader()->tc) // protect against double commit from addSignature
-
-      if(!d_rrs.empty()) pw.commit();
-
-      noCommit:;
+      if (doCommit) {
+        // if(!pw.getHeader()->tc) // protect against double commit from addSignature
+        if(!d_rrs.empty()) {
+          pw.commit();
+        }
+      }
 
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
