@@ -2057,6 +2057,20 @@ void registerGenericCacheObjects([[maybe_unused]] const GenericCachesConfigurati
       });
     }
   }
+
+  for (const auto& bloomFilter : config.bloom) {
+    auto filter = createObjects ? std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>(new BloomFilter({.d_fpRate = bloomFilter.fp_rate, .d_numCells = bloomFilter.max_entries, .d_numDec = bloomFilter.num_dec})) : std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>();
+    dnsdist::configuration::yaml::registerType<GenericCacheInterface<std::string, std::optional<LuaAny>>>(filter, bloomFilter.name);
+    if (createObjects) {
+      auto name = std::string(bloomFilter.name);
+      dnsdist::configuration::updateRuntimeConfiguration([name, &filter](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+        if (runtimeConfig.d_caches.count(name) > 0) {
+          throw std::runtime_error("Duplicate cache name: " + name);
+        }
+        runtimeConfig.d_caches.emplace(name, filter);
+      });
+    }
+  }
 }
 
 void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& config)

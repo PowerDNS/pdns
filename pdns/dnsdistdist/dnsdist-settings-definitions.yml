@@ -2160,6 +2160,10 @@ generic_caches:
       type: "Vec<GenericObjectCacheConfiguration>"
       default: true
       description: "List of generic object caches"
+    - name: "bloom"
+      type: "Vec<GenericBloomFilterConfiguration>"
+      default: true
+      description: "List of generic bloom filters"
 
 generic_object_cache:
   description: "Generic object cache"
@@ -2190,6 +2194,24 @@ generic_object_cache:
       type: "u32"
       description: "The TTL value to assign to new objects in the cache"
       default: "0"
+
+generic_bloom_filter:
+  description: "Generic bloom filter"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "The name of this filter"
+    - name: "max_entries"
+      type: "u32"
+      default: "67108864"
+      description: "Maximum number of entries this bloom filter can hold"
+    - name: "fp_rate"
+      type: "f64"
+      description: "Target false positive rate for this bloom filter"
+    - name: "num_dec"
+      type: "u32"
+      default: "10"
+      description: "Number of cells to decrement before inserting new keys"
 
 netmask_group:
   description: "Group of netmasks"

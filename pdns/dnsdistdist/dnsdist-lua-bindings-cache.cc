@@ -53,6 +53,25 @@ void setupLuaBindingsCache(LuaContext& luaCtx)
     return cache;
   });
 
+  luaCtx.writeFunction("newBloomFilter", [](const std::string& name, std::optional<LuaAssociativeTable<boost::variant<std::string, float>>> vars) {
+    unsigned int maxEntries{67108864};
+    float fpRate{0.01};
+    unsigned int numDec{10};
+    getOptionalIntegerValue<unsigned int>("newBloomFilter", vars, "maxEntries", maxEntries);
+    getOptionalIntegerValue<unsigned int>("newBloomFilter", vars, "numDec", numDec);
+    getOptionalValue<float>(vars, "fpRate", fpRate);
+
+    auto filter = std::shared_ptr<cache_t>(new BloomFilter({.d_fpRate = fpRate, .d_numCells = maxEntries, .d_numDec = numDec}));
+
+    dnsdist::configuration::updateRuntimeConfiguration([name, &filter](dnsdist::configuration::RuntimeConfiguration& config) {
+      if (config.d_caches.count(name) > 0) {
+        throw std::runtime_error("Duplicate cache name: " + name);
+      }
+      config.d_caches.emplace(name, filter);
+    });
+    return filter;
+  });
+
   luaCtx.registerFunction<std::optional<LuaAny> (std::shared_ptr<cache_t>::*)(const std::string&)>("get", [](std::shared_ptr<cache_t>& cache, const std::string& key) {
     std::optional<LuaAny> result{std::nullopt};
     if (!cache) {

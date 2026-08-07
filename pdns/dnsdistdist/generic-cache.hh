@@ -37,8 +37,10 @@
 #include <vector>
 
 #include "cachecleaner.hh"
+#include "dnsdist-lua-types.hh"
 #include "generic-cache-interface.hh"
 #include "lock.hh"
+#include "stable-bloom.hh"
 
 using namespace ::boost::multi_index;
 
@@ -612,4 +614,101 @@ private:
   CacheSettings d_settings;
   std::vector<CacheShard> d_shards;
   typename GenericCacheInterface<K, V>::Stats d_stats{"filter=\"none\""};
+};
+
+class BloomFilter : public GenericCacheInterface<std::string, std::optional<LuaAny>>
+{
+public:
+  struct BloomSettings
+  {
+    float d_fpRate{0.01};
+    size_t d_numCells{67108864};
+    size_t d_numDec{10};
+  };
+
+  BloomFilter(BloomSettings settings) :
+    d_settings(settings), d_sbf(bf::stableBF(settings.d_fpRate, settings.d_numCells, settings.d_numDec))
+  {
+    d_stats.d_memoryUsed += sizeof(*this);
+  }
+  BloomFilter(const BloomFilter&) = delete;
+  BloomFilter(BloomFilter&&) = delete;
+  BloomFilter& operator=(const BloomFilter&) = delete;
+  BloomFilter& operator=(BloomFilter&&) = delete;
+
+  ~BloomFilter() override = default;
+
+  void insertKey(const std::string& key) override
+  {
+    d_sbf.lock()->add(key);
+    d_stats.d_entriesCount += 1;
+  }
+
+  void insert(
+    const std::string& key, [[maybe_unused]] std::optional<LuaAny> value, [[maybe_unused]] const std::function<bool(const std::optional<LuaAny>&)>& replaceCondition = []([[maybe_unused]] const std::optional<LuaAny>& value) { return true; }) override
+  {
+    insertKey(key);
+  }
+
+  bool contains(const std::string& key, bool recordMiss = true) override
+  {
+    auto result = d_sbf.lock()->test(key);
+    if (result) {
+      d_stats.d_hits += 1;
+    }
+    else if (recordMiss) {
+      d_stats.d_misses += 1;
+    }
+    return result;
+  }
+
+  bool getValue(const std::string& key, [[maybe_unused]] std::optional<LuaAny>& value, bool recordMiss = true, [[maybe_unused]] uint32_t allowExpired = 0) override
+  {
+    return contains(key, recordMiss);
+  }
+
+  bool hasCapacityFor([[maybe_unused]] const std::string& key) override
+  {
+    // Bloom always "has" capacity, it will just probably produce false positives
+    return true;
+  }
+
+  bool remove([[maybe_unused]] const std::string& key) override
+  {
+    // Unsupported
+    return false;
+  }
+
+  size_t purgeExpired([[maybe_unused]] size_t upTo, [[maybe_unused]] time_t now) override
+  {
+    // Unsupported
+    return 0;
+  }
+
+  size_t expunge([[maybe_unused]] size_t upTo = 0) override
+  {
+    // Unsupported
+    return 0;
+  }
+
+  size_t expungeByCondition([[maybe_unused]] const std::function<bool(const std::optional<LuaAny>&)>& condition, [[maybe_unused]] size_t upTo = 0) override
+  {
+    // Unsupported
+    return 0;
+  }
+
+  [[nodiscard]] uint64_t getSize() const override
+  {
+    return d_stats.d_entriesCount;
+  }
+
+  [[nodiscard]] const GenericFilterInterface<std::string>::Stats& getStats() const override
+  {
+    return d_stats;
+  }
+
+private:
+  BloomSettings d_settings;
+  LockGuarded<bf::stableBF> d_sbf;
+  GenericFilterInterface<std::string>::Stats d_stats{"filter=\"bloom\""};
 };

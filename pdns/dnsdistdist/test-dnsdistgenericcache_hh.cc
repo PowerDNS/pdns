@@ -355,4 +355,108 @@ BOOST_AUTO_TEST_CASE(test_GenericCacheExceptions)
   BOOST_CHECK_THROW(custom_ttl_cache_t({.d_ttlEnabled = true, .d_maxEntries = 1}), std::runtime_error);
 }
 
+static void test_bloomfilter_insertion(BloomFilter& filter)
+{
+  size_t counter = 0;
+  for (counter = 0; counter < 100000; ++counter) {
+    std::string key = std::to_string(counter);
+    bool found = filter.contains(key);
+    BOOST_CHECK_EQUAL(found, false);
+
+    filter.insertKey(key);
+
+    found = filter.contains(key);
+    BOOST_CHECK_EQUAL(found, true);
+  }
+
+  BOOST_CHECK_EQUAL(filter.getSize(), counter);
+}
+
+static void test_bloomfilter_insertion_with_unused_value(BloomFilter& filter)
+{
+  size_t counter = 0;
+  for (counter = 0; counter < 100000; ++counter) {
+    std::string key = std::to_string(counter);
+    bool found = filter.contains(key);
+    BOOST_CHECK_EQUAL(found, false);
+
+    std::optional<LuaAny> value{"test-value"};
+    filter.insert(key, value);
+
+    std::optional<LuaAny> readValue;
+    found = filter.getValue(key, readValue);
+    BOOST_CHECK_EQUAL(found, true);
+    BOOST_CHECK(!readValue.has_value());
+  }
+
+  BOOST_CHECK_EQUAL(filter.getSize(), counter);
+}
+
+BOOST_AUTO_TEST_CASE(test_BloomFilterSimple)
+{
+  BloomFilter cache({});
+  BOOST_CHECK_EQUAL(cache.getSize(), 0U);
+
+  test_bloomfilter_insertion(cache);
+}
+
+BOOST_AUTO_TEST_CASE(test_BloomFilterSimpleAsCache)
+{
+  BloomFilter cache({});
+  BOOST_CHECK_EQUAL(cache.getSize(), 0U);
+
+  test_bloomfilter_insertion_with_unused_value(cache);
+}
+
+static BloomFilter s_bloom({});
+
+static void bloomThreadMangler(unsigned int offset)
+{
+  for (unsigned int counter = 0; counter < 100000; ++counter) {
+    std::string key = std::to_string(counter + offset);
+    s_bloom.insertKey(key);
+  }
+}
+
+static std::atomic<uint64_t> s_bloomMissing{0};
+
+static void bloomThreadReader(unsigned int offset)
+{
+  ComboAddress remote;
+  for (unsigned int counter = 0; counter < 100000; ++counter) {
+    std::string key = std::to_string(counter + offset);
+    bool found = s_bloom.contains(key);
+    if (!found) {
+      s_missing++;
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_BloomFilterThreaded)
+{
+  std::vector<std::thread> threads;
+  threads.reserve(4);
+  for (int i = 0; i < 4; ++i) {
+    threads.emplace_back(bloomThreadMangler, i * 1000000UL);
+  }
+
+  for (auto& thr : threads) {
+    thr.join();
+  }
+
+  threads.clear();
+
+  BOOST_CHECK_EQUAL(s_bloom.getSize(), 400000U);
+
+  for (int i = 0; i < 4; ++i) {
+    threads.emplace_back(bloomThreadReader, i * 1000000UL);
+  }
+
+  for (auto& thr : threads) {
+    thr.join();
+  }
+
+  BOOST_CHECK_EQUAL(s_bloomMissing.load(), 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

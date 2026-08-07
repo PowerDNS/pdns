@@ -2571,6 +2571,20 @@ GenericCache
   * ``shardCount``: int - Number of shards to divide the cache in. This is useful if the cache is used from multiple threads.
   * ``maxEntries``: int - Maximum number of entries to hold in the cache. If this number is reached and no items can be removed, insertion will fail.
 
+.. function:: newBloomFilter(name[, options])
+
+  Creates a new generic bloom filter. This has the same interface as object cache, but it can't store or remove values and it can only be used to check whether a key is contained (which possible false positives).
+
+  :param str name: Unique name for the filter instance.
+  :param table options: A table with key: value pairs with options.
+  :returns: The :class:`GenericCache` object.
+
+  Options:
+
+  * ``maxEntries``: int - Maximum number of entries to hold in the filter.
+  * ``fpRate``: int - Target false positive rate for this bloom filter.
+  * ``numDec``: int - Number of cells to decrement before inserting new keys.
+
 
 LuaRingEntry
 ~~~~~~~~~~~~

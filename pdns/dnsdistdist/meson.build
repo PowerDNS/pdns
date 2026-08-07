@@ -102,6 +102,7 @@ subdir('ext' / 'ipcrypt')
 subdir('ext' / 'ipcrypt2')
 subdir('ext' / 'json11')
 subdir('ext' / 'luawrapper')
+subdir('ext' / 'probds')
 subdir('ext' / 'protozero')
 subdir('ext' / 'yahttp')
 
@@ -419,6 +420,7 @@ deps = [
   dep_lua,
   dep_mmdb,
   dep_protozero,
+  dep_probds,
   dep_yahttp,
   dep_libre2,
   dep_threads,
