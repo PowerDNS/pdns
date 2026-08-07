@@ -109,10 +109,19 @@ public:
     declare(suffix, "any-query", "Any query", record_query + " disabled=false and name=$1");
     declare(suffix, "any-id-query", "Any with ID query", record_query + " disabled=false and name=$1 and domain_id=$2");
 
-    declare(suffix, "api-id-query", "API basic with ID query", record_query + " (disabled=false or $1) and type=$2 and name=$3 and domain_id=$4");
-    declare(suffix, "api-any-id-query", "API any with ID query", record_query + " (disabled=false or $1) and name=$2 and domain_id=$3");
+    string api_id_query = record_query + " (disabled=false or $1) and type=$2 and name=$3 and domain_id=$4";
+    declare(suffix, "api-id-query", "API basic with ID query", api_id_query);
+    string partial_query_suffix4 = " order by name,type,content limit $5 offset $6";
+    declare(suffix, "api-id-partial-query", "API basic with ID query (partial results)", api_id_query + partial_query_suffix4);
+    string api_any_id_query = record_query + " (disabled=false or $1) and name=$2 and domain_id=$3";
+    declare(suffix, "api-any-id-query", "API any with ID query", api_any_id_query);
+    string partial_query_suffix3 = " order by name,type,content limit $4 offset $5";
+    declare(suffix, "api-any-id-partial-query", "API any with ID query (partial results)", api_any_id_query + partial_query_suffix3);
 
-    declare(suffix, "list-query", "AXFR query", "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int,ordername FROM records WHERE (disabled=false OR $1) and domain_id=$2 order by name, type");
+    string list_query = "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int,ordername FROM records WHERE (disabled=false OR $1) and domain_id=$2";
+    declare(suffix, "list-query", "AXFR query", list_query + " order by name,type");
+    string partial_query_suffix2 = " order by name,type,content limit $3 offset $4";
+    declare(suffix, "list-partial-query", "AXFR query (partial results)", list_query + partial_query_suffix2);
     declare(suffix, "list-subzone-query", "Subzone listing", record_query + " disabled=false and (name=$1 OR name like $2) and domain_id=$3");
 
     declare(suffix, "remove-empty-non-terminals-from-zone-query", "remove all empty non-terminals from zone", "delete from records where domain_id=$1 and type is null");

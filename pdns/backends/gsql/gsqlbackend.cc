@@ -64,9 +64,12 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ANYIdQuery=getArg("any-id-query");
 
   d_APIIdQuery=getArg("api-id-query");
+  d_APIIdPartialQuery=getArg("api-id-partial-query");
   d_APIANYIdQuery=getArg("api-any-id-query");
+  d_APIANYIdPartialQuery=getArg("api-any-id-partial-query");
 
   d_listQuery=getArg("list-query");
+  d_listPartialQuery=getArg("list-partial-query");
   d_listSubZoneQuery=getArg("list-subzone-query");
 
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
@@ -144,8 +147,11 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ANYNoIdQuery_stmt = nullptr;
   d_ANYIdQuery_stmt = nullptr;
   d_APIIdQuery_stmt = nullptr;
+  d_APIIdPartialQuery_stmt = nullptr;
   d_APIANYIdQuery_stmt = nullptr;
+  d_APIANYIdPartialQuery_stmt = nullptr;
   d_listQuery_stmt = nullptr;
+  d_listPartialQuery_stmt = nullptr;
   d_listSubZoneQuery_stmt = nullptr;
   d_InfoOfDomainsZoneQuery_stmt = nullptr;
   d_InfoOfAllSecondaryDomainsQuery_stmt = nullptr;
@@ -216,8 +222,11 @@ void GSQLBackend::allocateStatements()
     d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 1);
     d_ANYIdQuery_stmt = d_db->prepare(d_ANYIdQuery, 2);
     d_APIIdQuery_stmt = d_db->prepare(d_APIIdQuery, 4);
+    d_APIIdPartialQuery_stmt = d_db->prepare(d_APIIdPartialQuery, 6);
     d_APIANYIdQuery_stmt = d_db->prepare(d_APIANYIdQuery, 3);
+    d_APIANYIdPartialQuery_stmt = d_db->prepare(d_APIANYIdPartialQuery, 5);
     d_listQuery_stmt = d_db->prepare(d_listQuery, 2);
+    d_listPartialQuery_stmt = d_db->prepare(d_listPartialQuery, 4);
     d_listSubZoneQuery_stmt = d_db->prepare(d_listSubZoneQuery, 3);
     d_PrimaryOfDomainsZoneQuery_stmt = d_db->prepare(d_PrimaryOfDomainsZoneQuery, 1);
     d_InfoOfDomainsZoneQuery_stmt = d_db->prepare(d_InfoOfDomainsZoneQuery, 1);
@@ -289,8 +298,11 @@ void GSQLBackend::freeStatements()
   d_ANYNoIdQuery_stmt.reset();
   d_ANYIdQuery_stmt.reset();
   d_APIIdQuery_stmt.reset();
+  d_APIIdPartialQuery_stmt.reset();
   d_APIANYIdQuery_stmt.reset();
+  d_APIANYIdPartialQuery_stmt.reset();
   d_listQuery_stmt.reset();
+  d_listPartialQuery_stmt.reset();
   d_listSubZoneQuery_stmt.reset();
   d_PrimaryOfDomainsZoneQuery_stmt.reset();
   d_InfoOfDomainsZoneQuery_stmt.reset();
@@ -1701,6 +1713,50 @@ void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, domainid_t
   d_qname=qname;
 }
 
+// Same as above, but for a subset of the results
+bool GSQLBackend::partialLookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, size_t offset, size_t limit, bool include_disabled)
+{
+  try {
+    reconnectIfNeeded();
+
+    if(qtype.getCode()!=QType::ANY) {
+      d_query_name = "api-id-partial-query";
+      d_query_stmt = &d_APIIdPartialQuery_stmt;
+      // clang-format off
+      (*d_query_stmt)->
+        bind("include_disabled", (int)include_disabled)->
+        bind("qtype", qtype.toString())->
+        bind("qname", qname)->
+        bind("domain_id", domain_id)->
+        bind("limit", limit)->
+        bind("offset", offset);
+      // clang-format on
+    } else {
+      // qtype==ANY
+      d_query_name = "api-any-id-partial-query";
+      d_query_stmt = &d_APIANYIdPartialQuery_stmt;
+      // clang-format off
+      (*d_query_stmt)->
+        bind("include_disabled", (int)include_disabled)->
+        bind("qname", qname)->
+        bind("domain_id", domain_id)->
+        bind("limit", limit)->
+        bind("offset", offset);
+      // clang-format on
+    }
+
+    (*d_query_stmt)->
+      execute();
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to APILookup '" + qname.toLogString() + "(" + std::to_string(domain_id) + ")|" + qtype.toString() + "':"+e.txtReason());
+  }
+
+  d_currentQueryType = OTHER;
+  d_qname=qname;
+  return true;
+}
+
 bool GSQLBackend::list(const ZoneName &target, domainid_t domain_id, bool include_disabled)
 {
   DLOG(SLOG(g_log<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl,
@@ -1715,6 +1771,36 @@ bool GSQLBackend::list(const ZoneName &target, domainid_t domain_id, bool includ
     (*d_query_stmt)->
       bind("include_disabled", (int)include_disabled)->
       bind("domain_id", domain_id)->
+      execute();
+    // clang-format on
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to list domain '" + target.toLogString() + "': "+e.txtReason());
+  }
+
+  d_currentQueryType = LIST;
+  d_qname.clear();
+
+  return true;
+}
+
+// Same as above, but for a subset of the results
+bool GSQLBackend::partialList(const ZoneName &target, domainid_t domain_id, size_t offset, size_t limit, bool include_disabled)
+{
+  DLOG(SLOG(g_log<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl,
+            d_slog->info(Logr::Debug, "preparing a list query", "domain id", Logging::Loggable(domain_id))));
+
+  try {
+    reconnectIfNeeded();
+
+    d_query_name = "list-partial-query";
+    d_query_stmt = &d_listPartialQuery_stmt;
+    // clang-format off
+    (*d_query_stmt)->
+      bind("include_disabled", (int)include_disabled)->
+      bind("domain_id", domain_id)->
+      bind("limit", limit)->
+      bind("offset", offset)->
       execute();
     // clang-format on
   }

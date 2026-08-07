@@ -173,6 +173,10 @@ public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
   virtual void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p = nullptr) = 0;
   virtual void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, bool include_disabled = false);
+  virtual bool partialLookup(const QType& /*qtype*/, const DNSName& /*qdomain*/, domainid_t /*zoneId*/, size_t /*offset*/, size_t /*limit*/, bool /*include_disabled*/)
+  {
+    return false;
+  }
   virtual bool get(DNSResourceRecord&) = 0; //!< retrieves one DNSResource record, returns false if no more were available
   virtual bool get(DNSZoneRecord& zoneRecord);
   //! Close state created by lookup(...).
@@ -184,6 +188,10 @@ public:
       \param domain_id ID of which a list is requested
   */
   virtual bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) = 0;
+  virtual bool partialList(const ZoneName& /*target*/, domainid_t /*domain_id*/, size_t /*offset*/, size_t /*limit*/, bool /*include_disabled*/)
+  {
+    return false;
+  }
 
   virtual ~DNSBackend() = default;
 
