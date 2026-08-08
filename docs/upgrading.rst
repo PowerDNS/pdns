@@ -16,6 +16,29 @@ NAPTR additional answers
 
 Since version 5.0, the information of the `a` and `s` NAPTR records are added to the additional answers section. This behaviour can be disabled by setting :ref:`setting-naptr-additional-processing` to `no`.
 
+Views support for the PostgreSQL backend
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:doc:`Views <views>` support, previously only available for the
+:doc:`LMDB <backends/lmdb>` backend, is now also available for the
+:doc:`PostgreSQL <backends/generic-postgresql>` backend. Existing
+installations that wish to use this feature need to apply the schema
+addition in ``4.7.0_to_5.2.0_schema.pgsql.sql``, which adds the new
+``networks`` and ``views`` tables; installations which do not use views do
+not need to apply it. The backend detects the presence of these tables
+automatically (once, at server startup) and only advertises Views support
+when they exist. The MySQL and SQLite3 backends do not support Views yet.
+
+The default ``info-all-secondaries-query``, ``info-all-primary-query``,
+``info-producer-members-query`` and ``get-all-domains-query`` queries no
+longer join records and domains on the record name (which never matches for
+variant zones). Instead, they return the SOA record owner name as a new,
+trailing column, and the backend code ignores rows whose SOA record is not
+at the zone apex (which can happen in zones broken by bugs or human error).
+Installations using custom versions of these queries can keep them
+unchanged: when the trailing column is absent, the apex check is simply
+skipped, matching the old behaviour.
+
 5.0.x to 5.1.x
 --------------
 
