@@ -15,7 +15,7 @@ future>=0.17.1
 pycurl>=7.43.0
 lmdb>=0.95
 cdbx==0.1.2
-h2>=4.0.0
+h2>=4.4.1
 aioquic
 async_timeout
 opentelemetry-proto>=1.7,<2
