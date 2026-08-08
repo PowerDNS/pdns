@@ -39,6 +39,8 @@ static inline string MDBError(int ret)
   return mdb_strerror(ret);
 }
 
+void MDBOpenFailure(const std::string& filename, int ret);
+
 /* open issues:
  *
  * - Missing convenience functions (string_view, string).

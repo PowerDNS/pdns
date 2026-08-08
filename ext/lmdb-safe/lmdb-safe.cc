@@ -17,6 +17,19 @@ using std::runtime_error;
 using std::tuple;
 using std::weak_ptr;
 
+void MDBOpenFailure(const std::string& filename, int ret)
+{
+  // Theoretically, trying to open a database created with a different and
+  // incompatible LMDB version would return MDB_VERSION_MISMATCH.
+  // But 1.0, when attempting to open a 0.9 database, won't, and figuring out
+  // that this is a version mismatch can be painful to figure out, so give
+  // the user some hints.
+  if (ret == MDB_INVALID) {
+    throw std::runtime_error("Unable to open database file " + filename + ": either not a valid LMDB database, or not in a format compatible with LMDB library version " + std::to_string(MDB_VERSION_MAJOR) + "." + std::to_string(MDB_VERSION_MINOR) + " used in this program.");
+  }
+  throw std::runtime_error("Unable to open database file " + filename + ": " + MDBError(ret));
+}
+
 #ifndef DNSDIST
 
 namespace LMDBLS {
@@ -123,7 +136,7 @@ Various other options may also need to be set before opening the handle, e.g. md
   if(int rc=mdb_env_open(d_env, fname, flags | MDB_NOTLS, mode)) {
     // If this function fails, mdb_env_close() must be called to discard the MDB_env handle.
     mdb_env_close(d_env);
-    throw std::runtime_error("Unable to open database file "+std::string(fname)+": " + MDBError(rc));
+    MDBOpenFailure(std::string(fname), rc); // throws
   }
 
   if ((flags & MDB_RDONLY) == 0) {

@@ -8,11 +8,21 @@ rootPath=$(readlink -f $(dirname $0))
 
 DIRECTORIES=$rootPath/../../modules/lmdbbackend/test-assets/*
 
-for testFiles in $DIRECTORIES
+for dir in $DIRECTORIES
 do
   workdir=$(mktemp -d)
 
-  cp -r $testFiles/* $workdir
+  # Dumps in each directory have been generated with:
+  #   for f in pdns.lmdb{,-0,-1}; do mdb_dump -n -a $f > $f.dump; done
+  # Do not use the -p option of mdb_dump! mdb_load will choke if it is used.
+  for dump in ${dir}/pdns.lmdb*.dump
+  do
+    for db in $(grep ^database ${dump}|cut -d= -f2); do
+      # Output redirected to /dev/null to avoid getting loads of
+      # mdb_load: line nnn: unrecognized keyword ignored: db_pagesize
+      mdb_load -f ${dump} -n -s ${db} ${workdir}/$(basename ${dump} .dump) 2>/dev/null
+    done
+  done
 
   cat << EOF > "${workdir}/pdns-lmdb.conf"
   module-dir=../regression-tests/modules
