@@ -54,6 +54,27 @@ $tree->insert_network(
 );
 
 $tree->insert_network(
+    '192.0.2.0/24',
+    {
+      'location' => { "latitude" => 0.0, "longitude" => -179.0, accuracy_radius => 1 },
+    }
+);
+
+$tree->insert_network(
+    '198.51.100.0/24',
+    {
+      'location' => { "latitude" => 0.0, "longitude" => 179.0, accuracy_radius => 1 },
+    }
+);
+
+$tree->insert_network(
+    '203.0.113.0/24',
+    {
+      'location' => { "latitude" => 0.0, "longitude" => -160.0, accuracy_radius => 1 },
+    }
+);
+
+$tree->insert_network(
     '127.0.0.1/32',
     {
       'country' => { "geoname_id" => 1, "iso_code" => "O1", "names" => { "en" => "O 1" } },
