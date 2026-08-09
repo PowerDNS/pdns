@@ -13,6 +13,9 @@ Description
 on port 53, for *DOMAIN* and prints the remote nameserver's response. If *HOSTNAME* resolves
 to multiple IP addresses, each one is notified.
 
+On Debian and Ubuntu packages, this tool is shipped in the ``pdns-tools`` package
+(not in ``pdns-server``).
+
 Options
 -------
 
