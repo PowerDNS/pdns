@@ -17,7 +17,7 @@ The following webserver related configuration items are available:
 
 * :ref:`setting-webserver`: If set to anything but 'no', a webserver is launched.
 * :ref:`setting-webserver-address`: IP address (or UNIX domain socket path, from version 5.0.0 onward) to bind the webserver to. Defaults to 127.0.0.1, which implies that only the local computer is able to connect to the nameserver! To allow remote hosts to connect, change to 0.0.0.0 or the physical IP address of your nameserver.
-* :ref:`setting-webserver-password`: If set, viewers will have to enter this password in order to gain access to the statistics, in addition to entering the configured API key on the index page.
+* :ref:`setting-webserver-password`: If set, viewers will have to enter this password in order to gain access to the statistics, in addition to entering the configured API key on the index page. HTTP Basic authentication only validates the password; the username field is ignored.
 * :ref:`setting-webserver-port`: Port to bind the webserver to (not relevant if :ref:`setting-webserver-address` is set to a UNIX domain socket).
 * :ref:`setting-webserver-allow-from`: Netmasks that are allowed to connect to the webserver (not relevant if :ref:`setting-webserver-address` is set to a UNIX domain socket).
 * :ref:`setting-webserver-max-bodysize`: Maximum request/response body size in megabytes

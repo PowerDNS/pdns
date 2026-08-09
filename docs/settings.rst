@@ -2299,6 +2299,9 @@ Maximum number of allowed concurrent connections to the web server.
 
 Password required to access the webserver. Since 4.6.0 the password can be hashed and salted using ``pdnsutil hash-password`` instead of being present in the configuration in plaintext, but the plaintext version is still supported.
 
+When clients use HTTP Basic authentication, only the password is checked;
+the username is ignored (any username may be supplied).
+
 .. _setting-webserver-port:
 
 ``webserver-port``
