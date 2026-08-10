@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <condition_variable>
 #include <future>
 #include <random>
@@ -648,7 +649,7 @@ static ComboAddress pickclosest(Logr::log_t slog, const ComboAddress& bestwho, c
     getLatLon(slog, c.toString(), lat, lon);
     //          cout<<c.toString()<<": "<<lat<<", "<<lon<<endl;
     double latdiff = wlat-lat;
-    double londiff = wlon-lon;
+    double londiff = std::abs(wlon-lon);
     if(londiff > 180)
       londiff = 360 - londiff;
     double dist2=latdiff*latdiff + londiff*londiff;

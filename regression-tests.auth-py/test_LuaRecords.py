@@ -97,6 +97,8 @@ v6-bogus.rand.example.org.   3600 IN LUA  AAAA  "pickrandom({{'{prefix}.101', '{
 v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{ '2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268' }})"
 selfweighted.example.org.    3600 IN LUA  A     "pickselfweighted('http://selfweighted.example.org:8080/weight.txt',{{'{prefix}.101', '{prefix}.102'}})"
 closest.geo                  3600 IN LUA  A     "pickclosest({{ '1.1.1.2', '1.2.3.4' }})"
+closest-west.geo             3600 IN LUA  A     "pickclosest({{ '198.51.100.1', '203.0.113.1' }})"
+closest-east.geo             3600 IN LUA  A     "pickclosest({{ '192.0.2.1', '203.0.113.1' }})"
 empty.rand.example.org.      3600 IN LUA  A     "pickrandom()"
 timeout.example.org.         3600 IN LUA  A     "; local i = 0 ;  while i < 1000 do pickrandom() ; i = i + 1 end return '1.2.3.4'"
 wrand.example.org.           3600 IN LUA  A     "pickwrandom({{ {{30, '{prefix}.102'}}, {{15, '{prefix}.103'}} }})"
@@ -846,6 +848,23 @@ class TestLuaRecords(BaseLuaTest):
         queries = [("1.1.1.0", 24, "1.1.1.2"), ("1.2.3.0", 24, "1.2.3.4"), ("17.1.0.0", 16, "1.1.1.2")]
         name = "closest.geo.example.org."
         for subnet, mask, ip in queries:
+            ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
+            query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+            expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", ip)
+
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    def testClosestAcrossAntimeridian(self):
+        """
+        pickclosest() handles longitude wrapping in both directions
+        """
+        queries = [
+            ("192.0.2.0", 24, "closest-west.geo.example.org.", "198.51.100.1"),
+            ("198.51.100.0", 24, "closest-east.geo.example.org.", "192.0.2.1"),
+        ]
+        for subnet, mask, name, ip in queries:
             ecso = clientsubnetoption.ClientSubnetOption(subnet, mask)
             query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
             expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, "A", ip)
