@@ -867,7 +867,7 @@ ALIAS is not impacted by this setting.
 ---------------------
 
 -  Boolean
--  Default: no
+-  Default: yes
 
 Forward DNS updates sent to a secondary to the primary.
 
