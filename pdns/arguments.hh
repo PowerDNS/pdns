@@ -108,7 +108,7 @@ public:
   void setDefaults();
 
   template <typename T>
-  T asBoundedNum(const string& arg, T minval, T maxval, T def = 0)
+  T asBoundedNum(const string& arg, T minval = std::numeric_limits<T>::min(), T maxval = std::numeric_limits<T>::max(), T def = 0)
   {
     if (!parmIsset(arg)) {
       throw ArgException(string("Undefined but needed argument: '") + arg + "'");
@@ -140,6 +140,12 @@ public:
   T asNum(const string& arg, T def = 0)
   {
     return asBoundedNum<T>(arg, std::numeric_limits<T>::min(), std::numeric_limits<T>::max(), def);
+  }
+
+  template <typename T = int>
+  void assignNum(T& var, const string& arg, T def = 0)
+  {
+    var = asNum<T>(arg, def);
   }
 
   vector<string> list();
