@@ -2385,7 +2385,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     {"list-dnssec-algos", [](ArgIterator, ArgIterator) -> Answer {
        return {0, DNSCryptoKeyEngine::listSupportedAlgoNames(g_slog->withName("control"))};
      }},
-    {"set-aggr-nsec-cache-size", setAggrNSECCacheSize},
+    {"set-max-aggr-nsec-cache-size", setAggrNSECCacheSize},
   };
 
   if (const auto entry = commands.find(cmd); entry != commands.end()) {
