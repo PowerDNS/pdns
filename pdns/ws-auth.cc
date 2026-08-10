@@ -1742,7 +1742,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
       dpk.setKey(dke, flags, algorithm);
     }
     catch (std::runtime_error& error) {
-      throw ApiException("Key could not be parsed. Make sure your key format is correct.");
+      throw ApiException(std::string("Key could not be parsed. Make sure your key format is correct. ") + error.what());
     }
     try {
       if (!zoneData.dnssecKeeper.addKey(zoneData.zoneName, dpk, insertedId, active, published)) {
