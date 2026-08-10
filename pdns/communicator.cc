@@ -129,7 +129,7 @@ void CommunicatorClass::mainloop()
     SLOG(g_log << Logger::Warning << "Primary/secondary communicator launching" << endl,
          d_slog->info(Logr::Warning, "Primary/secondary communicator launching"));
 
-    d_tickinterval = ::arg().asNum<time_t>("xfr-cycle-interval");
+    ::arg().assignNum(d_tickinterval, "xfr-cycle-interval");
 
     int rc;
     time_t next;

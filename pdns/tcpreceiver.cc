@@ -1409,12 +1409,12 @@ TCPNameserver::~TCPNameserver() = default;
 TCPNameserver::TCPNameserver(Logr::log_t slog)
 {
   d_slog = slog;
-  d_maxTransactionsPerConn = ::arg().asNum<size_t>("max-tcp-transactions-per-conn");
-  d_idleTimeout = ::arg().asNum<unsigned int>("tcp-idle-timeout");
-  d_maxConnectionDuration = ::arg().asNum<unsigned int>("max-tcp-connection-duration");
-  d_maxConnectionsPerClient = ::arg().asNum<size_t>("max-tcp-connections-per-client");
+  ::arg().assignNum(d_maxTransactionsPerConn, "max-tcp-transactions-per-conn");
+  ::arg().assignNum(d_idleTimeout, "tcp-idle-timeout");
+  ::arg().assignNum(d_maxConnectionDuration, "max-tcp-connection-duration");
+  ::arg().assignNum(d_maxConnectionsPerClient, "max-tcp-connections-per-client");
 
-  d_maxTCPConnections = ::arg().asNum<unsigned int>( "max-tcp-connections" );
+  ::arg().assignNum(d_maxTCPConnections, "max-tcp-connections" );
 //  sem_init(&d_connectionroom_sem,0,d_maxTCPConnections);
   d_connectionroom_sem = make_unique<Semaphore>(d_maxTCPConnections);
 

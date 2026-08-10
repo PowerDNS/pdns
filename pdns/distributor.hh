@@ -165,7 +165,7 @@ template<class Answer, class Question, class Backend>SingleThreadDistributor<Ans
 }
 
 template<class Answer, class Question, class Backend>MultiThreadDistributor<Answer,Question,Backend>::MultiThreadDistributor(int numberOfThreads, Logr::log_t slog) :
-  d_last_started(time(nullptr)), d_overloadQueueLength(::arg().asNum<unsigned int>("overload-queue-length")), d_maxQueueLength(::arg().asNum<unsigned int>("max-queue-length")), d_num_threads(numberOfThreads)
+  d_last_started(time(nullptr)), d_overloadQueueLength(::arg().asNum<decltype(d_overloadQueueLength)>("overload-queue-length")), d_maxQueueLength(::arg().asNum<decltype(d_maxQueueLength)>("max-queue-length")), d_num_threads(numberOfThreads)
 {
   d_slog = slog;
   if (numberOfThreads < 1) {

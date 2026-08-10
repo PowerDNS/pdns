@@ -743,8 +743,8 @@ UeberBackend::UeberBackend(const string& pname)
   }
   d_handle.setSLog(d_slog);
 
-  d_cache_ttl = ::arg().asNum<unsigned int>("query-cache-ttl");
-  d_negcache_ttl = ::arg().asNum<unsigned int>("negquery-cache-ttl");
+  ::arg().assignNum(d_cache_ttl, "query-cache-ttl");
+  ::arg().assignNum(d_negcache_ttl, "negquery-cache-ttl");
 
   backends = BackendMakers().all(pname == "key-only");
 

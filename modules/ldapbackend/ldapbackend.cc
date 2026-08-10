@@ -45,7 +45,7 @@ LdapBackend::LdapBackend(const string& suffix)
     d_pldap = nullptr;
     d_authenticator = nullptr;
     d_qlog = arg().mustDo("query-logging");
-    d_default_ttl = arg().asNum<uint32_t>("default-ttl");
+    arg().assignNum(d_default_ttl, "default-ttl");
     d_myname = "[LdapBackend]";
     d_in_list = false;
 

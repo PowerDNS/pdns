@@ -819,17 +819,17 @@ static void mainthread()
 #ifdef HAVE_LUA_RECORDS
     g_doLuaRecord = ::arg().mustDo("enable-lua-records");
     g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
-    g_luaRecordExecLimit = ::arg().asNum("lua-records-exec-limit");
+    ::arg().assignNum(g_luaRecordExecLimit, "lua-records-exec-limit");
     g_luaRecordInsertWhitespace = ::arg().mustDo("lua-records-insert-whitespace");
-    g_luaHealthChecksInterval = ::arg().asNum<time_t>("lua-health-checks-interval");
-    g_luaConsistentHashesExpireDelay = ::arg().asNum<time_t>("lua-consistent-hashes-expire-delay");
-    g_luaConsistentHashesCleanupInterval = ::arg().asNum<time_t>("lua-consistent-hashes-cleanup-interval");
-    g_luaHealthChecksExpireDelay = ::arg().asNum<time_t>("lua-health-checks-expire-delay");
+    ::arg().assignNum(g_luaHealthChecksInterval, "lua-health-checks-interval");
+    ::arg().assignNum(g_luaConsistentHashesExpireDelay, "lua-consistent-hashes-expire-delay");
+    ::arg().assignNum(g_luaConsistentHashesCleanupInterval, "lua-consistent-hashes-cleanup-interval");
+    ::arg().assignNum(g_luaHealthChecksExpireDelay, "lua-health-checks-expire-delay");
 #endif
 #ifdef ENABLE_GSS_TSIG
     g_doGssTSIG = ::arg().mustDo("enable-gss-tsig");
     if (g_doGssTSIG) {
-      GssContext::s_maxGssContexts = ::arg().asNum<unsigned int>("gss-max-contexts");
+      ::arg().assignNum(GssContext::s_maxGssContexts, "gss-max-contexts");
     }
 #endif
     g_views = ::arg().mustDo("views");
@@ -841,7 +841,7 @@ static void mainthread()
     PacketHandler::s_NAPTRprocessing = ::arg().mustDo("naptr-additional-processing");
 
     g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
-    g_proxyProtocolMaximumSize = ::arg().asNum<size_t>("proxy-protocol-maximum-size");
+    ::arg().assignNum(g_proxyProtocolMaximumSize, "proxy-protocol-maximum-size");
   }
   catch (ArgException& exc) {
     SLOG(g_log << Logger::Error << "Fatal error: " << exc.reason << endl,

@@ -2760,7 +2760,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
   DNSResourceRecord rr;
   rr.qname = zone.operator const DNSName&();
   rr.auth = true;
-  rr.ttl = ::arg().asNum<uint32_t>("default-ttl");
+  ::arg().assignNum(rr.ttl, "default-ttl");
   rr.qtype = "SOA";
 
   string soa = ::arg()["default-soa-content"];
@@ -2877,7 +2877,7 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
   }
 
   rr.qtype = DNSRecordContent::TypeToNumber(cmds.at(2));
-  rr.ttl = ::arg().asNum<uint32_t>("default-ttl");
+  ::arg().assignNum(rr.ttl, "default-ttl");
   rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;

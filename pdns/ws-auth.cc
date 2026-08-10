@@ -2200,7 +2200,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   DNSResourceRecord autorr;
   autorr.qname = zonename.operator const DNSName&();
   autorr.auth = true;
-  autorr.ttl = ::arg().asNum<uint32_t>("default-ttl");
+  ::arg().assignNum(autorr.ttl, "default-ttl");
 
   if (!have_soa && zonekind != DomainInfo::Secondary && zonekind != DomainInfo::Consumer) {
     // synthesize a SOA record so the zone "really" exists
