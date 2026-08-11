@@ -1027,7 +1027,7 @@ static Answer setMaxPacketCacheEntries(ArgIterator begin, ArgIterator end)
   }
 }
 
-static RecursorControlChannel::Answer setAggrNSECCacheSize(ArgIterator begin, ArgIterator end)
+static RecursorControlChannel::Answer setMaxAggrNSECCacheSize(ArgIterator begin, ArgIterator end)
 {
   if (end - begin != 1) {
     return {1, "Need to supply new aggressive NSEC cache size\n"};
@@ -2385,7 +2385,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     {"list-dnssec-algos", [](ArgIterator, ArgIterator) -> Answer {
        return {0, DNSCryptoKeyEngine::listSupportedAlgoNames(g_slog->withName("control"))};
      }},
-    {"set-aggr-nsec-cache-size", setAggrNSECCacheSize},
+    {"set-max-aggr-nsec-cache-size", setMaxAggrNSECCacheSize},
   };
 
   if (const auto entry = commands.find(cmd); entry != commands.end()) {
