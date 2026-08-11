@@ -2162,6 +2162,9 @@ static void reportFeatures()
 #ifdef HAVE_YAML_CONFIGURATION
   cout << "yaml ";
 #endif
+#ifdef HAVE_CUCKOO
+  cout << "cuckoo ";
+#endif
   cout << endl;
 // NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #ifdef DNSDIST_CONFIG_ARGS

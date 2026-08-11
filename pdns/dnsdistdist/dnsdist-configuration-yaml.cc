@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "dnsdist-configuration-yaml.hh"
+#include "cuckoo-filter.hh"
 #include "dnsdist-configuration.hh"
 #include "logging.hh"
 #include "logr.hh"
@@ -2057,6 +2058,22 @@ void registerGenericCacheObjects([[maybe_unused]] const GenericCachesConfigurati
       });
     }
   }
+
+#ifdef HAVE_CUCKOO
+  for (const auto& cuckooFilter : config.cuckoo) {
+    auto filter = createObjects ? std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>(new CuckooFilter({.d_maxKicks = cuckooFilter.max_kicks, .d_maxEntries = cuckooFilter.max_entries, .d_bucketSize = cuckooFilter.bucket_size, .d_fingerprintBits = cuckooFilter.fingerprint_bits, .d_ttlEnabled = cuckooFilter.ttl_enabled, .d_ttl = cuckooFilter.ttl, .d_ttlBits = cuckooFilter.ttl_bits, .d_ttlResolution = cuckooFilter.ttl_resolution, .d_lruEnabled = cuckooFilter.lru_enabled, .d_lruBits = cuckooFilter.lru_bits})) : std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>();
+    dnsdist::configuration::yaml::registerType<GenericCacheInterface<std::string, std::optional<LuaAny>>>(filter, cuckooFilter.name);
+    if (createObjects) {
+      auto name = std::string(cuckooFilter.name);
+      dnsdist::configuration::updateRuntimeConfiguration([name, &filter](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+        if (runtimeConfig.d_caches.count(name) > 0) {
+          throw std::runtime_error("Duplicate cache name: " + name);
+        }
+        runtimeConfig.d_caches.emplace(name, filter);
+      });
+    }
+  }
+#endif
 }
 
 void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& config)

@@ -21,6 +21,7 @@
  */
 #include "dnsdist-lua.hh"
 #include "generic-cache.hh"
+#include "cuckoo-filter.hh"
 #include <memory>
 #include <stdexcept>
 
@@ -52,6 +53,41 @@ void setupLuaBindingsCache(LuaContext& luaCtx)
     });
     return cache;
   });
+
+#ifdef HAVE_CUCKOO
+  luaCtx.writeFunction("newCuckooFilter", [](const std::string& name, std::optional<LuaAssociativeTable<boost::variant<bool, std::string>>> vars) {
+    unsigned int maxEntries{100000};
+    unsigned int maxKicks{500};
+    unsigned int bucketSize{4};
+    unsigned int fingerprintBits{8};
+    unsigned int ttlBits{8};
+    unsigned int ttlResolution{1};
+    unsigned int lruBits{8};
+    bool lruEnabled{false};
+    bool ttlEnabled{false};
+    unsigned int ttl{100};
+    getOptionalIntegerValue<unsigned int>("newCuckooFilter", vars, "maxEntries", maxEntries);
+    getOptionalIntegerValue<unsigned int>("newCuckooFilter", vars, "maxKicks", maxKicks);
+    getOptionalIntegerValue<unsigned int>("newCuckooFilter", vars, "bucketSize", bucketSize);
+    getOptionalIntegerValue<unsigned int>("newCuckooFilter", vars, "fingerprintBits", fingerprintBits);
+    getOptionalValue<bool>(vars, "ttlEnabled", ttlEnabled);
+    getOptionalValue<bool>(vars, "lruEnabled", lruEnabled);
+    getOptionalIntegerValue<unsigned int>("newCuckooFilter", vars, "ttl", ttl);
+    getOptionalIntegerValue<unsigned int>("newCuckooFilter", vars, "ttlBits", ttlBits);
+    getOptionalIntegerValue<unsigned int>("newCuckooFilter", vars, "ttlResolution", ttlResolution);
+    getOptionalIntegerValue<unsigned int>("newCuckooFilter", vars, "lruBits", lruBits);
+
+    auto filter = std::shared_ptr<cache_t>(new CuckooFilter({.d_maxKicks = maxKicks, .d_maxEntries = maxEntries, .d_bucketSize = bucketSize, .d_fingerprintBits = fingerprintBits, .d_ttlEnabled = ttlEnabled, .d_ttl = ttl, .d_ttlBits = ttlBits, .d_ttlResolution = ttlResolution, .d_lruEnabled = lruEnabled, .d_lruBits = lruBits}));
+
+    dnsdist::configuration::updateRuntimeConfiguration([name, &filter](dnsdist::configuration::RuntimeConfiguration& config) {
+      if (config.d_caches.count(name) > 0) {
+        throw std::runtime_error("Duplicate cache name: " + name);
+      }
+      config.d_caches.emplace(name, filter);
+    });
+    return filter;
+  });
+#endif
 
   luaCtx.registerFunction<std::optional<LuaAny> (std::shared_ptr<cache_t>::*)(const std::string&)>("get", [](std::shared_ptr<cache_t>& cache, const std::string& key) {
     std::optional<LuaAny> result{std::nullopt};

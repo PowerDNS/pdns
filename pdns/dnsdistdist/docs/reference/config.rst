@@ -2571,6 +2571,27 @@ GenericCache
   * ``shardCount``: int - Number of shards to divide the cache in. This is useful if the cache is used from multiple threads.
   * ``maxEntries``: int - Maximum number of entries to hold in the cache. If this number is reached and no items can be removed, insertion will fail.
 
+.. function:: newCuckooFilter(name[, options])
+
+  Creates a new generic cuckoo filter. This has the same interface as object cache, but it can't store values and it can only be used to check whether a key is contained (which possible false positives).
+
+  :param str name: Unique name for the filter instance.
+  :param table options: A table with key: value pairs with options.
+  :returns: The :class:`GenericCache` object.
+
+  Options:
+
+  * ``maxEntries``: int - Maximum number of entries to hold in the filter. As the filter gets closer to this number, more insertions may fail.
+  * ``maxKicks``: int - Maximum number of kicks when inserting new items, before giving up.
+  * ``bucketSize``: int - Size of each cuckoo bucket.
+  * ``fingerprintBits``: int - Number of bits to use to store fingerprints. Max 32.
+  * ``ttlEnabled``: bool - If set to true, items will have a time-to-live assigned to them and will be removed after that time (if :meth:`GenericCache.purgeExpired` is called periodically).
+  * ``ttl``: int - Number of seconds to assign as time-to-live to each inserted item.
+  * ``ttlBits``: int - Number of bits to use to represent TTL. Max 32. Higher bit count will allow higher TTL values.
+  * ``ttlResolution``: int - TTL resolution in seconds. Higher value can be used to reduce TTL accuracy, but allow higher TTL values to be stored in the same number of bits.
+  * ``lruEnabled``: bool - If set to true, LRU eviction will be enabled and will be used instead of the standard cuckoo kicking process.
+  * ``lruBits``: int - Number of bits to use to represent LRU. Max 32.
+
 
 LuaRingEntry
 ~~~~~~~~~~~~

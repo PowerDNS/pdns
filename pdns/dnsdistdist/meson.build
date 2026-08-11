@@ -87,6 +87,7 @@ subdir('meson' / 'doh3')                    # DNS over HTTP/3
 subdir('meson' / 'yaml-configuration')      # YAML configuration
 subdir('meson' / 'catch2')                  # Microbenchmark
 subdir('meson' / 'mmdb')                    # MMDB (MaxmindDB)
+subdir('meson' / 'cuckoo')                  # Cuckoo filter
 
 common_sources = []
 

@@ -156,3 +156,69 @@ query_rules:
         return dropWhenExists
     """
     _yaml_config_params = ["_testServerPort"]
+
+
+class TestCuckoo(DNSDistTest, CacheTests):
+    _config_template = """
+    cuckoo = newCuckooFilter("test")
+    function store(dq)
+        cuckoo:insertKey(dq.remoteaddr:toString())
+        return DNSAction.None, ""
+    end
+    function dropWhenExists(dq)
+        if cuckoo:contains(dq.remoteaddr:toString()) then
+            cuckoo:remove(dq.remoteaddr:toString())
+            return DNSAction.Refused
+        end
+        return DNSAction.None, ""
+    end
+    addAction("store.cache.tests.powerdns.com.", LuaAction(store))
+    addAction("read.cache.tests.powerdns.com.", LuaAction(dropWhenExists))
+    newServer{address="127.0.0.1:%d"}
+    """
+
+
+class TestCuckooYaml(DNSDistTest, CacheTests):
+    _yaml_config_template = """---
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+generic_caches:
+  cuckoo:
+    - name: "test-cuckoo"
+      max_entries: 1000
+
+query_rules:
+  - name: Lua store to cache rule
+    selector:
+      type: Regex
+      expression: store.*
+    action:
+      type: Lua
+      function_code: |
+        function store(dq)
+            local cuckoo = getObjectFromYAMLConfiguration("test-cuckoo")
+            cuckoo:insertKey(dq.remoteaddr:toString())
+            return DNSAction.None, ""
+        end
+        return store
+
+  - name: Lua read from cache rule
+    selector:
+      type: Regex
+      expression: read.*
+    action:
+      type: Lua
+      function_code: |
+        function exists(dq)
+            local cuckoo = getObjectFromYAMLConfiguration("test-cuckoo")
+            if cuckoo:contains(dq.remoteaddr:toString()) then
+                cuckoo:remove(dq.remoteaddr:toString())
+                return DNSAction.Refused
+            end
+            return DNSAction.None, ""
+        end
+        return exists
+    """
+    _yaml_config_params = ["_testServerPort"]

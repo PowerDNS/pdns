@@ -1,3 +1,4 @@
+#[cfg(feature = "yaml")]
 fn get_selectors_from_serde(
     selectors_from_serde: &Vec<Selector>,
 ) -> Result<Vec<dnsdistsettings::SharedDNSSelector>, cxx::Exception> {
@@ -9,6 +10,7 @@ fn get_selectors_from_serde(
     Ok(results)
 }
 
+#[cfg(feature = "yaml")]
 fn get_query_rules_from_serde(
     rules_from_serde: &Vec<QueryRuleConfigurationSerde>,
 ) -> Result<Vec<dnsdistsettings::QueryRuleConfiguration>, cxx::Exception> {
@@ -27,6 +29,7 @@ fn get_query_rules_from_serde(
     Ok(results)
 }
 
+#[cfg(feature = "yaml")]
 fn get_response_rules_from_serde(
     rules_from_serde: &Vec<ResponseRuleConfigurationSerde>,
 ) -> Result<Vec<dnsdistsettings::ResponseRuleConfiguration>, cxx::Exception> {
@@ -45,6 +48,7 @@ fn get_response_rules_from_serde(
     Ok(results)
 }
 
+#[cfg(feature = "yaml")]
 fn register_remote_loggers(
   config: &dnsdistsettings::RemoteLoggingConfiguration,
 ) -> Result<(), cxx::Exception> {
@@ -60,6 +64,7 @@ fn register_remote_loggers(
   Ok(())
 }
 
+#[cfg(feature = "yaml")]
 fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
 ) -> Result<dnsdistsettings::GlobalConfiguration, cxx::Exception> {
@@ -120,6 +125,7 @@ fn get_global_configuration_from_serde(
     Ok(config)
 }
 
+#[cfg(feature = "yaml")]
 pub fn from_yaml_string(
     str: &str,
 ) -> Result<dnsdistsettings::GlobalConfiguration, String> {

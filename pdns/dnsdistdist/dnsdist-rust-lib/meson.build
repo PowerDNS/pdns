@@ -9,6 +9,7 @@ sources = files(
   'rust-pre-in.rs',
   'rust-middle-in.rs',
   'rust-post-in.rs',
+  'rust-cuckoo.rs',
 )
 
 generated = [
@@ -40,7 +41,7 @@ dep_rust_lib = declare_dependency(
   ]
 )
 
-if get_option('yaml').allowed()
+if get_option('yaml').allowed() or get_option('cuckoo').allowed()
   subdir('rust')
 else
   dep_dnsdist_rust_lib = declare_dependency()

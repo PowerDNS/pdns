@@ -13,6 +13,8 @@ env.set('srcdir', meson.current_source_dir())
 env.append('RUST_TARGET', '', separator: '')
 env.append('RUSTC_TARGET_ARCH', '', separator: '')
 
+env.append('CARGO_FEATURES', 'default', separator: ',')
+
 opt_rust_args = get_option('rust-args')
 if opt_rust_args != ''
   env.set('RUSTFLAGS', opt_rust_args)
@@ -28,6 +30,13 @@ elif get_option('rust-lto') and get_option('b_lto') and get_option('b_lto_mode')
   summary('LTO mode', 'thin', section: 'Rust')
 else
   summary('LTO', false, bool_yn: true, section: 'Rust')
+endif
+
+if get_option('yaml').allowed()
+  env.append('CARGO_FEATURES', 'yaml', separator: ',')
+endif
+if get_option('cuckoo').allowed()
+  env.append('CARGO_FEATURES', 'cuckoo', separator: ',')
 endif
 
 lib_dnsdist_rust = custom_target('libdnsdist_rust.a',
