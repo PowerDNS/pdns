@@ -2380,7 +2380,7 @@ address family is configured, there are *no* queries sent with that address fami
 In the default configuration this means that IPv6 is not used for outgoing queries.
  """,
         "versionchanged": ("4.4.0", "IPv6 addresses can be set with this option as well."),
-        "versionchanged": ("5.5.0", "A named interface can be specified using the ``IP address@interface`` syntax.")
+        "versionchanged": ("5.5.0", "A named interface can be specified using the ``IP address@interface`` syntax."),
     },
     {
         "name": "quiet",

@@ -21,7 +21,7 @@ Changed Settings
 New Settings
 ^^^^^^^^^^^^
 - The :ref:`setting-yaml-recordcache.keepwarm` setting has been introduced to allow names in the record cache to be kept up to date (even when not queried).
-- The :ref:`setting-yaml-recursor.taskthreads` setting has been introduced to allow for more asycnhronous task threads to be spawned.
+- The :ref:`setting-yaml-recursor.taskthreads` setting has been introduced to allow for more asynchronous task threads to be spawned.
 - The :ref:`setting-yaml-webservice.max_request_size` setting has been introduced to limit the maximum size of web requests.
 - The :ref:`setting-yaml-dnssec.nta_extended_error` setting has been introduced, disabled by default.
   When enabled and a Negative Trust Anchor is in effect, the recursor adds an EDNS Extended Error (:rfc:`8914`) with info-code 33 ("Negative Trust Anchor") to insecure responses covered by the NTA as a diagnostic signal.

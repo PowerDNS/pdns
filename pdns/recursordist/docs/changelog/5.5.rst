@@ -79,7 +79,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :tags: Improvements
     :pullreq: 16995
 
-    Two protobuf logging features: use 4 byte framesize and add strategy.
+    Two protobuf logging features: use 4 byte frame size and add strategy.
 
   .. change::
     :tags: Improvements
@@ -109,7 +109,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :tags: Improvements
     :pullreq: 17016
 
-    Give better error mesage on api-dir not set.
+    Give better error message on api-dir not set.
 
   .. change::
     :tags: Bug Fixes
@@ -244,7 +244,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :tags: Improvements
     :pullreq: 17297
 
-    Implement an cors flag to set allowed origin in webserver.
+    Implement a cors flag to set allowed origin in webserver.
 
   .. change::
     :tags: Improvements
@@ -322,7 +322,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :tags: Improvements
     :pullreq: 17554
 
-    Protozero: extend test to determine endianess.
+    Protozero: extend test to determine endianness.
 
   .. change::
     :tags: Bug Fixes
@@ -401,7 +401,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :tags: Bug Fixes
     :pullreq: 17728
 
-    Do not use str{n,}casecmp for DNS names.
+    Do not use string compare for DNS names.
 
   .. change::
     :tags: Improvements
