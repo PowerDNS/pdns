@@ -6,4 +6,4 @@ Pdns-Remotebackend==0.8.0
 pyzmq==25.1.2
 cython>=3.0.0
 setuptools-scm>=10
-setuptools<82
+setuptools<84
