@@ -4,7 +4,7 @@
 dnspython>=1.11
 pytest
 protobuf>=3.0
-pyasn1==0.6.3
+pyasn1>0.6.3
 pysnmp>=7
 cryptography>=48.0.1
 requests>=2.1.0
