@@ -228,7 +228,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
   return checkResponseMatches(*shard, range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, pbdata, ecsInfo);
 }
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp, std::pair<uint16_t, uint16_t> ecsInfo)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, vState valState, OptPBData&& pbdata, bool tcp, std::pair<uint16_t, uint16_t> ecsInfo)
 {
   auto& map = getMap(tag, qhash, tcp);
   auto shard = map.lock();
