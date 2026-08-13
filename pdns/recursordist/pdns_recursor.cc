@@ -1829,7 +1829,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     const bool intoPC = g_packetCache && !variableAnswer && !resolver.wasVariable() && (RecursorPacketCache::s_maxEntrySize == 0 || packet.size() <= RecursorPacketCache::s_maxEntrySize);
     if (intoPC) {
       minTTL = capPacketCacheTTL(*packetWriter.getHeader(), minTTL, seenAuthSOA);
-      std::pair <uint16_t, uint16_t> ecsInfo{};
+      std::pair<uint16_t, uint16_t> ecsInfo{};
       if (g_useIncomingECS && comboWriter->d_ecsFound) {
         ecsInfo = findScopeZero(packet);
       }
