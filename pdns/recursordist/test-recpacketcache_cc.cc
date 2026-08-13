@@ -362,14 +362,16 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
   string qpacket(reinterpret_cast<const char*>(&packet[0]), packet.size());
   pw.startRecord(qname, QType::A, ttd);
 
+ std::pair<uint16_t, uint16_t> ecsInfo;
+
   /* Both interfaces (with and without the qname/qtype/qclass) should get the same hash */
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
-  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, nullptr, &temphash, nullptr, false), false);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, nullptr, &temphash, nullptr, false, ecsInfo), false);
   BOOST_CHECK_EQUAL(qhash, temphash);
 
   /* Different tcp/udp, should still get the same hash, for both interfaces */
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
-  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, nullptr, &temphash, nullptr, true), false);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, nullptr, &temphash, nullptr, true, ecsInfo), false);
   BOOST_CHECK_EQUAL(qhash, temphash);
 
   {
@@ -417,7 +419,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
 
   vState vState;
   /* we can retrieve it */
-  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, true), true);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, true, ecsInfo), true);
   BOOST_CHECK_EQUAL(qhash, temphash);
   BOOST_CHECK_EQUAL(fpacket, r1packet);
 
@@ -427,7 +429,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
   BOOST_CHECK_EQUAL(fpacket, r1packet);
 
   /* and not with explicit udp */
-  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, false), false);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, false, ecsInfo), false);
   /* we should still get the same hash */
   BOOST_CHECK_EQUAL(temphash, qhash);
 
@@ -445,7 +447,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
   BOOST_CHECK_EQUAL(fpacket, r2packet);
 
   /* and the correct response for tcp */
-  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, true), true);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &vState, &temphash, nullptr, true, ecsInfo), true);
   BOOST_CHECK_EQUAL(qhash, temphash);
   BOOST_CHECK_EQUAL(fpacket, r1packet);
 }
