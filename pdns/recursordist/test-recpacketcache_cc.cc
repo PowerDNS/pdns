@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
   string qpacket(reinterpret_cast<const char*>(&packet[0]), packet.size());
   pw.startRecord(qname, QType::A, ttd);
 
- std::pair<uint16_t, uint16_t> ecsInfo;
+  std::pair<uint16_t, uint16_t> ecsInfo;
 
   /* Both interfaces (with and without the qname/qtype/qclass) should get the same hash */
   BOOST_CHECK_EQUAL(rpc.getResponsePacket(0, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
