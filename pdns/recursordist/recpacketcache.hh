@@ -69,20 +69,22 @@ public:
     uint16_t qtype{0};
     uint16_t qclass{0};
     vState valState{vState::Indeterminate};
-    return getResponsePacket(tag, queryPacket, qname, &qtype, &qclass, now, responsePacket, age, &valState, qhash, nullptr, false);
+    std::pair<uint16_t, uint16_t> ecsInfo;
+    return getResponsePacket(tag, queryPacket, qname, &qtype, &qclass, now, responsePacket, age, &valState, qhash, nullptr, false, ecsInfo);
   }
 
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
                          std::string* responsePacket, uint32_t* age, uint32_t* qhash)
   {
     vState valState{vState::Indeterminate};
-    return getResponsePacket(tag, queryPacket, qname, qtype, qclass, now, responsePacket, age, &valState, qhash, nullptr, false);
+    std::pair<uint16_t, uint16_t> ecsInfo;
+    return getResponsePacket(tag, queryPacket, qname, qtype, qclass, now, responsePacket, age, &valState, qhash, nullptr, false, ecsInfo);
   }
 
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp, std::pair<uint16_t, uint16_t>& ecsInfo);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp, std::pair<uint16_t, uint16_t>& ecsInfo);
 
-  void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp);
+  void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp, std::pair<uint16_t, uint16_t> ecsInfo = {0,0});
   void doPruneTo(time_t now, size_t maxSize);
   uint64_t doDump(int file);
   uint64_t doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
@@ -107,7 +109,7 @@ private:
   {
     Entry(DNSName&& qname, uint16_t qtype, uint16_t qclass, std::string&& packet, std::string&& query, bool tcp,
           // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-          uint32_t qhash, time_t ttd, time_t now, uint32_t tag, vState vstate) :
+          uint32_t qhash, time_t ttd, time_t now, uint32_t tag, vState vstate, std::pair<uint16_t, uint16_t> ecsInfo) :
       d_name(std::move(qname)),
       d_packet(std::move(packet)),
       d_query(std::move(query)),
@@ -115,6 +117,7 @@ private:
       d_creation(now),
       d_qhash(qhash),
       d_tag(tag),
+      d_ecsInfo(ecsInfo),
       d_type(qtype),
       d_class(qclass),
       d_vstate(vstate),
@@ -130,6 +133,7 @@ private:
     mutable time_t d_creation; // so we can 'age' our packets
     uint32_t d_qhash;
     uint32_t d_tag;
+    mutable std::pair<uint16_t, uint16_t> d_ecsInfo;
     uint16_t d_type;
     uint16_t d_class;
     mutable vState d_vstate;
@@ -240,7 +244,7 @@ private:
   }
 
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass);
-  static bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
+  static bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata, std::pair<uint16_t, uint16_t>& ecsInfo);
 
   void setShardSizes(size_t shardSize);
 };
