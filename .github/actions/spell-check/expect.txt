@@ -79,6 +79,7 @@ autoserial
 autotools
 axfrfilter
 Baan
+Babak
 backgrounding
 backticks
 backupselector
@@ -444,6 +445,7 @@ Faerch
 failedservers
 Fallah
 famfo
+Farrokhi
 farsightsec
 fcontext
 fedoraproject
@@ -658,6 +660,7 @@ jsonstat
 jsrender
 Juergen
 Juraj
+Kabenin
 Kadyshev
 Kaminsky
 Kaseorg
@@ -1415,6 +1418,7 @@ tarballs
 Tarjei
 Tarnell
 taskqueue
+taskthreads
 tbhandler
 tcely
 tcounter
@@ -1632,6 +1636,7 @@ yubikey
 Yufan
 Yunyi
 Yuxiao
+YWH
 YYYYMMD
 YYYYMMDDSS
 Zafar

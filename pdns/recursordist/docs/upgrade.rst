@@ -5,8 +5,8 @@ Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
 
-5.4.0 to master
----------------
+5.4.0 to 5.5.0 and master
+-------------------------
 
 Building
 ^^^^^^^^
@@ -14,20 +14,23 @@ Building using autotools is no longer possible, use meson. See :doc:`appendices/
 
 Changed Settings
 ^^^^^^^^^^^^^^^^
-The :ref:`incoming-ws-config` YAML struct has been extended to be able to specify an encrypted PKCS12 file to configure TLS key and certificate chain for the embedded web server.
+- The :ref:`incoming-ws-config` YAML struct has been extended to be able to specify an encrypted PKCS12 file to configure TLS key and certificate chain for the embedded web server.
 
-The :ref:`outgoing-tls-configuration` YAML struct has been extended to be able to specify an TLS client certificate to be used for outgoing DoT connections.
+- The :ref:`outgoing-tls-configuration` YAML struct has been extended to be able to specify an TLS client certificate to be used for outgoing DoT connections.
 
 New Settings
 ^^^^^^^^^^^^
-The :ref:`setting-yaml-dnssec.nta_extended_error` setting has been introduced, disabled by default.
-When enabled and a Negative Trust Anchor is in effect, the recursor adds an EDNS Extended Error (:rfc:`8914`) with info-code 33 ("Negative Trust Anchor") to insecure responses covered by the NTA as a diagnostic signal.
-It does not change validation or the AD bit.
-Because responses are packet-cached, adding or removing an NTA only affects the presence of this Extended Error once the relevant cache entries expire or are flushed.
-See :ref:`ntas`.
+- The :ref:`setting-yaml-recordcache.keepwarm` setting has been introduced to allow names in the record cache to be kept up to date (even when not queried).
+- The :ref:`setting-yaml-recursor.taskthreads` setting has been introduced to allow for more asynchronous task threads to be spawned.
+- The :ref:`setting-yaml-webservice.max_request_size` setting has been introduced to limit the maximum size of web requests.
+- The :ref:`setting-yaml-dnssec.nta_extended_error` setting has been introduced, disabled by default.
+  When enabled and a Negative Trust Anchor is in effect, the recursor adds an EDNS Extended Error (:rfc:`8914`) with info-code 33 ("Negative Trust Anchor") to insecure responses covered by the NTA as a diagnostic signal.
+  It does not change validation or the AD bit.
+  Because responses are packet-cached, adding or removing an NTA only affects the presence of this   Extended Error once the relevant cache entries expire or are flushed.
+  See :ref:`ntas`.
 
-5.1.10, 5.2.8 and 5.3.5
------------------------
+5.1.10, 5.2.8, 5.3.5 and 5.5.0
+------------------------------
 
 New settings
 ^^^^^^^^^^^^

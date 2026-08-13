@@ -2373,9 +2373,6 @@ This value has precedence over :ref:`setting-qname-max-minimize-count`.
         "default": "0.0.0.0",
         "help": "Source IP address for sending queries",
         "doc": """
-.. note::
-    While subnets and their negations are mentioned as accepted, the handling of subnets has not been implemented yet.
-    Only individual IP addresses can be listed.
 
 Send out local queries from this address, or addresses. By adding multiple
 addresses, increased spoofing resilience is achieved. When no address of a certain
@@ -2383,6 +2380,7 @@ address family is configured, there are *no* queries sent with that address fami
 In the default configuration this means that IPv6 is not used for outgoing queries.
  """,
         "versionchanged": ("4.4.0", "IPv6 addresses can be set with this option as well."),
+        "versionchanged": ("5.5.0", "A named interface can be specified using the ``IP address@interface`` syntax."),
     },
     {
         "name": "quiet",

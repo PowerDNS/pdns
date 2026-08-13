@@ -220,7 +220,7 @@ def get_newdoc_typename(typ):
     if typ == LType.ListOpenTelemetryTraceConditions:
         return "Sequence of `OpenTelemetryTraceCondition`_"
     if typ == LType.ListAddressAndInterfaces:
-        return "Sequence of address or address@interface_"
+        return "Sequence of IP address or, since 5.5.0, IP address\\@interface"
     if typ == LType.ListQNameAndQTypes:
         return "Sequence of `QNameAndQType`_"
     return "Unknown2" + str(typ)
