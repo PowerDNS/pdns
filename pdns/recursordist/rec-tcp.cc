@@ -294,7 +294,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   DNSName qname;
   uint16_t qtype = 0;
   uint16_t qclass = 0;
-  bool needEDNSParse = false;
+  bool needEDNSParse = g_useIncomingECS;
   string requestorId;
   string deviceId;
   string deviceName;
