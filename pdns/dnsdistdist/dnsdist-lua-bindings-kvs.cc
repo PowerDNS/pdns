@@ -60,10 +60,35 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
 
     std::optional<std::string> lookupAction;
     std::optional<std::string> dataName;
+    std::optional<LuaArray<std::string>> rawArgsInput;
+    std::optional<LuaArray<std::string>> rawExistsArgsInput;
     getOptionalValue<std::string>(vars, "dataName", dataName);
     getOptionalValue<std::string>(vars, "lookupAction", lookupAction);
+    getOptionalValue<LuaArray<std::string>>(vars, "rawArgs", rawArgsInput);
+    getOptionalValue<LuaArray<std::string>>(vars, "rawExistsArgs", rawExistsArgsInput);
 
     checkAllParametersConsumed("newRedisKVStore", vars);
+
+    std::optional<std::vector<std::string>> rawArgs;
+    std::optional<std::vector<std::string>> rawExistsArgs;
+
+    if (rawArgsInput) {
+      auto rawInput = rawArgsInput.value();
+      rawArgs = std::vector<std::string>();
+      rawArgs->reserve(rawInput.size());
+      for (const auto& value : rawInput) {
+        rawArgs->emplace_back(value.second);
+      }
+    }
+
+    if (rawExistsArgsInput) {
+      auto rawInput = rawExistsArgsInput.value();
+      rawExistsArgs = std::vector<std::string>();
+      rawExistsArgs->reserve(rawInput.size());
+      for (const auto& value : rawInput) {
+        rawExistsArgs->emplace_back(value.second);
+      }
+    }
 
     std::string uniqueId = "url=" + redisClient->getUrl().to_string() + ",action=" + lookupAction.value_or("GET") + ",data-name=" + dataName.value_or("") + ",";
     std::string labels = "redis-server=" + redisClient->getUrl().host + ":" + std::to_string(redisClient->getUrl().port) + ",redis-action=" + lookupAction.value_or("GET") + ",data-name=" + dataName.value_or("");
@@ -76,7 +101,7 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
       config.d_redisStats.emplace(uniqueId, std::shared_ptr(stats));
     });
 
-    return std::shared_ptr<KeyValueStore>(new RedisKVStore(redisClient, lookupAction, dataName, stats));
+    return std::shared_ptr<KeyValueStore>(new RedisKVStore(redisClient, lookupAction, dataName, rawArgs, rawExistsArgs, stats));
   });
 #endif /* HAVE_REDIS */
 

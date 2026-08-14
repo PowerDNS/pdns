@@ -270,7 +270,7 @@ private:
 class RedisKVStore : public KeyValueStore
 {
 public:
-  RedisKVStore(const std::shared_ptr<RedisClient>& redisClient, std::optional<std::string> lookupAction, std::optional<std::string> dataName, std::shared_ptr<RedisStats> stats);
+  RedisKVStore(const std::shared_ptr<RedisClient>& redisClient, std::optional<std::string> lookupAction, std::optional<std::string> dataName, const std::optional<std::vector<std::string>>& rawArgs, const std::optional<std::vector<std::string>>& rawExistsArgs, std::shared_ptr<RedisStats> stats);
 
   bool keyExists(const std::string& key) override;
   bool getValue(const std::string& key, std::string& value) override;

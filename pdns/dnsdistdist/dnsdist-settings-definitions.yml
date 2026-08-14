@@ -402,10 +402,18 @@ redis_kv_store:
       description: "The name of the Redis client object to use"
     - name: "lookup_action"
       type: "String"
-      description: "The lookup action to use in redis (GET, HGET)"
+      description: "The lookup action to use in redis (GET, HGET, SISMEMBER, RAW)"
     - name: "data_name"
       type: "String"
-      description: "Additional data to pass in the lookup action (needed for HGET - hash key)"
+      description: "Additional data to pass in the lookup action (needed for HGET - hash key, SISMEMBER - set key)"
+    - name: "raw_args"
+      type: "Vec<String>"
+      default: true
+      description: "Arguments for RAW lookup command"
+    - name: "raw_exists_args"
+      type: "Vec<String>"
+      default: true
+      description: "Arguments for RAW lookup command when checking if entry exists"
 
 kvs_lookup_key_source_ip:
   description: "Lookup key that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order"

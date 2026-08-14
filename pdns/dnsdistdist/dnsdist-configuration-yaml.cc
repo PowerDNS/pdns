@@ -2084,12 +2084,26 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
     }
     std::optional<std::string> lookupAction;
     std::optional<std::string> dataName;
+    std::optional<std::vector<std::string>> rawArgs;
+    std::optional<std::vector<std::string>> rawExistsArgs;
 
     if (!redis.lookup_action.empty()) {
       lookupAction = std::string(redis.lookup_action);
     }
     if (!redis.data_name.empty()) {
       dataName = std::string(redis.data_name);
+    }
+    if (!redis.raw_args.empty()) {
+      rawArgs = std::vector<std::string>();
+      for (const auto& arg : redis.raw_args) {
+        rawArgs->emplace_back(arg);
+      }
+    }
+    if (!redis.raw_exists_args.empty()) {
+      rawExistsArgs = std::vector<std::string>();
+      for (const auto& arg : redis.raw_args) {
+        rawExistsArgs->emplace_back(arg);
+      }
     }
 
     std::string uniqueId = "url=" + definedRedis->getUrl().to_string() + ",action=" + lookupAction.value_or("GET") + ",data-name=" + dataName.value_or("") + ",";
@@ -2102,7 +2116,7 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
       }
       runtimeConfig.d_redisStats.emplace(uniqueId, std::shared_ptr(stats));
     });
-    auto store = createObjects ? std::shared_ptr<KeyValueStore>(std::make_shared<RedisKVStore>(definedRedis, lookupAction, dataName, stats)) : std::shared_ptr<KeyValueStore>();
+    auto store = createObjects ? std::shared_ptr<KeyValueStore>(std::make_shared<RedisKVStore>(definedRedis, lookupAction, dataName, rawArgs, rawExistsArgs, stats)) : std::shared_ptr<KeyValueStore>();
     dnsdist::configuration::yaml::registerType<KeyValueStore>(store, redis.name);
   }
 #endif /* defined(HAVE_REDIS) */

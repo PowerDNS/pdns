@@ -387,16 +387,25 @@ bool MMDBKVStore::getValue(const std::string& key, std::string& value)
 
 #ifdef HAVE_REDIS
 
-RedisKVStore::RedisKVStore(const std::shared_ptr<RedisClient>& redisClient, std::optional<std::string> lookupAction, std::optional<std::string> dataName, std::shared_ptr<RedisStats> stats) :
+RedisKVStore::RedisKVStore(const std::shared_ptr<RedisClient>& redisClient, std::optional<std::string> lookupAction, std::optional<std::string> dataName, const std::optional<std::vector<std::string>>& rawArgs, const std::optional<std::vector<std::string>>& rawExistsArgs, std::shared_ptr<RedisStats> stats) :
   d_stats(stats)
 {
   std::unique_ptr<RedisLookupAction> command;
   if (lookupAction && !boost::iequals(lookupAction.value(), "get")) {
-    if (!dataName) {
+    if (!dataName && !boost::iequals(lookupAction.value(), "raw")) {
       throw std::runtime_error("Option 'dataName' is required for lookup action " + lookupAction.value());
     }
     if (boost::iequals(lookupAction.value(), "hget")) {
       command = std::make_unique<RedisHGetLookupAction>(dataName.value());
+    }
+    else if (boost::iequals(lookupAction.value(), "sismember")) {
+      command = std::make_unique<RedisSIsMemberLookupAction>(dataName.value());
+    }
+    else if (boost::iequals(lookupAction.value(), "raw")) {
+      if (!rawArgs) {
+        throw std::runtime_error("Option 'rawArgs' is required for lookup action " + lookupAction.value());
+      }
+      command = std::make_unique<RedisRawLookupAction>(rawArgs.value(), rawExistsArgs);
     }
     else {
       throw std::runtime_error("Unknown lookup action: " + lookupAction.value());
