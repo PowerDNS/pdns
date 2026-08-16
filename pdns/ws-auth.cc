@@ -779,7 +779,7 @@ static std::string normalizeJsonString(const std::string& jsonContent)
         ret << chr;
       }
       else {
-        ret << '\\' << std::setfill('0') << std::setw(3) << static_cast<unsigned int>(chr) << std::setw(0);
+        ret << '\\' << std::setfill('0') << std::setw(3) << static_cast<int>(static_cast<unsigned char>(chr)) << std::setw(0);
       }
     }
     if (quote) {
