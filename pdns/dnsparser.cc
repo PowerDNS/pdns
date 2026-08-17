@@ -96,7 +96,7 @@ UnknownRecordContent::UnknownRecordContent(const string& zone)
   }
 
   std::string out;
-  out.reserve(total + 1);
+  out.reserve(total);
 
   // This loops mimics stringtok() again
   unsigned int byte = 0;
