@@ -518,7 +518,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
     }
     tcpGuard.keep();
     traceScope.close(0);
-    g_multiTasker->makeThread(startDoResolve, comboWriter.release()); // deletes dc
+    t_multiTasker->makeThread(startDoResolve, comboWriter.release()); // deletes dc
   } // good query
 }
 
@@ -715,7 +715,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
     closeSock(rec::Counter::tcpOverflow, "Error closing TCP socket after an overflow drop");
     return;
   }
-  if (g_multiTasker->numProcesses() >= g_maxMThreads) {
+  if (t_multiTasker->numProcesses() >= g_maxMThreads) {
     closeSock(rec::Counter::overCapacityDrops, "Error closing TCP socket after an over capacity drop");
     return;
   }
@@ -870,7 +870,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
           pid->inMSG.resize(pid->inPos); // old content (if there) + new bytes read, only relevant for the inIncompleteOkay case
           newstate = IOState::Done;
           TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-          g_multiTasker->sendEvent(pid, &pid->inMSG);
+          t_multiTasker->sendEvent(pid, &pid->inMSG);
           return;
         }
         break;
@@ -886,7 +886,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
       TCPLOG(pid->tcpsock, "read exception..." << e.what() << endl);
       PacketBuffer empty;
       TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-      g_multiTasker->sendEvent(pid, &empty); // this conveys error status
+      t_multiTasker->sendEvent(pid, &empty); // this conveys error status
       return;
     }
     break;
@@ -901,7 +901,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
       case IOState::Done: {
         TCPLOG(pid->tcpsock, "tryWrite: Done" << endl);
         TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-        g_multiTasker->sendEvent(pid, &pid->outMSG); // send back what we sent to convey everything is ok
+        t_multiTasker->sendEvent(pid, &pid->outMSG); // send back what we sent to convey everything is ok
         return;
       }
       case IOState::NeedRead: // NOLINT(bugprone-branch-clone) (if !TCPLOGGing)
@@ -920,7 +920,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
       TCPLOG(pid->tcpsock, "write exception..." << e.what() << endl);
       PacketBuffer sent;
       TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-      g_multiTasker->sendEvent(pid, &sent); // we convey error status by sending empty string
+      t_multiTasker->sendEvent(pid, &sent); // we convey error status by sending empty string
       return;
     }
     break;
@@ -993,7 +993,7 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   TCPIOHandlerStateChange(IOState::Done, state, pident);
 
   PacketBuffer packet;
-  int ret = g_multiTasker->waitEvent(pident, &packet, g_networkTimeoutMsec);
+  int ret = t_multiTasker->waitEvent(pident, &packet, g_networkTimeoutMsec);
   TCPLOG(pident->tcpsock, "asendtcp waitEvent returned " << ret << ' ' << packet.size() << '/' << data.size() << ' ');
   if (ret == 0) {
     TCPLOG(pident->tcpsock, "timeout" << endl);
@@ -1063,7 +1063,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   // Will set pident->lowState
   TCPIOHandlerStateChange(IOState::Done, state, pident);
 
-  int ret = g_multiTasker->waitEvent(pident, &data, authWaitTimeMSec(g_multiTasker));
+  int ret = t_multiTasker->waitEvent(pident, &data, authWaitTimeMSec(t_multiTasker));
   TCPLOG(pident->tcpsock, "arecvtcp " << ret << ' ' << data.size() << ' ');
   if (ret == 0) {
     TCPLOG(pident->tcpsock, "timeout" << endl);
