@@ -97,19 +97,28 @@ bool DNSSECKeeper::isSignalingZone(const ZoneName& name, bool useCache)
 
 bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, int64_t& keyId, int bits, bool active, bool published)
 {
-  if(!bits) {
-    if(algorithm <= 10)
+  if(bits == 0) {
+    if(algorithm <= 10) {
       throw runtime_error("Creating an algorithm " +std::to_string(algorithm)+" ("+algorithm2name(algorithm)+") key requires the size (in bits) to be passed.");
-    else {
-      if(algorithm == DNSSECKeeper::ECCGOST || algorithm == DNSSECKeeper::ECDSA256 || algorithm == DNSSECKeeper::ED25519)
-        bits = 256;
-      else if(algorithm == DNSSECKeeper::ECDSA384)
-        bits = 384;
-      else if(algorithm == DNSSECKeeper::ED448)
-        bits = 456;
-      else {
-        throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
-      }
+    }
+
+    switch(algorithm) {
+    case DNSSECKeeper::ECCGOST:
+    case DNSSECKeeper::ECDSA256:
+    case DNSSECKeeper::ED25519:
+      bits = 256;
+      break;
+    case DNSSECKeeper::ECDSA384:
+      bits = 384;
+      break;
+    case DNSSECKeeper::ED448:
+      bits = 456;
+      break;
+    case DNSSECKeeper::MLDSA44:
+      bits = 256;
+      break;
+    default:
+      throw runtime_error("Can not guess key size for algorithm "+std::to_string(algorithm));
     }
   }
   shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(d_slog, algorithm));

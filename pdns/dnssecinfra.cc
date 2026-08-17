@@ -434,20 +434,30 @@ void DNSCryptoKeyEngine::testMakers(Logr::log_t slog, unsigned int algo, maker_t
   auto dckeVerify = verifier(slog, algo);
 
   cout<<"Testing algorithm "<<algo<<"("<<DNSSEC::algorithm2name(algo)<<"): '"<<dckeCreate->getName()<<"' ->'"<<dckeSign->getName()<<"' -> '"<<dckeVerify->getName()<<"' ";
-  unsigned int bits{};
+  unsigned int bits = 0;
   if(algo <= 10) {
     bits = 2048;
   }
-  else if(algo == DNSSEC::ECCGOST || algo == DNSSEC::ECDSA256 || algo == DNSSEC::ED25519) {
-    bits = 256;
-  }
-  else if(algo == DNSSEC::ECDSA384) {
-    bits = 384;
-  }
-  else if(algo == DNSSEC::ED448) {
-    bits = 456;
-  }
   else {
+    switch(algo) {
+    case DNSSEC::ECCGOST:
+    case DNSSEC::ECDSA256:
+    case DNSSEC::ED25519:
+      bits = 256;
+      break;
+    case DNSSEC::ECDSA384:
+      bits = 384;
+      break;
+    case DNSSEC::ED448:
+      bits = 456;
+      break;
+    case DNSSEC::MLDSA44:
+      bits = 256;
+      break;
+    }
+  }
+
+  if (bits == 0) {
     throw runtime_error("Can't guess key size for algorithm " + std::to_string(algo));
   }
 
