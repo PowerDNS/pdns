@@ -115,13 +115,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<std::shared_ptr<DNSDistPacketCache> (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)() const>("getCache", [](const std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool) {
     std::shared_ptr<DNSDistPacketCache> cache;
     if (pool) {
-      dnsdist::configuration::updateRuntimeConfiguration([&pool, &cache](dnsdist::configuration::RuntimeConfiguration& config) {
-        auto poolIt = config.d_pools.find(pool->poolName);
-        /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
-        if (poolIt != config.d_pools.end()) {
-          cache = poolIt->second.packetCache;
-        }
-      });
+      const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+      auto poolIt = config.d_pools.find(pool->poolName);
+      /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+      if (poolIt != config.d_pools.end()) {
+        cache = poolIt->second.packetCache;
+      }
     }
     return cache;
   });
