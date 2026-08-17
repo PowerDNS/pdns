@@ -1695,10 +1695,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
   sendit:;
 
     if (g_useIncomingECS && comboWriter->d_ecsFound && !resolver.wasVariable() && !variableAnswer) {
-      // The moment we add an ECS option we should no longer packet cache this.  An alternative is to
-      // overwrite the ECS info after retrieval from the packet cache, but that is much more
-      // complicated.
-      //variableAnswer = true;
+      // Later we remember the offset and size of the ECS option added in the packet cache, so we
+      // can more easily subsititute the then current client specific ECS data after retrieval from
+      // the packet cache.
       EDNSSubnetOpts ednsOptions;
       ednsOptions.setSource(comboWriter->d_ednssubnet.getSource());
       ComboAddress sourceAddr;
@@ -1890,6 +1889,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     const bool intoPC = g_packetCache && !variableAnswer && !resolver.wasVariable() && (RecursorPacketCache::s_maxEntrySize == 0 || packet.size() <= RecursorPacketCache::s_maxEntrySize);
     if (intoPC) {
       minTTL = capPacketCacheTTL(*packetWriter.getHeader(), minTTL, seenAuthSOA);
+      // If we are adding ECS info, remember the offset and size in the PC
       std::pair<uint16_t, uint16_t> ecsInfo{};
       if (g_useIncomingECS && comboWriter->d_ecsFound) {
         ecsInfo = findScopeZero(packet);
@@ -2200,6 +2200,8 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
 
   if (cacheHit) {
     if (g_useIncomingECS && ecsFound && ecsPair.second != 0) {
+      // We need to patch the packet so it contains the ECS data for the currrent client, not the
+      // one that caused insertion into the packe cache originally.
       EDNSSubnetOpts ednsOptions;
       ednsOptions.setSource(edns.getSource());
       ednsOptions.setScopePrefixLength(0);
