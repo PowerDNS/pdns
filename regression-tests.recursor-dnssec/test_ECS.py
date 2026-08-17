@@ -38,7 +38,25 @@ statistics-interval=0
 ecs-add-for=0.0.0.0/0
 """
 
-    def sendECSQuery(self, query, expected, expectedFirstTTL=None, scopeZeroResponse=None):
+    def checkScopeZero(self, options, scopeZeroResponse, family):
+        self.assertEqual(len(options), 1)
+        self.assertEqual(options[0].otype, 8)
+        self.assertEqual(options[0].scope, 0)
+        ip = options[0].ip
+        if family == socket.AF_INET:
+            wire = socket.inet_ntop(socket.AF_INET, struct.pack('!L', ip))
+        elif family == socket.AF_INET6:
+            wire  = socket.inet_ntop(socket.AF_INET6,
+                                     struct.pack('!QQ',
+                                                 ip >> 64,
+                                                 ip & (2 ** 64 - 1)))
+            print(wire)
+            print(scopeZeroResponse)
+            self.assertEqual(wire, scopeZeroResponse)
+        else:
+            self.assertFalse()
+
+    def sendECSQuery(self, query, expected, expectedFirstTTL=None, scopeZeroResponse=None, family=socket.AF_INET):
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
@@ -52,9 +70,7 @@ ecs-add-for=0.0.0.0/0
         if scopeZeroResponse is not None:
             self.assertEqual(res.edns, 0)
             if scopeZeroResponse:
-                self.assertEqual(len(res.options), 1)
-                self.assertEqual(res.options[0].otype, 8)
-                self.assertEqual(res.options[0].scope, 0)
+                self.checkScopeZero(res.options, scopeZeroResponse, family)
             else:
                 self.assertEqual(len(res.options), 1)
                 self.assertEqual(res.options[0].otype, 8)
@@ -70,6 +86,14 @@ ecs-add-for=0.0.0.0/0
         self.assertRRsetInAnswer(res, expected)
         self.assertLess(res.answer[0].ttl, expectedFirstTTL)
         self.assertEqual(res.edns, query.edns)
+        if scopeZeroResponse is not None:
+            self.assertEqual(res.edns, 0)
+            if scopeZeroResponse:
+                self.checkScopeZero(res.options, scopeZeroResponse, family)
+            else:
+                self.assertEqual(len(res.options), 1)
+                self.assertEqual(res.options[0].otype, 8)
+                self.assertNotEqual(res.options[0].scope, 0)
 
     def checkECSQueryHit(self, query, expected):
         res = self.sendUDPQuery(query)
@@ -284,7 +308,16 @@ forward-zones=ecs-echo.example=%s.21
 
         ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 32)
         query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
-        self.sendECSQuery(query, expected, scopeZeroResponse=True)
+        self.sendECSQuery(query, expected, scopeZeroResponse="192.0.2.1")
+        # Again. with different ECS
+        ecso = clientsubnetoption.ClientSubnetOption("193.0.2.1", 32)
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected, scopeZeroResponse="193.0.2.1")
+
+        # Again. with different v6 ECS
+        ecso = clientsubnetoption.ClientSubnetOption("dead:beef:beef:dead:cafe::", 32)
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected, scopeZeroResponse="dead:beef::", family=socket.AF_INET6)
 
     def testNoECS(self):
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, "TXT", emptyECSText)
@@ -297,7 +330,7 @@ forward-zones=ecs-echo.example=%s.21
 
         ecso = clientsubnetoption.ClientSubnetOption("0.0.0.0", 0)
         query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
-        self.sendECSQuery(query, expected, scopeZeroResponse=True)
+        self.sendECSQuery(query, expected, scopeZeroResponse="0.0.0.0")
 
 
 class IncomingNoECSHardenedTest(IncomingNoECSTest):
