@@ -148,6 +148,11 @@ public:
 #endif
   }
 
+  void stopCreating()
+  {
+    d_acceptNew = false;
+  }
+
 private:
   EventKey d_eventkey; // for waitEvent, contains exact key it was awoken for
   EventVal d_waitval;
@@ -180,6 +185,7 @@ private:
   int d_tid{0};
   int d_maxtid{0};
   bool d_used{true}; // was d_eventkey consumed?
+  bool d_acceptNew{true};
   enum waitstatusenum : int8_t
   {
     Error = -1,
@@ -383,6 +389,9 @@ std::shared_ptr<pdns_ucontext_t> MTasker<Key, Val, Cmp>::getUContext()
 template <class Key, class Val, class Cmp>
 void MTasker<Key, Val, Cmp>::makeThread(tfunc_t* start, void* val)
 {
+  if (!d_acceptNew) {
+    return;
+  }
   auto ucontext = getUContext();
 
   ++d_threadsCount;

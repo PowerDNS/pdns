@@ -2545,7 +2545,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   comboWriter->d_otTrace = std::move(otTrace);
 
   g_multiTasker->makeThread(startDoResolve, (void*)comboWriter.release()); // deletes dc
-
   return nullptr;
 }
 

@@ -2880,12 +2880,17 @@ static void recLoop()
   constexpr uint32_t handlerAndTaskInterval = 11;
   constexpr uint32_t otherInterval = 499;
 
-  while (!RecursorControlChannel::stop) {
+  while (true) {
     try {
       while (g_multiTasker->schedule(g_now)) {
         ; // MTasker letting the mthreads do their thing
       }
-
+      if (RecursorControlChannel::stop) {
+        g_multiTasker->stopCreating();
+        if (g_multiTasker->noProcesses()) {
+          break;
+        }
+      }
       // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
       // We want to call handler thread often, it gets scheduled about 2 times per second
       if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % handlerAndTaskInterval == 0) || s_counter % otherInterval == 0) {
