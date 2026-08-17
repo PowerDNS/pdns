@@ -4370,6 +4370,13 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         continue;
       }
 
+      if (lwr.d_rcode != RCode::NoError && !isRedirection(rec->d_type) && rec->d_type != QType::RRSIG) {
+        LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
+        skipvec[counter] = true;
+        ++skipCount;
+        continue;
+      }
+
       haveAnswers = true;
       if (rec->d_type == QType::CNAME) {
         if (auto cnametarget = getRR<CNAMERecordContent>(*rec); cnametarget != nullptr) {
