@@ -139,13 +139,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<bool (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)() const>("getECS", [](const std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool) {
     bool ecs = false;
     if (pool) {
-      dnsdist::configuration::updateRuntimeConfiguration([&pool, &ecs](dnsdist::configuration::RuntimeConfiguration& config) {
-        auto poolIt = config.d_pools.find(pool->poolName);
-        /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
-        if (poolIt != config.d_pools.end()) {
-          ecs = poolIt->second.getECS();
-        }
-      });
+      const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+      auto poolIt = config.d_pools.find(pool->poolName);
+      /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+      if (poolIt != config.d_pools.end()) {
+        ecs = poolIt->second.getECS();
+      }
     }
     return ecs;
   });
@@ -164,13 +163,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<bool (std::shared_ptr<dnsdist::lua::LuaServerPoolObject>::*)() const>("getZeroScope", [](const std::shared_ptr<dnsdist::lua::LuaServerPoolObject>& pool) {
     bool zeroScope = false;
     if (pool) {
-      dnsdist::configuration::updateRuntimeConfiguration([&pool, &zeroScope](dnsdist::configuration::RuntimeConfiguration& config) {
-        auto poolIt = config.d_pools.find(pool->poolName);
-        /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
-        if (poolIt != config.d_pools.end()) {
-          zeroScope = poolIt->second.getZeroScope();
-        }
-      });
+      const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+      auto poolIt = config.d_pools.find(pool->poolName);
+      /* this might happen if the Server Pool has been removed in the meantime, let's gracefully ignore it */
+      if (poolIt != config.d_pools.end()) {
+        zeroScope = poolIt->second.getZeroScope();
+      }
     }
     return zeroScope;
   });
