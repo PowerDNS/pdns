@@ -123,6 +123,9 @@ string getBuildConfiguration()
 #ifdef HAVE_LIBCRYPTO_EDDSA
       << " libcrypto-eddsa"
 #endif
+#ifdef HAVE_LIBCRYPTO_ML_DSA_44
+      << " libcrypto-mldsa44"
+#endif
 #ifdef HAVE_LIBDL
       << " libdl"
 #endif
