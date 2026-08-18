@@ -2139,7 +2139,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
 
   if (cacheHit) {
     if (g_useIncomingECS && ecsFound && ecsInfo.second != 0) {
-      // We need to patch the packet so it contains the ECS data for the currrent client, not the
+      // We need to patch the packet so it contains the ECS data for the current client, not the
       // one that caused insertion into the packe cache originally.
       EDNSSubnetOpts ednsOptions;
       ednsOptions.setSource(edns.getSource());
