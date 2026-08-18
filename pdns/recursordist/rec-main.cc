@@ -2880,18 +2880,23 @@ static void recLoop()
   constexpr uint32_t handlerAndTaskInterval = 11;
   constexpr uint32_t otherInterval = 499;
 
-  while (!RecursorControlChannel::stop) {
+  while (true) {
     try {
-      while (g_multiTasker->schedule(g_now)) {
+      while (t_multiTasker->schedule(g_now)) {
         ; // MTasker letting the mthreads do their thing
       }
-
+      if (RecursorControlChannel::stop) {
+        t_multiTasker->stopCreating();
+        if (t_multiTasker->noProcesses()) {
+          break;
+        }
+      }
       // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
       // We want to call handler thread often, it gets scheduled about 2 times per second
       if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % handlerAndTaskInterval == 0) || s_counter % otherInterval == 0) {
         timeval start{};
         Utility::gettimeofday(&start);
-        g_multiTasker->makeThread(houseKeeping, nullptr);
+        t_multiTasker->makeThread(houseKeeping, nullptr);
         if (!threadInfo.isTaskThread()) {
           timeval stop{};
           Utility::gettimeofday(&stop);
@@ -2923,13 +2928,13 @@ static void recLoop()
         Utility::gettimeofday(&g_now, nullptr);
 
         if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
-          g_multiTasker->makeThread(doCarbonDump, nullptr);
+          t_multiTasker->makeThread(doCarbonDump, nullptr);
           last_carbon = g_now.tv_sec;
         }
       }
       runLuaMaintenance(threadInfo, last_lua_maintenance, luaMaintenanceInterval);
 
-      auto timeoutUsec = g_multiTasker->nextWaiterDelayUsec(1000000U / handlerAndTaskInterval / 2);
+      auto timeoutUsec = t_multiTasker->nextWaiterDelayUsec(1000000U / handlerAndTaskInterval / 2);
       t_fdm->run(&g_now, static_cast<int>(timeoutUsec / 1000));
       // 'run' updates g_now for us
     }
@@ -3022,8 +3027,8 @@ static void recursorThread()
       t_bogusqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
       t_bogusqueryring->set_capacity(ringsize);
     }
-    g_multiTasker = std::make_unique<MT_t>(::arg().asNum("stack-size"), ::arg().asNum("stack-cache-size"));
-    threadInfo.setMT(g_multiTasker.get());
+    t_multiTasker = std::make_unique<MT_t>(::arg().asNum("stack-size"), ::arg().asNum("stack-cache-size"));
+    threadInfo.setMT(t_multiTasker.get());
 
     {
       /* start protobuf export threads if needed, don't keep a ref to lua config around */

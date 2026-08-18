@@ -171,7 +171,7 @@ enum class PaddingMode : uint8_t
 };
 
 using MT_t = MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare>;
-extern thread_local std::unique_ptr<MT_t> g_multiTasker; // the big MTasker
+extern thread_local std::unique_ptr<MT_t> t_multiTasker; // the big MTasker
 extern std::unique_ptr<RecursorPacketCache> g_packetCache;
 
 using RemoteLoggerStats_t = std::unordered_map<std::string, RemoteLoggerInterface::Stats>;
@@ -273,7 +273,7 @@ using deferredAdd_t = vector<pair<int, std::function<void(int, boost::any&)>>>;
 
 inline MT_t* getMT()
 {
-  return g_multiTasker ? g_multiTasker.get() : nullptr;
+  return t_multiTasker ? t_multiTasker.get() : nullptr;
 }
 
 /* this function is called with both a string and a vector<uint8_t> representing a packet */

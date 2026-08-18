@@ -49,7 +49,7 @@ thread_local FDWrapper t_tracefd = -1;
 thread_local ProtobufServersInfo t_protobufServers;
 thread_local ProtobufServersInfo t_outgoingProtobufServers;
 
-thread_local std::unique_ptr<MT_t> g_multiTasker; // the big MTasker
+thread_local std::unique_ptr<MT_t> t_multiTasker; // the big MTasker
 std::unique_ptr<MemRecursorCache> g_recCache;
 std::unique_ptr<NegCache> g_negCache;
 std::unique_ptr<RecursorPacketCache> g_packetCache;
@@ -239,11 +239,11 @@ static void handleGenUDPQueryResponse(int fileDesc, FDMultiplexer::funcparam_t& 
   t_fdm->removeReadFD(fileDesc);
   if (ret >= 0) {
     resp.resize(ret);
-    g_multiTasker->sendEvent(pident, &resp);
+    t_multiTasker->sendEvent(pident, &resp);
   }
   else {
     PacketBuffer empty;
-    g_multiTasker->sendEvent(pident, &empty);
+    t_multiTasker->sendEvent(pident, &empty);
   }
 }
 
@@ -264,7 +264,7 @@ PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query)
   t_fdm->addReadFD(socket.getHandle(), handleGenUDPQueryResponse, pident);
 
   PacketBuffer data;
-  int ret = g_multiTasker->waitEvent(pident, &data, authWaitTimeMSec(g_multiTasker));
+  int ret = t_multiTasker->waitEvent(pident, &data, authWaitTimeMSec(t_multiTasker));
 
   if (ret == 0 || ret == -1) { // timeout
     t_fdm->removeReadFD(socket.getHandle());
@@ -310,7 +310,7 @@ LWResult::Result asendto(const void* data, size_t len,
   // See if there is an existing outstanding request we can chain on to, using partial equivalence
   // function looking for the same query (qname, qtype and ecs if applicable) to the same host, but
   // with a different message ID.
-  auto chain = g_multiTasker->getWaiters().equal_range(pident, PacketIDBirthdayCompare());
+  auto chain = t_multiTasker->getWaiters().equal_range(pident, PacketIDBirthdayCompare());
 
   for (; chain.first != chain.second; chain.first++) {
     // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
@@ -324,7 +324,7 @@ LWResult::Result asendto(const void* data, size_t len,
       }
       assert(uSec(chain.first->key->creationTime) != 0); // NOLINT
       auto age = now - chain.first->key->creationTime;
-      if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTimeMSec(g_multiTasker) * 2 / 3) {
+      if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTimeMSec(t_multiTasker) * 2 / 3) {
         return LWResult::Result::ChainLimitError;
       }
       chain.first->key->authReqChain.emplace(*fileDesc, qid); // we can chain
@@ -396,7 +396,7 @@ LWResult::Result arecvfrom(PacketBuffer& packet, const ComboAddress& fromAddr, s
     // We fill in the search key with the ecs we sent out, so both cases are covered and accepted here.
     pident->ecsSubnet = ecs->getSource();
   }
-  int ret = g_multiTasker->waitEvent(pident, &packet, authWaitTimeMSec(g_multiTasker), &now);
+  int ret = t_multiTasker->waitEvent(pident, &packet, authWaitTimeMSec(t_multiTasker), &now);
   len = 0;
 
   /* -1 means error, 0 means timeout, 1 means a result from handleUDPServerResponse() which might still be an error */
@@ -1137,7 +1137,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
     resolver.d_eventTrace = std::move(comboWriter->d_eventTrace);
     resolver.d_otTrace = std::move(comboWriter->d_otTrace);
-    resolver.setId(g_multiTasker->getTid());
+    resolver.setId(t_multiTasker->getTid());
 
     bool DNSSECOK = false;
     if (comboWriter->d_luaContext) {
@@ -1233,7 +1233,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
                                                   "source", Logging::Loggable(comboWriter->d_source),
                                                   "proto", Logging::Loggable(comboWriter->d_tcp ? "tcp" : "udp"),
                                                   "ecs", Logging::Loggable(comboWriter->d_ednssubnet.getSource().empty() ? "" : comboWriter->d_ednssubnet.getSource().toString()),
-                                                  "mtid", Logging::Loggable(g_multiTasker->getTid()));
+                                                  "mtid", Logging::Loggable(t_multiTasker->getTid()));
     RunningResolveGuard tcpGuard(comboWriter);
 
     if (ednsExtRCode != 0 || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
@@ -2032,9 +2032,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
   runTaskOnce(g_logCommonErrors);
 
   static const size_t stackSizeThreshold = 9 * ::arg().asNum("stack-size") / 10;
-  if (g_multiTasker->getMaxStackUsage() >= stackSizeThreshold) {
+  if (t_multiTasker->getMaxStackUsage() >= stackSizeThreshold) {
     resolver.d_slog->info(Logr::Error, "Reached mthread stack usage of 90%",
-                          "stackUsage", Logging::Loggable(g_multiTasker->getMaxStackUsage()),
+                          "stackUsage", Logging::Loggable(t_multiTasker->getMaxStackUsage()),
                           "outqueries", Logging::Loggable(resolver.d_outqueries),
                           "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
                           "throttled", Logging::Loggable(resolver.d_throttledqueries),
@@ -2043,7 +2043,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
                           "dotout", Logging::Loggable(resolver.d_dotoutqueries),
                           "validationState", Logging::Loggable(resolver.getValidationState()));
   }
-  t_Counters.at(rec::Counter::maxMThreadStackUsage) = max(g_multiTasker->getMaxStackUsage(), t_Counters.at(rec::Counter::maxMThreadStackUsage));
+  t_Counters.at(rec::Counter::maxMThreadStackUsage) = max(t_multiTasker->getMaxStackUsage(), t_Counters.at(rec::Counter::maxMThreadStackUsage));
   t_Counters.updateSnap(g_regressionTestMode);
 }
 
@@ -2499,7 +2499,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     variable = true;
   }
 
-  if (g_multiTasker->numProcesses() >= g_maxMThreads) {
+  if (t_multiTasker->numProcesses() >= g_maxMThreads) {
     if (!g_quiet) {
       g_slogudpin->info(Logr::Notice, "Dropped question, over capacity", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr));
     }
@@ -2544,8 +2544,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   comboWriter->d_eventTrace = std::move(eventTrace);
   comboWriter->d_otTrace = std::move(otTrace);
 
-  g_multiTasker->makeThread(startDoResolve, (void*)comboWriter.release()); // deletes dc
-
+  t_multiTasker->makeThread(startDoResolve, (void*)comboWriter.release()); // deletes dc
   return nullptr;
 }
 
@@ -2999,7 +2998,7 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
     auto packetID = std::make_shared<PacketID>(*resend);
     packetID->fd = fileDesc;
     packetID->id = qid;
-    g_multiTasker->sendEvent(packetID, &content);
+    t_multiTasker->sendEvent(packetID, &content);
     t_Counters.at(rec::Counter::chainResends)++;
   }
 }
@@ -3012,7 +3011,7 @@ void mthreadSleep(unsigned int jitterMsec)
   neverHappens->remote = ComboAddress("100::"); // discard-only
   neverHappens->remote.setPort(dns_random_uint16());
   neverHappens->fd = -1;
-  assert(g_multiTasker->waitEvent(neverHappens, nullptr, jitterMsec) != -1); // NOLINT
+  assert(t_multiTasker->waitEvent(neverHappens, nullptr, jitterMsec) != -1); // NOLINT
 }
 
 static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& subnet)
@@ -3058,11 +3057,11 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     t_udpclientsocks->returnSocket(fileDesc);
 
     PacketBuffer empty;
-    auto iter = g_multiTasker->getWaiters().find(pid);
-    if (iter != g_multiTasker->getWaiters().end()) {
+    auto iter = t_multiTasker->getWaiters().find(pid);
+    if (iter != t_multiTasker->getWaiters().end()) {
       doResends(iter, pid, empty);
     }
-    g_multiTasker->sendEvent(pid, &empty); // this denotes error (does retry lookup using other NS)
+    t_multiTasker->sendEvent(pid, &empty); // this denotes error (does retry lookup using other NS)
     return;
   }
 
@@ -3120,19 +3119,19 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   }
 
   if (!pident->domain.empty()) {
-    auto iter = g_multiTasker->getWaiters().find(pident);
-    if (iter != g_multiTasker->getWaiters().end()) {
+    auto iter = t_multiTasker->getWaiters().find(pident);
+    if (iter != t_multiTasker->getWaiters().end()) {
       doResends(iter, pident, packet);
     }
   }
 
 retryWithName:
 
-  if (pident->domain.empty() || g_multiTasker->sendEvent(pident, &packet) == 0) {
+  if (pident->domain.empty() || t_multiTasker->sendEvent(pident, &packet) == 0) {
     /* we did not find a match for this response, something is wrong */
 
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
-    for (const auto& d_waiter : g_multiTasker->getWaiters()) {
+    for (const auto& d_waiter : t_multiTasker->getWaiters()) {
       if (pident->fd == d_waiter.key->fd && d_waiter.key->remote == pident->remote && d_waiter.key->type == pident->type && pident->domain == d_waiter.key->domain) {
         /* we are expecting an answer from that exact source, on that exact port (since we are using connected sockets), for that qname/qtype,
            but with a different message ID. That smells like a spoofing attempt. For now we will just increase the counter and will deal with
@@ -3152,7 +3151,7 @@ retryWithName:
       g_slogudpin->info(Logr::Warning, "Discarding unexpected packet", "from", Logging::Loggable(fromaddr),
                         "qname", Logging::Loggable(pident->domain),
                         "qtype", Logging::Loggable(QType(pident->type)),
-                        "waiters", Logging::Loggable(g_multiTasker->getWaiters().size()));
+                        "waiters", Logging::Loggable(t_multiTasker->getWaiters().size()));
     }
   }
   else if (fileDesc >= 0) {
