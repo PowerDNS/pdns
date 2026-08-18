@@ -303,6 +303,14 @@ forward-zones=ecs-echo.example=%s.21
     def testSendECS(self):
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, "TXT", emptyECSText)
 
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.0.0", 16)
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected, scopeZeroResponse="192.0.0.0")
+        # Again, with more specific net
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.0", 24)
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected, scopeZeroResponse="192.0.2.0")
+
         ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 32)
         query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected, scopeZeroResponse="192.0.2.1")
