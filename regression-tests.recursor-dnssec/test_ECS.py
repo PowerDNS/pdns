@@ -44,12 +44,9 @@ ecs-add-for=0.0.0.0/0
         self.assertEqual(options[0].scope, 0)
         ip = options[0].ip
         if family == socket.AF_INET:
-            wire = socket.inet_ntop(socket.AF_INET, struct.pack('!L', ip))
+            wire = socket.inet_ntop(socket.AF_INET, struct.pack("!L", ip))
         elif family == socket.AF_INET6:
-            wire  = socket.inet_ntop(socket.AF_INET6,
-                                     struct.pack('!QQ',
-                                                 ip >> 64,
-                                                 ip & (2 ** 64 - 1)))
+            wire = socket.inet_ntop(socket.AF_INET6, struct.pack("!QQ", ip >> 64, ip & (2**64 - 1)))
             print(wire)
             print(scopeZeroResponse)
             self.assertEqual(wire, scopeZeroResponse)
