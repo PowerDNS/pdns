@@ -116,7 +116,7 @@ bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::ite
   return queryMatches(iter->d_query, queryPacket, qname, s_skipOptions);
 }
 
-bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata, std::pair<uint16_t, uint16_t>& ecsInfo)
+bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata, ECSInfo& ecsInfo)
 {
   for (auto iter = range.first; iter != range.second; ++iter) {
     // the possibility is VERY real that we get hits that are not right - birthday paradox
@@ -174,7 +174,7 @@ bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, s
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
-                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp, std::pair<uint16_t, uint16_t>& ecsInfo)
+                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp, ECSInfo& ecsInfo)
 {
   *qhash = canHashPacket(queryPacket, s_skipOptions);
   auto& map = getMap(tag, *qhash, tcp);
@@ -191,7 +191,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
 }
 
 bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now,
-                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp, std::pair<uint16_t, uint16_t>& ecsInfo)
+                                            std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp, ECSInfo& ecsInfo)
 {
   *qhash = canHashPacket(queryPacket, s_skipOptions);
   auto& map = getMap(tag, *qhash, tcp);
@@ -209,7 +209,7 @@ bool RecursorPacketCache::getResponsePacket(unsigned int tag, const std::string&
   return checkResponseMatches(*shard, range, queryPacket, qname, *qtype, *qclass, now, responsePacket, age, valState, pbdata, ecsInfo);
 }
 
-void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, vState valState, OptPBData&& pbdata, bool tcp, std::pair<uint16_t, uint16_t> ecsInfo)
+void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, vState valState, OptPBData&& pbdata, bool tcp, ECSInfo ecsInfo)
 {
   auto& map = getMap(tag, qhash, tcp);
   auto shard = map.lock();
