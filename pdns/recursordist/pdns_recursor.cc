@@ -1023,7 +1023,7 @@ static void addPolicyTagsToPBMessageIfNeeded(DNSComboWriter& comboWriter, pdns::
   }
 }
 
-static std::pair<uint16_t, uint16_t> findScopeZero(const std::vector<uint8_t>& response)
+static RecursorPacketCache::ECSInfo findScopeZero(const std::vector<uint8_t>& response)
 {
   uint16_t optRR{};
   size_t optLen{};
@@ -1060,7 +1060,7 @@ static std::pair<uint16_t, uint16_t> findScopeZero(const std::vector<uint8_t>& r
   return {pos, ecsLen};
 }
 
-static void substituteScopeZero(std::string& response, std::pair<uint16_t, uint16_t> ecsInfo, const std::string& ecsPayload)
+static void substituteScopeZero(std::string& response, RecursorPacketCache::ECSInfo ecsInfo, const std::string& ecsPayload)
 {
   auto [pos, ecsLen] = ecsInfo;
   // We only do the case where the substitute is exactly the same size as the original stored in the PC
@@ -1890,7 +1890,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     if (intoPC) {
       minTTL = capPacketCacheTTL(*packetWriter.getHeader(), minTTL, seenAuthSOA);
       // If we are adding ECS info, remember the offset and size in the PC
-      std::pair<uint16_t, uint16_t> ecsInfo{};
+      RecursorPacketCache::ECSInfo ecsInfo{};
       if (g_useIncomingECS && comboWriter->d_ecsFound) {
         ecsInfo = findScopeZero(packet);
       }
@@ -2190,23 +2190,23 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
   uint32_t age = 0;
   vState valState = vState::Indeterminate;
 
-  std::pair<uint16_t, uint16_t> ecsPair;
+  RecursorPacketCache::ECSInfo ecsInfo;
   if (qnameParsed) {
-    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp, ecsPair);
+    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp, ecsInfo);
   }
   else {
-    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, &qtype, &qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp, ecsPair);
+    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, &qtype, &qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp, ecsInfo);
   }
 
   if (cacheHit) {
-    if (g_useIncomingECS && ecsFound && ecsPair.second != 0) {
+    if (g_useIncomingECS && ecsFound && ecsInfo.second != 0) {
       // We need to patch the packet so it contains the ECS data for the currrent client, not the
       // one that caused insertion into the packe cache originally.
       EDNSSubnetOpts ednsOptions;
       ednsOptions.setSource(edns.getSource());
       ednsOptions.setScopePrefixLength(0);
       auto ecsPayload = ednsOptions.makeOptString();
-      substituteScopeZero(response, ecsPair, ecsPayload);
+      substituteScopeZero(response, ecsInfo, ecsPayload);
     }
 
     if (vStateIsBogus(valState)) {
