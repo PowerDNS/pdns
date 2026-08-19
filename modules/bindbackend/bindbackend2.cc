@@ -720,7 +720,7 @@ string Bind2Backend::DLReloadNowHandler(const vector<string>& parts, Utility::pi
     ZoneName zone(*i);
     if (safeGetBBDomainInfo(zone, &bbd)) {
       if (bbd.d_pending) {
-        ret << *i << ": not commited yet\n";
+        ret << *i << ": not committed yet\n";
         continue;
       }
       Bind2Backend bb2;
@@ -750,7 +750,7 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pi
       BB2DomainInfo bbd;
       if (safeGetBBDomainInfo(ZoneName(*i), &bbd)) {
         if (bbd.d_pending) {
-          ret << "not commited yet\n";
+          ret << "not committed yet\n";
         }
         else {
           ret << (bbd.d_loaded ? "" : "[rejected]") << "\t" << bbd.d_status << "\n";
@@ -766,7 +766,7 @@ string Bind2Backend::DLDomStatusHandler(const vector<string>& parts, Utility::pi
     for (const auto& bbd : *state) {
       ret << bbd.d_name << ": ";
       if (bbd.d_pending) {
-        ret << "not commited yet\n";
+        ret << "not committed yet\n";
       }
       else {
         ret << (bbd.d_loaded ? "" : "[rejected]") << "\t" << bbd.d_status << "\n";
@@ -823,7 +823,7 @@ string Bind2Backend::DLDomExtendedStatusHandler(const vector<string>& parts, Uti
       BB2DomainInfo bbd;
       if (safeGetBBDomainInfo(ZoneName(*i), &bbd)) {
         if (bbd.d_pending) {
-          ret << *i << ": not commited yet\n";
+          ret << *i << ": not committed yet\n";
           continue;
         }
         printDomainExtendedStatus(ret, bbd);
@@ -868,7 +868,7 @@ string Bind2Backend::DLAddDomainHandler(const vector<string>& parts, Utility::pi
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(domainname, &bbd)) {
     if (bbd.d_pending) {
-      return "Not commited yet";
+      return "Not committed yet";
     }
     return "Already loaded";
   }
@@ -1129,8 +1129,8 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
 
       if (safeGetBBDomainInfo(domain.name, &bbd)) {
         if (bbd.d_pending) {
-          SLOG(g_log << Logger::Warning << d_logprefix << " Warning! Skipping zone '" << domain.name << "' because it is not commited yet" << endl,
-               d_slog->info(Logr::Warning, "Skipping zone because it is not commited yet", "zone", Logging::Loggable(domain.name)));
+          SLOG(g_log << Logger::Warning << d_logprefix << " Warning! Skipping zone '" << domain.name << "' because it is not committed yet" << endl,
+               d_slog->info(Logr::Warning, "Skipping zone because it is not committed yet", "zone", Logging::Loggable(domain.name)));
           rejected++;
           continue;
         }
@@ -1715,7 +1715,7 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName
   bbd.updateCtime();
 
   if (startTransaction) {
-    // Remember this domain is pending until the transaction gets commited.
+    // Remember this domain is pending until the transaction gets committed.
     bbd.d_pending = true;
     startDomainCreationTransactionInternal(bbd);
   }

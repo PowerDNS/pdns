@@ -2863,7 +2863,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
     // RRset, and will need to fetch it from the backend. But we may have
     // processed a DELETE or REPLACE operation for the same RRset first, in
     // which case we can't assume querying the backend will be consistent with
-    // the results of that last operation, since we are within a not commited
+    // the results of that last operation, since we are within a not committed
     // yet transaction.
     // To be sure to work on consistent contents, without having to rely upon
     // specific backend behaviour, we will need to cache the RRset values

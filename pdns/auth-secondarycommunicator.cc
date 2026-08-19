@@ -912,7 +912,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
         }
         else {
           SLOG(g_log << Logger::Warning << ctx.logPrefix << "got " << ctx.numDeltas << " delta" << addS(ctx.numDeltas) << ", zone committed with serial " << ctx.soa_serial << endl,
-               ctx.slog->info(Logr::Warning, "IXFR: zone commited", "serial", Logging::Loggable(ctx.soa_serial), "deltas", Logging::Loggable(ctx.numDeltas)));
+               ctx.slog->info(Logr::Warning, "IXFR: zone committed", "serial", Logging::Loggable(ctx.soa_serial), "deltas", Logging::Loggable(ctx.numDeltas)));
           purgeAuthCaches(domain.operator const DNSName&().toString() + "$");
           return;
         }
