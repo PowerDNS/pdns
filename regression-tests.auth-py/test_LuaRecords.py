@@ -184,6 +184,9 @@ none.view        IN    LUA    A          ("view({{                              
                                           "{{ {{'192.168.0.0/16'}}, {{'192.168.1.54'}}}},"
                                           "{{ {{'1.2.0.0/16'}}, {{'1.2.3.4'}}}},         "
                                           " }})                                          " )
+bogus.view       IN    LUA    A          ("view({{                                     "
+                                          "{{ {{'192.168.0.0/16'}} }},"
+                                          " }})                                          " )
 *.magic          IN    LUA    A     "closestMagic()"
 www-balanced     IN           CNAME 1-1-1-3.17-1-2-4.1-2-3-5.magic.example.org.
 
@@ -931,6 +934,16 @@ class TestLuaRecords(BaseLuaTest):
         view() test where no netmask match
         """
         query = dns.message.make_query("none.view.example.org", "A")
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+        self.assertAnswerEmpty(res)
+
+    def testViewWrongData(self):
+        """
+        view() test with invalid data
+        """
+        query = dns.message.make_query("bogus.view.example.org", "A")
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
