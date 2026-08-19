@@ -1777,6 +1777,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (client) {
       return std::make_shared<dnsdist::lua::LuaServerPoolObject>(poolName);
     }
+
+    {
+      const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+      auto poolIt = config.d_pools.find(poolName);
+      if (poolIt != config.d_pools.end()) {
+        return std::make_shared<dnsdist::lua::LuaServerPoolObject>(poolName);
+      }
+    }
+
+    /* yes, we just checked, but there is room for a race where a different thread created it */
     bool created = false;
     dnsdist::configuration::updateRuntimeConfiguration([&poolName, &created](dnsdist::configuration::RuntimeConfiguration& config) {
       auto [_, inserted] = config.d_pools.emplace(poolName, ServerPool());
