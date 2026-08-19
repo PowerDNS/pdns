@@ -80,14 +80,14 @@ public:
   }; //!< Type describing the positioning within, say, a DNSPacket
 
   [[nodiscard]] static std::string placeString(uint8_t place);
-  void setContent(const string& content);
-  [[nodiscard]] string getZoneRepresentation(bool noDot = false) const;
+  void setContent(const std::string& content);
+  [[nodiscard]] std::string getZoneRepresentation(bool noDot = false) const;
 
   // data
   DNSName qname; //!< the name of this record, for example: www.powerdns.com
   DNSName ordername;
   DNSName wildcardname;
-  string content; //!< what this record points to. Example: 10.1.2.3
+  std::string content; //!< what this record points to. Example: 10.1.2.3
 
   // Aligned on 8-byte boundaries on systems where time_t is 8 bytes and int
   // is 4 bytes, aka modern linux on x86_64
@@ -265,5 +265,5 @@ uint32_t hashQuestion(const uint8_t* packet, uint16_t len, uint32_t init, bool& 
 struct TSIGTriplet
 {
   DNSName name, algo;
-  string secret;
+  std::string secret;
 };
