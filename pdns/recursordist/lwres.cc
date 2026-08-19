@@ -818,92 +818,94 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
 
   lwr->d_records.clear();
   try {
-    lwr->d_tcbit = false;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    MOADNSParser mdp(false, reinterpret_cast<const char*>(buf.data()), buf.size());
-
-    // RFC 1035 Section 4.1.1: QR must be 1 for responses
-    if (!mdp.d_header.qr) {
-      lwr->d_rcode = RCode::ServFail;
-      lwr->d_validpacket = false;
-      t_Counters.at(rec::Counter::serverParseError)++;
-      return LWResult::Result::PermanentError;
-    }
-
-    lwr->d_aabit = mdp.d_header.aa;
-    lwr->d_tcbit = mdp.d_header.tc;
-    lwr->d_rcode = mdp.d_header.rcode;
-
-    if (mdp.d_header.rcode == RCode::FormErr && mdp.d_qname.empty() && mdp.d_qtype == 0 && mdp.d_qclass == 0) {
-      if (outgoingLoggers) {
-        logIncomingResponse(outgoingLoggers, context.d_initialRequestId, uuid, address, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes, nsName);
-      }
-      lwr->d_validpacket = true;
-      return LWResult::Result::Success; // this is "success", the error is set in lwr->d_rcode
-    }
-
-    if (domain != mdp.d_qname) {
-      if (!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) { // embedded nulls are too noisy, plus empty domains are too
-        g_slogout->info(Logr::Notice, "Packet purporting to come from remote server contained wrong answer",
-                        "server", Logging::Loggable(address),
-                        "qname", Logging::Loggable(domain),
-                        "onwire", Logging::Loggable(mdp.d_qname));
-      }
-      // unexpected count has already been done @ pdns_recursor.cc
-      if (lwr->d_rcode == RCode::NoError) {
-        lwr->d_rcode = RCode::ServFail;
-      }
-      return LWResult::Result::PermanentError;
-    }
-
-    lwr->d_records.reserve(mdp.d_answers.size());
-    for (const auto& answer : mdp.d_answers) {
-      lwr->d_records.push_back(answer);
-    }
-
     bool cookieFoundInReply = false;
-    if (EDNSOpts edo; EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
-      lwr->d_haveEDNS = true;
 
-      // If we sent out ECS, we can also expect to see a return with or without ECS, the absent case
-      // is not handled explicitly. If we do see a ECS in the reply, the source part *must* match
-      // with what we sent out. See https://www.rfc-editor.org/rfc/rfc7871#section-7.3. and section
-      // 11.2.
-      // For ECS hardening mode, the case where we sent out an ECS but did not receive a matching
-      // one is handled in arecvfrom().
-      if (subnetOpts) {
-        // THE RFC is not clear about the case of having multiple ECS options. We only look at the first.
-        if (const auto opt = edo.getFirstOption(EDNSOptionCode::ECS); opt != edo.d_options.end()) {
-          EDNSSubnetOpts reso;
-          if (EDNSSubnetOpts::getFromString(opt->second, &reso)) {
-            if (!doTCP && reso.getSource() != subnetOpts->getSource()) {
-              g_slogout->info(Logr::Notice, "Incoming ECS does not match outgoing",
-                              "server", Logging::Loggable(address),
-                              "qname", Logging::Loggable(domain),
-                              "outgoing", Logging::Loggable(subnetOpts->getSource()),
-                              "incoming", Logging::Loggable(reso.getSource()));
-              return LWResult::Result::Spoofed;
-            }
-            /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
-               so we might want to still pass the information along to be able to differentiate between
-               IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
-               entries in our cache. */
-            if (reso.getScopePrefixLength() != 0) {
-              uint8_t bits = std::min(reso.getScopePrefixLength(), subnetOpts->getSourcePrefixLength());
-              auto outgoingECSAddr = subnetOpts->getSource().getNetwork();
-              outgoingECSAddr.truncate(bits);
-              srcmask = Netmask(outgoingECSAddr, bits);
+    lwr->d_tcbit = false;
+    {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      MOADNSParser mdp(false, reinterpret_cast<const char*>(buf.data()), buf.size());
+
+      // RFC 1035 Section 4.1.1: QR must be 1 for responses
+      if (!mdp.d_header.qr) {
+        lwr->d_rcode = RCode::ServFail;
+        lwr->d_validpacket = false;
+        t_Counters.at(rec::Counter::serverParseError)++;
+        return LWResult::Result::PermanentError;
+      }
+
+      lwr->d_aabit = mdp.d_header.aa;
+      lwr->d_tcbit = mdp.d_header.tc;
+      lwr->d_rcode = mdp.d_header.rcode;
+
+      if (mdp.d_header.rcode == RCode::FormErr && mdp.d_qname.empty() && mdp.d_qtype == 0 && mdp.d_qclass == 0) {
+        if (outgoingLoggers) {
+          logIncomingResponse(outgoingLoggers, context.d_initialRequestId, uuid, address, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes, nsName);
+        }
+        lwr->d_validpacket = true;
+        return LWResult::Result::Success; // this is "success", the error is set in lwr->d_rcode
+      }
+
+      if (domain != mdp.d_qname) {
+        if (!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) { // embedded nulls are too noisy, plus empty domains are too
+          g_slogout->info(Logr::Notice, "Packet purporting to come from remote server contained wrong answer",
+                          "server", Logging::Loggable(address),
+                          "qname", Logging::Loggable(domain),
+                          "onwire", Logging::Loggable(mdp.d_qname));
+        }
+        // unexpected count has already been done @ pdns_recursor.cc
+        if (lwr->d_rcode == RCode::NoError) {
+          lwr->d_rcode = RCode::ServFail;
+        }
+        return LWResult::Result::PermanentError;
+      }
+
+      if (EDNSOpts edo; EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
+        lwr->d_haveEDNS = true;
+
+        // If we sent out ECS, we can also expect to see a return with or without ECS, the absent case
+        // is not handled explicitly. If we do see a ECS in the reply, the source part *must* match
+        // with what we sent out. See https://www.rfc-editor.org/rfc/rfc7871#section-7.3. and section
+        // 11.2.
+        // For ECS hardening mode, the case where we sent out an ECS but did not receive a matching
+        // one is handled in arecvfrom().
+        if (subnetOpts) {
+          // THE RFC is not clear about the case of having multiple ECS options. We only look at the first.
+          if (const auto opt = edo.getFirstOption(EDNSOptionCode::ECS); opt != edo.d_options.end()) {
+            EDNSSubnetOpts reso;
+            if (EDNSSubnetOpts::getFromString(opt->second, &reso)) {
+              if (!doTCP && reso.getSource() != subnetOpts->getSource()) {
+                g_slogout->info(Logr::Notice, "Incoming ECS does not match outgoing",
+                                "server", Logging::Loggable(address),
+                                "qname", Logging::Loggable(domain),
+                                "outgoing", Logging::Loggable(subnetOpts->getSource()),
+                                "incoming", Logging::Loggable(reso.getSource()));
+                return LWResult::Result::Spoofed;
+              }
+              /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
+                 so we might want to still pass the information along to be able to differentiate between
+                 IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
+                 entries in our cache. */
+              if (reso.getScopePrefixLength() != 0) {
+                uint8_t bits = std::min(reso.getScopePrefixLength(), subnetOpts->getSourcePrefixLength());
+                auto outgoingECSAddr = subnetOpts->getSource().getNetwork();
+                outgoingECSAddr.truncate(bits);
+                srcmask = Netmask(outgoingECSAddr, bits);
+              }
             }
           }
         }
-      }
-      if (g_cookies && cookieSentOut && !*chained) {
-        auto [done, result] = incomingCookie(log, address, localip, *now, cookieSentOut, edo, doTCP, *lwr, cookieFoundInReply);
-        if (done) {
-          return result;
+        if (g_cookies && cookieSentOut && !*chained) {
+          auto [done, result] = incomingCookie(log, address, localip, *now, cookieSentOut, edo, doTCP, *lwr, cookieFoundInReply);
+          if (done) {
+            return result;
+          }
         }
       }
-    }
+
+      // Used to be done before EDNS processing, but getEDNSOpts() above needs
+      // to access mdp.d_answers.
+      lwr->d_records = std::move(mdp.d_answers);
+    } // end of scope for mdp
 
     // Case: we sent out a cookie but did not get one back
     if (cookieSentOut && !cookieFoundInReply && !*chained) {
