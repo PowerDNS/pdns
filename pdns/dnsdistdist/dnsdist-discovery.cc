@@ -23,12 +23,16 @@
 #include "config.h"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-backend.hh"
+#include "dnsdist-nghttp2.hh"
+#include "dnsdist-tcp.hh"
 #include "dnsdist.hh"
 #include "dnsdist-random.hh"
 #include "dnsparser.hh"
 #include "dolog.hh"
+#include "logging.hh"
 #include "sstuff.hh"
 #include "threadname.hh"
+#include <unordered_set>
 
 namespace dnsdist
 {
@@ -37,9 +41,15 @@ const DNSName ServiceDiscovery::s_discoveryDomain{"_dns.resolver.arpa."};
 const QType ServiceDiscovery::s_discoveryType{QType::SVCB};
 const uint16_t ServiceDiscovery::s_defaultDoHSVCKey{7};
 
-bool ServiceDiscovery::addUpgradeableServer(std::shared_ptr<DownstreamState>& server, uint32_t interval, std::string poolAfterUpgrade, uint16_t dohSVCKey, bool keepAfterUpgrade)
+bool ServiceDiscovery::addUpgradeableServer(std::shared_ptr<DownstreamState>& server, uint32_t interval, std::string poolAfterUpgrade, uint16_t dohSVCKey, bool keepAfterUpgrade, bool enableRedirection, uint32_t redirectInterval, std::string poolAfterRedirect, uint16_t redirectDohSVCKey, bool keepAfterRedirect, uint32_t redirectMaxFollowCount)
 {
-  s_upgradeableBackends.lock()->push_back(std::make_shared<UpgradeableBackend>(UpgradeableBackend{server, std::move(poolAfterUpgrade), 0, interval, dohSVCKey, keepAfterUpgrade}));
+  s_upgradeableBackends.lock()->push_back(std::make_shared<UpgradeableBackend>(UpgradeableBackend{server, std::move(poolAfterUpgrade), 0, interval, dohSVCKey, keepAfterUpgrade, enableRedirection, std::move(poolAfterRedirect), redirectInterval, redirectDohSVCKey, keepAfterRedirect, redirectMaxFollowCount}));
+  return true;
+}
+
+bool ServiceDiscovery::addRedirectableServer(std::shared_ptr<DownstreamState>& server, uint32_t interval, std::string poolAfterUpgrade, uint16_t dohSVCKey, bool keepAfterRedirect, uint32_t maxFollowCount)
+{
+  s_redirectableBackends.lock()->push_back(std::make_shared<RedirectableBackend>(RedirectableBackend{server, server, std::move(poolAfterUpgrade), 0, interval, dohSVCKey, keepAfterRedirect, maxFollowCount}));
   return true;
 }
 
@@ -48,6 +58,7 @@ struct DesignatedResolvers
   DNSName target;
   std::set<SvcParam> params;
   std::vector<ComboAddress> hints;
+  uint32_t ttl;
 };
 
 static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, DesignatedResolvers>& resolvers)
@@ -90,7 +101,7 @@ static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, Design
         pr.xfrSvcParamKeyVals(params);
       }
 
-      resolvers[prio] = {std::move(target), std::move(params), {}};
+      resolvers[prio] = {std::move(target), std::move(params), {}, ah.d_ttl};
     }
     else {
       pr.xfrBlob(blob);
@@ -228,6 +239,7 @@ static bool handleSVCResult(const Logr::Logger& logger, const PacketBuffer& answ
 
     tempConfig.d_subjectName = resolver.target.toStringNoDot();
     tempConfig.d_addr.sin4.sin_port = tempConfig.d_port;
+    tempConfig.d_ttl = resolver.ttl;
 
     config = std::move(tempConfig);
     return true;
@@ -236,10 +248,9 @@ static bool handleSVCResult(const Logr::Logger& logger, const PacketBuffer& answ
   return false;
 }
 
-bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const UpgradeableBackend& upgradeableBackend, ServiceDiscovery::DiscoveredResolverConfig& config)
+bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const std::shared_ptr<DownstreamState>& backend, uint16_t dohKey, ServiceDiscovery::DiscoveredResolverConfig& config)
 {
   const auto verbose = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
-  const auto& backend = upgradeableBackend.d_ds;
   const auto& addr = backend->d_config.remote;
   try {
     auto id = dnsdist::getRandomDNSID();
@@ -252,60 +263,123 @@ bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const 
 
     auto logger = topLogger.withValues("dns.query.id", Logging::Loggable(id), "dns.query.name", Logging::Loggable(s_discoveryDomain), "dns.query.type", Logging::Loggable(s_discoveryType));
 
-    uint16_t querySize = static_cast<uint16_t>(packet.size());
-    const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
-    packet.insert(packet.begin(), sizeBytes, sizeBytes + 2);
+    if (backend->getProtocol() != dnsdist::Protocol::DoH) {
+      uint16_t querySize = static_cast<uint16_t>(packet.size());
+      const uint8_t sizeBytes[] = {static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256)};
+      packet.insert(packet.begin(), sizeBytes, sizeBytes + 2);
+    }
 
     Socket sock(addr.sin4.sin_family, SOCK_STREAM);
-    sock.setNonBlocking();
+    if (backend->getProtocol() != dnsdist::Protocol::DoH) {
+      sock.setNonBlocking();
 
 #ifdef SO_BINDTODEVICE
-    if (!backend->d_config.sourceItfName.empty()) {
-      (void)setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, backend->d_config.sourceItfName.c_str(), backend->d_config.sourceItfName.length());
-    }
+      if (!backend->d_config.sourceItfName.empty()) {
+        (void)setsockopt(sock.getHandle(), SOL_SOCKET, SO_BINDTODEVICE, backend->d_config.sourceItfName.c_str(), backend->d_config.sourceItfName.length());
+      }
 #endif
 
-    if (!IsAnyAddress(backend->d_config.sourceAddr)) {
-      sock.setReuseAddr();
+      if (!IsAnyAddress(backend->d_config.sourceAddr)) {
+        sock.setReuseAddr();
 #ifdef IP_BIND_ADDRESS_NO_PORT
-      if (backend->d_config.ipBindAddrNoPort) {
-        SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
-      }
+        if (backend->d_config.ipBindAddrNoPort) {
+          SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        }
 #endif
-      sock.bind(backend->d_config.sourceAddr);
-    }
-    sock.connect(addr, backend->d_config.tcpConnectTimeout);
-
-    sock.writenWithTimeout(reinterpret_cast<const char*>(packet.data()), packet.size(), backend->d_config.tcpSendTimeout);
-
-    const struct timeval remainingTime = {.tv_sec = backend->d_config.tcpRecvTimeout, .tv_usec = 0};
-    uint16_t responseSize = 0;
-    auto got = readn2WithTimeout(sock.getHandle(), &responseSize, sizeof(responseSize), remainingTime);
-    if (got != sizeof(responseSize)) {
-      if (verbose) {
-        SLOG(warnlog("Error while waiting for the ADD upgrade response size from backend %s: %d", addr.toStringWithPort(), got),
-             logger->info(Logr::Warning, "Error while waiting for the ADD upgrade response size from backend", "value", Logging::Loggable(got), "expected", Logging::Loggable(sizeof(responseSize))));
+        sock.bind(backend->d_config.sourceAddr);
       }
-      return false;
+      sock.connect(addr, backend->d_config.tcpConnectTimeout);
     }
 
-    packet.resize(ntohs(responseSize));
+    if (backend->getProtocol() == dnsdist::Protocol::DoT) {
+      auto handler = std::make_unique<TCPIOHandler>(backend->d_config.d_tlsSubjectName, backend->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{backend->d_config.checkTimeout, 0}, backend->d_tlsCtx);
+      handler->connect(backend->d_config.tcpFastOpen, backend->d_config.remote, timeval{backend->d_config.checkTimeout, 0});
+      handler->write(reinterpret_cast<const char*>(packet.data()), packet.size(), timeval{backend->d_config.checkTimeout, 0});
 
-    got = readn2WithTimeout(sock.getHandle(), packet.data(), packet.size(), remainingTime);
-    if (got != packet.size()) {
-      if (verbose) {
-        SLOG(warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toStringWithPort(), got),
-             logger->info(Logr::Warning, "Error while waiting for the ADD upgrade response from backend", "value", Logging::Loggable(got), "expected", Logging::Loggable(packet.size())));
+      const struct timeval remainingTime = {.tv_sec = backend->d_config.tcpRecvTimeout, .tv_usec = 0};
+      uint16_t responseSize = 0;
+      auto got = handler->read(&responseSize, sizeof(responseSize), remainingTime);
+      if (got != sizeof(responseSize)) {
+        if (verbose) {
+          SLOG(warnlog("Error while waiting for the ADD upgrade response size from backend %s: %d", addr.toStringWithPort(), got),
+               logger->info(Logr::Warning, "Error while waiting for the ADD upgrade response size from backend", "value", Logging::Loggable(got), "expected", Logging::Loggable(sizeof(responseSize))));
+        }
+        return false;
       }
-      return false;
+
+      packet.resize(ntohs(responseSize));
+
+      got = handler->read(packet.data(), packet.size(), remainingTime);
+      if (got != packet.size()) {
+        if (verbose) {
+          SLOG(warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toStringWithPort(), got),
+               logger->info(Logr::Warning, "Error while waiting for the ADD upgrade response from backend", "value", Logging::Loggable(got), "expected", Logging::Loggable(packet.size())));
+        }
+        return false;
+      }
     }
+    else if (backend->getProtocol() == dnsdist::Protocol::DoH) {
+      auto sender = std::make_shared<RedirectionQuerySender>();
+      auto sliced = std::shared_ptr<TCPQuerySender>(sender);
+      auto multiplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+      auto queryBuffer = packet;
+      auto query = InternalQuery(std::move(queryBuffer), InternalQueryState());
 
-    if (packet.size() <= sizeof(struct dnsheader)) {
-      if (verbose) {
-        SLOG(warnlog("Too short answer of size %d received from the backend %s", packet.size(), addr.toStringWithPort()),
-             logger->info(Logr::Warning, "Too short answer received from the backend", "dns.response.size", Logging::Loggable(packet.size())));
+      bool result = sendH2Query(backend, multiplexer, sliced, std::move(query), true);
+      if (!result) {
+        if (verbose) {
+          SLOG(warnlog("Error sending a discovery DoH query to backend: %d", addr.toStringWithPort()),
+               logger->info(Logr::Warning, "Error sending a discovery DoH query to backend"));
+        }
+        return false;
       }
-      return false;
+      struct timeval now;
+      gettimeofday(&now, nullptr);
+      while ((multiplexer->getWatchedFDCount(false) != 0 || multiplexer->getWatchedFDCount(true) != 0) && !sender->d_error) {
+        multiplexer->run(&now);
+        handleH2Timeouts(*multiplexer, now);
+      }
+      if (sender->d_error) {
+        if (verbose) {
+          SLOG(warnlog("Error sending a discovery DoH query to backend: %d", addr.toStringWithPort()),
+               logger->info(Logr::Warning, "Error sending a discovery DoH query to backend"));
+        }
+        return false;
+      }
+      packet = sender->d_response;
+    }
+    else {
+      sock.writenWithTimeout(reinterpret_cast<const char*>(packet.data()), packet.size(), backend->d_config.tcpSendTimeout);
+
+      const struct timeval remainingTime = {.tv_sec = backend->d_config.tcpRecvTimeout, .tv_usec = 0};
+      uint16_t responseSize = 0;
+      auto got = readn2WithTimeout(sock.getHandle(), &responseSize, sizeof(responseSize), remainingTime);
+      if (got != sizeof(responseSize)) {
+        if (verbose) {
+          SLOG(warnlog("Error while waiting for the ADD upgrade response size from backend %s: %d", addr.toStringWithPort(), got),
+               logger->info(Logr::Warning, "Error while waiting for the ADD upgrade response size from backend", "value", Logging::Loggable(got), "expected", Logging::Loggable(sizeof(responseSize))));
+        }
+        return false;
+      }
+
+      packet.resize(ntohs(responseSize));
+
+      got = readn2WithTimeout(sock.getHandle(), packet.data(), packet.size(), remainingTime);
+      if (got != packet.size()) {
+        if (verbose) {
+          SLOG(warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toStringWithPort(), got),
+               logger->info(Logr::Warning, "Error while waiting for the ADD upgrade response from backend", "value", Logging::Loggable(got), "expected", Logging::Loggable(packet.size())));
+        }
+        return false;
+      }
+
+      if (packet.size() <= sizeof(struct dnsheader)) {
+        if (verbose) {
+          SLOG(warnlog("Too short answer of size %d received from the backend %s", packet.size(), addr.toStringWithPort()),
+               logger->info(Logr::Warning, "Too short answer received from the backend", "dns.response.size", Logging::Loggable(packet.size())));
+        }
+        return false;
+      }
     }
 
     struct dnsheader d;
@@ -347,7 +421,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const 
       return false;
     }
 
-    return handleSVCResult(*logger, packet, addr, upgradeableBackend.d_dohKey, config);
+    return handleSVCResult(*logger, packet, addr, dohKey, config);
   }
   catch (const std::exception& e) {
     SLOG(warnlog("Error while trying to discover backend upgrade for %s: %s", addr.toStringWithPort(), e.what()),
@@ -399,14 +473,14 @@ static bool checkBackendUsability(const Logr::Logger& logger, std::shared_ptr<Do
   return false;
 }
 
-bool ServiceDiscovery::tryToUpgradeBackend(const Logr::Logger& logger, const UpgradeableBackend& backend)
+bool ServiceDiscovery::tryToUpgradeBackend(const Logr::Logger& logger, const UpgradeableBackend& backend, std::shared_ptr<DownstreamState>& upgradedBackend)
 {
   ServiceDiscovery::DiscoveredResolverConfig discoveredConfig;
 
   VERBOSESLOG(infolog("Trying to discover configuration for backend %s", backend.d_ds->getNameWithAddr()),
               logger.info(Logr::Info, "Trying to discover upgrade configuration for backend"));
 
-  if (!ServiceDiscovery::getDiscoveredConfig(logger, backend, discoveredConfig)) {
+  if (!ServiceDiscovery::getDiscoveredConfig(logger, backend.d_ds, backend.d_dohKey, discoveredConfig)) {
     return false;
   }
 
@@ -501,6 +575,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const Logr::Logger& logger, const Upg
     }
 
     dnsdist::backend::registerNewBackend(newServer);
+    upgradedBackend = newServer;
 
     if (!backend.keepAfterUpgrade) {
       backend.d_ds->stop();
@@ -511,6 +586,154 @@ bool ServiceDiscovery::tryToUpgradeBackend(const Logr::Logger& logger, const Upg
   catch (const std::exception& e) {
     SLOG(warnlog("Error when trying to upgrade a discovered backend: %s", e.what()),
          logger.error(Logr::Warning, e.what(), "Error when trying to upgrade a discovered backend"));
+  }
+
+  return false;
+}
+
+bool ServiceDiscovery::tryToRedirectBackend(const Logr::Logger& logger, RedirectableBackend& backend, uint32_t& ttl)
+{
+  ServiceDiscovery::DiscoveredResolverConfig discoveredConfig;
+
+  VERBOSESLOG(infolog("Trying to discover redirection configuration for backend %s", backend.d_origDs->getNameWithAddr()),
+              logger.info(Logr::Info, "Trying to discover redirection configuration for backend"));
+
+  // Start the redirection from the original server always
+  std::shared_ptr<DownstreamState> newServer = backend.d_origDs;
+  ttl = std::numeric_limits<uint32_t>::max();
+
+  uint32_t redirects = 0;
+  std::unordered_set<ServiceDiscovery::DiscoveredResolverConfig> discoveredResolvers = {discoveredConfig};
+
+  try {
+    while (redirects < backend.d_maxFollowCount) {
+      discoveredConfig = {};
+      if (!ServiceDiscovery::getDiscoveredConfig(logger, newServer, backend.d_dohKey, discoveredConfig)) {
+        return false;
+      }
+
+      if (discoveredConfig.d_protocol != dnsdist::Protocol::DoT && discoveredConfig.d_protocol != dnsdist::Protocol::DoH) {
+        return false;
+      }
+
+      // Loop detected, exit
+      if (discoveredResolvers.find(discoveredConfig) != discoveredResolvers.end()) {
+        break;
+      }
+
+      discoveredResolvers.insert(discoveredConfig);
+
+      DownstreamState::Config config(newServer->d_config);
+      config.remote = discoveredConfig.d_addr;
+      config.remote.setPort(discoveredConfig.d_port);
+
+      if (backend.d_keepAfterRedirect && config.d_availability == DownstreamState::Availability::Up) {
+        config.d_availability = DownstreamState::Availability::Auto;
+        config.d_healthCheckMode = DownstreamState::HealthCheckMode::Active;
+      }
+
+      ComboAddress::addressOnlyEqual comparator;
+      config.d_dohPath = discoveredConfig.d_dohPath;
+      if (!discoveredConfig.d_subjectName.empty() && comparator(config.remote, newServer->d_config.remote) && !config.d_tlsSubjectIsAddr) {
+        /* same address, we can used the supplied name for validation */
+        config.d_tlsSubjectName = discoveredConfig.d_subjectName;
+        config.d_tlsSubjectIsAddr = false;
+      }
+      else {
+        /* different name, or using IP address and
+           draft-ietf-add-encrypted-dns-server-redirection Section 6.3 states:
+           When a resolver is discovered using DDR's Discovery Using Resolver IP
+           Addresses mechanism defined in Section 4 of [RFC9462], the server's
+           identity used for TLS purposes is its IP address, not its domain
+           name.  This means servers and clients MUST use the original server's
+           IP address, not the IP address of the previous server in the event of
+           redirection chains, in the SAN field of destination servers to
+           validate the redirection.
+        */
+        config.d_tlsSubjectName = backend.d_origDs->d_config.remote.toString();
+        config.d_tlsSubjectIsAddr = true;
+      }
+
+      if (!backend.d_poolAfterRedirect.empty()) {
+        config.pools.clear();
+        config.pools.insert(backend.d_poolAfterRedirect);
+      }
+
+      /* create new backend, put it into the right pool(s) */
+      auto tlsCtx = getTLSContext(config.d_tlsParams);
+      auto nextServer = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), true);
+
+      /* check that we can connect to the backend (including certificate validation */
+      if (!checkBackendUsability(logger, nextServer)) {
+        VERBOSESLOG(infolog("Failed to use the redirected server %s, skipping for now", newServer->getNameWithAddr()),
+                    logger.info(Logr::Info, "Failed to use the redirected server, skipping for now"));
+        break;
+      }
+
+      newServer->stop();
+      newServer = nextServer;
+      ttl = std::min(discoveredConfig.d_ttl, ttl);
+    }
+
+    if (newServer == backend.d_origDs) {
+      return false;
+    }
+
+    if (!newServer->d_config.pools.empty()) {
+      for (const auto& poolName : newServer->d_config.pools) {
+        addServerToPool(poolName, newServer);
+      }
+    }
+    else {
+      addServerToPool("", newServer);
+    }
+
+    newServer->start();
+
+    SLOG(infolog("Added redirected server %s", newServer->getNameWithAddr()),
+         logger.info(Logr::Info, "Added redirected server", "server", Logging::Loggable(newServer->getNameWithAddr()), "server22", Logging::Loggable(newServer->d_config.remote.toStringWithPort())));
+
+    /* remove the existing backend */
+    if (!backend.d_keepAfterRedirect) {
+      dnsdist::configuration::updateRuntimeConfiguration([&backend](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+        auto& backends = runtimeConfig.d_backends;
+        for (auto backendIt = backends.begin(); backendIt != backends.end(); ++backendIt) {
+          if (*backendIt == backend.d_origDs || *backendIt == backend.d_currentDs) {
+            backends.erase(backendIt);
+            break;
+          }
+        }
+      });
+
+      // Remove the original
+      for (const string& poolName : backend.d_origDs->d_config.pools) {
+        removeServerFromPool(poolName, backend.d_origDs);
+      }
+      /* the server might also be in the default pool */
+      removeServerFromPool("", backend.d_origDs);
+    }
+
+    if (backend.d_currentDs) {
+      for (const string& poolName : backend.d_currentDs->d_config.pools) {
+        removeServerFromPool(poolName, backend.d_currentDs);
+      }
+      /* the server might also be in the default pool */
+      removeServerFromPool("", backend.d_currentDs);
+
+      backend.d_currentDs->stop();
+    }
+
+    dnsdist::backend::registerNewBackend(newServer);
+    if (!backend.d_keepAfterRedirect) {
+      backend.d_origDs->stop();
+    }
+    backend.d_currentDs = newServer;
+
+    return true;
+  }
+  catch (const std::exception& e) {
+    SLOG(warnlog("Error when trying to redirect a backend: %s", e.what()),
+         logger.error(Logr::Warning, e.what(), "Error when trying to redirect a backend"));
   }
 
   return false;
@@ -538,9 +761,13 @@ void ServiceDiscovery::worker()
           continue;
         }
 
-        auto upgraded = tryToUpgradeBackend(*backendLogger, *backend);
+        std::shared_ptr<DownstreamState> newServer;
+        auto upgraded = tryToUpgradeBackend(*backendLogger, *backend, newServer);
         if (upgraded) {
           upgradedBackends.insert(backend->d_ds);
+          if (backend->d_enableRedirect) {
+            addRedirectableServer(newServer, backend->d_redirectInterval, backend->d_poolAfterRedirect, backend->d_redirectDohKey, backend->d_keepAfterRedirect, backend->d_redirectMaxFollowCount);
+          }
           backendIt = upgradeables.erase(backendIt);
           continue;
         }
@@ -570,6 +797,53 @@ void ServiceDiscovery::worker()
       }
     }
 
+    auto redirectables = *(s_redirectableBackends.lock());
+
+    for (auto backendIt = redirectables.begin(); backendIt != redirectables.end();) {
+      auto& backend = *backendIt;
+      auto backendLogger = logger->withValues("backend.name", Logging::Loggable(backend->d_origDs->getName()), "backend.address", Logging::Loggable(backend->d_origDs->d_config.remote));
+
+      if (backend->d_nextCheck > now) {
+        ++backendIt;
+        continue;
+      }
+
+      try {
+        uint32_t ttl = 0;
+        auto redirected = tryToRedirectBackend(*backendLogger, *backend, ttl);
+        if (!redirected) {
+          // If original server is stopped and we failed to redirect, restart the original
+          if (!backend->d_keepAfterRedirect && backend->d_origDs->isStopped()) {
+            auto originalServer = backend->d_origDs;
+            if (!originalServer->d_config.pools.empty()) {
+              for (const auto& poolName : originalServer->d_config.pools) {
+                addServerToPool(poolName, originalServer);
+              }
+            }
+            else {
+              addServerToPool("", originalServer);
+            }
+            dnsdist::backend::registerNewBackend(originalServer);
+            originalServer->start();
+          }
+          backend->d_nextCheck = now + backend->d_interval;
+        }
+        else {
+          backend->d_nextCheck = now + ttl;
+        }
+      }
+      catch (const std::exception& e) {
+        VERBOSESLOG(infolog("Exception in the Service Discovery thread: %s", e.what()),
+                    backendLogger->error(Logr::Info, e.what(), "Exception in the Service Discovery thread"));
+      }
+      catch (...) {
+        VERBOSESLOG(infolog("Exception in the Service Discovery thread"),
+                    backendLogger->info(Logr::Info, "Exception in the Service Discovery thread"));
+      }
+
+      ++backendIt;
+    }
+
     /* we could sleep until the next check but a new backend
        could be added in the meantime, so let's just check every
        minute if we have something to do */
@@ -586,5 +860,6 @@ bool ServiceDiscovery::run()
 }
 
 LockGuarded<std::vector<std::shared_ptr<ServiceDiscovery::UpgradeableBackend>>> ServiceDiscovery::s_upgradeableBackends;
+LockGuarded<std::vector<std::shared_ptr<ServiceDiscovery::RedirectableBackend>>> ServiceDiscovery::s_redirectableBackends;
 std::thread ServiceDiscovery::s_thread;
 }

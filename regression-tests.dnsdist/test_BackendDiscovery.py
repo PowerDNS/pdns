@@ -28,6 +28,11 @@ class TestBackendDiscovery(DNSDistTest):
     _badQNameBackendPort = 10615
     _svcUpgradeDoTNoPortBackendPort = 10616
     _svcUpgradeDoHNoPortBackendPort = 10617
+    _svcUpgradeDoTThenRedirect = 10618
+    _svcUpgradeDoHThenRedirect = 10619
+    _svcUpgradeDoHThenRedirectIntoFailure = 10620
+    _svcUpgradeDoTThenRedirectLoop = 10621
+    _svcUpgradeDoTRedirectAndKeep = 10622
     _upgradedBackendsPool = "upgraded"
 
     _consoleKey = DNSDistTest.generateConsoleKey()
@@ -54,6 +59,11 @@ class TestBackendDiscovery(DNSDistTest):
         "_badQNameBackendPort",
         "_svcUpgradeDoTNoPortBackendPort",
         "_svcUpgradeDoHNoPortBackendPort",
+        "_svcUpgradeDoTThenRedirect",
+        "_svcUpgradeDoHThenRedirect",
+        "_svcUpgradeDoHThenRedirectIntoFailure",
+        "_svcUpgradeDoTThenRedirectLoop",
+        "_svcUpgradeDoTRedirectAndKeep",
     ]
     _config_template = """
     setKey("%s")
@@ -114,6 +124,22 @@ class TestBackendDiscovery(DNSDistTest):
 
     -- SVCB upgrade to DoH, same address, no port specified via SVCB
     newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, autoUpgradeKeep=false}:setUp()
+
+    -- SVCB upgrade to DoT, then redirect from upgraded
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, enableRedirection=true}:setUp()
+
+    -- SVCB upgrade to DoH, then redirect from upgraded
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, enableRedirection=true}:setUp()
+
+    -- SVCB upgrade to DoH, then redirect from upgraded into failure, so
+    -- upgraded should be kept
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, enableRedirection=true}:setUp()
+
+    -- SVCB upgrade to DoT, then redirect into loop, which should be stopped
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, enableRedirection=true}:setUp()
+
+    -- SVCB upgrade to DoT, then redirect and keep
+    newServer{address="127.0.0.1:%d", caStore='ca.pem', autoUpgrade=true, enableRedirection=true, redirectionKeep=true}:setUp()
     """
     _verboseMode = True
 
@@ -288,6 +314,74 @@ class TestBackendDiscovery(DNSDistTest):
         )
         response.answer.append(rrset)
         return response.to_wire()
+
+    @staticmethod
+    def RedirectionGenericCallback(request, alpn, port, extra=""):
+        response = dns.message.make_response(request)
+        rrset = dns.rrset.from_text(
+            request.question[0].name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SVCB,
+            f'1 tls.tests.dnsdist.org. alpn="{alpn}" port={port} ipv4hint=127.0.0.1 {extra}',
+        )
+        response.answer.append(rrset)
+        # add a useless A record for good measure
+        rrset = dns.rrset.from_text(request.question[0].name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
+        response.answer.append(rrset)
+        # plus more useless records in authority
+        rrset = dns.rrset.from_text(request.question[0].name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
+        response.authority.append(rrset)
+        # and finally valid, albeit useless, hints
+        rrset = dns.rrset.from_text("tls.tests.dnsdist.org.", 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.additional.append(rrset)
+        rrset = dns.rrset.from_text("tls.tests.dnsdist.org.", 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
+        response.additional.append(rrset)
+        return response.to_wire()
+
+    @staticmethod
+    def UpgradeDoTToRedirectCallback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "dot", 10657)
+
+    @staticmethod
+    def RedirectDoTCallback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "dot", 10658)
+
+    @staticmethod
+    def UpgradeDoHToRedirectCallback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "h2", 10659, 'key7="/dns-query{?dns}"')
+
+    @staticmethod
+    def RedirectDoHCallback(request, requestHeaders, fromQueue, toQueue, conn):
+        return 200, TestBackendDiscovery.RedirectionGenericCallback(request, "h2", 10660, 'key7="/dns-query{?dns}"')
+
+    @staticmethod
+    def UpgradeDoHToRedirectIntoFailureCallback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "h2", 10661, 'key7="/dns-query{?dns}"')
+
+    @staticmethod
+    def RedirectDoHFailureCallback(request, requestHeaders, fromQueue, toQueue, conn):
+        return 400, ""
+
+    @staticmethod
+    def UpgradeDoTToRedirectLoopCallback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "dot", 10662)
+
+    @staticmethod
+    def RedirectLoop1Callback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "dot", 10663)
+
+    @staticmethod
+    def RedirectLoop2Callback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "dot", 10662)
+
+    @staticmethod
+    def UpgradeDoTThenKeepCallback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "dot", 10664)
+
+    @staticmethod
+    def RedirectDoTThenKeepCallback(request):
+        return TestBackendDiscovery.RedirectionGenericCallback(request, "dot", 10665)
 
     @classmethod
     def startResponders(cls):
@@ -594,6 +688,227 @@ class TestBackendDiscovery(DNSDistTest):
         TCPUpgradeToDoHNoPortResponder.daemon = True
         TCPUpgradeToDoHNoPortResponder.start()
 
+        UpgradeToRedirectResponder = threading.Thread(
+            name="upgrade to DoT redirection Responder",
+            target=cls.TCPResponder,
+            args=[
+                cls._svcUpgradeDoTThenRedirect,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.UpgradeDoTToRedirectCallback,
+                None,
+                False,
+                "127.0.0.1",
+                True,
+            ],
+        )
+        UpgradeToRedirectResponder.daemon = True
+        UpgradeToRedirectResponder.start()
+        RedirectionResponder = threading.Thread(
+            name="DoT Redirection Responder",
+            target=cls.TCPResponder,
+            args=[
+                10657,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectDoTCallback,
+                tlsContext,
+            ],
+        )
+        RedirectionResponder.daemon = True
+        RedirectionResponder.start()
+        # and the corresponding redirected responder
+        RedirectedResponder = threading.Thread(
+            name="DoT Redirected responder",
+            target=cls.TCPResponder,
+            args=[
+                10658,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectDoTCallback,
+                tlsContext,
+            ],
+        )
+        RedirectedResponder.daemon = True
+        RedirectedResponder.start()
+
+        UpgradeToDoHRedirectResponder = threading.Thread(
+            name="upgrade to redirection Responder",
+            target=cls.TCPResponder,
+            args=[
+                cls._svcUpgradeDoHThenRedirect,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.UpgradeDoHToRedirectCallback,
+            ],
+        )
+        UpgradeToDoHRedirectResponder.daemon = True
+        UpgradeToDoHRedirectResponder.start()
+        DoHRedirectionResponder = threading.Thread(
+            name="DoH Redirection Responder",
+            target=cls.DOHResponder,
+            args=[
+                10659,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectDoHCallback,
+                tlsContext,
+            ],
+        )
+        DoHRedirectionResponder.daemon = True
+        DoHRedirectionResponder.start()
+        # and the corresponding redirected responder
+        DoHRedirectedResponder = threading.Thread(
+            name="DoH upgraded different addr 2 Responder",
+            target=cls.DOHResponder,
+            args=[
+                10660,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectDoHCallback,
+                tlsContext,
+            ],
+        )
+        DoHRedirectedResponder.daemon = True
+        DoHRedirectedResponder.start()
+
+        UpgradeToDoHRedirectIntoFailureResponder = threading.Thread(
+            name="upgrade to redirection Responder into failure",
+            target=cls.TCPResponder,
+            args=[
+                cls._svcUpgradeDoHThenRedirectIntoFailure,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.UpgradeDoHToRedirectIntoFailureCallback,
+            ],
+        )
+        UpgradeToDoHRedirectIntoFailureResponder.daemon = True
+        UpgradeToDoHRedirectIntoFailureResponder.start()
+        DoHRedirectionFailureResponder = threading.Thread(
+            name="DoH Redirection failure Responder",
+            target=cls.DOHResponder,
+            args=[
+                10661,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectDoHFailureCallback,
+                tlsContext,
+            ],
+        )
+        DoHRedirectionFailureResponder.daemon = True
+        DoHRedirectionFailureResponder.start()
+
+        UpgradeToDoTRedirectIntoLoopResponder = threading.Thread(
+            name="upgrade to redirection Responder into loop",
+            target=cls.TCPResponder,
+            args=[
+                cls._svcUpgradeDoTThenRedirectLoop,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.UpgradeDoTToRedirectLoopCallback,
+            ],
+        )
+        UpgradeToDoTRedirectIntoLoopResponder.daemon = True
+        UpgradeToDoTRedirectIntoLoopResponder.start()
+        DoTRedirectionLoop1Responder = threading.Thread(
+            name="DoT Redirection loop Responder 1",
+            target=cls.TCPResponder,
+            args=[
+                10662,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectLoop1Callback,
+                tlsContext,
+            ],
+        )
+        DoTRedirectionLoop1Responder.daemon = True
+        DoTRedirectionLoop1Responder.start()
+        DoTRedirectionLoop2Responder = threading.Thread(
+            name="DoT Redirection loop Responder 2",
+            target=cls.TCPResponder,
+            args=[
+                10663,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectLoop2Callback,
+                tlsContext,
+            ],
+        )
+        DoTRedirectionLoop2Responder.daemon = True
+        DoTRedirectionLoop2Responder.start()
+
+        UpgradeToRedirectAndKeepResponder = threading.Thread(
+            name="upgrade to DoT redirection and keep Responder",
+            target=cls.TCPResponder,
+            args=[
+                cls._svcUpgradeDoTRedirectAndKeep,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.UpgradeDoTThenKeepCallback,
+                None,
+                False,
+                "127.0.0.1",
+                True,
+            ],
+        )
+        UpgradeToRedirectAndKeepResponder.daemon = True
+        UpgradeToRedirectAndKeepResponder.start()
+        RedirectAndKeepResponder = threading.Thread(
+            name="DoT Redirection and keep Responder",
+            target=cls.TCPResponder,
+            args=[
+                10664,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectDoTThenKeepCallback,
+                tlsContext,
+            ],
+        )
+        RedirectAndKeepResponder.daemon = True
+        RedirectAndKeepResponder.start()
+        # and the corresponding redirected responder
+        RedirectedAndKeepResponder = threading.Thread(
+            name="DoT Redirected and keep responder",
+            target=cls.TCPResponder,
+            args=[
+                10665,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.RedirectDoTThenKeepCallback,
+                tlsContext,
+            ],
+        )
+        RedirectedAndKeepResponder.daemon = True
+        RedirectedAndKeepResponder.start()
+
     def checkBackendsUpgraded(self):
         output = self.sendConsoleCommand("showServers()")
         print(output)
@@ -604,7 +919,7 @@ class TestBackendDiscovery(DNSDistTest):
                 continue
             tokens = line.split()
             self.assertTrue(len(tokens) == 13 or len(tokens) == 14)
-            if tokens[1] == "127.0.0.1:10652":
+            if tokens[1] == "127.0.0.1:10652" or tokens[1] == "127.0.0.1:10665":
                 # in this particular case, the upgraded backend
                 # does not replace the existing one and thus
                 # the health-check is forced to auto (or lazy auto)
@@ -639,6 +954,12 @@ class TestBackendDiscovery(DNSDistTest):
             "127.0.0.1:10652": "upgraded",
             "127.0.0.1:10653": "another-pool",
             "127.0.0.2:10654": "",
+            "127.0.0.1:10661": "",
+            "127.0.0.1:10658": "",
+            "127.0.0.1:10660": "",
+            "127.0.0.1:10662": "",
+            "127.0.0.1:10664": "",
+            "127.0.0.1:10665": "",
         }
         print(backends)
         return backends == expected
