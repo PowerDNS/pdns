@@ -2256,7 +2256,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
     if (makeDomainTransaction) {
       domainInfo.backend->abortTransaction();
     }
-    throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused");
+    throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused or failed");
   }
 
   if (!makeDomainTransaction) {

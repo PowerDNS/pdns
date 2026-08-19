@@ -1995,7 +1995,7 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
   DomainInfo dstinfo;
   DNSResourceRecord rr; // NOLINT(readability-identifier-length)
 
-  uint32_t tgt_caps = tgt->getCapabilities();
+  auto tgt_caps = tgt->getCapabilities();
   // Check target backend fits the requirements (only matters for b2b-migrate)
   // TODO: figure a way to quickly know if there are comments and reject a
   // target backend without comments support

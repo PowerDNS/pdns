@@ -299,13 +299,13 @@ public:
     return false;
   }
 
-  //! starts the transaction for replacing existing domain qname of id domainId.
+  //! starts the transaction for replacing existing zone qname of id domainId.
   virtual bool startDomainCreationTransaction(const ZoneName& /* qname */, domainid_t /* domainId */)
   {
     return false;
   }
 
-  //! starts the transaction for modifying existing domain qname.
+  //! starts the transaction for modifying existing zone qname.
   virtual bool startDomainModificationTransaction(const ZoneName& /* qname */)
   {
     return false;
