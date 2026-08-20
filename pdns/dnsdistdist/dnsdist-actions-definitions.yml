@@ -559,7 +559,7 @@
       rust-type: "String"
       description: "The address and port of the remote server"
     - name: "lca"
-      type: "ComboAddress"
+      type: "OptionalComboAddress"
       rust-type: "String"
       default: ""
       description: "The source address to use to send packets to the remote server"
