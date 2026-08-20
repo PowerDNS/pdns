@@ -198,7 +198,7 @@ struct QClass
   }
   [[nodiscard]] std::string toString() const;
 
-  static const QClass IN; // NOLINT readability-indentifier-length
+  static const QClass IN; // NOLINT(readability-identifier-length)
   static const QClass CHAOS;
   static const QClass NONE;
   static const QClass ANY;
@@ -207,7 +207,7 @@ private:
   uint16_t qclass;
 };
 
-constexpr QClass QClass::IN(1); // NOLINT readability-indentifier-length
+constexpr QClass QClass::IN(1); // NOLINT(readability-identifier-length)
 constexpr QClass QClass::CHAOS(3);
 constexpr QClass QClass::NONE(254);
 constexpr QClass QClass::ANY(255);
