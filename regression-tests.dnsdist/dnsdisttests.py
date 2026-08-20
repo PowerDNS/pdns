@@ -114,7 +114,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _extraStartupSleep = 0
     _enableStructuredLoggingOnCL = True
     _dnsDistPort = pickAvailablePort()
-    _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
 
     @staticmethod
@@ -167,7 +166,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     @classmethod
     def startDNSDist(cls):
         cls._dnsDistPort = pickAvailablePort()
-        cls._consolePort = pickAvailablePort()
 
         print("Launching dnsdist..")
         if cls._yaml_config_template:
@@ -273,6 +271,14 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             cls.waitForTCPSocket(cls._alternateListeningAddr, cls._alternateListeningPort)
         else:
             cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._dnsDistPort)
+
+        consolePort = getattr(cls, "_consolePort", None)
+        if consolePort:
+            cls.waitForTCPSocket(cls._dnsDistListeningAddr, consolePort)
+
+        webPort = getattr(cls, "_webServerPort", None)
+        if webPort:
+            cls.waitForTCPSocket(cls._dnsDistListeningAddr, webPort)
 
         if cls._dnsdist.poll() is not None:
             print(f"\n*** startDNSDist log for {logFile} ***")

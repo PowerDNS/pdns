@@ -20,6 +20,7 @@ except NameError:
 class DNSDistTLSSessionResumptionTest(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     @classmethod
     def checkSessionResumed(

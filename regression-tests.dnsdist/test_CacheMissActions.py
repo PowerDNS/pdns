@@ -9,6 +9,7 @@ from dnsdisttests import DNSDistTest, pickAvailablePort
 class TestCacheMissSelfAnswered(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
 
     _config_template = """
@@ -76,6 +77,7 @@ class TestCacheMissSelfAnswered(DNSDistTest):
 class TestCacheMissGoToADifferentPool(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _testServer2Port = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",

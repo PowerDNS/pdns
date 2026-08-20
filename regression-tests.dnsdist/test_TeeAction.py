@@ -10,6 +10,7 @@ from proxyprotocolutils import ProxyProtocolUDPResponder
 class TestTeeAction(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _teeServerPort = pickAvailablePort()
     _teeProxyServerPort = pickAvailablePort()
     _toTeeQueue = Queue()

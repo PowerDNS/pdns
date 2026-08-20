@@ -5,7 +5,7 @@ import socket
 import time
 import unittest
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
 class TestAdvancedFixupCase(DNSDistTest):
@@ -133,6 +133,7 @@ class TestAdvancedIncludeDir(DNSDistTest):
 class TestStatNodeRespRingSince(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")
@@ -793,6 +794,7 @@ class TestChangeName(DNSDistTest):
 class TestFlagsOnTimeout(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")

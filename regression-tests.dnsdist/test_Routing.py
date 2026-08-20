@@ -899,6 +899,7 @@ class TestRoutingHighValueWRandom(DNSDistTest):
     _testServer2Port = pickAvailablePort()
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort", "_testServer2Port"]
     _config_template = """
     setKey("%s")
@@ -1244,6 +1245,7 @@ class TestRoutingOrderedWRandUntag(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _testServer1Port = pickAvailablePort()
     _testServer2Port = pickAvailablePort()
     _testServer3Port = pickAvailablePort()

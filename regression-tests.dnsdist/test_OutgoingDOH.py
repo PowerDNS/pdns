@@ -263,6 +263,7 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
     _tlsProvider = "openssl"
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
@@ -320,6 +321,7 @@ class TestOutgoingDOHGnuTLS(DNSDistTest, OutgoingDOHTests):
     _tlsProvider = "gnutls"
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
@@ -365,6 +367,7 @@ class TestOutgoingDOHOpenSSLYaml(DNSDistTest, OutgoingDOHTests):
     _tlsProvider = "openssl"
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = []
     _config_template = ""
     _yaml_config_template = """---
@@ -513,6 +516,7 @@ class TestOutgoingDOHOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTest
     _tlsProvider = "openssl"
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
@@ -557,6 +561,7 @@ class TestOutgoingDOHGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTests
     _tlsProvider = "gnutls"
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
