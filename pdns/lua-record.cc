@@ -1638,6 +1638,9 @@ static bool lua_netmask(const iplist_t& ips)
 static string lua_view(const vector<pair<int, vector<pair<int, iplist_t> > > >& pairs)
 {
   for(const auto& rule : pairs) {
+    if (rule.second.size() < 2) {
+      throw std::invalid_argument("Invalid view data");
+    }
     const auto& netmasks=rule.second[0].second;
     const auto& destinations=rule.second[1].second;
     for(const auto& nmpair : netmasks) {
