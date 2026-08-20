@@ -46,6 +46,7 @@ void setupLuaBindingsDNSParser(LuaContext& luaCtx);
 void setupLuaBindingsDNSQuestion(LuaContext& luaCtx);
 void setupLuaBindingsMMDB(LuaContext& luaCtx);
 void setupLuaBindingsKVS(LuaContext& luaCtx, bool client);
+void setupLuaBindingsRedis(LuaContext& luaCtx, bool client);
 void setupLuaBindingsLogging(LuaContext& luaCtx);
 void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client, bool configCheck);
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client);
