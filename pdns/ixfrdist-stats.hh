@@ -111,4 +111,4 @@ class ixfrdistStats {
     };
 };
 
-extern string doGetStats();
+extern std::string doGetStats();
