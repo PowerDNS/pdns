@@ -174,14 +174,14 @@ static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_pt
 
 static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const struct timeval& queryTime, const ComboAddress& localip, const ComboAddress& address, DnstapMessage::ProtocolType protocol, const DNSName& auth, const vector<uint8_t>& packet)
 {
-  if (fstreamLoggers == nullptr)
+  if (fstreamLoggers == nullptr) {
     return;
-
-  struct timespec ts;
-  TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
+  }
+  struct timespec timeStamp{};
+  TIMEVAL_TO_TIMESPEC(&queryTime, &timeStamp);
   std::string str;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  DnstapMessage message(std::move(str), DnstapMessage::MessageType::resolver_query, SyncRes::s_serverID, &localip, &address, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts, nullptr, auth);
+  DnstapMessage message(std::move(str), DnstapMessage::MessageType::resolver_query, SyncRes::s_serverID, &localip, &address, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &timeStamp, nullptr, auth);
   str = message.getBuffer();
 
   for (auto& logger : *fstreamLoggers) {
@@ -204,15 +204,16 @@ static bool isEnabledForResponses(const std::shared_ptr<std::vector<std::unique_
 
 static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers, const ComboAddress& localip, const ComboAddress& address, DnstapMessage::ProtocolType protocol, const DNSName& auth, const PacketBuffer& packet, const struct timeval& queryTime, const struct timeval& replyTime)
 {
-  if (fstreamLoggers == nullptr)
+  if (fstreamLoggers == nullptr) {
     return;
-
-  struct timespec ts1, ts2;
-  TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
-  TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
+  }
+  struct timespec timeStamp1{};
+  struct timespec timeStamp2{};
+  TIMEVAL_TO_TIMESPEC(&queryTime, &timeStamp1);
+  TIMEVAL_TO_TIMESPEC(&replyTime, &timeStamp2);
   std::string str;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  DnstapMessage message(std::move(str), DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &address, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts1, &ts2, auth);
+  DnstapMessage message(std::move(str), DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &address, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &timeStamp1, &timeStamp2, auth);
   str = message.getBuffer();
 
   for (auto& logger : *fstreamLoggers) {
@@ -242,38 +243,38 @@ static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<R
 
   static thread_local std::string buffer;
   buffer.clear();
-  pdns::ProtoZero::Message m{buffer};
-  m.setType(pdns::ProtoZero::Message::MessageType::DNSOutgoingQueryType);
-  m.setMessageIdentity(uuid);
-  m.setSocketFamily(address.sin4.sin_family);
+  pdns::ProtoZero::Message message{buffer};
+  message.setType(pdns::ProtoZero::Message::MessageType::DNSOutgoingQueryType);
+  message.setMessageIdentity(uuid);
+  message.setSocketFamily(address.sin4.sin_family);
   if (!doTCP) {
-    m.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::UDP);
+    message.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::UDP);
   }
   else if (!tls) {
-    m.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::TCP);
+    message.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::TCP);
   }
   else {
-    m.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::DoT);
+    message.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::DoT);
   }
 
-  m.setTo(address);
-  m.setInBytes(bytes);
-  m.setTime();
-  m.setId(qid);
-  m.setQuestion(domain, type, QClass::IN);
-  m.setToPort(address.getPort());
-  m.setServerIdentity(SyncRes::s_serverID);
+  message.setTo(address);
+  message.setInBytes(bytes);
+  message.setTime();
+  message.setId(qid);
+  message.setQuestion(domain, type, QClass::IN);
+  message.setToPort(address.getPort());
+  message.setServerIdentity(SyncRes::s_serverID);
 
   if (initialRequestId) {
-    m.setInitialRequestID(*initialRequestId);
+    message.setInitialRequestID(*initialRequestId);
   }
 
   if (srcmask) {
-    m.setEDNSSubnet(*srcmask, 128);
+    message.setEDNSSubnet(*srcmask, 128);
   }
 
   if (!nsName.empty()) {
-    m.setMeta("nsName", {nsName}, {});
+    message.setMeta("nsName", {nsName}, {});
   }
   for (auto& logger : *outgoingLoggers) {
     if (logger->logQueries()) {
@@ -302,52 +303,52 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
 
   static thread_local std::string buffer;
   buffer.clear();
-  pdns::ProtoZero::RecMessage m{buffer};
-  m.setType(pdns::ProtoZero::Message::MessageType::DNSIncomingResponseType);
-  m.setMessageIdentity(uuid);
-  m.setSocketFamily(address.sin4.sin_family);
+  pdns::ProtoZero::RecMessage message{buffer};
+  message.setType(pdns::ProtoZero::Message::MessageType::DNSIncomingResponseType);
+  message.setMessageIdentity(uuid);
+  message.setSocketFamily(address.sin4.sin_family);
   if (!doTCP) {
-    m.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::UDP);
+    message.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::UDP);
   }
   else if (!tls) {
-    m.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::TCP);
+    message.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::TCP);
   }
   else {
-    m.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::DoT);
+    message.setSocketProtocol(pdns::ProtoZero::Message::TransportProtocol::DoT);
   }
-  m.setTo(address);
-  m.setInBytes(bytes);
-  m.setTime();
-  m.setId(qid);
-  m.setQuestion(domain, type, QClass::IN);
-  m.setToPort(address.getPort());
-  m.setServerIdentity(SyncRes::s_serverID);
+  message.setTo(address);
+  message.setInBytes(bytes);
+  message.setTime();
+  message.setId(qid);
+  message.setQuestion(domain, type, QClass::IN);
+  message.setToPort(address.getPort());
+  message.setServerIdentity(SyncRes::s_serverID);
 
   if (initialRequestId) {
-    m.setInitialRequestID(*initialRequestId);
+    message.setInitialRequestID(*initialRequestId);
   }
 
   if (srcmask) {
-    m.setEDNSSubnet(*srcmask, 128);
+    message.setEDNSSubnet(*srcmask, 128);
   }
   if (!nsName.empty()) {
-    m.setMeta("nsName", {nsName}, {});
+    message.setMeta("nsName", {nsName}, {});
   }
 
-  m.startResponse();
-  m.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
+  message.startResponse();
+  message.setQueryTime(queryTime.tv_sec, queryTime.tv_usec);
   if (rcode == -1) {
-    m.setNetworkErrorResponseCode();
+    message.setNetworkErrorResponseCode();
   }
   else {
-    m.setResponseCode(rcode);
+    message.setResponseCode(rcode);
   }
 
   const auto limit = (outgoingLoggers->size() > 0 ? outgoingLoggers->at(0)->maxSize() : std::numeric_limits<uint16_t>::max()) / 2;
   for (const auto& record : records) {
-    m.addRR(record, exportTypes, std::nullopt, limit);
+    message.addRR(record, exportTypes, std::nullopt, limit);
   }
-  m.commitResponse();
+  message.commitResponse();
 
   for (auto& logger : *outgoingLoggers) {
     if (logger->logResponses()) {
@@ -360,7 +361,7 @@ class BindError
 {
 };
 
-static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std::optional<pdns::AddressAndInterface> localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName, std::string& subjectName)
+static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std::optional<pdns::AddressAndInterface>& localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName, std::string& subjectName)
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && remote.getPort() == 853;
 
@@ -439,16 +440,14 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   return true;
 }
 
-static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection,
+static LWResult::Result tcpsendrecv(const ComboAddress& address, TCPOutConnectionManager::Connection& connection,
                                     pdns::AddressAndInterface& localip, const vector<uint8_t>& vpacket, size_t& len, PacketBuffer& buf,
                                     const std::string& nsName, const std::string& subjectName)
 {
-  socklen_t slen = ip.getSocklen();
-  uint16_t tlen = htons(vpacket.size());
-  const char* lenP = reinterpret_cast<const char*>(&tlen);
-
   len = 0; // in case of error
-  localip.d_address.sin4.sin_family = ip.sin4.sin_family;
+  localip.d_address.sin4.sin_family = address.sin4.sin_family;
+  socklen_t slen = address.getSocklen();
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   if (getsockname(connection.d_handler->getDescriptor(), reinterpret_cast<sockaddr*>(&localip.d_address), &slen) != 0) {
     return LWResult::Result::PermanentError;
   }
@@ -463,9 +462,11 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   }
 #endif
 
+  uint16_t tlen = vpacket.size();
   PacketBuffer packet;
-  packet.reserve(2 + vpacket.size());
-  packet.insert(packet.end(), lenP, lenP + 2);
+  packet.reserve(2 + tlen);
+  packet.push_back(static_cast<uint8_t>((tlen >> 8) & 0xffU));
+  packet.push_back(static_cast<uint8_t>(tlen & 0xffU));
   packet.insert(packet.end(), vpacket.begin(), vpacket.end());
 
   LWResult::Result ret = asendtcp(packet, connection.d_handler);
@@ -474,7 +475,7 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
       auto result = connection.d_handler->getVerifyResult();
       g_slogout->info(Logr::Error, "Failed to setup TLS connection",
                       "errorcode", Logging::Loggable(result.first),
-                      "remote", Logging::Loggable(ip),
+                      "remote", Logging::Loggable(address),
                       "nsname", Logging::Loggable(nsName),
                       "subjectName", Logging::Loggable(subjectName),
                       "tlsmessage", Logging::Loggable(result.second));
@@ -501,9 +502,9 @@ static LWResult::Result tcpsendrecv(const ComboAddress& ip, TCPOutConnectionMana
   return LWResult::Result::Success;
 }
 
-static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWriter::optvect_t& opts)
+static void addPadding(const DNSPacketWriter& packetWriter, size_t bufsize, DNSPacketWriter::optvect_t& opts)
 {
-  const size_t currentSize = pw.getSizeWithOpts(opts);
+  const size_t currentSize = packetWriter.getSizeWithOpts(opts);
   if (currentSize < (bufsize - 4)) {
     const size_t remaining = bufsize - (currentSize + 4);
     /* from rfc8647, "4.1.  Recommended Strategy: Block-Length Padding":
@@ -620,22 +621,22 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, std::optional<Netmask>& srcmask, const ResolveContext& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, [[maybe_unused]] const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained, TCPOutConnectionManager::Connection& connection)
 {
-  size_t len;
+  size_t len{};
   size_t bufsize = g_outgoingEDNSBufsize;
   PacketBuffer buf;
   buf.resize(bufsize);
   vector<uint8_t> vpacket;
   //  string mapped0x20=dns0x20(domain);
   uint16_t qid = dns_random_uint16();
-  DNSPacketWriter pw(vpacket, domain, type);
+  DNSPacketWriter packetWriter(vpacket, domain, type);
   bool dnsOverTLS = SyncRes::s_dot_to_port_853 && address.getPort() == 853;
   std::string nsName;
   if (!context.d_nsName.empty()) {
     nsName = context.d_nsName.toStringNoDot();
   }
 
-  pw.getHeader()->rd = sendRDQuery;
-  pw.getHeader()->id = qid;
+  packetWriter.getHeader()->rd = sendRDQuery;
+  packetWriter.getHeader()->id = qid;
   /* RFC 6840 section 5.9:
    *  This document further specifies that validating resolvers SHOULD set
    *  the CD bit on every upstream query.  This is regardless of whether
@@ -646,7 +647,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
    * an "upstream query". To stay true to "dnssec=off means 3.X behaviour", we
    * only set +CD on forwarded query in any mode other than dnssec=off.
    */
-  pw.getHeader()->cd = (sendRDQuery && g_dnssecmode != DNSSECMode::Off);
+  packetWriter.getHeader()->cd = (sendRDQuery && g_dnssecmode != DNSSECMode::Off);
 
   std::optional<EDNSSubnetOpts> subnetOpts = std::nullopt;
   std::optional<pdns::AddressAndInterface> addressToBindTo;
@@ -665,19 +666,19 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
     }
 
     if (dnsOverTLS && g_paddingOutgoing) {
-      addPadding(pw, bufsize, opts);
+      addPadding(packetWriter, bufsize, opts);
     }
 
-    pw.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts);
-    pw.commit();
+    packetWriter.addOpt(g_outgoingEDNSBufsize, 0, g_dnssecmode == DNSSECMode::Off ? 0 : EDNSOpts::DNSSECOK, opts);
+    packetWriter.commit();
   }
   lwr->d_rcode = 0;
   lwr->d_haveEDNS = false;
-  LWResult::Result ret;
+  LWResult::Result ret{};
 
-  DTime dt;
-  dt.set();
-  *now = dt.getTimeval();
+  DTime timeTracker;
+  timeTracker.set();
+  *now = timeTracker.getTimeval();
 
   boost::uuids::uuid uuid;
   const struct timeval queryTime = *now;
@@ -704,7 +705,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
 #endif
 
   if (!doTCP) {
-    int queryfd;
+    int queryfd{};
     try {
       ret = asendto(vpacket.data(), vpacket.size(), address, addressToBindTo, qid, domain, type, subnetOpts, &queryfd, *now);
     }
@@ -781,8 +782,8 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
     } while (!isNew);
   }
 
-  lwr->d_usec = dt.udiff();
-  *now = dt.getTimeval();
+  lwr->d_usec = timeTracker.udiff();
+  *now = timeTracker.getTimeval();
 
   if (ret != LWResult::Result::Success) { // includes 'timeout'
     if (outgoingLoggers) {
@@ -817,7 +818,8 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
 
   lwr->d_records.clear();
   try {
-    lwr->d_tcbit = 0;
+    lwr->d_tcbit = false;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     MOADNSParser mdp(false, reinterpret_cast<const char*>(buf.data()), buf.size());
 
     // RFC 1035 Section 4.1.1: QR must be 1 for responses
@@ -848,7 +850,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
                         "onwire", Logging::Loggable(mdp.d_qname));
       }
       // unexpected count has already been done @ pdns_recursor.cc
-      if (!lwr->d_rcode) {
+      if (lwr->d_rcode == RCode::NoError) {
         lwr->d_rcode = RCode::ServFail;
       }
       return LWResult::Result::PermanentError;
@@ -961,7 +963,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
 
   t_Counters.at(rec::Counter::serverParseError)++;
 
-  if (!lwr->d_rcode) {
+  if (lwr->d_rcode == RCode::NoError) {
     lwr->d_rcode = RCode::ServFail;
   }
 
