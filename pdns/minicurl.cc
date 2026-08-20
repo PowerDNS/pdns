@@ -38,9 +38,9 @@ void MiniCurl::init()
 {
   static std::atomic_flag s_init = ATOMIC_FLAG_INIT;
 
-  if (s_init.test_and_set())
+  if (s_init.test_and_set()) {
     return;
-
+  }
   CURLcode code = curl_global_init(CURL_GLOBAL_ALL);
   if (code != 0) {
     throw std::runtime_error("Error initializing libcurl");
@@ -72,8 +72,8 @@ MiniCurl::~MiniCurl()
 size_t MiniCurl::write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
   if (userdata != nullptr) {
-    MiniCurl* us = static_cast<MiniCurl*>(userdata);
-    us->d_data.append(ptr, size * nmemb);
+    auto* curl = static_cast<MiniCurl*>(userdata);
+    curl->d_data.append(ptr, size * nmemb);
     return size * nmemb;
   }
   return 0;
@@ -83,8 +83,8 @@ size_t MiniCurl::write_callback(char *ptr, size_t size, size_t nmemb, void *user
 size_t MiniCurl::progress_callback(void *clientp, curl_off_t /* dltotal */, curl_off_t dlnow, curl_off_t /* ultotal */, curl_off_t /* ulnow */)
 {
   if (clientp != nullptr) {
-    MiniCurl* us = static_cast<MiniCurl*>(clientp);
-    if (us->d_byteslimit > 0 && static_cast<size_t>(dlnow) > us->d_byteslimit) {
+    auto* curl = static_cast<MiniCurl*>(clientp);
+    if (curl->d_byteslimit > 0 && static_cast<size_t>(dlnow) > curl->d_byteslimit) {
       return static_cast<size_t>(dlnow);
     }
   }
@@ -106,12 +106,14 @@ size_t MiniCurl::progress_callback(void *clientp, double dltotal, double dlnow, 
 static string extractHostFromURL(const std::string& url)
 {
   auto pos = url.find("://");
-  if(pos == string::npos)
-    throw runtime_error("Can't find host part of '"+url+"'");
+  if(pos == string::npos) {
+    throw runtime_error("Can't find host part of '" + url + "'");
+  }
   pos += 3;
   auto endpos = url.find('/', pos);
-  if(endpos == string::npos)
+  if(endpos == string::npos) {
     return url.substr(pos);
+  }
 
   return url.substr(pos, endpos-pos);
 }
@@ -127,7 +129,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
 
   clearHostsList();
 
-  if (rem) {
+  if (rem != nullptr) {
     struct curl_slist *hostlist = nullptr; // THIS SHOULD BE FREED
 
     // url = http://hostname.enzo/url
@@ -154,7 +156,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
 
     curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_RESOLVE, getCURLPtr(d_host_list));
   }
-  if(src) {
+  if (src != nullptr) {
     curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_INTERFACE, src->toString().c_str());
   }
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_FOLLOWLOCATION, true);
@@ -226,9 +228,9 @@ std::string MiniCurl::postURL(const std::string& str, const std::string& postdat
   long http_code = 0;
   curl_easy_getinfo(getCURLPtr(d_curl), CURLINFO_RESPONSE_CODE, &http_code);
 
-  if(res != CURLE_OK)
+  if(res != CURLE_OK) {
     throw std::runtime_error("Unable to post URL ("+std::to_string(http_code)+"): "+string(curl_easy_strerror(res)));
-
+  }
   std::string ret=d_data;
 
   d_data.clear();
@@ -264,7 +266,7 @@ void MiniCurl::clearHostsList()
 void MiniCurl::setHeaders(const MiniCurlHeaders& headers)
 {
   if (d_curl) {
-    for (auto& header : headers) {
+    for (const auto& header : headers) {
       std::stringstream header_ss;
       header_ss << header.first << ": " << header.second;
 #ifdef CURL_STRICTER
