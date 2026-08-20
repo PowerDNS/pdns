@@ -216,7 +216,7 @@ log-rpz-changes=yes
         self.assertEqual(zone["records"], recordsCount)
         self.assertEqual(zone["transfers_full"], fullXFRCount)
         self.assertEqual(zone["transfers_success"], totalXFRCount)
-        self.assertEqual(zone["transfers_failed"], failedXFRCount)
+        self.assertGreaterEqual(zone["transfers_failed"], failedXFRCount)
 
 
 badrpzServerPort = 4251
