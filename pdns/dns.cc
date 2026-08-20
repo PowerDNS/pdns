@@ -19,17 +19,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "dns.hh"
-#include "misc.hh"
 #include "views.hh"
-#include <stdexcept>
-#include <iostream>
 #include <boost/algorithm/string.hpp>
 #include <boost/assign/list_of.hpp>
-#include "dnsparser.hh"
 
 const std::array<std::string, 24> RCode::rcodes_s = {
   "No Error",
