@@ -6,13 +6,13 @@ import os
 import socket
 import subprocess
 import time
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
 class TestConsoleAllowed(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
-
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")
@@ -31,7 +31,7 @@ class TestConsoleAllowed(DNSDistTest):
 class TestConsoleAllowedV6(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
-
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")
@@ -52,7 +52,7 @@ class TestConsoleAllowedV6(DNSDistTest):
 class TestConsoleNotAllowed(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
-
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")
@@ -71,7 +71,7 @@ class TestConsoleNotAllowed(DNSDistTest):
 class TestConsoleNoKey(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
-
+    _consolePort = pickAvailablePort()
     _config_params = ["_consolePort", "_testServerPort"]
     _config_template = """
     controlSocket("127.0.0.1:%d")
@@ -88,6 +88,7 @@ class TestConsoleNoKey(DNSDistTest):
 class TestConsoleConcurrentConnections(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _maxConns = 2
 
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort", "_maxConns"]
@@ -136,6 +137,7 @@ def writeCDB(fname, variant=1):
 class TestConsoleAccessObjectsFromYAML(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _cdbFileName = "/tmp/test-cdb-db"
 
@@ -185,6 +187,7 @@ key_value_stores:
 class TestConsoleRings(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
@@ -252,6 +255,7 @@ class TestConsoleRings(DNSDistTest):
 class TestConsoleViaBuiltInClient(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """

@@ -3,12 +3,13 @@
 import base64
 import dns
 import time
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
 class TestLuaThread(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _config_params = ["_consoleKeyB64", "_consolePort"]
     _config_template = """
@@ -189,6 +190,7 @@ class TestLuaPoolBindings(DNSDistTest):
 class TestLuaError(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _config_params = ["_consoleKeyB64", "_consolePort"]
     _config_template = """
@@ -209,6 +211,7 @@ class TestLuaError(DNSDistTest):
 class TestLuaRingBuffersSamplingRates(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import base64
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 from dnsdistDynBlockTests import DynBlocksTest
 
 
@@ -8,6 +8,7 @@ class TestDynBlockResponseBytes(DynBlocksTest):
     _dynBlockBytesPerSecond = 200
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
@@ -37,6 +38,7 @@ class TestDynBlockGroupResponseBytes(DynBlocksTest):
     _dynBlockBytesPerSecond = 200
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
