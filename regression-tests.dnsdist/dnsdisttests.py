@@ -272,11 +272,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         else:
             cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._dnsDistPort)
 
-        consolePort = getattr(cls, '_consolePort', None)
+        consolePort = getattr(cls, "_consolePort", None)
         if consolePort:
             cls.waitForTCPSocket(cls._dnsDistListeningAddr, consolePort)
 
-        webPort = getattr(cls, '_webServerPort', None)
+        webPort = getattr(cls, "_webServerPort", None)
         if webPort:
             cls.waitForTCPSocket(cls._dnsDistListeningAddr, webPort)
 
