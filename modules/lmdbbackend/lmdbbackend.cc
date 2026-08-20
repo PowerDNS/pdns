@@ -780,7 +780,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       uint32_t currentSchemaVersion = currentSchemaVersionAndShards.first;
       // std::cerr<<"current schema version: "<<currentSchemaVersion<<", shards="<<currentSchemaVersionAndShards.second<<std::endl;
 
-      if (getArgAsNum("schema-version") != SCHEMAVERSION) {
+      if (getArgAsNum<uint32_t>("schema-version") != SCHEMAVERSION) {
         throw std::runtime_error("This version of the lmdbbackend only supports schema version 6. Configuration demands a lower version. Not starting up.");
       }
 
