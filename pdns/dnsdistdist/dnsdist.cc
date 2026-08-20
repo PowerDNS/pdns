@@ -2566,21 +2566,25 @@ static std::optional<std::string> lookForTentativeConfigurationFileWithExtension
   return tentativeFile;
 }
 
-static bool loadConfigurationFromFile(const std::string& configurationFile, bool isClient, bool configCheck, const std::shared_ptr<const Logr::Logger>& logger)
+static bool loadConfigurationFromFile(const std::string& configurationFile, bool isClient, bool configCheck, bool singleCommand, const std::shared_ptr<const Logr::Logger>& logger)
 {
   if (boost::ends_with(configurationFile, ".yml")) {
     // the bindings are always needed, for example for inline Lua
     dnsdist::lua::setupLuaBindingsOnly(*(g_lua.lock()), isClient, configCheck);
 
     if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
-      SLOG(infolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile),
-           logger->info(Logr::Info, "Loading configuration from auto-discovered Lua file", "path", Logging::Loggable(*tentativeLuaConfFile)));
+      if (!singleCommand) {
+        SLOG(infolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile),
+             logger->info(Logr::Info, "Loading configuration from auto-discovered Lua file", "path", Logging::Loggable(*tentativeLuaConfFile)));
+      }
 
       dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
     }
 
-    SLOG(infolog("Loading configuration from YAML file %s", configurationFile),
-         logger->info(Logr::Info, "Loading configuration from YAML file", "path", Logging::Loggable(configurationFile)));
+    if (!singleCommand) {
+      SLOG(infolog("Loading configuration from YAML file %s", configurationFile),
+           logger->info(Logr::Info, "Loading configuration from YAML file", "path", Logging::Loggable(configurationFile)));
+    }
 
     if (!dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck)) {
       return false;
@@ -2593,19 +2597,25 @@ static bool loadConfigurationFromFile(const std::string& configurationFile, bool
 
   dnsdist::lua::setupLua(*(g_lua.lock()), isClient, configCheck);
   if (boost::ends_with(configurationFile, ".lua")) {
-    SLOG(infolog("Loading configuration from Lua file %s", configurationFile),
-         logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
+    if (!singleCommand) {
+      SLOG(infolog("Loading configuration from Lua file %s", configurationFile),
+           logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
+    }
 
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
     if (auto tentativeYamlConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "yml")) {
-      SLOG(infolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile),
-           logger->info(Logr::Info, "Loading configuration from auto-discovered YAML file", "path", Logging::Loggable(*tentativeYamlConfFile)));
+      if (!singleCommand) {
+        SLOG(infolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile),
+             logger->info(Logr::Info, "Loading configuration from auto-discovered YAML file", "path", Logging::Loggable(*tentativeYamlConfFile)));
+      }
       return dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
     }
   }
   else {
-    SLOG(infolog("Loading configuration from Lua file %s", configurationFile),
-         logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
+    if (!singleCommand) {
+      SLOG(infolog("Loading configuration from Lua file %s", configurationFile),
+           logger->info(Logr::Info, "Loading configuration from Lua file", "path", Logging::Loggable(configurationFile)));
+    }
 
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
   }
@@ -2676,7 +2686,7 @@ int main(int argc, char** argv)
     });
 
     if (cmdLine.beClient || !cmdLine.command.empty()) {
-      if (!loadConfigurationFromFile(cmdLine.config, true, false, setupLogger)) {
+      if (!loadConfigurationFromFile(cmdLine.config, true, false, !cmdLine.command.empty(), setupLogger)) {
 #ifdef COVERAGE
         exit(EXIT_FAILURE);
 #else
@@ -2712,7 +2722,7 @@ int main(int argc, char** argv)
     dnsdist::webserver::registerBuiltInWebHandlers();
 
     if (cmdLine.checkConfig) {
-      if (!loadConfigurationFromFile(cmdLine.config, false, true, setupLogger)) {
+      if (!loadConfigurationFromFile(cmdLine.config, false, true, false, setupLogger)) {
 #ifdef COVERAGE
         exit(EXIT_FAILURE);
 #else
@@ -2736,7 +2746,7 @@ int main(int argc, char** argv)
     /* create the default pool no matter what */
     createPoolIfNotExists("");
 
-    if (!loadConfigurationFromFile(cmdLine.config, false, false, setupLogger)) {
+    if (!loadConfigurationFromFile(cmdLine.config, false, false, false, setupLogger)) {
 #ifdef COVERAGE
       exit(EXIT_FAILURE);
 #else
