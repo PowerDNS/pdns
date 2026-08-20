@@ -5,6 +5,7 @@ import os
 import subprocess
 from dnsdisttests import DNSDistTest
 
+
 class TestSingleCommandExecution(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
@@ -30,5 +31,5 @@ class TestSingleCommandExecution(DNSDistTest):
             raise AssertionError("%s failed (%d): %s / %s" % (testcmd, result.returncode, result.stdout, result.stderr))
 
         values = json.loads(result.stdout)
-        for key in ['hits', 'misses', 'entries']:
+        for key in ["hits", "misses", "entries"]:
             self.assertIn(key, values)
