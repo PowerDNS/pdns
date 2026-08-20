@@ -41,6 +41,7 @@ DNSName apiNameToDNSName(const string& name);
 #if defined(PDNS_AUTH)
 ZoneName apiNameToZoneName(const string& name);
 #endif
+bool apiShouldBeRedacted(const std::string& setting);
 
 // To be provided by product code.
 void productServerStatisticsFetch(std::map<string, string>& out);

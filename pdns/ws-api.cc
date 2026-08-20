@@ -100,7 +100,7 @@ void apiServerDetail(HttpRequest* /* req */, HttpResponse* resp)
   resp->setJsonBody(getServerDetail());
 }
 
-static bool shouldBeRedacted(const std::string& setting)
+bool apiShouldBeRedacted(const std::string& setting)
 {
   // auth, rec: webserver-password
   if (boost::ends_with(setting, "-password")) {
@@ -126,7 +126,7 @@ void apiServerConfig(HttpRequest* /* req */, HttpResponse* resp)
   Json::array doc;
   for (const string& item : items) {
     // Prevent sensitive configuration values from being leaked
-    if (shouldBeRedacted(item)) {
+    if (apiShouldBeRedacted(item)) {
       value = "***";
     }
     else {
