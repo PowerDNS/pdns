@@ -44,6 +44,7 @@ public:
 class ERCode
 {
 public:
+  // NOLINTNEXTLINE(performance-enum-size)
   enum rcodes_ : uint16_t { BADVERS=16, BADSIG=16, BADKEY=17, BADTIME=18, BADMODE=19, BADNAME=20, BADALG=21, BADTRUNC=22, BADCOOKIE=23 };
   static std::string to_s(uint16_t rcode);
   static std::string to_short_s(uint16_t rcode);
@@ -231,36 +232,36 @@ private:
   const dnsheader* d_p{};
 };
 
-inline uint16_t* getFlagsFromDNSHeader(dnsheader* dh)
+inline uint16_t* getFlagsFromDNSHeader(dnsheader* header)
 {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  return reinterpret_cast<uint16_t*>(reinterpret_cast<char*>(dh) + sizeof(uint16_t));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-*)
+  return reinterpret_cast<uint16_t*>(reinterpret_cast<char*>(header) + sizeof(uint16_t));
 }
 
-inline const uint16_t * getFlagsFromDNSHeader(const dnsheader* dh)
+inline const uint16_t * getFlagsFromDNSHeader(const dnsheader* header)
 {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  return reinterpret_cast<const uint16_t*>(reinterpret_cast<const char*>(dh) + sizeof(uint16_t));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-*)
+  return reinterpret_cast<const uint16_t*>(reinterpret_cast<const char*>(header) + sizeof(uint16_t));
 }
 
-#define DNS_TYPE_SIZE (2)
-#define DNS_CLASS_SIZE (2)
-#define DNS_TTL_SIZE (4)
-#define DNS_RDLENGTH_SIZE (2)
-#define EDNS_EXTENDED_RCODE_SIZE (1)
-#define EDNS_VERSION_SIZE (1)
-#define EDNS_OPTION_CODE_SIZE (2)
-#define EDNS_OPTION_LENGTH_SIZE (2)
+constexpr size_t DNS_TYPE_SIZE = 2;
+constexpr size_t DNS_CLASS_SIZE = 2;
+constexpr size_t DNS_TTL_SIZE = 4;
+constexpr size_t DNS_RDLENGTH_SIZE = 2;
+constexpr size_t EDNS_EXTENDED_RCODE_SIZE = 1;
+constexpr size_t EDNS_VERSION_SIZE = 1;
+constexpr size_t EDNS_OPTION_CODE_SIZE = 2;
+constexpr size_t EDNS_OPTION_LENGTH_SIZE = 2;
 
 #if BYTE_ORDER == BIG_ENDIAN
-#define FLAGS_RD_OFFSET (8)
-#define FLAGS_CD_OFFSET (12)
+constexpr size_t FLAGS_RD_OFFSET = 8;
+constexpr size_t FLAGS_CD_OFFSET = 12;
 #elif BYTE_ORDER == LITTLE_ENDIAN
-#define FLAGS_RD_OFFSET (0)
-#define FLAGS_CD_OFFSET (12)
+constexpr size_t FLAGS_RD_OFFSET = 0;
+constexpr size_t FLAGS_CD_OFFSET = 12;
 #endif
 
-uint32_t hashQuestion(const uint8_t* packet, uint16_t len, uint32_t init, bool& ok);
+uint32_t hashQuestion(const uint8_t* packet, uint16_t len, uint32_t init, bool& wasOK);
 
 struct TSIGTriplet
 {
