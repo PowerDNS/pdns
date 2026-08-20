@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.20"
+  version: "0.0.21"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -36,9 +36,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Server"
+                $ref: "#/components/schemas/Servers"
         default:
           $ref: "#/components/responses/Error"
 
@@ -164,31 +162,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ConfigSetting"
-        default:
-          $ref: "#/components/responses/Error"
-
-  "/servers/{server_id}/config/{config_setting_name}":
-    parameters:
-      - $ref: "#/components/parameters/server_id"
-      - name: config_setting_name
-        in: path
-        required: true
-        description: The name of the setting to retrieve
-        schema:
-          type: string
-    get:
-      summary: "Returns a specific ConfigSetting for a single server"
-      description: "NOT IMPLEMENTED"
-      operationId: getConfigSetting
-      tags:
-        - config
-      responses:
-        "200":
-          description: List of config values
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ConfigSetting"
         default:
           $ref: "#/components/responses/Error"
 
@@ -573,13 +546,11 @@ paths:
           description: "“true” (default) or “false”, whether to include the “dnssec” and “edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster."
       responses:
         "200":
-          description: An array of Zones
+          description: List of Zones
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Zone"
+                $ref: "#/components/schemas/ZonesWithoutRRSets"
         default:
           $ref: "#/components/responses/Error"
     post:
@@ -1039,7 +1010,7 @@ components:
       items:
         $ref: "#/components/schemas/Server"
 
-    Zone:
+    ZoneWithoutRRSets:
       title: Zone
       description: This represents an authoritative DNS Zone.
       type: object
@@ -1066,14 +1037,6 @@ components:
             - "Producer"
             - "Consumer"
           description: "Zone kind, one of “Native”, “Master”, “Slave”, “Producer”, “Consumer”"
-        record_count:
-          type: integer
-          description: "The number of records in this zone (for zones/{zone_id} endpoint only; omitted during GET on the .../zones list endpoint)"
-        rrsets:
-          type: array
-          items:
-            $ref: "#/components/schemas/RRSet"
-          description: "RRSets in this zone (for zones/{zone_id} endpoint only; omitted during GET on the .../zones list endpoint)"
         serial:
           type: integer
           description: "The SOA serial number"
@@ -1140,10 +1103,32 @@ components:
         last_check:
           type: integer
 
+    Zone:
+      title: Zone
+      description: This represents an authoritative DNS Zone.
+      allOf:
+        - $ref: "#/components/schemas/ZonesWithoutRRSets"
+        - type: object
+          additionalProperties: false
+          properties:
+            record_count:
+              type: integer
+              description: "The number of records in this zone"
+            rrsets:
+              type: array
+              items:
+                $ref: "#/components/schemas/RRSet"
+              description: "RRSets in this zone"
+
     Zones:
       type: array
       items:
         $ref: "#/components/schemas/Zone"
+
+    ZonesWithoutRRSets:
+      type: array
+      items:
+        $ref: "#/components/schemas/ZoneWithoutRRSets"
 
     RRSet:
       title: RRSet
