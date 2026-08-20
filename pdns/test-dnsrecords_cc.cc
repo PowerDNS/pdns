@@ -560,6 +560,34 @@ BOOST_AUTO_TEST_CASE(test_loc_records_in) {
   BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
 }
 
+// APL wire parser reads its elements straight from the packet, so a length field
+// that runs past the record's own RDATA must be rejected instead of pulling in the
+// following bytes.
+BOOST_AUTO_TEST_CASE(test_apl_record_in) {
+  const DNSName name("powerdns.com.");
+  auto validAPL = DNSRecordContent::make(QType::APL, QClass::IN, "1:10.1.1.1/32");
+
+  vector<uint8_t> packet;
+  DNSPacketWriter writer(packet, name, QType::APL, QClass::IN, 0);
+  writer.getHeader()->qr = 1;
+  writer.startRecord(name, QType::APL, 100, QClass::IN, DNSResourceRecord::ANSWER, false);
+  validAPL->toPacket(writer);
+  writer.commit();
+
+  MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+
+  // Location of the record's 2-byte RDLENGTH field.
+  const size_t rdLengthPos = sizeof(dnsheader) + name.wirelength() + sizeof(uint16_t) + sizeof(uint16_t) + name.wirelength() + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t);
+
+  auto invalidPacket = packet;
+  // The record physically holds one 8-byte element; claim an RDLENGTH of 5 so the
+  // element's address data extends three bytes past the record boundary.
+  invalidPacket.at(rdLengthPos) = 0;
+  invalidPacket.at(rdLengthPos + 1) = 5;
+
+  BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(invalidPacket.data()), invalidPacket.size()), MOADNSException);
+}
+
 // special record test, because NSEC records are odd
 BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
 
