@@ -375,13 +375,13 @@ void Carbon::run(const std::vector<Carbon::Endpoint>& endpoints)
   }
 }
 
-const std::string Carbon::Endpoint::getOurName() const
+std::string Carbon::Endpoint::getOurName() const
 {
   std::string ret = ourname.value_or("");
   if (!ourname) {
     ret = dnsdist::configuration::getCurrentRuntimeConfiguration().d_server_id;
+    std::replace(ret.begin(), ret.end(), '.', '_');
   }
-  std::replace(ret.begin(), ret.end(), '.', '_');
   return ret;
 }
 

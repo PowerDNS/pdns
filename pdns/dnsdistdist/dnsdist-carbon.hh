@@ -41,7 +41,7 @@ public:
     std::string instance_name;
     unsigned int interval;
 
-    const std::string getOurName() const;
+    [[nodiscard]] std::string getOurName() const;
   };
 
   static Endpoint newEndpoint(const std::string& address, const std::optional<std::string>& ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name);
