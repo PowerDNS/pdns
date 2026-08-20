@@ -746,8 +746,9 @@ class TestDnstapOverRemotePoolUnixLogger(DNSDistTest):
 
         def handle_connection(conn):
             try:
-                fstrm_handle_bidir_connection(conn, lambda data: \
-                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0), exit_early=True)
+                fstrm_handle_bidir_connection(
+                    conn, lambda data: cls._fstrmLoggerQueue.put(data, True, timeout=2.0), exit_early=True
+                )
             except Exception as e:
                 print(f"Error in handle_connection (FrameStream): {e}")
             finally:
@@ -1005,8 +1006,9 @@ class TestDnstapOverRemotePoolTcpLogger(DNSDistTest):
 
         def handle_connection(conn):
             try:
-                fstrm_handle_bidir_connection(conn, lambda data: \
-                    cls._fstrmLoggerQueue.put(data, True, timeout=2.0), exit_early=True)
+                fstrm_handle_bidir_connection(
+                    conn, lambda data: cls._fstrmLoggerQueue.put(data, True, timeout=2.0), exit_early=True
+                )
             except Exception as e:
                 print(f"Error in handle_connection (FrameStream): {e}")
             finally:
