@@ -1030,7 +1030,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
 
     if(NSEC3Zone) {
       // ents are only required for NSEC3 zones
-      uint32_t maxent = ::arg().asNum("max-ent-entries");
+      auto maxent = ::arg().asNum<uint32_t>("max-ent-entries");
       set<DNSName> nsec3set, nonterm;
       for (auto &loopZRR: zrrs) {
         bool skip=false;
@@ -1409,14 +1409,14 @@ TCPNameserver::~TCPNameserver() = default;
 TCPNameserver::TCPNameserver(Logr::log_t slog)
 {
   d_slog = slog;
-  d_maxTransactionsPerConn = ::arg().asNum("max-tcp-transactions-per-conn");
-  d_idleTimeout = ::arg().asNum("tcp-idle-timeout");
-  d_maxConnectionDuration = ::arg().asNum("max-tcp-connection-duration");
-  d_maxConnectionsPerClient = ::arg().asNum("max-tcp-connections-per-client");
+  ::arg().assignNum(d_maxTransactionsPerConn, "max-tcp-transactions-per-conn");
+  ::arg().assignNum(d_idleTimeout, "tcp-idle-timeout");
+  ::arg().assignNum(d_maxConnectionDuration, "max-tcp-connection-duration");
+  ::arg().assignNum(d_maxConnectionsPerClient, "max-tcp-connections-per-client");
 
-//  sem_init(&d_connectionroom_sem,0,::arg().asNum("max-tcp-connections"));
-  d_connectionroom_sem = make_unique<Semaphore>( ::arg().asNum( "max-tcp-connections" ));
-  d_maxTCPConnections = ::arg().asNum( "max-tcp-connections" );
+  ::arg().assignNum(d_maxTCPConnections, "max-tcp-connections" );
+//  sem_init(&d_connectionroom_sem,0,d_maxTCPConnections);
+  d_connectionroom_sem = make_unique<Semaphore>(d_maxTCPConnections);
 
   vector<string>locals;
   stringtok(locals,::arg()["local-address"]," ,");
@@ -1428,7 +1428,7 @@ TCPNameserver::TCPNameserver(Logr::log_t slog)
   signal(SIGPIPE,SIG_IGN);
 
   for(auto const &laddr : locals) {
-    ComboAddress local(laddr, ::arg().asNum("local-port"));
+    ComboAddress local(laddr, ::arg().asNum<uint16_t>("local-port"));
 
     int s=socket(local.sin4.sin_family, SOCK_STREAM, 0);
     if(s<0)

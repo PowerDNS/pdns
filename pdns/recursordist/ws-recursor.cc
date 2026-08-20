@@ -856,7 +856,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
     validatePrometheusMetrics();
   }
 
-  d_ws = make_unique<AsyncWebServer>(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
+  d_ws = make_unique<AsyncWebServer>(fdm, arg()["webserver-address"], arg().asNum<uint16_t>("webserver-port"));
   d_ws->setSLog(g_slog->withName("webserver"));
 
   d_ws->setApiKey(arg()["api-key"], arg().mustDo("webserver-hash-plaintext-credentials"));
@@ -1168,7 +1168,7 @@ void serveRustWeb()
     }
   }
   if (config.empty()) {
-    auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
+    auto address = ComboAddress(arg()["webserver-address"], arg().asNum<uint16_t>("webserver-port"));
     pdns::rust::web::rec::IncomingWSConfig tmp{{::rust::String{address.toStringWithPort()}}, {}};
     config.emplace_back(tmp);
   }
@@ -1203,7 +1203,7 @@ void serveRustWeb()
   // This function returns after having created the web server object that handles the requests.
   // That object and its runtime are associated with a Posix thread that waits until all tasks are
   // done, which normally never happens. See rec-rust-lib/rust/src/web.rs for details
-  pdns::rust::web::rec::serveweb(config, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr), loglevel, arg().asNum("webserver-max-request-size") * 1024ULL * 1024ULL, arg()["cross-origin-request-header"]);
+  pdns::rust::web::rec::serveweb(config, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr), loglevel, arg().asNum<size_t>("webserver-max-request-size") * 1024ULL * 1024ULL, arg()["cross-origin-request-header"]);
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)

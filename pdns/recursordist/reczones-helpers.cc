@@ -48,8 +48,8 @@ static void putIntoCache(time_t now, QType qtype, vState state, const ComboAddre
 static void parseHintFile(time_t now, const std::string& hintfile, set<DNSName>& seenA, set<DNSName>& seenAAAA, set<DNSName>& seenNS, std::multimap<DNSName, DNSRecord>& aRecords, std::multimap<DNSName, DNSRecord>& aaaaRecords, vector<DNSRecord>& nsvec)
 {
   ZoneParserTNG zpt(hintfile);
-  zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
-  zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
+  zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
+  zpt.setMaxIncludes(::arg().asNum<size_t>("max-include-depth"));
   DNSResourceRecord rrecord;
 
   while (zpt.get(rrecord)) {

@@ -162,7 +162,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
     uint16_t len = htons(reply->getString().length());
     string buffer((const char*)&len, 2);
     buffer.append(reply->getString());
-    writen2WithTimeout(reply->getSocket(), buffer.c_str(), buffer.length(), timeval{::arg().asNum("tcp-idle-timeout"), 0});
+    writen2WithTimeout(reply->getSocket(), buffer.c_str(), buffer.length(), timeval{::arg().asNum<time_t>("tcp-idle-timeout"), 0});
 
     return true;
   }

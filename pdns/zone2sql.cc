@@ -300,8 +300,8 @@ try
             emitDomain(domain.name, &(domain.primaries));
 
             ZoneParserTNG zpt(domain.filename, domain.name, BP.getDirectory());
-            zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
-            zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
+            zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
+            zpt.setMaxIncludes(::arg().asNum<size_t>("max-include-depth"));
             DNSResourceRecord rr;
             bool seenSOA=false;
             string comment;
@@ -340,7 +340,7 @@ try
         zonename = ZoneName(::arg()["zone-name"]);
 
       ZoneParserTNG zpt(zonefile, zonename);
-      zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
+      zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
       DNSResourceRecord rr;
       startNewTransaction();
       string comment;

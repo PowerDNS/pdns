@@ -344,7 +344,7 @@ def gen_cxx_oldstylesettingstobridgestruct(file, entries):
         if rust_type == "bool":
             file.write(f'arg().mustDo("{oldname}")')
         elif rust_type == "u64":
-            file.write(f'static_cast<uint64_t>(arg().asNum("{oldname}"))')
+            file.write(f'arg().asNum<uint64_t>("{oldname}")')
         elif rust_type == "f64":
             file.write(f'arg().asDouble("{oldname}")')
         elif rust_type == "String":

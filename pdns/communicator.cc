@@ -95,7 +95,7 @@ void CommunicatorClass::go()
   std::thread mainT([this]() { mainloop(); });
   mainT.detach();
 
-  for (int nthreads = 0; nthreads < ::arg().asNum("retrieval-threads", 1); ++nthreads) {
+  for (int nthreads = ::arg().asNum("retrieval-threads", 1); nthreads > 0; --nthreads) {
     std::thread retrieve([this]() { retrievalLoopThread(); });
     retrieve.detach();
   }
@@ -129,7 +129,7 @@ void CommunicatorClass::mainloop()
     SLOG(g_log << Logger::Warning << "Primary/secondary communicator launching" << endl,
          d_slog->info(Logr::Warning, "Primary/secondary communicator launching"));
 
-    d_tickinterval = ::arg().asNum("xfr-cycle-interval");
+    ::arg().assignNum(d_tickinterval, "xfr-cycle-interval");
 
     int rc;
     time_t next;
