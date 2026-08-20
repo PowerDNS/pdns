@@ -327,9 +327,17 @@ static void printargs(ostringstream& ret)
 {
   ret << R"(<table border=1><tr><td colspan=3 bgcolor="#0000ff"><font color="#ffffff">Arguments</font></td>)" << endl;
 
-  vector<string> entries = arg().list();
+  const auto& entries = arg().list();
   for (const auto& entry : entries) {
-    ret << "<tr><td>" << entry << "</td><td>" << htmlescape(arg()[entry]) << "</td><td>" << arg().getHelp(entry) << "</td>" << endl;
+    ret << "<tr><td>" << entry << "</td><td>";
+    // Prevent sensitive configuration values from being leaked
+    if (apiShouldBeRedacted(entry)) {
+      ret << "***";
+    }
+    else {
+      ret << htmlescape(arg()[entry]);
+    }
+    ret << "</td><td>" << arg().getHelp(entry) << "</td>" << endl;
   }
 }
 
