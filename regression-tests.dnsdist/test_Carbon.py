@@ -10,7 +10,7 @@ class TestCarbon(DNSDistTest):
     _carbonServer1Port = pickAvailablePort()
     _carbonServer1Name = "carbonname1"
     _carbonServer2Port = pickAvailablePort()
-    _carbonServer2Name = "carbonname2"
+    _carbonServer2Name = "carbonname.with.dots"
     _carbonQueue1 = Queue()
     _carbonQueue2 = Queue()
     _carbonInterval = 2
