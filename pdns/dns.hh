@@ -27,14 +27,27 @@
 #include <string_view>
 #include <sys/types.h>
 
-#undef BADSIG  // signal.h SIG_ERR
+#undef BADSIG // signal.h SIG_ERR
 
 struct DNSRecord;
 
 class RCode
 {
 public:
-  enum rcodes_ : uint8_t { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5, YXDomain=6, YXRRSet=7, NXRRSet=8, NotAuth=9, NotZone=10};
+  enum rcodes_ : uint8_t
+  {
+    NoError = 0,
+    FormErr = 1,
+    ServFail = 2,
+    NXDomain = 3,
+    NotImp = 4,
+    Refused = 5,
+    YXDomain = 6,
+    YXRRSet = 7,
+    NXRRSet = 8,
+    NotAuth = 9,
+    NotZone = 10
+  };
   static std::string to_s(uint8_t rcode);
   static std::string to_short_s(uint8_t rcode);
   static std::optional<uint8_t> from_short(const std::string_view& rcode_string);
@@ -45,7 +58,18 @@ class ERCode
 {
 public:
   // NOLINTNEXTLINE(performance-enum-size)
-  enum rcodes_ : uint16_t { BADVERS=16, BADSIG=16, BADKEY=17, BADTIME=18, BADMODE=19, BADNAME=20, BADALG=21, BADTRUNC=22, BADCOOKIE=23 };
+  enum rcodes_ : uint16_t
+  {
+    BADVERS = 16,
+    BADSIG = 16,
+    BADKEY = 17,
+    BADTIME = 18,
+    BADMODE = 19,
+    BADNAME = 20,
+    BADALG = 21,
+    BADTRUNC = 22,
+    BADCOOKIE = 23
+  };
   static std::string to_s(uint16_t rcode);
   static std::string to_short_s(uint16_t rcode);
   static std::optional<uint16_t> from_short(const std::string_view& ercode_string);
@@ -54,7 +78,14 @@ public:
 class Opcode
 {
 public:
-  enum opcodes_ : uint8_t { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
+  enum opcodes_ : uint8_t
+  {
+    Query = 0,
+    IQuery = 1,
+    Status = 2,
+    Notify = 4,
+    Update = 5
+  };
   static std::string to_s(uint8_t opcode);
   static std::optional<uint8_t> from_lowercase_string(const std::string_view& opcode_string);
 };
@@ -150,40 +181,41 @@ static_assert(sizeof(EDNS0Record) == 4, "EDNS0Record size must be 4");
 #error cannot determine byte order
 #endif
 
-struct dnsheader {
-        uint16_t        id;             /* query identification number */
+struct dnsheader
+{
+  uint16_t id; /* query identification number */
 #if BYTE_ORDER == BIG_ENDIAN
-                        /* fields in third byte */
-        unsigned        qr: 1;          /* response flag */
-        unsigned        opcode: 4;      /* purpose of message */
-        unsigned        aa: 1;          /* authoritative answer */
-        unsigned        tc: 1;          /* truncated message */
-        unsigned        rd: 1;          /* recursion desired */
-                        /* fields in fourth byte */
-        unsigned        ra: 1;          /* recursion available */
-        unsigned        unused :1;      /* unused bits (MBZ as of 4.9.3a3) */
-        unsigned        ad: 1;          /* authentic data from named */
-        unsigned        cd: 1;          /* checking disabled by resolver */
-        unsigned        rcode :4;       /* response code */
+  /* fields in third byte */
+  unsigned qr : 1; /* response flag */
+  unsigned opcode : 4; /* purpose of message */
+  unsigned aa : 1; /* authoritative answer */
+  unsigned tc : 1; /* truncated message */
+  unsigned rd : 1; /* recursion desired */
+  /* fields in fourth byte */
+  unsigned ra : 1; /* recursion available */
+  unsigned unused : 1; /* unused bits (MBZ as of 4.9.3a3) */
+  unsigned ad : 1; /* authentic data from named */
+  unsigned cd : 1; /* checking disabled by resolver */
+  unsigned rcode : 4; /* response code */
 #elif BYTE_ORDER == LITTLE_ENDIAN
-                        /* fields in third byte */
-        unsigned        rd :1;          /* recursion desired */
-        unsigned        tc :1;          /* truncated message */
-        unsigned        aa :1;          /* authoritative answer */
-        unsigned        opcode :4;      /* purpose of message */
-        unsigned        qr :1;          /* response flag */
-                        /* fields in fourth byte */
-        unsigned        rcode :4;       /* response code */
-        unsigned        cd: 1;          /* checking disabled by resolver */
-        unsigned        ad: 1;          /* authentic data from named */
-        unsigned        unused :1;      /* unused bits (MBZ as of 4.9.3a3) */
-        unsigned        ra :1;          /* recursion available */
+  /* fields in third byte */
+  unsigned rd : 1; /* recursion desired */
+  unsigned tc : 1; /* truncated message */
+  unsigned aa : 1; /* authoritative answer */
+  unsigned opcode : 4; /* purpose of message */
+  unsigned qr : 1; /* response flag */
+  /* fields in fourth byte */
+  unsigned rcode : 4; /* response code */
+  unsigned cd : 1; /* checking disabled by resolver */
+  unsigned ad : 1; /* authentic data from named */
+  unsigned unused : 1; /* unused bits (MBZ as of 4.9.3a3) */
+  unsigned ra : 1; /* recursion available */
 #endif
-                        /* remaining bytes */
-        uint16_t        qdcount;        /* number of question entries */
-        uint16_t        ancount;        /* number of answer entries */
-        uint16_t        nscount;        /* number of authority entries */
-        uint16_t        arcount;        /* number of resource entries */
+  /* remaining bytes */
+  uint16_t qdcount; /* number of question entries */
+  uint16_t ancount; /* number of answer entries */
+  uint16_t nscount; /* number of authority entries */
+  uint16_t arcount; /* number of resource entries */
 };
 
 static_assert(sizeof(dnsheader) == 12, "dnsheader size must be 12");
@@ -199,7 +231,7 @@ public:
   dnsheader_aligned(const void* mem)
   {
     if (isMemoryAligned(mem)) {
-      d_p = reinterpret_cast<const dnsheader*>(mem);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      d_p = reinterpret_cast<const dnsheader*>(mem); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
     else {
       memcpy(&d_h, mem, sizeof(dnsheader));
@@ -238,7 +270,7 @@ inline uint16_t* getFlagsFromDNSHeader(dnsheader* header)
   return reinterpret_cast<uint16_t*>(reinterpret_cast<char*>(header) + sizeof(uint16_t));
 }
 
-inline const uint16_t * getFlagsFromDNSHeader(const dnsheader* header)
+inline const uint16_t* getFlagsFromDNSHeader(const dnsheader* header)
 {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-*)
   return reinterpret_cast<const uint16_t*>(reinterpret_cast<const char*>(header) + sizeof(uint16_t));

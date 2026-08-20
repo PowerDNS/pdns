@@ -99,7 +99,8 @@ const std::map<const std::string, uint16_t> QType::names = {
 #endif
 };
 
-static std::map<uint16_t, const std::string> swapElements(const std::map<const std::string, uint16_t>& names) {
+static std::map<uint16_t, const std::string> swapElements(const std::map<const std::string, uint16_t>& names)
+{
   std::map<uint16_t, const std::string> ret;
 
   for (const auto& name : names) {
@@ -109,7 +110,6 @@ static std::map<uint16_t, const std::string> swapElements(const std::map<const s
 }
 
 const std::map<uint16_t, const std::string> QType::numbers = swapElements(names);
-
 
 bool QType::isSupportedType() const
 {
@@ -131,7 +131,7 @@ std::string QType::toString() const
   return "TYPE" + std::to_string(code);
 }
 
-uint16_t QType::chartocode(const char *ptr)
+uint16_t QType::chartocode(const char* ptr)
 {
   std::string upper = toUpper(ptr);
 
@@ -140,7 +140,7 @@ uint16_t QType::chartocode(const char *ptr)
     return num->second;
   }
 
-  const char *digits{nullptr};
+  const char* digits{nullptr};
   if (*ptr == '#') {
     digits = ptr + 1; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   }
@@ -148,25 +148,25 @@ uint16_t QType::chartocode(const char *ptr)
     digits = ptr + 4; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   }
   if (digits != nullptr) {
-   // We would ideally return pdns::checked_stoi<uint16_t>(digits) here, but
-   // not all callers are ready to handle exceptions arising here.
-   char *end{nullptr};
-   unsigned long typeno = strtoul(digits, &end, 10);
-   if (typeno <= std::numeric_limits<uint16_t>::max() && end != digits && (*end == '\0' || isspace(static_cast<unsigned char>(*end)) != 0)) {
-     return typeno;
-   }
+    // We would ideally return pdns::checked_stoi<uint16_t>(digits) here, but
+    // not all callers are ready to handle exceptions arising here.
+    char* end{nullptr};
+    unsigned long typeno = strtoul(digits, &end, 10);
+    if (typeno <= std::numeric_limits<uint16_t>::max() && end != digits && (*end == '\0' || isspace(static_cast<unsigned char>(*end)) != 0)) {
+      return typeno;
+    }
   }
   // Similarly, we would ideally throw std::invalid_argument here, but won't yet.
   return 0;
 }
 
-QType &QType::operator=(const char *ptr)
+QType& QType::operator=(const char* ptr)
 {
   code = chartocode(ptr);
   return *this;
 }
 
-QType &QType::operator=(const string &str)
+QType& QType::operator=(const string& str)
 {
   code = chartocode(str.c_str());
   return *this;
@@ -199,11 +199,10 @@ std::string QClass::toString() const
     return "NONE";
   case ANY:
     return "ANY";
-  default :
+  default:
     return "CLASS" + std::to_string(qclass);
   }
 }
 
 const std::set<uint16_t> QType::exclusiveEntryTypes = {
-  QType::CNAME
-};
+  QType::CNAME};

@@ -43,7 +43,7 @@ const std::array<std::string, 24> RCode::rcodes_s = {
   "Err#12",
   "Err#13",
   "Err#14",
-  "Err#15",  // Last non-extended RCode
+  "Err#15", // Last non-extended RCode
   "Bad OPT Version / TSIG Signature Failure",
   "Key not recognized",
   "Signature out of time window",
@@ -51,10 +51,9 @@ const std::array<std::string, 24> RCode::rcodes_s = {
   "Duplicate key name",
   "Algorithm not supported",
   "Bad Truncation",
-  "Bad/missing Server Cookie"
-};
+  "Bad/missing Server Cookie"};
 
-static const std::array<std::string, 24> rcodes_short_s =  {
+static const std::array<std::string, 24> rcodes_short_s = {
   "noerror",
   "formerr",
   "servfail",
@@ -81,14 +80,16 @@ static const std::array<std::string, 24> rcodes_short_s =  {
   "badcookie",
 };
 
-std::string RCode::to_s(uint8_t rcode) {
+std::string RCode::to_s(uint8_t rcode)
+{
   if (rcode > 0xF) {
     return "ErrOutOfRange";
   }
   return ERCode::to_s(rcode);
 }
 
-std::string RCode::to_short_s(uint8_t rcode) {
+std::string RCode::to_short_s(uint8_t rcode)
+{
   if (rcode > 0xF) {
     return "ErrOutOfRange";
   }
@@ -108,14 +109,16 @@ std::optional<uint8_t> RCode::from_short(const std::string_view& rcode_string)
   return code;
 }
 
-std::string ERCode::to_s(uint16_t rcode) {
+std::string ERCode::to_s(uint16_t rcode)
+{
   if (rcode >= RCode::rcodes_s.size()) {
     return std::string("Err#") + std::to_string(rcode);
   }
   return RCode::rcodes_s.at(rcode);
 }
 
-std::string ERCode::to_short_s(uint16_t rcode) {
+std::string ERCode::to_short_s(uint16_t rcode)
+{
   if (rcode >= rcodes_short_s.size()) {
     return "rcode" + std::to_string(rcode);
   }
@@ -131,8 +134,9 @@ std::optional<uint16_t> ERCode::from_short(const std::string_view& ercode_string
   return std::distance(rcodes_short_s.begin(), position);
 }
 
-std::string Opcode::to_s(uint8_t opcode) {
-  static const std::array<std::string, 6> s_opcodes = { "Query", "IQuery", "Status", "", "Notify", "Update" };
+std::string Opcode::to_s(uint8_t opcode)
+{
+  static const std::array<std::string, 6> s_opcodes = {"Query", "IQuery", "Status", "", "Notify", "Update"};
 
   if (opcode >= s_opcodes.size() || s_opcodes.at(opcode).empty()) {
     return std::to_string(opcode);
@@ -143,7 +147,7 @@ std::string Opcode::to_s(uint8_t opcode) {
 
 std::optional<uint8_t> Opcode::from_lowercase_string(const std::string_view& opcode_string)
 {
-  static const std::array<std::string, 6> s_opcodes = { "query", "iquery", "status", "", "notify", "update" };
+  static const std::array<std::string, 6> s_opcodes = {"query", "iquery", "status", "", "notify", "update"};
   const auto* position = std::find(s_opcodes.begin(), s_opcodes.end(), opcode_string);
   if (position == s_opcodes.end() || position->empty()) {
     return std::nullopt;
@@ -180,8 +184,7 @@ static const std::array<std::string, 4> placeNames = {
   "QUESTION",
   "ANSWER",
   "AUTHORITY",
-  "ADDITIONAL"
-};
+  "ADDITIONAL"};
 
 std::string DNSResourceRecord::placeString(uint8_t place)
 {
