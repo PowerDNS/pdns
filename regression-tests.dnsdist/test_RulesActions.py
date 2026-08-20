@@ -8,7 +8,7 @@ import unittest
 import dns
 import clientsubnetoption
 import cookiesoption
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
 class TestAdvancedAllow(DNSDistTest):
@@ -1226,6 +1226,7 @@ class TestAdvancedEDNSVersionRule(DNSDistTest):
 class TestSetRules(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")
@@ -1285,6 +1286,7 @@ class TestSetRules(DNSDistTest):
 class TestRmRules(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     setKey("%s")

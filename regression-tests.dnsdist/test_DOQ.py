@@ -214,6 +214,7 @@ class TestDOQXFR(DOQCommon, QUICXFRTests, DNSDistTest):
 class TestDOQCertificateReloading(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-doq.key"
     _serverCert = "server-doq.chain"
     _serverName = "tls.tests.dnsdist.org"

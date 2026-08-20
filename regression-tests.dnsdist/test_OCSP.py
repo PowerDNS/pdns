@@ -62,6 +62,7 @@ class DNSDistOCSPStaplingTest(DNSDistTest):
 class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-ocsp.key"
     _serverCert = "server-ocsp.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -134,6 +135,7 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
 class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-ocsp.key"
     _serverCert = "server-ocsp.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -171,6 +173,7 @@ class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
 class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-ocsp.key"
     _serverCert = "server-ocsp.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -229,6 +232,7 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-ocsp.key"
     _serverCert = "server-ocsp.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -265,6 +269,7 @@ class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-ocsp.key"
     _serverCert = "server-ocsp.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -323,6 +328,7 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
 class TestBrokenOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-ocsp.key"
     _serverCert = "server-ocsp.chain"
     _serverName = "tls.tests.dnsdist.org"

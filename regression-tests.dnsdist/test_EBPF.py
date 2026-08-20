@@ -12,6 +12,7 @@ from dnsdisttests import DNSDistTest, pickAvailablePort
 class TestSimpleEBPF(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _serverKey = "server.key"
     _serverCert = "server.chain"
