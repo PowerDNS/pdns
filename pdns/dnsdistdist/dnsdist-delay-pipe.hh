@@ -19,30 +19,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#define CATCH_CONFIG_MAIN
-#include <memory>
-#include <catch2/catch_config.hpp>
-#include "dnsdist.hh"
-#include "dnsdist-lua.hh"
-#include "dnsdist-rings.hh"
-#include "dnsdist-xsk.hh"
-#include "dnsdist-tcp.hh"
+
+#ifndef DISABLE_DELAY_PIPE
+#include "delaypipe.hh"
+#include "iputils.hh"
 #include "dnsdist-udp.hh"
 
-// NOTE: This file contains waaaaaay too many mocked things to make bench-dnsdist-action-rcode.cc
-// link. In the future, all these functions and declarations should go away and be put into their
-// own hh/cc files.
-
-shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
-Rings g_rings;
-string g_outputBuffer;
-
-std::shared_ptr<dnsdist::udp::UDPTCPCrossQuerySender> dnsdist::udp::UDPCrossProtocolQuery::s_sender = std::make_shared<UDPTCPCrossQuerySender>();
-
-void doExitNicely(int exitCode);
-void doExitNicely([[maybe_unused]] int exitCode) {
+namespace dnsdist::delay_pipe
+{
+struct DelayedPacket
+{
+  int fd{-1};
+  PacketBuffer packet;
+  ComboAddress destination;
+  ComboAddress origDest;
+  void operator()() const
+  {
+    dnsdist::udp::sendfromto(fd, packet, origDest, destination);
+  }
 };
 
-void handleServerStateChange([[maybe_unused]] const string& nameWithAddr, [[maybe_unused]] bool newResult)
-{
+extern std::unique_ptr<DelayPipe<DelayedPacket>> g_delay;
 }
+
+#endif /* DISABLE_DELAY_PIPE */
