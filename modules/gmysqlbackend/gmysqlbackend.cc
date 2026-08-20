@@ -62,13 +62,13 @@ void gMySQLBackend::reconnect()
   setDB(std::unique_ptr<SSql>(new SMySQL(d_slog,
                                          getArg("dbname"),
                                          getArg("host"),
-                                         getArgAsNum("port"),
+                                         getArgAsNum<uint16_t>("port"),
                                          getArg("socket"),
                                          getArg("user"),
                                          getArg("password"),
                                          getArg("group"),
                                          mustDo("innodb-read-committed"),
-                                         getArgAsNum("timeout"),
+                                         getArgAsNum<unsigned int>("timeout"),
                                          mustDo("thread-cleanup"))));
   allocateStatements();
 }

@@ -503,9 +503,10 @@ available. The exact definitions:
 
   Returns the exact value of a parameter.
 
-.. cpp:function:: int DNSBackend::getArgAsNum(const string &key)
+.. cpp:function:: T DNSBackend::getArgAsNum<T>(const string &key)
 
-  Returns the numerical value of a parameter. Uses ``strtol()`` internally.
+  Returns the numerical value of a parameter. Uses the appropriate variant
+  of ``strtol()`` internally, depending on the type of the return value.
 
   Sample usage from the BIND backend: getting the 'check-interval' setting:
 
@@ -513,7 +514,7 @@ available. The exact definitions:
 
       if(!safeGetBBDomainInfo(i->name, &bbd)) {
         bbd.d_id=domain_id++;
-        bbd.setCheckInterval(getArgAsNum("check-interval"));
+        bbd.setCheckInterval(getArgAsNum<time_t>("check-interval"));
         bbd.d_lastnotified=0;
         bbd.d_loaded=false;
       }

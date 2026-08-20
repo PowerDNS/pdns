@@ -142,7 +142,7 @@ void PipeBackend::launch()
     }
     d_regexstr = getArg("regex");
     d_abiVersion = getArgAsNum("abi-version");
-    d_coproc = std::make_unique<CoWrapper>(d_slog, getArg("command"), getArgAsNum("timeout"), getArgAsNum("abi-version"));
+    d_coproc = std::make_unique<CoWrapper>(d_slog, getArg("command"), getArgAsNum("timeout"), d_abiVersion);
   }
 
   catch (const ArgException& A) {

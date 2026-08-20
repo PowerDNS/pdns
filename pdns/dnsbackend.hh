@@ -36,6 +36,7 @@ class DNSPacket;
 #include <iostream>
 #include <sys/socket.h>
 #include <dirent.h>
+#include "arguments.hh"
 #include "misc.hh"
 #include "qtype.hh"
 #include "dns.hh"
@@ -536,7 +537,12 @@ public:
 protected:
   bool mustDo(const string& key);
   const string& getArg(const string& key);
-  int getArgAsNum(const string& key);
+
+  template <typename T = int>
+  T getArgAsNum(const string& key)
+  {
+    return arg().asNum<T>(d_prefix + "-" + key);
+  }
 
   std::shared_ptr<Logr::Logger> d_slog;
 
