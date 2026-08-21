@@ -56,6 +56,8 @@
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 bool DNSPacket::s_doEDNSCookieProcessing;
+uint8_t DNSPacket::s_ECSscopeMaskIPv4;
+uint8_t DNSPacket::s_ECSscopeMaskIPv6;
 string DNSPacket::s_EDNSCookieKey;
 uint16_t DNSPacket::s_udpTruncationThreshold;
 
@@ -343,13 +345,20 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
           maxScopeMask = d_span.getBits();
         }
         else {
+          // tighten the scopeMask if configured to do so
+          if (d_eso.getFamily() == AF_INET) {
+            maxScopeMask = max(maxScopeMask, s_ECSscopeMaskIPv4);
+          }
+          else {
+            maxScopeMask = max(maxScopeMask, s_ECSscopeMaskIPv6);
+          }
           // use the scopeMask from the resolver, if it is greater - issue #5469
           maxScopeMask = max(maxScopeMask, eso.getScopePrefixLength());
         }
         eso.setScopePrefixLength(maxScopeMask);
 
         string opt = eso.makeOptString();
-        opts.emplace_back(8, opt); // 'EDNS SUBNET'
+        opts.emplace_back(EDNSOptionCode::ECS, opt);
       }
 
       if (d_haveednscookie && d_eco.isWellFormed()) {
@@ -624,7 +633,7 @@ try
       }
       else if(s_doEDNSSubnetProcessing && (option.first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
         if (EDNSSubnetOpts::getFromString(option.second, &d_eso)) {
-          //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
+          //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.getScope().toString()<<", family = "<<d_eso.getFamily()<<endl;
           d_haveednssubnet=true;
         }
       }
