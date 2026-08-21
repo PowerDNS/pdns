@@ -1110,13 +1110,34 @@ static void daemonize()
   }
 }
 
-static int cpid;
-static void takedown(int /* i */)
+static bool axe(pid_t pid, bool waitok)
 {
-  if (cpid) {
+  if (kill(pid, SIGTERM) != 0) {
+    // Either already gone or we can't signal it anyway, there is nothing we can do.
+    return false;
+  }
+  // If we are allowed to sleep here, give a few seconds (well, 2) to the
+  // process to disappear.
+  if (waitok) {
+    for (unsigned int cycles = 2 * 10; cycles != 0; --cycles) {
+      Utility::usleep(100UL * 1000UL);
+      if (kill(pid, 0) != 0 && errno == ESRCH) {
+        return true; // process has died
+      }
+    }
+    // Process is taking time to exit, use a larger hammer
+    return kill(pid, SIGKILL) == 0;
+  }
+  return true;
+}
+
+static pid_t cpid;
+static void takedown(int signum)
+{
+  if (cpid != 0) {
     SLOG(g_log << Logger::Error << "Guardian is killed, taking down children with us" << endl,
          g_slog->withName("guardian")->info(Logr::Error, "Guardian is killed, taking down children with us"));
-    kill(cpid, SIGKILL);
+    axe(cpid, signum == 0);
     exit(0);
   }
 }
@@ -1155,9 +1176,7 @@ static std::mutex g_guardian_lock;
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
 static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */, Logr::log_t /* slog */)
 {
-  kill(cpid, SIGKILL); // why?
-  kill(cpid, SIGKILL); // why?
-  sleep(1);
+  axe(cpid, true);
   return "ok";
 }
 
@@ -1191,6 +1210,7 @@ static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */, Logr:
   return response;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): can probably get removed when structured logging becomes the only alternative and SLOG macros disappear
 static int guardian(int argc, char** argv)
 {
   if (isGuarded(argv))
@@ -1327,8 +1347,9 @@ static int guardian(int argc, char** argv)
           break;
         else { // child is alive
           // execute some kind of ping here
-          if (DLQuitPlease())
-            takedown(1); // needs a parameter..
+          if (DLQuitPlease()) {
+            takedown(0); // not invoked from a signal handler
+          }
           setStatus("Child running on pid " + std::to_string(pid));
           sleep(1);
         }
