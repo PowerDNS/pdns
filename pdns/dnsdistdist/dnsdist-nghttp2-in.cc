@@ -470,7 +470,7 @@ void IncomingHTTP2Connection::handleIO()
     */
     if (iostate == IOState::Async) {
       /* the callback will be ignored in that specific case */
-      updateIO(iostate, handleReadableIOCallback);
+      updateIO(IOState::Async, handleReadableIOCallback);
     }
     else if (hasPendingWrite()) {
       updateIO(IOState::NeedWrite, handleWritableIOCallback);
