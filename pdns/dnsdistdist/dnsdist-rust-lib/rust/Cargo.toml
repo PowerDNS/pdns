@@ -10,14 +10,20 @@ license = "GPL-2.0-only"
 # called from meson-dist-script.sh
 version = "2.1.0"
 
+[features]
+default = []
+yaml = ["dep:serde", "dep:serde_yaml"]
+cuckoo = ["dep:cuckoo-clock"]
+
 [lib]
 name = "dnsdist_rust"
 crate-type = ["staticlib"]
 
 [dependencies]
+cuckoo-clock = { version = "0.2.7", optional = true }
 cxx = "1.0.181" # issue #16101
-serde = { version = "1.0", features = ["derive"] }
-serde_yaml = { version = "0.9.34" }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_yaml = { version = "0.9.34", optional = true }
 
 [build-dependencies]
 cxx-build = "1.0"

@@ -27,6 +27,7 @@
 #include <thread>
 #include <variant>
 
+#include "dnsdist-lua-types.hh"
 #include "ext/json11/json11.hpp"
 #include <yahttp/yahttp.hpp>
 
@@ -969,6 +970,42 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp,
       output << cachebase << "cache_ttl_too_shorts"    <<label << " " << cache->getTTLTooShorts()     << "\n";
       output << cachebase << "cache_cleanup_count_total"     <<label << " " << cache->getCleanupCount()     << "\n";
     }
+  }
+
+  const string genericcachebase = "dnsdist_genericcache_";
+  output << "# HELP dnsdist_genericcache_memory_used " << "Memory used by cache in bytes" << "\n";
+  output << "# TYPE dnsdist_genericcache_memory_used " << "gauge" << "\n";
+  output << "# HELP dnsdist_genericcache_entries " << "Number of cached items" << "\n";
+  output << "# TYPE dnsdist_genericcache_entries " << "gauge" << "\n";
+  output << "# HELP dnsdist_genericcache_cache_hits " << "Number of cache hits" << "\n";
+  output << "# TYPE dnsdist_genericcache_cache_hits " << "counter" << "\n";
+  output << "# HELP dnsdist_genericcache_cache_misses " << "Number of cache misses" << "\n";
+  output << "# TYPE dnsdist_genericcache_cache_misses " << "counter" << "\n";
+  output << "# HELP dnsdist_genericcache_expired " << "Number of expired items" << "\n";
+  output << "# TYPE dnsdist_genericcache_expired " << "counter" << "\n";
+  output << "# HELP dnsdist_genericcache_kicked " << "Number of kicked items" << "\n";
+  output << "# TYPE dnsdist_genericcache_kicked " << "counter" << "\n";
+
+  for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_caches) {
+    string cacheName = entry.first;
+
+    if (cacheName.empty()) {
+      cacheName = "_default_";
+    }
+    const std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>> cache = entry.second;
+
+    const auto& stats = cache->getStats();
+
+    const string label = "{cache=\"" + cacheName + "\"," + stats.d_labels + "}";
+
+    output << genericcachebase << "memory_used" << label << " " << stats.d_memoryUsed << "\n";
+    output << genericcachebase << "entries" << label << " " << stats.d_entriesCount << "\n";
+    output << genericcachebase << "cache_hits" << label << " " << stats.d_hits << "\n";
+    output << genericcachebase << "cache_misses" << label << " " << stats.d_misses << "\n";
+    output << genericcachebase << "expired" << label << " " << stats.d_expiredItems << "\n";
+    output << genericcachebase << "kicked" << label << " " << stats.d_kickedItems << "\n";
+    output << genericcachebase << "deferred_lookups" << label << " " <<  stats.d_deferredLookups << "\n";
+    output << genericcachebase << "deferred_inserts" << label << " " <<  stats.d_deferredInserts << "\n";
   }
 
   output << "# HELP dnsdist_rule_hits " << "Number of hits of that rule" << "\n";

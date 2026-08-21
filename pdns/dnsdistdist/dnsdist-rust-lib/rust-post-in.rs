@@ -1,3 +1,4 @@
+#[cfg(feature = "yaml")]
 fn get_selectors_from_serde(
     selectors_from_serde: &Vec<Selector>,
 ) -> Result<Vec<dnsdistsettings::SharedDNSSelector>, cxx::Exception> {
@@ -9,6 +10,7 @@ fn get_selectors_from_serde(
     Ok(results)
 }
 
+#[cfg(feature = "yaml")]
 fn get_query_rules_from_serde(
     rules_from_serde: &Vec<QueryRuleConfigurationSerde>,
 ) -> Result<Vec<dnsdistsettings::QueryRuleConfiguration>, cxx::Exception> {
@@ -27,6 +29,7 @@ fn get_query_rules_from_serde(
     Ok(results)
 }
 
+#[cfg(feature = "yaml")]
 fn get_response_rules_from_serde(
     rules_from_serde: &Vec<ResponseRuleConfigurationSerde>,
 ) -> Result<Vec<dnsdistsettings::ResponseRuleConfiguration>, cxx::Exception> {
@@ -45,6 +48,7 @@ fn get_response_rules_from_serde(
     Ok(results)
 }
 
+#[cfg(feature = "yaml")]
 fn register_remote_loggers(
   config: &dnsdistsettings::RemoteLoggingConfiguration,
 ) -> Result<(), cxx::Exception> {
@@ -60,6 +64,7 @@ fn register_remote_loggers(
   Ok(())
 }
 
+#[cfg(feature = "yaml")]
 fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
 ) -> Result<dnsdistsettings::GlobalConfiguration, cxx::Exception> {
@@ -73,6 +78,7 @@ fn get_global_configuration_from_serde(
         dynamic_rules_settings: serde.dynamic_rules_settings,
         ebpf: serde.ebpf,
         edns_client_subnet: serde.edns_client_subnet,
+        generic_caches: serde.generic_caches,
         general: serde.general,
         mmdbs: serde.mmdbs,
         key_value_stores: serde.key_value_stores,
@@ -98,6 +104,7 @@ fn get_global_configuration_from_serde(
     register_remote_loggers(&config.remote_logging)?;
     // this needs to be done before the KVS so they can refer to the DBs
     dnsdistsettings::registerMMDBObjects(&config.mmdbs)?;
+    dnsdistsettings::registerGenericCacheObjects(&config.generic_caches)?;
     // this needs to be done before the rules so that they can refer to the KVS objects
     dnsdistsettings::registerKVSObjects(&config.key_value_stores)?;
     // this needs to be done before the rules so that they can refer to the NMG objects
@@ -118,6 +125,7 @@ fn get_global_configuration_from_serde(
     Ok(config)
 }
 
+#[cfg(feature = "yaml")]
 pub fn from_yaml_string(
     str: &str,
 ) -> Result<dnsdistsettings::GlobalConfiguration, String> {

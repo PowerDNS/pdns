@@ -925,6 +925,7 @@ def main():
     generate_rust_selector_to_config(generated_fp, definitions_dir)
 
     include_file(generated_fp, rust_dir + "/rust-post-in.rs")
+    include_file(generated_fp, rust_dir + "/rust-cuckoo.rs")
 
     os.rename(generated_fp.name, rust_dir + "/rust/src/lib.rs")
 

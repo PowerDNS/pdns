@@ -1,3 +1,4 @@
+#[cfg(feature = "yaml")]
 use serde::{Deserialize, Serialize};
 
 mod helpers;
@@ -9,6 +10,7 @@ pub struct ValidationError {
 }
 
 #[cxx::bridge(namespace = dnsdist::rust::settings)]
+#[cfg(feature = "yaml")]
 mod dnsdistsettings {
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]

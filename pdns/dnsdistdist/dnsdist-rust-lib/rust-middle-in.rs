@@ -15,6 +15,7 @@
         fn registerProtobufLogger(config: &ProtobufLoggerConfiguration) -> Result<()>;
         fn registerDnstapLogger(config: &DnstapLoggerConfiguration) -> Result<()>;
         fn registerOtlpLogger(config: &OtlpLoggerConfiguration) -> Result<()>;
+        fn registerGenericCacheObjects(config: &GenericCachesConfiguration) -> Result<()>;
         fn registerKVSObjects(config: &KeyValueStoresConfiguration) -> Result<()>;
         fn registerMMDBObjects(config: &Vec<MmdbConfiguration>) -> Result<()>;
         fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>) -> Result<()>;
@@ -40,6 +41,7 @@ impl Default for dnsdistsettings::SharedDNSSelector {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
+#[cfg(feature = "yaml")]
 struct AndSelectorConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
@@ -49,6 +51,7 @@ struct AndSelectorConfigurationSerde {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
+#[cfg(feature = "yaml")]
 struct OrSelectorConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
@@ -58,6 +61,7 @@ struct OrSelectorConfigurationSerde {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
+#[cfg(feature = "yaml")]
 struct NotSelectorConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
@@ -67,6 +71,7 @@ struct NotSelectorConfigurationSerde {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
+#[cfg(feature = "yaml")]
 struct ContinueActionConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
@@ -76,6 +81,7 @@ struct ContinueActionConfigurationSerde {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
+#[cfg(feature = "yaml")]
 struct QueryRuleConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
@@ -85,6 +91,7 @@ struct QueryRuleConfigurationSerde {
     action: Action,
 }
 
+#[cfg(feature = "yaml")]
 impl QueryRuleConfigurationSerde {
   fn validate(&self) -> Result<(), ValidationError> {
     Ok(())
@@ -93,6 +100,7 @@ impl QueryRuleConfigurationSerde {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
+#[cfg(feature = "yaml")]
 struct ResponseRuleConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
@@ -102,6 +110,7 @@ struct ResponseRuleConfigurationSerde {
     action: ResponseAction,
 }
 
+#[cfg(feature = "yaml")]
 impl ResponseRuleConfigurationSerde {
   fn validate(&self) -> Result<(), ValidationError> {
     Ok(())
