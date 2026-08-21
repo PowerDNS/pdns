@@ -174,6 +174,7 @@ public:
     declare(suffix, "get-tsig-key-query", "", "select algorithm, secret from tsigkeys where name=$1");
     declare(suffix, "set-tsig-key-query", "", "insert into tsigkeys (name,algorithm,secret) values($1,$2,$3) on conflict(name,algorithm) do update set secret=Excluded.secret");
     declare(suffix, "delete-tsig-key-query", "", "delete from tsigkeys where name=$1");
+    declare(suffix, "delete-tsig-key-algorithm-query", "", "delete from tsigkeys where name=$1 and algorithm=$2");
     declare(suffix, "get-tsig-keys-query", "", "select name,algorithm, secret from tsigkeys");
 
     declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account, domains.catalog from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=false OR $1");
