@@ -162,6 +162,7 @@ public:
   bool d_wasRejectedLastReload{false}; //!< if the domain was rejected during Bind2Backend::queueReloadAndStore
   bool d_nsec3zone{false};
   NSEC3PARAMRecordContent d_nsec3param;
+  bool d_pending{false};
 
   // Sugar for the main filename. Only use if d_fileinfo is NOT empty!
   const std::string& main_filename() const { return d_fileinfo.front().first; }
@@ -200,7 +201,8 @@ public:
   void setStale(domainid_t domain_id) override;
   void setFresh(domainid_t domain_id) override;
   void setNotified(domainid_t id, uint32_t serial) override;
-  bool startTransaction(const ZoneName& qname, domainid_t domainId) override;
+  bool startDomainCreationTransaction(const ZoneName& qname, domainid_t domainId) override;
+  bool startDomainModificationTransaction(const ZoneName& qname) override;
   bool feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
@@ -237,7 +239,7 @@ public:
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries) override;
   bool autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** backend) override;
   static std::mutex s_autosecondary_config_lock;
-  bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account) override;
+  bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info, bool startTransaction) override;
 
 private:
   void setupDNSSEC();
@@ -249,7 +251,7 @@ private:
   static bool safeRemoveBBDomainInfo(const ZoneName& name);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const ZoneName& name, NSEC3PARAMRecordContent* ns3p);
-  static void setLastCheck(domainid_t domain_id, time_t lastcheck);
+  void setLastCheck(domainid_t domain_id, time_t lastcheck);
   bool getNSEC3PARAMuncached(const ZoneName& name, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
@@ -314,6 +316,7 @@ private:
   bool d_upgradeContent;
 
   BB2DomainInfo createDomainEntry(const ZoneName& domain); //!< does not insert in s_state
+  bool startDomainCreationTransactionInternal(BB2DomainInfo& bbd);
 
   void queueReloadAndStore(domainid_t id);
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);

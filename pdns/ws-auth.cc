@@ -1575,7 +1575,7 @@ static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData, Logr::log_t slog
 
       zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT-API", soa_edit_api_kind);
       zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT", soa_edit_kind);
-      zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
+      zoneData.domainInfo.backend->startDomainModificationTransaction(zoneData.zoneName);
       updateZoneSerial(zoneData.domainInfo, soaData, soa_edit_api_kind, soa_edit_kind, slog);
       zoneData.domainInfo.backend->commitTransaction();
     }
@@ -2268,15 +2268,20 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   }
 
   // no going back after this
-  if (!backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""))) {
-    throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused");
+  // As we don't know which backend will get to create the zone yet, ask for
+  // a domain transaction anyway, and we'll adjust our expectations after that.
+  bool success = backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""), domainInfo, true /* startTransaction */);
+  bool makeDomainTransaction = domainInfo.backend != nullptr && (domainInfo.backend->getCapabilities() & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
+  if (!success) {
+    if (makeDomainTransaction) {
+      domainInfo.backend->abortTransaction();
+    }
+    throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused or failed");
   }
 
-  if (!backend.getDomainInfo(zonename, domainInfo)) {
-    throw ApiException("Creating domain '" + zonename.toString() + "' failed: lookup of domain ID failed");
+  if (!makeDomainTransaction) {
+    domainInfo.backend->startDomainCreationTransaction(zonename, domainInfo.id);
   }
-
-  domainInfo.backend->startTransaction(zonename, domainInfo.id);
 
   try {
     // will be overridden by updateDomainSettingsFromDocument, if given in document.
@@ -2435,7 +2440,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
       return;
     }
 
-    zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, zoneData.domainInfo.id);
+    zoneData.domainInfo.backend->startDomainCreationTransaction(zoneData.zoneName, zoneData.domainInfo.id);
     for (auto& resourceRecord : new_records) {
       resourceRecord.domain_id = static_cast<int>(zoneData.domainInfo.id);
       zoneData.domainInfo.backend->feedRecord(resourceRecord, DNSName());
@@ -2451,7 +2456,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
   }
   else {
     // avoid deleting current zone contents
-    zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
+    zoneData.domainInfo.backend->startDomainModificationTransaction(zoneData.zoneName);
   }
 
   // updateDomainSettingsFromDocument will rectify the zone and update SOA serial.
@@ -2470,7 +2475,7 @@ static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp)
 
   // delete domain
 
-  zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
+  zoneData.domainInfo.backend->startDomainModificationTransaction(zoneData.zoneName);
   try {
     if (!zoneData.domainInfo.backend->deleteDomain(zoneData.zoneName)) {
       throw ApiException("Deleting domain '" + zoneData.zoneName.toString() + "' failed: backend delete failed/unsupported");
@@ -2867,7 +2872,7 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
 static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp)
 {
   bool madeAnyChanges{false};
-  domainInfo.backend->startTransaction(zonename);
+  domainInfo.backend->startDomainModificationTransaction(zonename);
   try {
     soaEditSettings soa;
     domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa.edit_api_kind);
@@ -2878,7 +2883,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
     // RRset, and will need to fetch it from the backend. But we may have
     // processed a DELETE or REPLACE operation for the same RRset first, in
     // which case we can't assume querying the backend will be consistent with
-    // the results of that last operation, since we are within a not commited
+    // the results of that last operation, since we are within a not committed
     // yet transaction.
     // To be sure to work on consistent contents, without having to rely upon
     // specific backend behaviour, we will need to cache the RRset values
