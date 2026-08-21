@@ -543,6 +543,39 @@ public:
   //! All answers contained in this packet (everything *but* the question section)
   answers_t d_answers;
 
+  template<typename T>
+  class partial_vector {
+  public:
+    using size_type = typename std::vector<T>::size_type;
+    using iterator = typename std::vector<T>::const_iterator;
+
+    partial_vector(const std::vector<T>& base, size_type start, size_type end) : d_base(base), d_start(start), d_end(end) {}
+
+    [[nodiscard]] iterator begin() const { return d_base.cbegin() + d_start; }
+    [[nodiscard]] iterator end() const { return d_base.cbegin() + d_end; }
+
+  private:
+    const std::vector<T>& d_base;
+    size_type d_start;
+    size_type d_end;
+  };
+
+  [[nodiscard]] partial_vector<DNSRecord> getAnswers(int section) const
+  {
+    switch (section) {
+    case DNSResourceRecord::Place::ANSWER:
+      return partial_vector<DNSRecord>(d_answers, 0, d_header.ancount);
+    case DNSResourceRecord::Place::AUTHORITY:
+      return partial_vector<DNSRecord>(d_answers, d_header.ancount, d_header.ancount + d_header.nscount);
+    case DNSResourceRecord::Place::ADDITIONAL:
+      return partial_vector<DNSRecord>(d_answers, d_header.ancount + d_header.nscount, d_answers.size());
+    case -DNSResourceRecord::Place::ADDITIONAL: // Note the minus sign: everything BUT the additional section
+      return partial_vector<DNSRecord>(d_answers, 0, d_header.ancount + d_header.nscount);
+    default:
+      throw MOADNSException("Invalid set of answers requested");
+    }
+  }
+
   uint16_t getTSIGPos() const
   {
     return d_tsigPos;
