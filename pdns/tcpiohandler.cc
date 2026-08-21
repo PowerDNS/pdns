@@ -12,6 +12,10 @@ const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
 
+#if defined(SSL_MODE_ASYNC) && defined(MOCK_SSL_ASYNC)
+#include "libssl-async-mock.hh"
+#endif
+
 TLSCtx::tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
 
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
@@ -156,7 +160,7 @@ class OpenSSLTLSConnection: public TLSConnection
 {
 public:
   /* server side connection */
-  OpenSSLTLSConnection(int socket, const struct timeval& timeout, std::shared_ptr<const OpenSSLTLSIOCtx> tlsCtx, std::unique_ptr<SSL, void(*)(SSL*)>&& conn): d_tlsCtx(std::move(tlsCtx)), d_conn(std::move(conn)), d_timeout(timeout)
+  OpenSSLTLSConnection(int socket, const struct timeval& timeout, std::shared_ptr<const OpenSSLTLSIOCtx> tlsCtx, std::unique_ptr<SSL, void(*)(SSL*)>&& conn, [[maybe_unused]] bool asyncMode): d_tlsCtx(std::move(tlsCtx)), d_conn(std::move(conn)), d_timeout(timeout)
   {
     d_socket = socket;
 
@@ -174,6 +178,12 @@ public:
     }
 
     SSL_set_ex_data(d_conn.get(), getConnectionIndex(), this);
+
+#if defined(SSL_MODE_ASYNC) && defined(MOCK_SSL_ASYNC)
+    if (asyncMode) {
+      d_mockAsyncEngine = std::make_unique<MockAsyncEngine>();
+    }
+#endif /* defined(SSL_MODE_ASYNC) && defined(MOCK_SSL_ASYNC) */
   }
 
   /* client-side connection */
@@ -226,6 +236,11 @@ public:
   {
     std::vector<int> results;
 #ifdef SSL_MODE_ASYNC
+#ifdef MOCK_SSL_ASYNC
+    if (d_mockAsyncEngine) {
+      return d_mockAsyncEngine->getAsyncFDs();
+    }
+#endif /* MOCK_SSL_ASYNC */
     if (SSL_waiting_for_async(d_conn.get()) != 1) {
       return results;
     }
@@ -366,6 +381,11 @@ public:
       return IOState::Done;
     }
 
+#if defined(SSL_MODE_ASYNC) && defined(MOCK_SSL_ASYNC)
+    if (d_mockAsyncEngine && d_mockAsyncEngine->isInAsyncOperation()) {
+      return IOState::Async;
+    }
+#endif
     /* As explained above in the client-mode block, we only need to call SSL_accept() once
        for SSL_write() and SSL_read() to transparently continue to negotiate the connection after that.
        It is equivalent to calling SSL_set_accept_state() plus trying to read.
@@ -671,6 +691,9 @@ private:
   std::vector<std::unique_ptr<TLSSession>> d_tlsSessions;
   const std::shared_ptr<const OpenSSLTLSIOCtx> d_tlsCtx; // we need to hold a reference to this to make sure that the context exists for as long as the connection, even if a reload happens in the meantime
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
+#if defined(SSL_MODE_ASYNC) && defined(MOCK_SSL_ASYNC)
+  std::unique_ptr<MockAsyncEngine> d_mockAsyncEngine;
+#endif
   const std::string d_hostname;
   const timeval d_timeout;
   bool d_connected{false};
@@ -700,7 +723,7 @@ public:
   }
 
   /* server side context */
-  OpenSSLTLSIOCtx(TLSFrontend& frontend, [[maybe_unused]] Private priv): d_alpnProtos(getALPNVector(frontend.d_alpn, false)), d_feContext(std::make_unique<OpenSSLFrontendContext>(frontend.d_addr, frontend.d_tlsConfig))
+  OpenSSLTLSIOCtx(TLSFrontend& frontend, [[maybe_unused]] Private priv): d_alpnProtos(getALPNVector(frontend.d_alpn, false)), d_feContext(std::make_unique<OpenSSLFrontendContext>(frontend.d_addr, frontend.d_tlsConfig)), d_asyncMode(frontend.d_tlsConfig.d_asyncMode)
   {
     OpenSSLTLSConnection::generateConnectionIndexIfNeeded();
 
@@ -951,7 +974,7 @@ public:
   {
     handleTicketsKeyRotation(now);
 
-    return std::make_unique<OpenSSLTLSConnection>(socket, timeout, shared_from_this(), std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(getOpenSSLContext()), SSL_free));
+    return std::make_unique<OpenSSLTLSConnection>(socket, timeout, shared_from_this(), std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(getOpenSSLContext()), SSL_free), d_asyncMode);
   }
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) override
@@ -1044,6 +1067,7 @@ private:
   std::unique_ptr<OpenSSLFrontendContext> d_feContext{nullptr};
   pdns::UniqueFilePtr d_keyLogFile{nullptr};
   bool d_ktls{false};
+  bool d_asyncMode{false};
 };
 
 #endif /* HAVE_LIBSSL */
