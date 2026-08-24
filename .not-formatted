@@ -60,8 +60,6 @@
 ./pdns/dynloader.cc
 ./pdns/dynmessenger.cc
 ./pdns/dynmessenger.hh
-./pdns/gettime.cc
-./pdns/gettime.hh
 ./pdns/histog.hh
 ./pdns/inflighter.cc
 ./pdns/ixfr.cc
@@ -86,8 +84,6 @@
 ./pdns/lua-record.cc
 ./pdns/malloctrace.cc
 ./pdns/malloctrace.hh
-./pdns/misc.cc
-./pdns/misc.hh
 ./pdns/nameserver.cc
 ./pdns/nameserver.hh
 ./pdns/namespaces.hh

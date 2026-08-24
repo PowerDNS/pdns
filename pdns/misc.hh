@@ -101,12 +101,12 @@ namespace OpenSSL
 }
 
 string nowTime();
-string unquotify(const string &item);
+string unquotify(const string& item);
 string humanDuration(time_t passed);
-void stripLine(string &line);
+void stripLine(string& line);
 std::optional<string> getHostname();
 std::string getCarbonHostName();
-string urlEncode(const string &text);
+string urlEncode(const string& text);
 int waitForData(int fileDesc, int seconds, int mseconds = 0);
 int waitForData(int fileDesc, struct timeval timeout);
 int waitForMultiData(const set<int>& fds, int seconds, int mseconds, int* fdOut);
@@ -118,42 +118,43 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 int logFacilityToLOG(unsigned int facility);
 std::optional<int> logFacilityFromString(std::string facilityStr);
 
-template<typename Container>
-void
-stringtok (Container &container, const string &str,
-           const char * const delimiters = " \t\n")
+template <typename Container>
+void stringtok(Container& container, const string& str,
+               const char* const delimiters = " \t\n")
 {
   const string::size_type len = str.length();
   string::size_type index = 0;
 
-  while (index<len) {
+  while (index < len) {
     // eat leading whitespace
-    index = str.find_first_not_of (delimiters, index);
+    index = str.find_first_not_of(delimiters, index);
     if (index == string::npos) {
-      return;   // nothing left but white space
+      return; // nothing left but white space
     }
     // find the end of the token
-    string::size_type end = str.find_first_of (delimiters, index);
+    string::size_type end = str.find_first_of(delimiters, index);
 
     // push token
     if (end == string::npos) {
-      container.push_back (str.substr(index));
+      container.push_back(str.substr(index));
       return;
     }
-    container.push_back (str.substr(index, end-index));
+    container.push_back(str.substr(index, end - index));
 
     // set up for next loop
     index = end + 1;
   }
 }
 
-template<typename T> bool rfc1982LessThan(T lhs, T rhs)
+template <typename T>
+bool rfc1982LessThan(T lhs, T rhs)
 {
   static_assert(std::is_unsigned_v<T>, "rfc1982LessThan only works for unsigned types");
   return static_cast<std::make_signed_t<T>>(lhs - rhs) < 0;
 }
 
-template<typename T> bool rfc1982LessThanOrEqual(T lhs, T rhs)
+template <typename T>
+bool rfc1982LessThanOrEqual(T lhs, T rhs)
 {
   static_assert(std::is_unsigned_v<T>, "rfc1982LessThanOrEqual only works for unsigned types");
   return static_cast<std::make_signed_t<T>>(lhs - rhs) <= 0;
@@ -161,21 +162,20 @@ template<typename T> bool rfc1982LessThanOrEqual(T lhs, T rhs)
 
 // fills container with ranges, so {posbegin,posend}
 template <typename Container>
-void
-vstringtok (Container &container, string const &str,
-           const char * const delimiters = " \t\n")
+void vstringtok(Container& container, string const& str,
+                const char* const delimiters = " \t\n")
 {
   const string::size_type len = str.length();
   string::size_type index = 0;
 
-  while (index<len) {
+  while (index < len) {
     // eat leading whitespace
-    index = str.find_first_not_of (delimiters, index);
+    index = str.find_first_not_of(delimiters, index);
     if (index == string::npos) {
-      return;   // nothing left but white space
+      return; // nothing left but white space
     }
     // find the end of the token
-    string::size_type end = str.find_first_of (delimiters, index);
+    string::size_type end = str.find_first_of(delimiters, index);
 
     // push token
     if (end == string::npos) {
@@ -189,16 +189,16 @@ vstringtok (Container &container, string const &str,
   }
 }
 
-size_t writen2(int fileDesc, const void *buf, size_t count);
-inline size_t writen2(int fileDesc, const std::string &str) { return writen2(fileDesc, str.data(), str.size()); }
+size_t writen2(int fileDesc, const void* buf, size_t count);
+inline size_t writen2(int fileDesc, const std::string& str) { return writen2(fileDesc, str.data(), str.size()); }
 size_t readn2(int fileDesc, void* buffer, size_t len);
-size_t readn2WithTimeout(int fileDesc, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout={0,0}, bool allowIncomplete=false);
-size_t writen2WithTimeout(int fileDesc, const void * buffer, size_t len, const struct timeval& timeout);
+size_t readn2WithTimeout(int fileDesc, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout = {0, 0}, bool allowIncomplete = false);
+size_t writen2WithTimeout(int fileDesc, const void* buffer, size_t len, const struct timeval& timeout);
 
 void toLowerInPlace(string& str);
-string toLower(const string &upper);
-string toLowerCanonic(const string &upper);
-bool IpToU32(const string &str, uint32_t *ptr);
+string toLower(const string& upper);
+string toLowerCanonic(const string& upper);
+bool IpToU32(const string& str, uint32_t* ptr);
 string U32ToIP(uint32_t);
 
 inline string stringerror(int err = errno)
@@ -207,7 +207,7 @@ inline string stringerror(int err = errno)
 }
 
 void dropPrivs(int uid, int gid);
-void cleanSlashes(string &str);
+void cleanSlashes(string& str);
 
 #if defined(_POSIX_THREAD_CPUTIME) && defined(CLOCK_THREAD_CPUTIME_ID)
 /** CPUTime measurements */
@@ -222,8 +222,9 @@ public:
   {
     struct timespec now{};
     clock_gettime(CLOCK_THREAD_CPUTIME_ID, &now);
-    return (1000000000ULL*(now.tv_sec - d_start.tv_sec)) + (now.tv_nsec - d_start.tv_nsec);
+    return (1000000000ULL * (now.tv_sec - d_start.tv_sec)) + (now.tv_nsec - d_start.tv_nsec);
   }
+
 private:
   struct timespec d_start;
 };
@@ -236,7 +237,7 @@ class DTime
 public:
   //!< Does not set the timer for you! Saves lots of gettimeofday() calls
   [[nodiscard]] inline time_t time() const;
-  inline void set();  //!< Reset the timer
+  inline void set(); //!< Reset the timer
   inline long udiff(bool reset = true); //!< Return the number of microseconds since the timer was last set.
 
   long udiffNoReset() //!< Return the number of microseconds since the timer was last set.
@@ -245,14 +246,15 @@ public:
   }
   void setTimeval(const struct timeval& timeval)
   {
-    d_set=timeval;
+    d_set = timeval;
   }
   [[nodiscard]] struct timeval getTimeval() const
   {
     return d_set;
   }
+
 private:
-struct timeval d_set{0, 0};
+  struct timeval d_set{0, 0};
 };
 
 inline time_t DTime::time() const
@@ -270,7 +272,7 @@ inline long DTime::udiff(bool reset)
   struct timeval now{};
   gettimeofday(&now, nullptr);
 
-  long ret=(1000000*(now.tv_sec-d_set.tv_sec))+(now.tv_usec-d_set.tv_usec);
+  long ret = (1000000 * (now.tv_sec - d_set.tv_sec)) + (now.tv_usec - d_set.tv_usec);
 
   if (reset) {
     d_set = now;
@@ -291,7 +293,7 @@ inline void toLowerInPlace(string& str)
   }
 }
 
-inline string toLower(const string &upper)
+inline string toLower(const string& upper)
 {
   string reply(upper);
 
@@ -300,7 +302,7 @@ inline string toLower(const string &upper)
   return reply;
 }
 
-inline string toLowerCanonic(const string &upper)
+inline string toLowerCanonic(const string& upper)
 {
   string reply(upper);
   if (!reply.empty()) {
@@ -314,7 +316,7 @@ inline string toLowerCanonic(const string &upper)
 }
 
 // Make s uppercase:
-inline string toUpper( const string& str)
+inline string toUpper(const string& str)
 {
   string ret(str);
   for (size_t i = 0; i < str.length(); ++i) {
@@ -326,19 +328,19 @@ inline string toUpper( const string& str)
 inline double getTime()
 {
   struct timeval now{};
-  gettimeofday(&now,nullptr);
+  gettimeofday(&now, nullptr);
 
-  return static_cast<double>(now.tv_sec)+(now.tv_usec/1000000.0);
+  return static_cast<double>(now.tv_sec) + (now.tv_usec / 1000000.0);
 }
 
-[[noreturn]] inline void unixDie(const string &why)
+[[noreturn]] inline void unixDie(const string& why)
 {
   throw runtime_error(why + ": " + stringerror(errno));
 }
 
 string makeHexDump(const string& str, const string& sep = " ");
 //! Convert the hexstring to a byte string
-string makeBytesFromHex(const string &str);
+string makeBytesFromHex(const string& str);
 
 void normalizeTV(struct timeval& timeval);
 struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs);
@@ -346,7 +348,7 @@ struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs);
 
 inline float makeFloat(const struct timeval& timeval)
 {
-  return static_cast<float>(timeval.tv_sec) + (static_cast<float>(timeval.tv_usec)/1000000.0F);
+  return static_cast<float>(timeval.tv_sec) + (static_cast<float>(timeval.tv_usec) / 1000000.0F);
 }
 inline uint64_t uSec(const struct timeval& timeval)
 {
@@ -367,9 +369,8 @@ inline bool operator<(const struct timespec& lhs, const struct timespec& rhs)
   return std::tie(lhs.tv_sec, lhs.tv_nsec) < std::tie(rhs.tv_sec, rhs.tv_nsec);
 }
 
-
 using AtomicCounterInner = unsigned long;
-using AtomicCounter = std::atomic<AtomicCounterInner> ;
+using AtomicCounter = std::atomic<AtomicCounterInner>;
 
 // FIXME400 this should probably go?
 struct CIStringCompare
@@ -382,32 +383,33 @@ struct CIStringCompare
 
 struct CIStringComparePOSIX
 {
-   bool operator() (const std::string& lhs, const std::string& rhs) const
-   {
-      const std::locale &loc = std::locale("POSIX");
-      auto lhsIter = lhs.begin();
-      auto rhsIter = rhs.begin();
-      while (lhsIter != lhs.end()) {
-        if (rhsIter == rhs.end() || std::tolower(*rhsIter,loc) < std::tolower(*lhsIter,loc)) {
-          return false;
-        }
-        if (std::tolower(*lhsIter,loc) < std::tolower(*rhsIter,loc)) {
-          return true;
-        }
-        ++lhsIter;++rhsIter;
+  bool operator()(const std::string& lhs, const std::string& rhs) const
+  {
+    const std::locale& loc = std::locale("POSIX");
+    auto lhsIter = lhs.begin();
+    auto rhsIter = rhs.begin();
+    while (lhsIter != lhs.end()) {
+      if (rhsIter == rhs.end() || std::tolower(*rhsIter, loc) < std::tolower(*lhsIter, loc)) {
+        return false;
       }
-      return rhsIter != rhs.end();
-   }
+      if (std::tolower(*lhsIter, loc) < std::tolower(*rhsIter, loc)) {
+        return true;
+      }
+      ++lhsIter;
+      ++rhsIter;
+    }
+    return rhsIter != rhs.end();
+  }
 };
 
 struct CIStringPairCompare
 {
   bool operator()(const pair<string, uint16_t>& lhs, const pair<string, uint16_t>& rhs) const
   {
-    if(pdns_ilexicographical_compare(lhs.first, rhs.first)) {
+    if (pdns_ilexicographical_compare(lhs.first, rhs.first)) {
       return true;
     }
-    if(pdns_ilexicographical_compare(rhs.first, lhs.first)) {
+    if (pdns_ilexicographical_compare(rhs.first, lhs.first)) {
       return false;
     }
     return lhs.second < rhs.second;
@@ -417,7 +419,7 @@ struct CIStringPairCompare
 inline size_t pdns_ci_find(const string& haystack, const string& needle)
 {
   string::const_iterator iter = std::search(haystack.begin(), haystack.end(),
-    needle.begin(), needle.end(), pdns_iequals_ch);
+                                            needle.begin(), needle.end(), pdns_iequals_ch);
   if (iter == haystack.end()) {
     // not found
     return string::npos;
@@ -434,10 +436,10 @@ inline bool isCanonical(std::string_view qname)
 
 inline DNSName toCanonic(const ZoneName& zone, const string& qname)
 {
-  if(qname.size()==1 && qname[0]=='@') {
+  if (qname.size() == 1 && qname[0] == '@') {
     return DNSName{zone};
   }
-  if(isCanonical(qname)) {
+  if (isCanonical(qname)) {
     return DNSName{qname};
   }
   return DNSName{qname} += DNSName{zone};
@@ -450,11 +452,11 @@ int makeIPv4sockaddr(const std::string& arg, struct sockaddr_in* ret);
 int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret);
 bool stringfgets(FILE* file, std::string& line);
 
-template<typename Index>
-std::pair<typename Index::iterator,bool>
-replacing_insert(Index& index,const typename Index::value_type& value)
+template <typename Index>
+std::pair<typename Index::iterator, bool>
+replacing_insert(Index& index, const typename Index::value_type& value)
 {
-  std::pair<typename Index::iterator,bool> res=index.insert(value);
+  std::pair<typename Index::iterator, bool> res = index.insert(value);
   if (!res.second) {
     res.second = index.replace(res.first, value);
   }
@@ -466,20 +468,21 @@ class Regex
 {
 public:
   /** constructor that accepts the expression to regex */
-  Regex(const string &expr);
+  Regex(const string& expr);
   Regex(const Regex&) = delete;
   Regex& operator=(const Regex&) = delete;
   Regex(Regex&& rhs) = default;
   Regex& operator=(Regex&& rhs) = default;
   ~Regex() = default;
   /** call this to find out if 'line' matches your expression */
-  [[nodiscard]] bool match(const string &line) const;
+  [[nodiscard]] bool match(const string& line) const;
   [[nodiscard]] bool match(const DNSName& name) const;
 
 private:
   struct Deleter
   {
-    void operator()(regex_t* ptr) const noexcept {
+    void operator()(regex_t* ptr) const noexcept
+    {
       regfree(ptr);
       delete ptr; // NOLINT(cppcoreguidelines-owning-memory)
     }
@@ -498,7 +501,7 @@ public:
 
   [[nodiscard]] bool match(string::const_iterator iter, string::const_iterator mend, string::const_iterator vbegin, string::const_iterator vend) const
   {
-    for(;;++iter) {
+    for (;; ++iter) {
       if (iter == mend) {
         return vbegin == vend;
       }
@@ -507,21 +510,23 @@ public:
           return false;
         }
         ++vbegin;
-      } else if (*iter == '*') {
+      }
+      else if (*iter == '*') {
         while (iter != mend && *iter == '*') {
           ++iter;
         }
         if (iter == mend) {
           return true;
         }
-        while(vbegin != vend) {
+        while (vbegin != vend) {
           if (match(iter, mend, vbegin, vend)) {
             return true;
           }
           ++vbegin;
         }
         return false;
-      } else {
+      }
+      else {
         if ((iter == mend && vbegin != vend) || (iter != mend && vbegin == vend)) {
           return false;
         }
@@ -529,7 +534,8 @@ public:
           if (dns_tolower(*iter) != dns_tolower(*vbegin)) {
             return false;
           }
-        } else {
+        }
+        else {
           if (*iter != *vbegin) {
             return false;
           }
@@ -539,16 +545,19 @@ public:
     }
   }
 
-  [[nodiscard]] bool match(const string& value) const {
+  [[nodiscard]] bool match(const string& value) const
+  {
     return match(d_mask.begin(), d_mask.end(), value.begin(), value.end());
   }
 
-  [[nodiscard]] bool match(const DNSName& name) const {
+  [[nodiscard]] bool match(const DNSName& name) const
+  {
     return match(name.toStringNoDot());
   }
 
 #if defined(PDNS_AUTH) // [
-  [[nodiscard]] bool match(const ZoneName& name) const {
+  [[nodiscard]] bool match(const ZoneName& name) const
+  {
     return match(name.toStringNoDot());
   }
 #endif // ]
@@ -561,23 +570,27 @@ private:
 union ComboAddress;
 
 // An aligned type to hold cmsgbufs. See https://man.openbsd.org/CMSG_DATA
-union cmsgbuf_aligned { struct cmsghdr hdr; std::array<char, 256> buf; };
+union cmsgbuf_aligned
+{
+  struct cmsghdr hdr;
+  std::array<char, 256> buf;
+};
 
 /* itfIndex is an interface index, as returned by if_nametoindex(). 0 means default. */
 void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAddress* source, int itfIndex);
 
-unsigned int getFilenumLimit(bool hardOrSoft=false);
+unsigned int getFilenumLimit(bool hardOrSoft = false);
 void setFilenumLimit(unsigned int lim);
 bool readFileIfThere(const char* fname, std::string* line);
 bool setSocketTimestamps(int fileDesc);
 
 //! Sets the socket into blocking mode.
-bool setBlocking( int sock );
+bool setBlocking(int sock);
 
 void setDscp(int sock, unsigned short family, uint8_t dscp);
 
 //! Sets the socket into non-blocking mode.
-bool setNonBlocking( int sock );
+bool setNonBlocking(int sock);
 bool setTCPNoDelay(int sock);
 bool setReuseAddr(int sock);
 bool isNonBlocking(int sock);
@@ -601,25 +614,25 @@ uint64_t getCPUSteal(const std::string&);
 std::string getMACAddress(const ComboAddress& address);
 int getMACAddress(const ComboAddress& address, char* dest, size_t len);
 
-template<typename T>
+template <typename T>
 const T& defTer(const T& lhs, const T& rhs)
 {
   return lhs ? lhs : rhs;
 }
 
-template<typename P, typename T>
-T valueOrEmpty(const P val) {
+template <typename P, typename T>
+T valueOrEmpty(const P val)
+{
   if (!val) {
     return T{};
   }
   return T(val);
 }
 
-
 // I'm not very OCD, but I appreciate loglines like "processing 1 delta", "processing 2 deltas" :-)
 template <typename Integer,
-typename std::enable_if_t<std::is_integral_v<Integer>, bool> = true>
-const char* addS(Integer siz, const char* singular = "", const char *plural = "s")
+          typename std::enable_if_t<std::is_integral_v<Integer>, bool> = true>
+const char* addS(Integer siz, const char* singular = "", const char* plural = "s")
 {
   if (siz == 1) {
     return singular;
@@ -628,17 +641,17 @@ const char* addS(Integer siz, const char* singular = "", const char *plural = "s
 }
 
 template <typename C,
-typename std::enable_if_t<std::is_class_v<C>, bool> = true>
-const char* addS(const C& container, const char* singular = "", const char *plural = "s")
+          typename std::enable_if_t<std::is_class_v<C>, bool> = true>
+const char* addS(const C& container, const char* singular = "", const char* plural = "s")
 {
   return addS(container.size(), singular, plural);
 }
 
-template<typename C>
+template <typename C>
 const typename C::value_type::second_type* rplookup(const C& container, const typename C::value_type::first_type& key)
 {
   auto fnd = container.find(key);
-  if(fnd == container.end()) {
+  if (fnd == container.end()) {
     return 0;
   }
   return &fnd->second;
@@ -646,8 +659,8 @@ const typename C::value_type::second_type* rplookup(const C& container, const ty
 
 double DiffTime(const struct timespec& first, const struct timespec& second);
 double DiffTime(const struct timeval& first, const struct timeval& second);
-uid_t strToUID(const string &str);
-gid_t strToGID(const string &str);
+uid_t strToUID(const string& str);
+gid_t strToGID(const string& str);
 
 namespace pdns
 {
@@ -811,15 +824,18 @@ auto checked_stoi_into(T& out, const std::string& str, size_t* idx = nullptr, in
  *   // Now the deferred lambda will be run and print "goodbye"
  * }
  */
-template<class Func>
-struct defer {
-  defer(Func&& func) : d_func(std::forward<Func>(std::move(func))) {};
+template <class Func>
+struct defer
+{
+  defer(Func&& func) :
+    d_func(std::forward<Func>(std::move(func))) {};
   ~defer() noexcept { std::invoke(d_func); }
 
   defer(const defer&) = delete;
   defer& operator=(const defer&) = delete;
   defer(defer&&) = delete;
   defer& operator=(defer&&) = delete;
+
 private:
   Func d_func;
 };
@@ -840,15 +856,18 @@ private:
  *   // Now the deferred function will be run and print "goodbye"
  * }
  */
-template<class Func, typename... Args>
-struct deferFunc {
-  deferFunc(Func&& func, Args&&... args) : d_func(std::forward<Func>(std::move(func))), d_args(std::forward<Args>(args)...) {};
+template <class Func, typename... Args>
+struct deferFunc
+{
+  deferFunc(Func&& func, Args&&... args) :
+    d_func(std::forward<Func>(std::move(func))), d_args(std::forward<Args>(args)...) {};
   ~deferFunc() noexcept { std::invoke(d_func, d_args); }
 
   deferFunc(const deferFunc&) = delete;
   deferFunc& operator=(const deferFunc&) = delete;
   deferFunc(deferFunc&&) = delete;
   deferFunc& operator=(deferFunc&&) = delete;
+
 private:
   Func d_func;
   std::tuple<Args...> d_args;
@@ -866,32 +885,36 @@ DNSName reverseNameFromIP(const ComboAddress& address);
 // Note that parseRFC1035CharString will return zero if the first character
 // being processed is < 0x20, >= 07f, or equal to 0x28, 0x29 or 0x3b.
 // parseRFC1035CharStringRelaxed will too, except within a quoted section.
-size_t parseRFC1035CharString(std::string_view str, std::string &val);
-size_t parseRFC1035CharStringRelaxed(std::string_view str, std::string &val);
-size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string &str, vector<std::string> &val);
-size_t parseSVCBValueList(const std::string &str, vector<std::string> &val);
+size_t parseRFC1035CharString(std::string_view str, std::string& val);
+size_t parseRFC1035CharStringRelaxed(std::string_view str, std::string& val);
+size_t parseSVCBValueListFromParsedRFC1035CharString(const std::string& str, vector<std::string>& val);
+size_t parseSVCBValueList(const std::string& str, vector<std::string>& val);
 
 std::string makeLuaString(const std::string& input);
 
 bool constantTimeStringEquals(const std::string& lhs, const std::string& rhs);
 
 // Used in NID and L64 records
-struct NodeOrLocatorID { std::array<uint8_t, 8> content; };
+struct NodeOrLocatorID
+{
+  std::array<uint8_t, 8> content;
+};
 
 struct FDWrapper
 {
   FDWrapper() = default;
-  FDWrapper(int desc): d_fd(desc) {}
+  FDWrapper(int desc) :
+    d_fd(desc) {}
   FDWrapper(const FDWrapper&) = delete;
   FDWrapper& operator=(const FDWrapper& rhs) = delete;
-
 
   ~FDWrapper()
   {
     reset();
   }
 
-  FDWrapper(FDWrapper&& rhs) noexcept : d_fd(rhs.d_fd)
+  FDWrapper(FDWrapper&& rhs) noexcept :
+    d_fd(rhs.d_fd)
   {
     rhs.d_fd = -1;
   }
@@ -954,7 +977,8 @@ struct FilePtrDeleter
      - we avoid the annoying "ignoring attributes on template argument ‘int (*)(FILE*)’"
        warning from the compiler, which is there because fclose is tagged as __nonnull((1))
   */
-  void operator()(FILE* filePtr) const noexcept {
+  void operator()(FILE* filePtr) const noexcept
+  {
     fclose(filePtr); // NOLINT(cppcoreguidelines-owning-memory)
   }
 };
