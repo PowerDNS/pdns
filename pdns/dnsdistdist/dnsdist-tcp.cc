@@ -1253,6 +1253,7 @@ void IncomingTCPConnectionState::handleIO()
     if (maxConnectionDurationReached(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration, now)) {
       VERBOSESLOG(infolog("Terminating TCP connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort()),
                   getLogger()->info(Logr::Info, "Terminating TCP connection because it reached the maximum TCP connection duration"));
+      ++d_ci.cs->tcpMaxDurationReached;
       // will be handled by the ioGuard
       // handleNewIOState(state, IOState::Done, fd, handleIOCallback);
       return;

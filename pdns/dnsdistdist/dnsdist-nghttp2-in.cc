@@ -357,6 +357,7 @@ IOState IncomingHTTP2Connection::handleHandshake(const struct timeval& now)
     if (d_handler.isTLS()) {
       if (!checkALPN()) {
         d_connectionDied = true;
+        ++d_ci.cs->tcpBadALPN;
         stopIO();
         return iostate;
       }
@@ -406,6 +407,7 @@ void IncomingHTTP2Connection::handleIO()
     if (maxConnectionDurationReached(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration, now)) {
       VERBOSESLOG(infolog("Terminating DoH connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort()),
                   getLogger()->info(Logr::Info, "Terminating DoH connection because it reached the maximum TCP connection duration", "max_tcp_connection_duration", Logging::Loggable(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration)));
+      ++d_ci.cs->tcpMaxDurationReached;
       stopIO();
       d_connectionClosing = true;
       return;
@@ -448,6 +450,7 @@ void IncomingHTTP2Connection::handleIO()
         }
       }
       else if (status == ProxyProtocolResult::Error) {
+        ++d_ci.cs->tcpBadProxyProtocol;
         d_connectionDied = true;
         stopIO();
         return;
@@ -506,6 +509,7 @@ void IncomingHTTP2Connection::handleIO()
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Exception when processing IO for incoming DoH connection from %s: %s", d_ci.remote.toStringWithPort(), e.what()),
                 getLogger()->error(Logr::Info, e.what(), "Exception when processing IO for incoming DoH connection"));
+    ++d_ci.cs->tcpDiedDuringProcessing;
     d_connectionDied = true;
     stopIO();
   }
@@ -537,7 +541,7 @@ void IncomingHTTP2Connection::writeToSocket(bool socketReady)
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Exception while trying to write (%s) to HTTP client connection to %s: %s", (socketReady ? "ready" : "send"), d_ci.remote.toStringWithPort(), e.what()),
                 getLogger()->error(Logr::Info, e.what(), "Exception while trying to write to DoH client connection", "socket_ready", Logging::Loggable(socketReady ? "ready" : "send")));
-    handleIOError();
+    handleIOError(ErrorContext::ErrorWhileWritingToClient);
   }
 }
 
@@ -1288,7 +1292,7 @@ IOState IncomingHTTP2Connection::readHTTPData()
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Exception while trying to read from HTTP client connection to %s: %s", d_ci.remote.toStringWithPort(), e.what()),
                 getLogger()->error(Logr::Info, e.what(), "Exception while trying to read from DoH client connection"));
-    handleIOError();
+    handleIOError(ErrorContext::ErrorWhileReadingFromClient);
     return IOState::Done;
   }
   return newState;
@@ -1386,8 +1390,18 @@ void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::ca
   }
 }
 
-void IncomingHTTP2Connection::handleIOError()
+void IncomingHTTP2Connection::handleIOError(ErrorContext context)
 {
+  if (context == ErrorContext::ErrorWhileReadingFromClient) {
+    ++d_ci.cs->tcpDiedReadingQuery;
+  }
+  else if (context == ErrorContext::ErrorWhileWritingToClient) {
+    ++d_ci.cs->tcpDiedSendingResponse;
+  }
+  else {
+    ++d_ci.cs->tcpDiedDuringProcessing;
+  }
+
   d_connectionDied = true;
   d_out.clear();
   d_outPos = 0;
