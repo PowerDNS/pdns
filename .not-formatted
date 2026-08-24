@@ -60,9 +60,6 @@
 ./pdns/dynloader.cc
 ./pdns/dynmessenger.cc
 ./pdns/dynmessenger.hh
-./pdns/ednsoptions.cc
-./pdns/ednsoptions.hh
-./pdns/ednspadding.cc
 ./pdns/gettime.cc
 ./pdns/gettime.hh
 ./pdns/histog.hh
