@@ -20,9 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include <sys/param.h>
 #include <sys/socket.h>
@@ -56,13 +54,11 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "iputils.hh"
-#include "dnsparser.hh"
 #include "dns_random.hh"
 #include "logger.hh"
 #include "logging.hh"
 #include <pwd.h>
 #include <grp.h>
-#include <climits>
 #include <unordered_map>
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
@@ -75,6 +71,8 @@
 #if defined(HAVE_LIBCRYPTO)
 #include <openssl/err.h>
 #endif // HAVE_LIBCRYPTO
+
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 size_t writen2(int fileDesc, const void *buf, size_t count)
 {
@@ -123,7 +121,7 @@ size_t readn2(int fileDesc, void* buffer, size_t len)
   return len;
 }
 
-size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout, bool allowIncomplete)
+size_t readn2WithTimeout(int fileDesc, void* buffer, size_t len, const struct timeval& idleTimeout, const struct timeval& totalTimeout, bool allowIncomplete)
 {
   size_t pos = 0;
   struct timeval start{0,0};
@@ -133,7 +131,7 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval&
   }
 
   do {
-    ssize_t got = read(fd, (char *)buffer + pos, len - pos);
+    ssize_t got = read(fileDesc, static_cast<char *>(buffer) + pos, len - pos);
     if (got > 0) {
       pos += (size_t) got;
       if (allowIncomplete) {
@@ -145,8 +143,8 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval&
     }
     else {
       if (errno == EAGAIN) {
-        struct timeval w = ((totalTimeout.tv_sec == 0 && totalTimeout.tv_usec == 0) || idleTimeout <= remainingTime) ? idleTimeout : remainingTime;
-        int res = waitForData(fd, w);
+        struct timeval waitTime = ((totalTimeout.tv_sec == 0 && totalTimeout.tv_usec == 0) || idleTimeout <= remainingTime) ? idleTimeout : remainingTime;
+        int res = waitForData(fileDesc, waitTime);
         if (res > 0) {
           /* there is data available */
         }
@@ -162,7 +160,7 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval&
     }
 
     if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
-      struct timeval now;
+      struct timeval now{};
       gettimeofday(&now, nullptr);
       struct timeval elapsed = now - start;
       if (remainingTime < elapsed) {
@@ -177,20 +175,21 @@ size_t readn2WithTimeout(int fd, void* buffer, size_t len, const struct timeval&
   return len;
 }
 
-size_t writen2WithTimeout(int fd, const void * buffer, size_t len, const struct timeval& timeout)
+size_t writen2WithTimeout(int fileDesc, const void * buffer, size_t len, const struct timeval& timeout)
 {
   size_t pos = 0;
   do {
-    ssize_t written = write(fd, reinterpret_cast<const char *>(buffer) + pos, len - pos);
+    ssize_t written = write(fileDesc, reinterpret_cast<const char *>(buffer) + pos, len - pos);
 
     if (written > 0) {
       pos += (size_t) written;
     }
-    else if (written == 0)
+    else if (written == 0) {
       throw runtime_error("EOF while writing message");
+    }
     else {
       if (errno == EAGAIN) {
-        int res = waitForRWData(fd, false, timeout);
+        int res = waitForRWData(fileDesc, false, timeout);
         if (res > 0) {
           /* there is room available */
         }
@@ -335,7 +334,7 @@ int waitForRWData(int fileDesc, bool waitForRead, int seconds, int mseconds, boo
     pfd.events = POLLOUT;
   }
 
-  int ret = poll(&pfd, 1, seconds * 1000 + mseconds);
+  int ret = poll(&pfd, 1, (seconds * 1000) + mseconds);
   if (ret > 0) {
     if ((error != nullptr) && (pfd.revents & POLLERR) != 0) {
       *error = true;
@@ -356,70 +355,82 @@ int waitForRWData(int fileDesc, bool waitForRead, struct timeval timeout, bool* 
 // returns -1 in case of error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
 int waitForMultiData(const set<int>& fds, const int seconds, const int mseconds, int* fdOut) {
   set<int> realFDs;
-  for (const auto& fd : fds) {
-    if (fd >= 0 && realFDs.count(fd) == 0) {
-      realFDs.insert(fd);
+  for (const auto& anFd : fds) {
+    if (anFd >= 0 && realFDs.count(anFd) == 0) {
+      realFDs.insert(anFd);
     }
   }
 
   std::vector<struct pollfd> pfds(realFDs.size());
   memset(pfds.data(), 0, realFDs.size()*sizeof(struct pollfd));
   int ctr = 0;
-  for (const auto& fd : realFDs) {
-    pfds[ctr].fd = fd;
+  for (const auto& anFd : realFDs) {
+    pfds[ctr].fd = anFd;
     pfds[ctr].events = POLLIN;
     ctr++;
   }
 
-  int ret;
-  if(seconds >= 0)
-    ret = poll(pfds.data(), realFDs.size(), seconds * 1000 + mseconds);
-  else
+  int ret{};
+  if(seconds >= 0) {
+    ret = poll(pfds.data(), realFDs.size(), (seconds * 1000) + mseconds);
+  }
+  else {
     ret = poll(pfds.data(), realFDs.size(), -1);
-  if(ret <= 0)
+  }
+  if(ret <= 0) {
     return ret;
+  }
 
   set<int> pollinFDs;
   for (const auto& pfd : pfds) {
-    if (pfd.revents & POLLIN) {
+    if ((pfd.revents & POLLIN) != 0) {
       pollinFDs.insert(pfd.fd);
     }
   }
-  set<int>::const_iterator it(pollinFDs.begin());
-  advance(it, dns_random(pollinFDs.size()));
-  *fdOut = *it;
+  auto iter(pollinFDs.begin());
+  advance(iter, dns_random(pollinFDs.size()));
+  *fdOut = *iter;
   return 1;
 }
 
 string humanDuration(time_t passed)
 {
   ostringstream ret;
-  if(passed<60)
-    ret<<passed<<" seconds";
-  else if(passed<3600)
-    ret<<std::setprecision(2)<<passed/60.0<<" minutes";
-  else if(passed<86400)
-    ret<<std::setprecision(3)<<passed/3600.0<<" hours";
-  else if(passed<(86400*30.41))
-    ret<<std::setprecision(3)<<passed/86400.0<<" days";
-  else
-    ret<<std::setprecision(3)<<passed/(86400*30.41)<<" months";
+  if(passed<60) {
+    ret << passed << " seconds";
+  }
+  else if(passed<3600) {
+    ret << std::setprecision(2) << static_cast<double>(passed) / 60.0 << " minutes";
+  }
+  else if(passed<86400) {
+    ret << std::setprecision(3) << static_cast<double>(passed) / 3600.0 << " hours";
+  }
+  else if(static_cast<double>(passed)<(86400*30.41)) {
+    ret << std::setprecision(3) << static_cast<double>(passed) / 86400.0 << " days";
+  }
+  else {
+    ret << std::setprecision(3) << static_cast<double>(passed) / (86400 * 30.41) << " months";
+  }
 
   return ret.str();
 }
 
 string unquotify(const string &item)
 {
-  if(item.size()<2)
+  if(item.size()<2) {
     return item;
+  }
 
-  string::size_type bpos=0, epos=item.size();
+  string::size_type bpos=0;
+  string::size_type epos=item.size();
 
-  if(item[0]=='"')
-    bpos=1;
+  if(item[0]=='"') {
+    bpos = 1;
+  }
 
-  if(item[epos-1]=='"')
-    epos-=1;
+  if(item[epos-1]=='"') {
+    epos -= 1;
+  }
 
   return item.substr(bpos,epos-bpos);
 }
@@ -435,9 +446,14 @@ void stripLine(string &line)
 string urlEncode(const string &text)
 {
   string ret;
-  for(char i : text)
-    if(i==' ')ret.append("%20");
-    else ret.append(1,i);
+  for(char index : text) {
+    if (index == ' ') {
+      ret.append("%20");
+    }
+    else {
+      ret.append(1, index);
+    }
+  }
   return ret;
 }
 
@@ -504,16 +520,16 @@ void cleanSlashes(string &str)
   str = std::move(out);
 }
 
-bool IpToU32(const string &str, uint32_t *ip)
+bool IpToU32(const string &str, uint32_t *ptr)
 {
   if(str.empty()) {
-    *ip=0;
+    *ptr=0;
     return true;
   }
 
-  struct in_addr inp;
-  if(inet_aton(str.c_str(), &inp)) {
-    *ip=inp.s_addr;
+  struct in_addr inp{};
+  if(inet_aton(str.c_str(), &inp) != 0) {
+    *ptr=inp.s_addr;
     return true;
   }
   return false;
@@ -521,64 +537,64 @@ bool IpToU32(const string &str, uint32_t *ip)
 
 string U32ToIP(uint32_t val)
 {
-  char tmp[17];
-  snprintf(tmp, sizeof(tmp), "%u.%u.%u.%u",
+  std::array<char, 17> tmp{};
+  snprintf(tmp.data(), tmp.size(), "%u.%u.%u.%u",
            (val >> 24)&0xff,
            (val >> 16)&0xff,
            (val >>  8)&0xff,
            (val      )&0xff);
-  return string(tmp);
+  return tmp.data();
 }
 
 
 string makeHexDump(const string& str, const string& sep)
 {
-  std::array<char, 5> tmp;
+  std::array<char, 5> tmp{};
   string ret;
   ret.reserve(static_cast<size_t>(str.size() * (2 + sep.size())));
 
-  for (char n : str) {
-    snprintf(tmp.data(), tmp.size(), "%02x", static_cast<unsigned char>(n));
+  for (char index : str) {
+    snprintf(tmp.data(), tmp.size(), "%02x", static_cast<unsigned char>(index));
     ret += tmp.data();
     ret += sep;
   }
   return ret;
 }
 
-string makeBytesFromHex(const string &in) {
-  if (in.size() % 2 != 0) {
+string makeBytesFromHex(const string &str) {
+  if (str.size() % 2 != 0) {
     throw std::range_error("odd number of bytes in hex string");
   }
   string ret;
-  ret.reserve(in.size() / 2);
+  ret.reserve(str.size() / 2);
 
-  for (size_t i = 0; i < in.size(); i += 2) {
-    const auto numStr = in.substr(i, 2);
+  for (size_t i = 0; i < str.size(); i += 2) {
+    const auto numStr = str.substr(i, 2);
     unsigned int num = 0;
     if (sscanf(numStr.c_str(), "%02x", &num) != 1) {
-      throw std::range_error("Invalid value while parsing the hex string '" + in + "'");
+      throw std::range_error("Invalid value while parsing the hex string '" + str + "'");
     }
-    ret.push_back(static_cast<uint8_t>(num));
+    ret.push_back(static_cast<char>(num));
   }
 
   return ret;
 }
 
-void normalizeTV(struct timeval& tv)
+void normalizeTV(struct timeval& timeval)
 {
-  if(tv.tv_usec > 1000000) {
-    ++tv.tv_sec;
-    tv.tv_usec-=1000000;
+  if(timeval.tv_usec > 1000000) {
+    ++timeval.tv_sec;
+    timeval.tv_usec-=1000000;
   }
-  else if(tv.tv_usec < 0) {
-    --tv.tv_sec;
-    tv.tv_usec+=1000000;
+  else if(timeval.tv_usec < 0) {
+    --timeval.tv_sec;
+    timeval.tv_usec+=1000000;
   }
 }
 
 struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs)
 {
-  struct timeval ret;
+  struct timeval ret{};
   ret.tv_sec=lhs.tv_sec + rhs.tv_sec;
   ret.tv_usec=lhs.tv_usec + rhs.tv_usec;
   normalizeTV(ret);
@@ -587,7 +603,7 @@ struct timeval operator+(const struct timeval& lhs, const struct timeval& rhs)
 
 struct timeval operator-(const struct timeval& lhs, const struct timeval& rhs)
 {
-  struct timeval ret;
+  struct timeval ret{};
   ret.tv_sec=lhs.tv_sec - rhs.tv_sec;
   ret.tv_usec=lhs.tv_usec - rhs.tv_usec;
   normalizeTV(ret);
@@ -598,8 +614,9 @@ pair<string, string> splitField(const string& inp, char sepa)
 {
   pair<string, string> ret;
   string::size_type cpos=inp.find(sepa);
-  if(cpos==string::npos)
-    ret.first=inp;
+  if(cpos==string::npos) {
+    ret.first = inp;
+  }
   else {
     ret.first=inp.substr(0, cpos);
     ret.second=inp.substr(cpos+1);
@@ -689,11 +706,13 @@ std::optional<int> logFacilityFromString(std::string facilityStr)
 
 string stripDot(const string& dom)
 {
-  if(dom.empty())
+  if(dom.empty()) {
     return dom;
+  }
 
-  if(dom[dom.size()-1]!='.')
+  if(dom[dom.size()-1]!='.') {
     return dom;
+  }
 
   return dom.substr(0,dom.size()-1);
 }
@@ -760,29 +779,31 @@ int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
   if(str.empty()) {
     return -1;
   }
-  struct in_addr inp;
+  struct in_addr inp{};
 
   string::size_type pos = str.find(':');
   if(pos == string::npos) { // no port specified, not touching the port
-    if(inet_aton(str.c_str(), &inp)) {
+    if(inet_aton(str.c_str(), &inp) != 0) {
       ret->sin_addr.s_addr=inp.s_addr;
       return 0;
     }
     return -1;
   }
-  if(!*(str.c_str() + pos + 1)) // trailing :
+  if(*(str.c_str() + pos + 1) == 0) { // trailing :
     return -1;
+  }
 
   char *eptr = const_cast<char*>(str.c_str()) + str.size();
-  int port = strtol(str.c_str() + pos + 1, &eptr, 10);
-  if (port < 0 || port > 65535)
+  int port = static_cast<int>(strtol(str.c_str() + pos + 1, &eptr, 10));
+  if (port < 0 || port > 65535) {
     return -1;
-
-  if(*eptr)
+  }
+  if(*eptr != 0) {
     return -1;
+  }
 
   ret->sin_port = htons(port);
-  if(inet_aton(str.substr(0, pos).c_str(), &inp)) {
+  if(inet_aton(str.substr(0, pos).c_str(), &inp) != 0) {
     ret->sin_addr.s_addr=inp.s_addr;
     return 0;
   }
@@ -791,30 +812,30 @@ int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
 
 int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret)
 {
-  if (path.empty())
+  if (path.empty()) {
     return -1;
-
+  }
   memset(ret, 0, sizeof(struct sockaddr_un));
   ret->sun_family = AF_UNIX;
-  if (path.length() >= sizeof(ret->sun_path))
+  if (path.length() >= sizeof(ret->sun_path)) {
     return -1;
-
-  path.copy(ret->sun_path, sizeof(ret->sun_path), 0);
+  }
+  path.copy(&ret->sun_path[0], sizeof(ret->sun_path), 0);
   return 0;
 }
 
 //! read a line of text from a FILE* to a std::string, returns false on 'no data'
-bool stringfgets(FILE* fp, std::string& line)
+bool stringfgets(FILE* file, std::string& line)
 {
-  char buffer[1024];
+  std::array<char,1024> buffer{};
   line.clear();
 
   do {
-    if(!fgets(buffer, sizeof(buffer), fp))
+    if(fgets(buffer.data(), buffer.size(), file) == nullptr) {
       return !line.empty();
-
-    line.append(buffer);
-  } while(!strchr(buffer, '\n'));
+    }
+    line.append(buffer.data());
+  } while(strchr(buffer.data(), '\n') == nullptr);
   return true;
 }
 
@@ -860,7 +881,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
   struct cmsghdr *cmsg = nullptr;
 
   if(source->sin4.sin_family == AF_INET6) {
-    struct in6_pktinfo *pkt;
+    struct in6_pktinfo *pkt{};
 
     msgh->msg_control = cmsgbuf;
 #if !defined( __APPLE__ )
@@ -878,7 +899,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
     cmsg->cmsg_type = IPV6_PKTINFO;
     cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
 
-    pkt = (struct in6_pktinfo *) CMSG_DATA(cmsg);
+    pkt = reinterpret_cast<struct in6_pktinfo *>(CMSG_DATA(cmsg));
     // Include the padding to stop valgrind complaining about passing uninitialized data
     memset(pkt, 0, CMSG_SPACE(sizeof(*pkt)));
     pkt->ipi6_addr = source->sin6.sin6_addr;
@@ -886,7 +907,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
   }
   else {
 #if defined(IP_PKTINFO)
-    struct in_pktinfo *pkt;
+    struct in_pktinfo *pkt{};
 
     msgh->msg_control = cmsgbuf;
 #if !defined( __APPLE__ )
@@ -904,7 +925,7 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
     cmsg->cmsg_type = IP_PKTINFO;
     cmsg->cmsg_len = CMSG_LEN(sizeof(*pkt));
 
-    pkt = (struct in_pktinfo *) CMSG_DATA(cmsg);
+    pkt = reinterpret_cast<struct in_pktinfo *>(CMSG_DATA(cmsg));
     // Include the padding to stop valgrind complaining about passing uninitialized data
     memset(pkt, 0, CMSG_SPACE(sizeof(*pkt)));
     pkt->ipi_spec_dst = source->sin4.sin_addr;
@@ -937,28 +958,31 @@ void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAd
 
 unsigned int getFilenumLimit(bool hardOrSoft)
 {
-  struct rlimit rlim;
-  if(getrlimit(RLIMIT_NOFILE, &rlim) < 0)
+  struct rlimit rlim{};
+  if(getrlimit(RLIMIT_NOFILE, &rlim) < 0) {
     unixDie("Requesting number of available file descriptors");
+  }
   return hardOrSoft ? rlim.rlim_max : rlim.rlim_cur;
 }
 
 void setFilenumLimit(unsigned int lim)
 {
-  struct rlimit rlim;
+  struct rlimit rlim{};
 
-  if(getrlimit(RLIMIT_NOFILE, &rlim) < 0)
+  if(getrlimit(RLIMIT_NOFILE, &rlim) < 0) {
     unixDie("Requesting number of available file descriptors");
+  }
   rlim.rlim_cur=lim;
-  if(setrlimit(RLIMIT_NOFILE, &rlim) < 0)
+  if(setrlimit(RLIMIT_NOFILE, &rlim) < 0) {
     unixDie("Setting number of available file descriptors");
+  }
 }
 
-bool setSocketTimestamps(int fd)
+bool setSocketTimestamps(int fileDesc)
 {
 #ifdef SO_TIMESTAMP
-  int on=1;
-  return setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, (char*)&on, sizeof(on)) == 0;
+  int one=1;
+  return setsockopt(fileDesc, SOL_SOCKET, SO_TIMESTAMP, &one, sizeof(one)) == 0;
 #else
   return true; // we pretend this happened.
 #endif
@@ -970,7 +994,7 @@ bool setTCPNoDelay(int sock)
   return setsockopt(sock,            /* socket affected */
                     IPPROTO_TCP,     /* set option at TCP level */
                     TCP_NODELAY,     /* name of option */
-                    (char *) &flag,  /* the cast is historical cruft */
+                    &flag,           /* the cast is historical cruft */
                     sizeof(flag)) == 0;    /* length of option value */
 }
 
@@ -978,24 +1002,21 @@ bool setTCPNoDelay(int sock)
 bool setNonBlocking(int sock)
 {
   int flags=fcntl(sock,F_GETFL,0);
-  if(flags<0 || fcntl(sock, F_SETFL,flags|O_NONBLOCK) <0)
-    return false;
-  return true;
+  return flags>=0 && fcntl(sock, F_SETFL,flags|O_NONBLOCK) >=0;
 }
 
 bool setBlocking(int sock)
 {
   int flags=fcntl(sock,F_GETFL,0);
-  if(flags<0 || fcntl(sock, F_SETFL,flags&(~O_NONBLOCK)) <0)
-    return false;
-  return true;
+  return flags>=0 && fcntl(sock, F_SETFL,flags&(~O_NONBLOCK)) >=0;
 }
 
 bool setReuseAddr(int sock)
 {
   int tmp = 1;
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp))<0)
-    throw PDNSException(string("Setsockopt failed: ")+stringerror());
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &tmp, static_cast<unsigned>(sizeof tmp))<0) {
+    throw PDNSException(string("Setsockopt failed: ") + stringerror());
+  }
   return true;
 }
 
@@ -1032,14 +1053,14 @@ void setDscp(int sock, unsigned short family, uint8_t dscp)
 bool isNonBlocking(int sock)
 {
   int flags=fcntl(sock,F_GETFL,0);
-  return flags & O_NONBLOCK;
+  return (flags & O_NONBLOCK) != 0;
 }
 
-bool setReceiveSocketErrors([[maybe_unused]] int sock, [[maybe_unused]] int af)
+bool setReceiveSocketErrors([[maybe_unused]] int sock, [[maybe_unused]] int family)
 {
 #ifdef __linux__
   int tmp = 1, ret;
-  if (af == AF_INET) {
+  if (family == AF_INET) {
     ret = setsockopt(sock, IPPROTO_IP, IP_RECVERR, &tmp, sizeof(tmp));
   } else {
     ret = setsockopt(sock, IPPROTO_IPV6, IPV6_RECVERR, &tmp, sizeof(tmp));
@@ -1068,9 +1089,7 @@ int closesocket(int socket)
 bool setCloseOnExec(int sock)
 {
   int flags=fcntl(sock,F_GETFD,0);
-  if(flags<0 || fcntl(sock, F_SETFD,flags|FD_CLOEXEC) <0)
-    return false;
-  return true;
+  return flags>=0 && fcntl(sock, F_SETFD,flags|FD_CLOEXEC) >=0;
 }
 
 #ifdef __linux__
@@ -1186,12 +1205,12 @@ int getMACAddress(const ComboAddress& /* ca */, char* /* dest */, size_t /* len 
 }
 #endif /* __linux__ */
 
-string getMACAddress(const ComboAddress& ca)
+string getMACAddress(const ComboAddress& address)
 {
   string ret;
-  char tmp[6];
-  if (getMACAddress(ca, tmp, sizeof(tmp)) == 0) {
-    ret.append(tmp, sizeof(tmp));
+  std::array<char, 6> tmp{};
+  if (getMACAddress(address, tmp.data(), tmp.size()) == 0) {
+    ret.append(tmp.data(), tmp.size());
   }
   return ret;
 }
@@ -1396,7 +1415,7 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
   throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
 }
 
-uint64_t getOpenFileDescriptors(const std::string&)
+uint64_t getOpenFileDescriptors(const std::string& /* unused */)
 {
 #ifdef __linux__
   uint64_t nbFileDescriptors = 0;
@@ -1425,7 +1444,7 @@ uint64_t getOpenFileDescriptors(const std::string&)
 #endif
 }
 
-uint64_t getRealMemoryUsage(const std::string&)
+uint64_t getRealMemoryUsage(const std::string& /* unused */)
 {
 #ifdef __linux__
   ifstream ifs("/proc/self/statm");
@@ -1439,15 +1458,16 @@ uint64_t getRealMemoryUsage(const std::string&)
   // in https://www.kernel.org/doc/html/latest/filesystems/proc.html
   return resident * getpagesize();
 #else
-  struct rusage ru;
-  if (getrusage(RUSAGE_SELF, &ru) != 0)
+  struct rusage rusage{};
+  if (getrusage(RUSAGE_SELF, &rusage) != 0) {
     return 0;
-  return ru.ru_maxrss * 1024;
+  }
+  return rusage.ru_maxrss * 1024;
 #endif
 }
 
 
-uint64_t getSpecialMemoryUsage(const std::string&)
+uint64_t getSpecialMemoryUsage(const std::string& /* unused */)
 {
 #ifdef __linux__
   ifstream ifs("/proc/self/smaps");
@@ -1467,18 +1487,18 @@ uint64_t getSpecialMemoryUsage(const std::string&)
 #endif
 }
 
-uint64_t getCPUTimeUser(const std::string&)
+uint64_t getCPUTimeUser(const std::string& /* unused */)
 {
-  struct rusage ru;
-  getrusage(RUSAGE_SELF, &ru);
-  return (ru.ru_utime.tv_sec*1000ULL + ru.ru_utime.tv_usec/1000);
+  struct rusage rusagew{};
+  getrusage(RUSAGE_SELF, &rusagew);
+  return (rusagew.ru_utime.tv_sec*1000ULL) + (rusagew.ru_utime.tv_usec/1000);
 }
 
-uint64_t getCPUTimeSystem(const std::string&)
+uint64_t getCPUTimeSystem(const std::string& /* unused */)
 {
-  struct rusage ru;
-  getrusage(RUSAGE_SELF, &ru);
-  return (ru.ru_stime.tv_sec*1000ULL + ru.ru_stime.tv_usec/1000);
+  struct rusage rusage{};
+  getrusage(RUSAGE_SELF, &rusage);
+  return (rusage.ru_stime.tv_sec*1000ULL) + (rusage.ru_stime.tv_usec/1000);
 }
 
 double DiffTime(const struct timespec& first, const struct timespec& second)
@@ -1490,19 +1510,19 @@ double DiffTime(const struct timespec& first, const struct timespec& second)
     seconds -= 1;
     nseconds += 1000000000;
   }
-  return static_cast<double>(seconds) + static_cast<double>(nseconds) / 1000000000.0;
+  return static_cast<double>(seconds) + (static_cast<double>(nseconds) / 1000000000.0);
 }
 
 double DiffTime(const struct timeval& first, const struct timeval& second)
 {
-  int seconds=second.tv_sec - first.tv_sec;
-  int useconds=second.tv_usec - first.tv_usec;
+  auto seconds=second.tv_sec - first.tv_sec;
+  auto useconds=second.tv_usec - first.tv_usec;
 
   if(useconds < 0) {
     seconds-=1;
     useconds+=1000000;
   }
-  return seconds + useconds/1000000.0;
+  return static_cast<double>(seconds) + (static_cast<double>(useconds)/1000000.0);
 }
 
 uid_t strToUID(const string &str)
@@ -1512,7 +1532,7 @@ uid_t strToUID(const string &str)
   struct passwd * pwd = getpwnam(cstr);
 
   if (pwd == nullptr) {
-    long long val;
+    long long val{};
 
     try {
       val = stoll(str);
@@ -1541,7 +1561,7 @@ gid_t strToGID(const string &str)
   struct group * grp = getgrnam(cstr);
 
   if (grp == nullptr) {
-    long long val;
+    long long val{};
 
     try {
       val = stoll(str);
@@ -1608,7 +1628,7 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
 {
   std::vector<ComboAddress> results;
 
-  ifstream ifs(resolvConfPath);
+  std::ifstream ifs(resolvConfPath);
   if (!ifs) {
     return results;
   }
@@ -1630,8 +1650,8 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
         try {
           results.emplace_back(*iter, 53);
         }
-        catch(...)
-        {
+        catch (...) {
+          ; // ignored
         }
       }
     }
@@ -1640,10 +1660,10 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
   return results;
 }
 
-size_t getPipeBufferSize([[maybe_unused]] int fd)
+size_t getPipeBufferSize([[maybe_unused]] int fileDesc)
 {
 #ifdef F_GETPIPE_SZ
-  int res = fcntl(fd, F_GETPIPE_SZ);
+  int res = fcntl(fileDesc, F_GETPIPE_SZ);
   if (res == -1) {
     return 0;
   }
@@ -1654,7 +1674,7 @@ size_t getPipeBufferSize([[maybe_unused]] int fd)
 #endif /* F_GETPIPE_SZ */
 }
 
-bool setPipeBufferSize([[maybe_unused]] int fd, [[maybe_unused]] size_t size)
+bool setPipeBufferSize([[maybe_unused]] int fileDesc, [[maybe_unused]] size_t size)
 {
 #ifdef F_SETPIPE_SZ
   if (size > static_cast<size_t>(std::numeric_limits<int>::max())) {
@@ -1662,7 +1682,7 @@ bool setPipeBufferSize([[maybe_unused]] int fd, [[maybe_unused]] size_t size)
     return false;
   }
   int newSize = static_cast<int>(size);
-  int res = fcntl(fd, F_SETPIPE_SZ, newSize);
+  int res = fcntl(fileDesc, F_SETPIPE_SZ, newSize);
   if (res == -1) {
     return false;
   }
@@ -1673,20 +1693,20 @@ bool setPipeBufferSize([[maybe_unused]] int fd, [[maybe_unused]] size_t size)
 #endif /* F_SETPIPE_SZ */
 }
 
-DNSName reverseNameFromIP(const ComboAddress& ip)
+DNSName reverseNameFromIP(const ComboAddress& address)
 {
-  if (ip.isIPv4()) {
+  if (address.isIPv4()) {
     std::string result("in-addr.arpa.");
-    auto ptr = reinterpret_cast<const uint8_t*>(&ip.sin4.sin_addr.s_addr);
-    for (size_t idx = 0; idx < sizeof(ip.sin4.sin_addr.s_addr); idx++) {
+    const auto *ptr = reinterpret_cast<const uint8_t*>(&address.sin4.sin_addr.s_addr);
+    for (size_t idx = 0; idx < sizeof(address.sin4.sin_addr.s_addr); idx++) {
       result = std::to_string(ptr[idx]) + "." + result;
     }
     return DNSName(result);
   }
-  else if (ip.isIPv6()) {
+  if (address.isIPv6()) {
     std::string result("ip6.arpa.");
-    auto ptr = reinterpret_cast<const uint8_t*>(&ip.sin6.sin6_addr.s6_addr[0]);
-    for (size_t idx = 0; idx < sizeof(ip.sin6.sin6_addr.s6_addr); idx++) {
+    const auto *ptr = reinterpret_cast<const uint8_t*>(&address.sin6.sin6_addr.s6_addr[0]);
+    for (size_t idx = 0; idx < sizeof(address.sin6.sin6_addr.s6_addr); idx++) {
       std::stringstream stream;
       stream << std::hex << (ptr[idx] & 0x0F);
       stream << '.';
@@ -1700,22 +1720,22 @@ DNSName reverseNameFromIP(const ComboAddress& ip)
   throw std::runtime_error("Calling reverseNameFromIP() for an address which is neither an IPv4 nor an IPv6");
 }
 
-std::string makeLuaString(const std::string& in)
+std::string makeLuaString(const std::string& input)
 {
   ostringstream str;
 
   str<<'"';
 
-  char item[5];
-  for (unsigned char n : in) {
-    if (islower(n) || isupper(n)) {
-      item[0] = n;
+  std::array<char, 5> item{};
+  for (unsigned char character : input) {
+    if ((islower(character) != 0) || (isupper(character) != 0)) {
+      item[0] = static_cast<char>(character);
       item[1] = 0;
     }
     else {
-      snprintf(item, sizeof(item), "\\%03d", n);
+      snprintf(item.data(), item.size(), "\\%03d", character);
     }
-    str << item;
+    str << item.data();
   }
 
   str<<'"';
@@ -1723,9 +1743,9 @@ std::string makeLuaString(const std::string& in)
   return str.str();
 }
 
-size_t parseSVCBValueList(const std::string &in, vector<std::string> &val) {
+size_t parseSVCBValueList(const std::string &str, vector<std::string> &val) {
   std::string parsed;
-  auto ret = parseRFC1035CharString(in, parsed);
+  auto ret = parseRFC1035CharString(str, parsed);
   parseSVCBValueListFromParsedRFC1035CharString(parsed, val);
   return ret;
 };
@@ -1738,20 +1758,20 @@ size_t parseSVCBValueList(const std::string &in, vector<std::string> &val) {
 #endif /* HAVE_SODIUM_MEMCMP */
 #endif /* HAVE_CRYPTO_MEMCMP */
 
-bool constantTimeStringEquals(const std::string& a, const std::string& b)
+bool constantTimeStringEquals(const std::string& lhs, const std::string& rhs)
 {
-  if (a.size() != b.size()) {
+  if (lhs.size() != rhs.size()) {
     return false;
   }
-  const size_t size = a.size();
+  const size_t size = lhs.size();
 #ifdef HAVE_CRYPTO_MEMCMP
-  return CRYPTO_memcmp(a.c_str(), b.c_str(), size) == 0;
+  return CRYPTO_memcmp(lhs.c_str(), rhs.c_str(), size) == 0;
 #else /* HAVE_CRYPTO_MEMCMP */
 #ifdef HAVE_SODIUM_MEMCMP
-  return sodium_memcmp(a.c_str(), b.c_str(), size) == 0;
+  return sodium_memcmp(lhs.c_str(), rhs.c_str(), size) == 0;
 #else /* HAVE_SODIUM_MEMCMP */
-  const volatile unsigned char *_a = (const volatile unsigned char *) a.c_str();
-  const volatile unsigned char *_b = (const volatile unsigned char *) b.c_str();
+  const volatile unsigned char *_a = (const volatile unsigned char *) lhs.c_str();
+  const volatile unsigned char *_b = (const volatile unsigned char *) rhs.c_str();
   unsigned char res = 0;
 
   for (size_t idx = 0; idx < size; idx++) {
@@ -1876,3 +1896,4 @@ const char* timestamp(time_t arg, timebuf_t& buf)
   }
   return buf.data();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)

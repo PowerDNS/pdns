@@ -19,35 +19,35 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "gettime.hh"
+
 #include "config.h"
+#include "gettime.hh"
 
 #ifdef HAVE_CLOCK_GETTIME
-#include <time.h>
-
 #ifndef CLOCK_MONOTONIC_RAW
 #define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC
 #endif
 
-int gettime(struct timespec *tp, bool needRealTime)
+int gettime(struct timespec* timespec, bool needRealTime)
 {
-	return clock_gettime(needRealTime ? CLOCK_REALTIME : CLOCK_MONOTONIC, tp);
+  return clock_gettime(needRealTime ? CLOCK_REALTIME : CLOCK_MONOTONIC, timespec);
 }
 
 #else
 #include <sys/time.h>
 #include <cstddef>
 
-int gettime(struct timespec *tp, bool /* needRealTime */)
+int gettime(struct timespec* timespec, bool /* needRealTime */)
 {
-	struct timeval tv;
+  struct timeval timeval{};
 
-	int ret = gettimeofday(&tv, NULL);
-	if(ret < 0) return ret;
-
-	tp->tv_sec = tv.tv_sec;
-	tp->tv_nsec = tv.tv_usec * 1000;
-	return ret;
+  int ret = gettimeofday(&timeval, nullptr);
+  if (ret < 0) {
+    return ret;
+  }
+  timespec->tv_sec = timeval.tv_sec;
+  timespec->tv_nsec = timeval.tv_usec * 1000L;
+  return ret;
 }
 
 #endif

@@ -21,4 +21,5 @@
  */
 #pragma once
 
-extern int gettime(struct timespec *tp, bool needRealTime=false);
+#include <ctime>
+extern int gettime(struct timespec* timespec, bool needRealTime = false);
