@@ -30,7 +30,7 @@ esac
 # echo "CARGO_LTO_MODE = ${CARGO_LTO_MODE}"
 # echo "CARGO_CONFIG = ${CARGO_CONFIG}"
 
-$CARGO build --profile ${CARGO_PROFILE} ${CARGO_CONFIG} $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml --locked
+$CARGO build --profile ${CARGO_PROFILE} ${CARGO_CONFIG} $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml --locked --features ${CARGO_FEATURES}
 
 if [ -n "${CARGO_USE_DEV}" ]; then
     cp -p target/$RUSTC_TARGET_ARCH/debug/libdnsdist_rust.a $builddir/dnsdist-rust-lib/rust/libdnsdist_rust.a

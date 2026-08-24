@@ -25,10 +25,13 @@
 #include <vector>
 
 #include "dnsdist-configuration-yaml.hh"
+#include "cuckoo-filter.hh"
 #include "dnsdist-configuration.hh"
 #include "logging.hh"
 #include "logr.hh"
 #include "mmdb.hh"
+#include "generic-cache-interface.hh"
+#include "generic-cache.hh"
 
 #if defined(HAVE_YAML_CONFIGURATION)
 #include "base64.hh"
@@ -74,7 +77,7 @@ struct Context
 
 using XSKMap = std::vector<std::shared_ptr<XskSocket>>;
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>>;
+using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>, std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 static std::atomic<bool> s_inConfigCheckMode;
 static std::atomic<bool> s_inClientMode;
@@ -1407,7 +1410,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
-  using ReturnValue = std::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>>>;
+  using ReturnValue = std::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<TimedIPSetRule>, std::shared_ptr<XSKMap>, std::shared_ptr<MMDB>, std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>>>;
 
   luaCtx.writeFunction("getObjectFromYAMLConfiguration", [](const std::string& name) -> ReturnValue {
     auto map = s_registeredTypesMap.lock();
@@ -1453,6 +1456,9 @@ void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
       return ReturnValue(*ptr);
     }
 #endif
+    if (auto* ptr = std::get_if<std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
 
     return std::nullopt;
   });
@@ -2034,6 +2040,40 @@ void registerOtlpLogger([[maybe_unused]] const OtlpLoggerConfiguration& config)
 #else
   throw std::runtime_error("Unable to create OTLP logger: OTLP support is disabled");
 #endif /* !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL) */
+}
+
+void registerGenericCacheObjects([[maybe_unused]] const GenericCachesConfiguration& config)
+{
+  bool createObjects = !dnsdist::configuration::yaml::s_inClientMode && !dnsdist::configuration::yaml::s_inConfigCheckMode;
+  for (const auto& objectCache : config.object) {
+    auto cache = createObjects ? std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>(new GenericCache<std::string, std::optional<LuaAny>>({.d_ttlEnabled = objectCache.ttl_enabled, .d_ttl = objectCache.ttl, .d_lruEnabled = objectCache.lru_enabled, .d_shardCount = objectCache.shard_count, .d_maxEntries = objectCache.max_entries, .d_lruDeleteUpTo = objectCache.lru_delete_up_to})) : std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>();
+    dnsdist::configuration::yaml::registerType<GenericCacheInterface<std::string, std::optional<LuaAny>>>(cache, objectCache.name);
+    if (createObjects) {
+      auto name = std::string(objectCache.name);
+      dnsdist::configuration::updateRuntimeConfiguration([name, &cache](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+        if (runtimeConfig.d_caches.count(name) > 0) {
+          throw std::runtime_error("Duplicate cache name: " + name);
+        }
+        runtimeConfig.d_caches.emplace(name, cache);
+      });
+    }
+  }
+
+#ifdef HAVE_CUCKOO
+  for (const auto& cuckooFilter : config.cuckoo) {
+    auto filter = createObjects ? std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>(new CuckooFilter({.d_maxKicks = cuckooFilter.max_kicks, .d_maxEntries = cuckooFilter.max_entries, .d_bucketSize = cuckooFilter.bucket_size, .d_fingerprintBits = cuckooFilter.fingerprint_bits, .d_ttlEnabled = cuckooFilter.ttl_enabled, .d_ttl = cuckooFilter.ttl, .d_ttlBits = cuckooFilter.ttl_bits, .d_ttlResolution = cuckooFilter.ttl_resolution, .d_lruEnabled = cuckooFilter.lru_enabled, .d_lruBits = cuckooFilter.lru_bits})) : std::shared_ptr<GenericCacheInterface<std::string, std::optional<LuaAny>>>();
+    dnsdist::configuration::yaml::registerType<GenericCacheInterface<std::string, std::optional<LuaAny>>>(filter, cuckooFilter.name);
+    if (createObjects) {
+      auto name = std::string(cuckooFilter.name);
+      dnsdist::configuration::updateRuntimeConfiguration([name, &filter](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+        if (runtimeConfig.d_caches.count(name) > 0) {
+          throw std::runtime_error("Duplicate cache name: " + name);
+        }
+        runtimeConfig.d_caches.emplace(name, filter);
+      });
+    }
+  }
+#endif
 }
 
 void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& config)
