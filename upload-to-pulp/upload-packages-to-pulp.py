@@ -137,14 +137,68 @@ def pulp_create_publication(repo_name, repo_type):
     run_pulp_cmd(cmd)
 
 
-def pulp_upload_rpm_packages_by_folder(repo_name, source):
+def pulp_repository_modify(repository_href, add_content_units):
+    """
+    This function updates a repository in Pulp by calling the modify API and
+    passing as arguments the list of content units to be added
+    """
+
+    modify_repository_url = PULP_API_URL + repository_href + "modify/"
+
+    try:
+        res = requests.post(
+            modify_repository_url,
+            auth=PULP_API_AUTH,
+            headers=PULP_API_HEADERS,
+            json={"add_content_units": add_content_units},
+        )
+        res.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"::error::Error adding content to repository {repository_href}: {e.response.text}")
+        sys.exit(1)
+
+    task_href = res.json().get("task")
+    if not is_pulp_task_completed(task_href):
+        print(
+            f"::error::Error adding content to repository {repository_href}. Task {task_href} timeout"
+        )
+        sys.exit(1)
+
+def pulp_upload_rpm_packages_by_folder(repo_names, source):
+
+    repo_names = list(dict.fromkeys(repo_names))
+    # repository where the packages will be uploaded to
+    repo_name = repo_names[0]
+    # additional repositories that will also have the same packages associated
+    additional_repos = repo_names[1:]
+    content_hrefs = []
+
     for root, dirs, files in os.walk(source):
         for file in files:
             if file.endswith(".rpm"):
                 full_path = os.path.join(root, file)
                 # Set chunk size to 500MB to avoid creating an "upload" instead of a file. Required for signing RPMs.
                 cmd = f"rpm content -t package upload --file {full_path} --repository {repo_name} --no-publish --chunk-size 500MB"
-                run_pulp_cmd(cmd)
+                content = run_pulp_cmd(cmd)
+
+                # Check that chunk size was not exceeded so a package object is returned instead of a content object
+                content_href = get_pulp_output_attribute(content, "pulp_href")
+                if not content_href or "/content/rpm/packages/" not in content_href:
+                    print(
+                        f"::error::Error retrieving rpm package_href from: {content}"
+                    )
+                    sys.exit(1)
+
+                if content_href not in content_hrefs:
+                    content_hrefs.append(content_href)
+
+    if not content_hrefs:
+        print(f"::error::No rpm packages found in {source}")
+        sys.exit(1)
+
+    for repo in additional_repos:
+        repository_href = get_pulp_repository_href(repo, "rpm")
+        pulp_repository_modify(repository_href, content_hrefs)
 
 
 def is_pulp_task_completed(task_href):
@@ -153,11 +207,15 @@ def is_pulp_task_completed(task_href):
     and returns True. Otherwhise returns False
     """
 
-    elapsed_time = 0
-    check_interval = 5
+    check_interval = 0.5
+    max_check_interval = 15
     max_wait_time = 1200
+    # Task states still in progress: https://github.com/pulp/pulpcore/blob/main/pulpcore/constants.py#L48
+    task_state_in_progress = ["waiting", "running", "canceling"]
 
-    while elapsed_time < max_wait_time:
+    target_time = time.monotonic() + max_wait_time
+
+    while True:
         cmd = f"task show --href {task_href}"
         task = run_pulp_cmd(cmd)
         task_state = get_pulp_output_attribute(task, "state")
@@ -165,10 +223,18 @@ def is_pulp_task_completed(task_href):
         if task_state == "completed":
             return True
 
-        time.sleep(check_interval)
-        elapsed_time += check_interval
+        # Exit if the task is not completed and is no longer in progress
+        if task_state not in task_state_in_progress:
+            task_error = get_pulp_output_attribute(task, "error")
+            print(f"::error::Task {task_href} is in state {task_state}: {task_error}")
+            return False
 
-    return False
+        remaining_time = target_time - time.monotonic()
+        if remaining_time <= 0:
+            return False
+
+        time.sleep(min(check_interval, remaining_time))
+        check_interval = min(check_interval * 2, max_check_interval)
 
 
 def get_pulp_task_result(task_href):
@@ -262,30 +328,14 @@ def pulp_upload_deb_packages_by_folder(repo_name, distribution_name, source):
 
     # Add all upload packages to the repository
     repository_href = get_pulp_repository_href(repo_name, "deb")
-    modify_repository_url = PULP_API_URL + repository_href + "modify/"
 
-    repository_modify_payload = {
-        "add_content_units": packages
+    pulp_repository_modify(
+        repository_href,
+        packages
         + release_components
         + release_architectures
-        + package_release_components
-    }
-
-    try:
-        res = requests.post(
-            modify_repository_url, auth=PULP_API_AUTH, headers=PULP_API_HEADERS, json=repository_modify_payload
-        )
-        res.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        print(f"::error::Error updating DEB repository in Pulp: {e.response.text}")
-        sys.exit(1)
-
-    task_href = res.json().get('task')
-    if not is_pulp_task_completed(task_href):
-        print(
-            f"::error::Error updating DEB repository in Pulp. Task {task_href} timeout"
-        )
-        sys.exit(1)
+        + package_release_components,
+    )
 
 
 def main():
@@ -302,7 +352,11 @@ def main():
         choices=["rpm", "deb", "file"],
         help="Type of the repository [rpm|deb|file]",
     )
-    parser.add_argument("--repo_name", required=True, help="Name of the repository.")
+    parser.add_argument(
+        "--repo_name",
+        required=True,
+        help="Name of the repository. One or more space-separated names may be given for repo_type rpm",
+    )
     parser.add_argument(
         "--distribution_name",
         required=False,
@@ -324,31 +378,38 @@ def main():
     if args.command == "upload-packages" and not args.source:
         parser.error("--source is mandatory for upload-packages")
 
+    repo_names = args.repo_name.split()
+
+    if not repo_names:
+        parser.error("--repo_name is mandatory")
+
+    if len(repo_names) > 1 and args.repo_type != "rpm":
+        parser.error("multiple repository names are allowed ONLY for repo_type rpm")
+
     match (args.command, args.repo_type):
         case ("upload-packages", "rpm"):
-            pulp_upload_rpm_packages_by_folder(args.repo_name, args.source)
+            pulp_upload_rpm_packages_by_folder(repo_names, args.source)
         case ("upload-packages", "deb"):
             if not args.distribution_name:
                 parser.error(
                     "--distribution_name is mandatory for upload-packages + repo_type deb"
                 )
             pulp_upload_deb_packages_by_folder(
-                args.repo_name, args.distribution_name, args.source
+                repo_names[0], args.distribution_name, args.source
             )
-        case ("upload-packages", "deb"):
-            pulp_upload_deb_packages_by_folder(args.repo_name, args.source )
         case ("upload-packages", "file"):
             if not args.destination_path:
                 parser.error(
                     "--destination_path is mandatory for upload-packages + repo_type file"
                 )
             pulp_upload_file_packages_by_folder(
-                args.repo_name, args.source, args.destination_path
+                repo_names[0], args.source, args.destination_path
             )
         case ("create-publication", repo_type):
-            pulp_create_publication(args.repo_name, repo_type)
+            for repo_name in repo_names:
+                pulp_create_publication(repo_name, repo_type)
         case _:
-            print(f"::error::Wrong arg values: mode={args.mode}, type={args.type}")
+            print(f"::error::Wrong arg values: command={args.command}, repo_type={args.repo_type}")
             sys.exit(1)
 
 
