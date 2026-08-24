@@ -260,10 +260,10 @@ class TestBackendDiscovery(DNSDistTest):
     def startResponders(cls):
         dotContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         dotContext.load_cert_chain("server.chain", "server.key")
-        dotContext.set_alpn_protocols(['dot'])
+        dotContext.set_alpn_protocols(["dot"])
         dohContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         dohContext.load_cert_chain("server.chain", "server.key")
-        dohContext.set_alpn_protocols(['h2'])
+        dohContext.set_alpn_protocols(["h2"])
 
         TCPNoSVCResponder = threading.Thread(name='TCP no SVC Responder', target=cls.TCPResponder, args=[cls._noSVCBackendPort, cls._toResponderQueue, cls._fromResponderQueue, True, False, cls.NoSVCCallback])
         TCPNoSVCResponder.daemon = True
@@ -281,7 +281,19 @@ class TestBackendDiscovery(DNSDistTest):
         UpgradedDoTResponder = threading.Thread(
             name="DoT upgraded Responder",
             target=cls.TCPResponder,
-            args=[10652, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, dotContext, False, "127.0.0.1", False, "dot"],
+            args=[
+                10652,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                None,
+                dotContext,
+                False,
+                "127.0.0.1",
+                False,
+                "dot",
+            ],
         )
         UpgradedDoTResponder.daemon = True
         UpgradedDoTResponder.start()
@@ -293,7 +305,19 @@ class TestBackendDiscovery(DNSDistTest):
         UpgradedDOHResponder = threading.Thread(
             name="DOH Responder",
             target=cls.DOHResponder,
-            args=[10653, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, dohContext, False, False, 5.0, "h2"],
+            args=[
+                10653,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                None,
+                dohContext,
+                False,
+                False,
+                5.0,
+                "h2",
+            ],
         )
         UpgradedDOHResponder.daemon = True
         UpgradedDOHResponder.start()
@@ -329,7 +353,19 @@ class TestBackendDiscovery(DNSDistTest):
         UpgradedDoTResponder = threading.Thread(
             name="DoT upgraded different addr 2 Responder",
             target=cls.TCPResponder,
-            args=[10655, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, dotContext, False, "127.0.0.1", False, "dot"],
+            args=[
+                10655,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                None,
+                dotContext,
+                False,
+                "127.0.0.1",
+                False,
+                "dot",
+            ],
         )
         UpgradedDoTResponder.daemon = True
         UpgradedDoTResponder.start()
