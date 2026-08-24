@@ -43,19 +43,22 @@ public:
 
   static void init();
 
-  MiniCurl(const string& useragent="MiniCurl/0.0", bool failonerror=true);
+  MiniCurl(const string& useragent = "MiniCurl/0.0", bool failonerror = true);
   ~MiniCurl();
+  MiniCurl(const MiniCurl&) = delete;
+  MiniCurl(MiniCurl&&) = delete;
+  MiniCurl& operator=(MiniCurl&&) = delete;
   MiniCurl& operator=(const MiniCurl&) = delete;
 
-  std::string getURL(const std::string& str, const ComboAddress* rem=nullptr, const ComboAddress* src=nullptr, int timeout = 2, const MiniCurlHeaders* headers = nullptr, bool fastopen = false, bool verify = false, size_t byteslimit = 0, int http_status = 200);
+  std::string getURL(const std::string& str, const ComboAddress* rem = nullptr, const ComboAddress* src = nullptr, int timeout = 2, const MiniCurlHeaders* headers = nullptr, bool fastopen = false, bool verify = false, size_t byteslimit = 0, int http_status = 200);
   std::string postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers, int timeout = 2, bool fastopen = false, bool verify = false);
 
 private:
-  static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
+  static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata);
 #if defined(LIBCURL_VERSION_NUM) && LIBCURL_VERSION_NUM >= 0x072000 // 7.32.0
-  static size_t progress_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
+  static size_t progress_callback(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
 #else
-  static size_t progress_callback(void *clientp, double dltotal, double dlnow, double ultotal, double ulnow);
+  static size_t progress_callback(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow);
 #endif
 
 #ifdef CURL_STRICTER

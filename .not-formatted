@@ -26,8 +26,6 @@
 ./pdns/comment.hh
 ./pdns/dbdnsseckeeper.cc
 ./pdns/distributor.hh
-./pdns/dns.cc
-./pdns/dns.hh
 ./pdns/dnsbulktest.cc
 ./pdns/dnsdemog.cc
 ./pdns/dnsgram.cc
@@ -91,8 +89,6 @@
 ./pdns/lua-record.cc
 ./pdns/malloctrace.cc
 ./pdns/malloctrace.hh
-./pdns/minicurl.cc
-./pdns/minicurl.hh
 ./pdns/misc.cc
 ./pdns/misc.hh
 ./pdns/nameserver.cc
@@ -113,10 +109,6 @@
 ./pdns/pkcs11signers.hh
 ./pdns/proxy-protocol.cc
 ./pdns/proxy-protocol.hh
-./pdns/qtype.cc
-./pdns/qtype.hh
-./pdns/query-local-address.cc
-./pdns/query-local-address.hh
 ./pdns/rcpgenerator.cc
 ./pdns/rcpgenerator.hh
 ./pdns/resolver.cc
@@ -174,7 +166,6 @@
 ./pdns/test-tsig.cc
 ./pdns/test-ueberbackend_cc.cc
 ./pdns/test-zoneparser_tng_cc.cc
-./pdns/threadname.cc
 ./pdns/tkey.cc
 ./pdns/trusted-notification-proxy.cc
 ./pdns/trusted-notification-proxy.hh

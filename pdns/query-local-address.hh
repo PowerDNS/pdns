@@ -23,62 +23,63 @@
 
 #include "iputils.hh"
 
-namespace pdns {
+namespace pdns
+{
 
-  struct Interface
+struct Interface
+{
+  std::string d_name;
+  unsigned int d_index{0};
+};
+struct AddressAndInterface
+{
+  ComboAddress d_address;
+  std::optional<Interface> d_interface;
+  bool operator<(const AddressAndInterface& arg) const
   {
-    std::string d_name;
-    unsigned int d_index{0};
+    // We only compare the address parts. Having two equal addresses on the same interface is not
+    // a case I want to think about at the moment.
+    return d_address < arg.d_address;
   };
-  struct AddressAndInterface
+  std::string toString()
   {
-    ComboAddress d_address;
-    std::optional<Interface> d_interface;
-    bool operator<(const AddressAndInterface& arg) const
-    {
-      // We only compare the address parts. Having two equal addresses on the same interface is not
-      // a case I want to think about at the moment.
-      return d_address < arg.d_address;
-    };
-    std::string toString()
-    {
-      if (d_interface) {
-        return d_address.toString() + '@' + d_interface->d_name;
-      }
-      return d_address.toString();
+    if (d_interface) {
+      return d_address.toString() + '@' + d_interface->d_name;
     }
-  };
+    return d_address.toString();
+  }
+};
 
-  /*! pick a random query local address for family
-   *
-   * Will always return a ComboAddress.
-   *
-   * @param family Address Family, only AF_INET and AF_INET6 are supported
-   * @param port   Port to set in the returned ComboAddress
-   */
-  AddressAndInterface getQueryLocalAddress(sa_family_t family, in_port_t port);
+/*! pick a random query local address for family
+ *
+ * Will always return a ComboAddress.
+ *
+ * @param family Address Family, only AF_INET and AF_INET6 are supported
+ * @param port   Port to set in the returned ComboAddress
+ */
+AddressAndInterface getQueryLocalAddress(sa_family_t family, in_port_t port);
 
-  /*! Returns a non-Any address QLA, or an empty QLA when the QLA is any
-   *
-   * @param family  Address Family
-   */
-  AddressAndInterface getNonAnyQueryLocalAddress(sa_family_t family);
+/*! Returns a non-Any address QLA, or an empty QLA when the QLA is any
+ *
+ * @param family  Address Family
+ */
+AddressAndInterface getNonAnyQueryLocalAddress(sa_family_t family);
 
-  /*! Populate the query local address vectors
-   *
-   * Will throw when an address can't be parsed
-   *
-   * @param qla  A string of one or more ip addresses, separated by
-   *             spaces, semi-colons or commas
-   */
-  void parseQueryLocalAddress(const std::string &qla);
+/*! Populate the query local address vectors
+ *
+ * Will throw when an address can't be parsed
+ *
+ * @param qla  A string of one or more ip addresses, separated by
+ *             spaces, semi-colons or commas
+ */
+void parseQueryLocalAddress(const std::string& qla);
 
-  /*! Is the address family explicitly enabled
-   *
-   * i.e. was there an address parsed by parseQueryLocalAddress belonging
-   * to this family
-   *
-   * @param family  Address Family, only AF_INET and AF_INET6 are supported
-   */
-  bool isQueryLocalAddressFamilyEnabled(sa_family_t family);
+/*! Is the address family explicitly enabled
+ *
+ * i.e. was there an address parsed by parseQueryLocalAddress belonging
+ * to this family
+ *
+ * @param family  Address Family, only AF_INET and AF_INET6 are supported
+ */
+bool isQueryLocalAddressFamilyEnabled(sa_family_t family);
 } // namespace pdns
