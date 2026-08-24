@@ -146,6 +146,10 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint, const Logr::Logg
       str << base << "tcpgaveup" << ' ' << front->tcpGaveUp.load() << " " << now << "\r\n";
       str << base << "tcpclienttimeouts" << ' ' << front->tcpClientTimeouts.load() << " " << now << "\r\n";
       str << base << "tcpdownstreamtimeouts" << ' ' << front->tcpDownstreamTimeouts.load() << " " << now << "\r\n";
+      str << base << "tcpdiedduringprocessing" << ' ' << front->tcpDiedDuringProcessing.load() << " " << now << "\r\n";
+      str << base << "tcpbadalpn" << ' ' << front->tcpBadALPN.load() << " " << now << "\r\n";
+      str << base << "tcpbadproxyprotocol" << ' ' << front->tcpBadProxyProtocol.load() << " " << now << "\r\n";
+      str << base << "tcpmaxdurationreached" << ' ' << front->tcpMaxDurationReached.load() << " " << now << "\r\n";
       str << base << "tcpcurrentconnections" << ' ' << front->tcpCurrentConnections.load() << " " << now << "\r\n";
       str << base << "tcpmaxconcurrentconnections" << ' ' << front->tcpMaxConcurrentConnections.load() << " " << now << "\r\n";
       str << base << "tcpavgqueriesperconnection" << ' ' << front->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
