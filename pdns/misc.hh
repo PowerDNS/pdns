@@ -237,9 +237,9 @@ public:
   //!< Does not set the timer for you! Saves lots of gettimeofday() calls
   [[nodiscard]] inline time_t time() const;
   inline void set();  //!< Reset the timer
-  inline int udiff(bool reset = true); //!< Return the number of microseconds since the timer was last set.
+  inline long udiff(bool reset = true); //!< Return the number of microseconds since the timer was last set.
 
-  int udiffNoReset() //!< Return the number of microseconds since the timer was last set.
+  long udiffNoReset() //!< Return the number of microseconds since the timer was last set.
   {
     return udiff(false);
   }
@@ -265,12 +265,12 @@ inline void DTime::set()
   gettimeofday(&d_set, nullptr);
 }
 
-inline int DTime::udiff(bool reset)
+inline long DTime::udiff(bool reset)
 {
   struct timeval now{};
   gettimeofday(&now, nullptr);
 
-  int ret=(1000000*(now.tv_sec-d_set.tv_sec))+(now.tv_usec-d_set.tv_usec);
+  long ret=(1000000*(now.tv_sec-d_set.tv_sec))+(now.tv_usec-d_set.tv_usec);
 
   if (reset) {
     d_set = now;
@@ -446,7 +446,7 @@ inline DNSName toCanonic(const ZoneName& zone, const string& qname)
 string stripDot(const string& dom);
 
 int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret);
-int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret);
+int makeIPv4sockaddr(const std::string& arg, struct sockaddr_in* ret);
 int makeUNsockaddr(const std::string& path, struct sockaddr_un* ret);
 bool stringfgets(FILE* file, std::string& line);
 
@@ -481,7 +481,7 @@ private:
   {
     void operator()(regex_t* ptr) const noexcept {
       regfree(ptr);
-      delete ptr;
+      delete ptr; // NOLINT(cppcoreguidelines-owning-memory)
     }
   };
 
@@ -561,7 +561,7 @@ private:
 union ComboAddress;
 
 // An aligned type to hold cmsgbufs. See https://man.openbsd.org/CMSG_DATA
-using cmsgbuf_aligned = union { struct cmsghdr hdr; char buf[256]; };
+union cmsgbuf_aligned { struct cmsghdr hdr; std::array<char, 256> buf; };
 
 /* itfIndex is an interface index, as returned by if_nametoindex(). 0 means default. */
 void addCMsgSrcAddr(struct msghdr* msgh, cmsgbuf_aligned* cmsgbuf, const ComboAddress* source, int itfIndex);
@@ -876,7 +876,7 @@ std::string makeLuaString(const std::string& input);
 bool constantTimeStringEquals(const std::string& lhs, const std::string& rhs);
 
 // Used in NID and L64 records
-struct NodeOrLocatorID { uint8_t content[8]; };
+struct NodeOrLocatorID { std::array<uint8_t, 8> content; };
 
 struct FDWrapper
 {
@@ -955,7 +955,7 @@ struct FilePtrDeleter
        warning from the compiler, which is there because fclose is tagged as __nonnull((1))
   */
   void operator()(FILE* filePtr) const noexcept {
-    fclose(filePtr);
+    fclose(filePtr); // NOLINT(cppcoreguidelines-owning-memory)
   }
 };
 

@@ -774,8 +774,9 @@ int makeIPv6sockaddr(const std::string& addr, struct sockaddr_in6* ret)
   return 0;
 }
 
-int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
+int makeIPv4sockaddr(const std::string& arg, struct sockaddr_in* ret)
 {
+  std:: string str(arg);
   if(str.empty()) {
     return -1;
   }
@@ -793,7 +794,7 @@ int makeIPv4sockaddr(const std::string& str, struct sockaddr_in* ret)
     return -1;
   }
 
-  char *eptr = const_cast<char*>(str.c_str()) + str.size();
+  auto *eptr = str.data() + str.size();
   int port = static_cast<int>(strtol(str.c_str() + pos + 1, &eptr, 10));
   if (port < 0 || port > 65535) {
     return -1;
@@ -1528,10 +1529,20 @@ double DiffTime(const struct timeval& first, const struct timeval& second)
 uid_t strToUID(const string &str)
 {
   uid_t result = 0;
-  const char * cstr = str.c_str();
-  struct passwd * pwd = getpwnam(cstr);
+  const char* cstr = str.c_str();
+  auto bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
+  if (bufsize == -1) {
+    throw runtime_error("cannot retrieve uid");
+  }
+  std::string buffer;
+  buffer.resize(bufsize);
+  struct passwd pwd{};
+  struct passwd *pwdPtr = nullptr;
+  if (getpwnam_r(cstr, &pwd, buffer.data(), buffer.size(), &pwdPtr) != 0) {
+    throw runtime_error("cannot retrieve uid");
+  }
 
-  if (pwd == nullptr) {
+  if (pwdPtr == nullptr) {
     long long val{};
 
     try {
@@ -1548,7 +1559,7 @@ uid_t strToUID(const string &str)
     result = static_cast<uid_t>(val);
   }
   else {
-    result = pwd->pw_uid;
+    result = pwdPtr->pw_uid;
   }
 
   return result;
@@ -1558,9 +1569,19 @@ gid_t strToGID(const string &str)
 {
   gid_t result = 0;
   const char * cstr = str.c_str();
-  struct group * grp = getgrnam(cstr);
+  auto bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+  if (bufsize == -1) {
+    throw runtime_error("cannot retrieve uid");
+  }
+  std::string buffer;
+  buffer.resize(bufsize);
+  struct group grp{};
+  struct group* grpPtr = nullptr;
+  if (getgrnam_r(cstr, &grp, buffer.data(), buffer.size(), &grpPtr) != 0) {
+    throw runtime_error("cannot retrieve gid");
+  }
 
-  if (grp == nullptr) {
+  if (grpPtr == nullptr) {
     long long val{};
 
     try {
@@ -1577,7 +1598,7 @@ gid_t strToGID(const string &str)
     result = static_cast<gid_t>(val);
   }
   else {
-    result = grp->gr_gid;
+    result = grpPtr->gr_gid;
   }
 
   return result;
@@ -1699,7 +1720,10 @@ DNSName reverseNameFromIP(const ComboAddress& address)
     std::string result("in-addr.arpa.");
     const auto *ptr = reinterpret_cast<const uint8_t*>(&address.sin4.sin_addr.s_addr);
     for (size_t idx = 0; idx < sizeof(address.sin4.sin_addr.s_addr); idx++) {
-      result = std::to_string(ptr[idx]) + "." + result;
+      auto tmp{result};
+      result = std::to_string(ptr[idx]);
+      result += ".";
+      result += tmp;
     }
     return DNSName(result);
   }
@@ -1712,7 +1736,9 @@ DNSName reverseNameFromIP(const ComboAddress& address)
       stream << '.';
       stream << std::hex << (((ptr[idx]) >> 4) & 0x0F);
       stream << '.';
-      result = stream.str() + result;
+      auto tmp{result};
+      result = stream.str();
+      result += tmp;
     }
     return DNSName(result);
   }
