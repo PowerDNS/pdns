@@ -21,9 +21,9 @@
  */
 #include "dns.hh"
 #include "ednsoptions.hh"
-#include "iputils.hh"
 #include "dnsparser.hh"
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, uint16_t& optionLen)
 {
   if (data == nullptr || dataLen < (sizeof(uint16_t) + sizeof(uint16_t))) {
@@ -31,12 +31,12 @@ bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, u
   }
 
   size_t pos = 0;
-  const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
+  const auto* ptr = reinterpret_cast<const uint8_t*>(data);
 
-  optionCode = (static_cast<uint16_t>(p[pos]) * 256) + p[pos + 1];
+  optionCode = (static_cast<uint16_t>(ptr[pos]) * 256) + ptr[pos + 1];
   pos += EDNS_OPTION_CODE_SIZE;
 
-  optionLen = (static_cast<uint16_t>(p[pos]) * 256) + p[pos + 1];
+  optionLen = (static_cast<uint16_t>(ptr[pos]) * 256) + ptr[pos + 1];
   pos += EDNS_OPTION_LENGTH_SIZE;
   (void) pos;
 
@@ -64,8 +64,8 @@ int getEDNSOption(const char* optRR, const size_t len, uint16_t wantedOption, si
 
   while(len >= (pos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE) &&
         rdLen >= (rdPos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
-    uint16_t optionCode;
-    uint16_t optionLen;
+    uint16_t optionCode{};
+    uint16_t optionLen{};
     if (!getNextEDNSOption(optRR + pos, len-pos, optionCode, optionLen)) {
       break;
     }
@@ -84,11 +84,9 @@ int getEDNSOption(const char* optRR, const size_t len, uint16_t wantedOption, si
       *optionValueSize = optionLen + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE;
       return 0;
     }
-    else {
-      /* skip this option */
-      pos += optionLen;
-      rdPos += optionLen;
-    }
+    /* skip this option */
+    pos += optionLen;
+    rdPos += optionLen;
   }
 
   return ENOENT;
@@ -124,7 +122,16 @@ bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options
     for (index = 0; index < numrecords; ++index) {
       dpm.skipDomainName();
 
-      uint8_t section = index < ntohs(dnsHeader->ancount) ? 1 : (index < (ntohs(dnsHeader->ancount) + ntohs(dnsHeader->nscount)) ? 2 : 3);
+      uint8_t section {};
+      if (index < ntohs(dnsHeader->ancount)) {
+        section = 1;
+      }
+      else if (index < ntohs(dnsHeader->ancount) + ntohs(dnsHeader->nscount)) {
+        section = 2;
+      }
+      else {
+        index = 3;
+      }
       uint16_t dnstype = dpm.get16BitInt();
       dpm.get16BitInt();
       dpm.skipBytes(4); /* TTL */
@@ -172,9 +179,9 @@ int getEDNSOptions(const char* optRR, const size_t len, EDNSOptionViewMap& optio
     const uint16_t optionLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
     pos += EDNS_OPTION_LENGTH_SIZE;
     rdPos += EDNS_OPTION_LENGTH_SIZE;
-    if (optionLen > (rdLen - rdPos) || optionLen > (len - pos))
+    if (optionLen > (rdLen - rdPos) || optionLen > (len - pos)) {
       return EINVAL;
-
+    }
     EDNSOptionViewValue value;
     value.content = optRR + pos;
     value.size = optionLen;
@@ -191,13 +198,12 @@ int getEDNSOptions(const char* optRR, const size_t len, EDNSOptionViewMap& optio
 bool getEDNSOptionsFromContent(const std::string& content, std::vector<std::pair<uint16_t, std::string>>& options)
 {
   size_t pos = 0;
-  uint16_t code, len;
   const size_t contentLength = content.size();
 
   while (pos < contentLength && (contentLength - pos) >= (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
-    code = (static_cast<unsigned char>(content.at(pos)) * 256) + static_cast<unsigned char>(content.at(pos+1));
+    uint16_t code = (static_cast<unsigned char>(content.at(pos)) * 256) + static_cast<unsigned char>(content.at(pos+1));
     pos += EDNS_OPTION_CODE_SIZE;
-    len = (static_cast<unsigned char>(content.at(pos)) * 256) + static_cast<unsigned char>(content.at(pos+1));
+    uint16_t len = (static_cast<unsigned char>(content.at(pos)) * 256) + static_cast<unsigned char>(content.at(pos+1));
     pos += EDNS_OPTION_LENGTH_SIZE;
 
     if (pos > contentLength || len > (contentLength - pos)) {
@@ -215,7 +221,8 @@ void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::st
 {
   const uint16_t ednsOptionCode = htons(optionCode);
   const uint16_t payloadLen = htons(payload.length());
-  res.append((const char *) &ednsOptionCode, sizeof ednsOptionCode);
-  res.append((const char *) &payloadLen, sizeof payloadLen);
+  res.append(reinterpret_cast<const char *>(&ednsOptionCode), sizeof ednsOptionCode);
+  res.append(reinterpret_cast<const char *>(&payloadLen), sizeof payloadLen);
   res.append(payload);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)

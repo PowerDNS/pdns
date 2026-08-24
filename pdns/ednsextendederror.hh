@@ -26,7 +26,7 @@
 
 struct EDNSExtendedError
 {
-  enum class code : uint16_t
+  enum class code : uint16_t // NOLINT(performance-enum-size)
   {
     Other = 0,
     UnsupportedDNSKEYAlgorithm = 1,
