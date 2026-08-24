@@ -2446,6 +2446,7 @@ class TestDOHNoIdleTimeoutKeepsConnection(DNSDistDOHTest, DNSDistTest):
 
         self.assertEqual(conn.getinfo(pycurl.NUM_CONNECTS), 0)
 
+
 class TestDOHOpenSSLAsynchronousEngine(DNSDistTest):
     _serverKey = "server.key"
     _serverCert = "server.chain"

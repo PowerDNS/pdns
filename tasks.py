@@ -979,6 +979,7 @@ DNSDIST_CONFIGURE_CXXFLAGS_MOCK_ASYNC_ENGINE = " ".join(
     ]
 )
 
+
 @task
 def ci_dnsdist_configure(c, features, build_dir, benchmark=False, mockAsyncEngine=False):
     additional_flags = ""
