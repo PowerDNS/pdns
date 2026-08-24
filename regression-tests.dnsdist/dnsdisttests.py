@@ -517,6 +517,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         multipleConnections=False,
         listeningAddr="127.0.0.1",
         partialWrite=False,
+        expectedALPN=None,
     ):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
@@ -553,6 +554,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                     continue
 
             conn.settimeout(5.0)
+            if tlsContext and expectedALPN:
+                alpn = conn.selected_alpn_protocol()
+                if alpn != expectedALPN:
+                    print(f"Wrong ALPN, got {alpn}, expected {expectedALPN}")
+                    continue
+
             if multipleConnections:
                 thread = threading.Thread(
                     name="TCP Connection Handler",
@@ -709,6 +716,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         useProxyProtocol=False,
         closeConnCallback=False,
         connTimeout=5.0,
+        expectedALPN=None,
     ):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
@@ -747,6 +755,13 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                     continue
 
             conn.settimeout(connTimeout)
+
+            if tlsContext and expectedALPN:
+                alpn = conn.selected_alpn_protocol()
+                if alpn != expectedALPN:
+                    print(f"Wrong ALPN, got {alpn}, expected {expectedALPN}")
+                    continue
+
             thread = threading.Thread(
                 name="DoH Connection Handler",
                 target=cls.handleDoHConnection,
