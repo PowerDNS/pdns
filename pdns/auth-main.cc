@@ -345,6 +345,10 @@ static void declareArguments()
 
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
 
+  ::arg().set("max-pointers-per-packet-byte", "Maximum number of name pointers per DNS packet byte followed") = "4";
+  ::arg().set("max-pointers-to-pointers", "Maximum number of name pointers pointing directly to another pointer per name") = "4";
+  ::arg().set("max-pointers-per-name", "Maximum number of name pointers followed per name") = "10";
+
   // FIXME520: remove when branching 5.2
   ::arg().set("entropy-source", "") = "";
   ::arg().set("rng", "") = "";
@@ -753,6 +757,9 @@ static void mainthread()
 
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+  ::arg().assignNum(PacketReader::s_MaxPointersPerByte, "max-pointers-per-packet-byte");
+  ::arg().assignNum(DNSName::s_maxPointersToPointers, "max-pointers-to-pointers");
+  ::arg().assignNum(DNSName::s_maxPointersPerName, "max-pointers-per-name");
 
   if (::arg()["edns-cookie-secret"].size() != 0) {
     // User wants cookie processing
