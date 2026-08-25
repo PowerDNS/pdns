@@ -385,6 +385,10 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   }
 
   try {
+#ifdef IP_BIND_ADDRESS_NO_PORT
+    int one = 1;
+    setsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, &one, sizeof(one)); // failure ignored on purpose
+#endif
     sock.bind(localip.d_address);
 #ifdef SO_BINDTODEVICE
     if (localip.d_interface) {
