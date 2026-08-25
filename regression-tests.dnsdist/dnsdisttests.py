@@ -454,7 +454,20 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
       conn.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1', partialWrite=False):
+    def TCPResponder(
+        cls,
+        port,
+        fromQueue,
+        toQueue,
+        trailingDataResponse=False,
+        multipleResponses=False,
+        callback=None,
+        tlsContext=None,
+        multipleConnections=False,
+        listeningAddr="127.0.0.1",
+        partialWrite=False,
+        expectedALPN=None,
+    ):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
@@ -490,6 +503,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 continue
 
             conn.settimeout(5.0)
+            if tlsContext and expectedALPN:
+                alpn = conn.selected_alpn_protocol()
+                if alpn != expectedALPN:
+                    print(f"Wrong ALPN, got {alpn}, expected {expectedALPN}")
+                    continue
+
             if multipleConnections:
               thread = threading.Thread(name='TCP Connection Handler',
                                         target=cls.handleTCPConnection,
@@ -618,7 +637,20 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             conn.close()
 
     @classmethod
-    def DOHResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, useProxyProtocol=False, closeConnCallback=False, connTimeout=5.0):
+    def DOHResponder(
+        cls,
+        port,
+        fromQueue,
+        toQueue,
+        trailingDataResponse=False,
+        multipleResponses=False,
+        callback=None,
+        tlsContext=None,
+        useProxyProtocol=False,
+        closeConnCallback=False,
+        connTimeout=5.0,
+        expectedALPN=None,
+    ):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
@@ -655,10 +687,30 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 else:
                     continue
 
-            conn.settimeout(5.0)
-            thread = threading.Thread(name='DoH Connection Handler',
-                                      target=cls.handleDoHConnection,
-                                      args=[config, conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, tlsContext, useProxyProtocol, closeConnCallback])
+            conn.settimeout(connTimeout)
+
+            if tlsContext and expectedALPN:
+                alpn = conn.selected_alpn_protocol()
+                if alpn != expectedALPN:
+                    print(f"Wrong ALPN, got {alpn}, expected {expectedALPN}")
+                    continue
+
+            thread = threading.Thread(
+                name="DoH Connection Handler",
+                target=cls.handleDoHConnection,
+                args=[
+                    config,
+                    conn,
+                    fromQueue,
+                    toQueue,
+                    trailingDataResponse,
+                    multipleResponses,
+                    callback,
+                    tlsContext,
+                    useProxyProtocol,
+                    closeConnCallback,
+                ],
+            )
             thread.daemon = True
             thread.start()
 
