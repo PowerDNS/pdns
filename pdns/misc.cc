@@ -1660,6 +1660,7 @@ int mapThreadToCPUList([[maybe_unused]] pthread_t tid, [[maybe_unused]] const st
 
 std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
 {
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive in some boost versions
   std::vector<ComboAddress> results;
 
   std::ifstream ifs(resolvConfPath);
@@ -1692,6 +1693,7 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
   }
 
   return results;
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 size_t getPipeBufferSize([[maybe_unused]] int fileDesc)
@@ -1739,7 +1741,7 @@ DNSName reverseNameFromIP(const ComboAddress& address)
   }
   if (address.isIPv6()) {
     std::string result("ip6.arpa.");
-    const auto* ptr = reinterpret_cast<const uint8_t*>(&address.sin6.sin6_addr.s6_addr[0]);
+    const auto* ptr = &address.sin6.sin6_addr.s6_addr[0];
     for (size_t idx = 0; idx < sizeof(address.sin6.sin6_addr.s6_addr); idx++) {
       std::stringstream stream;
       stream << std::hex << (ptr[idx] & 0x0F);
