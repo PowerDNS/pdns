@@ -946,7 +946,9 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
   catch (const std::exception& mde) {
     if (::arg().mustDo("log-common-errors")) {
       g_slogout->error(Logr::Notice, mde.what(), "Unable to parse packet from remote server", "server", Logging::Loggable(address),
-                       "exception", Logging::Loggable("std::exception"));
+                       "exception", Logging::Loggable("std::exception"),
+                       "qname", Logging::Loggable(domain),
+                       "qtype", Logging::Loggable(QType(type)));
     }
 
     lwr->d_rcode = RCode::FormErr;
