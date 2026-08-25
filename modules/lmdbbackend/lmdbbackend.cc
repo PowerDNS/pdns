@@ -735,16 +735,16 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
 
   d_mapsize_main = d_mapsize_shards = 0;
   try {
-    d_mapsize_main = std::stoll(getArg("map-size"));
+    d_mapsize_main = getArgAsNum<uint64_t>("map-size");
   }
-  catch (const std::exception& e) {
-    throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
+  catch (const ArgException& e) {
+    throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.reason);
   }
   try {
-    d_mapsize_shards = std::stoll(getArg("shards-map-size"));
+    d_mapsize_shards = getArgAsNum<uint64_t>("shards-map-size");
   }
-  catch (const std::exception& e) {
-    throw std::runtime_error(std::string("Unable to parse the 'shards-map-size' LMDB value: ") + e.what());
+  catch (const ArgException& e) {
+    throw std::runtime_error(std::string("Unable to parse the 'shards-map-size' LMDB value: ") + e.reason);
   }
   if (d_mapsize_shards == 0) {
     // Old configuration with only one settings for main and shards.
@@ -759,7 +759,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     d_handle_dups = true;
     LMDBLS::s_flag_deleted = true;
 
-    if (atoi(getArg("shards").c_str()) != 1) {
+    if (getArgAsNum<uint32_t>("shards") != 1) {
       throw std::runtime_error(std::string("running with Lightning Stream support requires shards=1"));
     }
   }
@@ -780,7 +780,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       uint32_t currentSchemaVersion = currentSchemaVersionAndShards.first;
       // std::cerr<<"current schema version: "<<currentSchemaVersion<<", shards="<<currentSchemaVersionAndShards.second<<std::endl;
 
-      if (getArgAsNum("schema-version") != SCHEMAVERSION) {
+      if (getArgAsNum<uint32_t>("schema-version") != SCHEMAVERSION) {
         throw std::runtime_error("This version of the lmdbbackend only supports schema version 6. Configuration demands a lower version. Not starting up.");
       }
 
@@ -817,14 +817,10 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
 
       auto txn = d_tdomains->getEnv()->getRWTransaction();
 
-      const auto configShardsTemp = atoi(getArg("shards").c_str());
-      if (configShardsTemp < 0) {
-        throw std::runtime_error("a negative shards value is not supported");
-      }
-      if (configShardsTemp == 0) {
+      const auto configShards = getArgAsNum<uint32_t>("shards");
+      if (configShards == 0) {
         throw std::runtime_error("a shards value of 0 is not supported");
       }
-      const auto configShards = static_cast<uint32_t>(configShardsTemp);
 
       MDBOutVal shards{};
       if (txn->get(pdnsdbi, "shards", shards) == 0) {

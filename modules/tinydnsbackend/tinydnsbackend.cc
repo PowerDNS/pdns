@@ -83,7 +83,7 @@ TinyDNSBackend::TinyDNSBackend(const string& suffix)
   d_suffix = suffix;
   d_locations = mustDo("locations");
   d_ignorebogus = mustDo("ignore-bogus-records");
-  d_taiepoch = 4611686018427387904ULL + getArgAsNum("tai-adjust");
+  d_taiepoch = 4611686018427387904ULL + getArgAsNum<time_t>("tai-adjust");
   d_dnspacket = NULL;
   d_cdbReader = NULL;
   d_isAxfr = false;

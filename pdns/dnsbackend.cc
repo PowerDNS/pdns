@@ -25,7 +25,6 @@
 #endif
 #include "utility.hh"
 #include "dnsbackend.hh"
-#include "arguments.hh"
 #include "ueberbackend.hh"
 #include "logger.hh"
 
@@ -60,11 +59,6 @@ bool DNSBackend::mustDo(const string& key)
 const string& DNSBackend::getArg(const string& key)
 {
   return arg()[d_prefix + "-" + key];
-}
-
-int DNSBackend::getArgAsNum(const string& key)
-{
-  return arg().asNum(d_prefix + "-" + key);
 }
 
 // Default API lookup has no support for disabled records and simply wraps lookup()

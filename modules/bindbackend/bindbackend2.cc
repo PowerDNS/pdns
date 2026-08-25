@@ -1048,7 +1048,7 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
       if (!safeGetBBDomainInfo(domain.name, &bbd)) {
         isNew = true;
         bbd.d_id = domain_id++;
-        bbd.setCheckInterval(getArgAsNum("check-interval"));
+        bbd.setCheckInterval(getArgAsNum<time_t>("check-interval"));
         bbd.d_lastnotified = 0;
         bbd.d_loaded = false;
       }
@@ -1559,7 +1559,7 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const ZoneName& domain)
   bbd.d_id = newid;
   bbd.d_records = std::make_shared<recordstorage_t>();
   bbd.d_name = domain;
-  bbd.setCheckInterval(getArgAsNum("check-interval"));
+  bbd.setCheckInterval(getArgAsNum<time_t>("check-interval"));
 
   return bbd;
 }
