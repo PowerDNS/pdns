@@ -1060,7 +1060,8 @@ bool isNonBlocking(int sock)
 bool setReceiveSocketErrors([[maybe_unused]] int sock, [[maybe_unused]] int family)
 {
 #ifdef __linux__
-  int tmp = 1, ret;
+  int tmp = 1;
+  int ret{};
   if (family == AF_INET) {
     ret = setsockopt(sock, IPPROTO_IP, IP_RECVERR, &tmp, sizeof(tmp));
   }
@@ -1097,15 +1098,15 @@ bool setCloseOnExec(int sock)
 #ifdef __linux__
 #include <linux/rtnetlink.h>
 
-int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
+int getMACAddress(const ComboAddress& address, char* dest, size_t destLen)
 {
   struct
   {
     struct nlmsghdr headermsg;
     struct ndmsg neighbormsg;
-  } request;
+  } request{};
 
-  std::array<char, 8192> buffer;
+  std::array<char, 8192> buffer{};
 
   auto sock = FDWrapper(socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE));
   if (sock.getHandle() == -1) {
@@ -1116,7 +1117,7 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
   request.headermsg.nlmsg_len = NLMSG_LENGTH(sizeof(struct ndmsg));
   request.headermsg.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
   request.headermsg.nlmsg_type = RTM_GETNEIGH;
-  request.neighbormsg.ndm_family = ca.sin4.sin_family;
+  request.neighbormsg.ndm_family = address.sin4.sin_family;
 
   while (true) {
     ssize_t sent = send(sock.getHandle(), &request, sizeof(request), 0);
@@ -1126,7 +1127,7 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
       }
       return errno;
     }
-    else if (static_cast<size_t>(sent) != sizeof(request)) {
+    if (static_cast<size_t>(sent) != sizeof(request)) {
       return EIO;
     }
     break;
@@ -1145,9 +1146,9 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
       return errno;
     }
 
-    size_t remaining = static_cast<size_t>(got);
-    for (struct nlmsghdr* nlmsgheader = reinterpret_cast<struct nlmsghdr*>(buffer.data());
-         done == false && NLMSG_OK(nlmsgheader, remaining);
+    auto remaining = static_cast<size_t>(got);
+    for (auto* nlmsgheader = reinterpret_cast<struct nlmsghdr*>(buffer.data());
+         !done && NLMSG_OK(nlmsgheader, remaining);
          nlmsgheader = reinterpret_cast<struct nlmsghdr*>(NLMSG_NEXT(nlmsgheader, remaining))) {
 
       if (nlmsgheader->nlmsg_type == NLMSG_DONE) {
@@ -1155,29 +1156,29 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
         break;
       }
 
-      auto nd = reinterpret_cast<struct ndmsg*>(NLMSG_DATA(nlmsgheader));
-      auto rtatp = reinterpret_cast<struct rtattr*>(reinterpret_cast<char*>(nd) + NLMSG_ALIGN(sizeof(struct ndmsg)));
-      int rtattrlen = nlmsgheader->nlmsg_len - NLMSG_LENGTH(sizeof(struct ndmsg));
+      auto* ndmsg = reinterpret_cast<struct ndmsg*>(NLMSG_DATA(nlmsgheader));
+      auto* rtatp = reinterpret_cast<struct rtattr*>(reinterpret_cast<char*>(ndmsg) + NLMSG_ALIGN(sizeof(struct ndmsg)));
+      auto rtattrlen = nlmsgheader->nlmsg_len - NLMSG_LENGTH(sizeof(struct ndmsg));
 
-      if (nd->ndm_family != ca.sin4.sin_family) {
+      if (ndmsg->ndm_family != address.sin4.sin_family) {
         continue;
       }
 
-      if (ca.sin4.sin_family == AF_INET6 && ca.sin6.sin6_scope_id != 0 && static_cast<int32_t>(ca.sin6.sin6_scope_id) != nd->ndm_ifindex) {
+      if (address.sin4.sin_family == AF_INET6 && address.sin6.sin6_scope_id != 0 && static_cast<int32_t>(address.sin6.sin6_scope_id) != ndmsg->ndm_ifindex) {
         continue;
       }
 
-      for (; done == false && RTA_OK(rtatp, rtattrlen); rtatp = RTA_NEXT(rtatp, rtattrlen)) {
+      for (; !done && RTA_OK(rtatp, rtattrlen); rtatp = RTA_NEXT(rtatp, rtattrlen)) {
         if (rtatp->rta_type == NDA_DST) {
-          if (nd->ndm_family == AF_INET) {
-            auto inp = reinterpret_cast<struct in_addr*>(RTA_DATA(rtatp));
-            if (inp->s_addr == ca.sin4.sin_addr.s_addr) {
+          if (ndmsg->ndm_family == AF_INET) {
+            auto* inp = reinterpret_cast<struct in_addr*>(RTA_DATA(rtatp));
+            if (inp->s_addr == address.sin4.sin_addr.s_addr) {
               foundIP = true;
             }
           }
-          else if (nd->ndm_family == AF_INET6) {
-            auto inp = reinterpret_cast<struct in6_addr*>(RTA_DATA(rtatp));
-            if (memcmp(inp->s6_addr, ca.sin6.sin6_addr.s6_addr, sizeof(ca.sin6.sin6_addr.s6_addr)) == 0) {
+          else if (ndmsg->ndm_family == AF_INET6) {
+            auto* inp = reinterpret_cast<struct in6_addr*>(RTA_DATA(rtatp));
+            if (memcmp(&inp->s6_addr[0], &address.sin6.sin6_addr.s6_addr[0], sizeof(address.sin6.sin6_addr.s6_addr)) == 0) {
               foundIP = true;
             }
           }
@@ -1196,7 +1197,7 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
         }
       }
     }
-  } while (done == false);
+  } while (!done);
 
   return foundMAC ? 0 : ENOENT;
 }
@@ -1227,7 +1228,7 @@ uint64_t udpErrorStats([[maybe_unused]] const std::string& str)
 
   string line;
   while (getline(ifs, line)) {
-    if (boost::starts_with(line, "Udp: ") && isdigit(line.at(5))) {
+    if (boost::starts_with(line, "Udp: ") && isdigit(line.at(5)) != 0) {
       vector<string> parts;
       stringtok(parts, line, " \n\t\r");
 
@@ -1238,21 +1239,19 @@ uint64_t udpErrorStats([[maybe_unused]] const std::string& str)
       if (str == "udp-rcvbuf-errors") {
         return std::stoull(parts.at(5));
       }
-      else if (str == "udp-sndbuf-errors") {
+      if (str == "udp-sndbuf-errors") {
         return std::stoull(parts.at(6));
       }
-      else if (str == "udp-noport-errors") {
+      if (str == "udp-noport-errors") {
         return std::stoull(parts.at(2));
       }
-      else if (str == "udp-in-errors") {
+      if (str == "udp-in-errors") {
         return std::stoull(parts.at(3));
       }
-      else if (parts.size() >= 8 && str == "udp-in-csum-errors") {
+      if (parts.size() >= 8 && str == "udp-in-csum-errors") {
         return std::stoull(parts.at(7));
       }
-      else {
-        return 0;
-      }
+      return 0;
     }
   }
 #endif
@@ -1309,7 +1308,7 @@ uint64_t tcpErrorStats(const std::string& /* str */)
   string line;
   vector<string> parts;
   while (getline(ifs, line)) {
-    if (line.size() > 9 && boost::starts_with(line, "TcpExt: ") && isdigit(line.at(8))) {
+    if (line.size() > 9 && boost::starts_with(line, "TcpExt: ") && isdigit(line.at(8)) != 0) {
       stringtok(parts, line, " \n\t\r");
 
       if (parts.size() < 21) {
@@ -1429,7 +1428,7 @@ uint64_t getOpenFileDescriptors(const std::string& /* unused */)
   uint64_t nbFileDescriptors = 0;
   const auto dirName = "/proc/" + std::to_string(getpid()) + "/fd/";
   auto directoryError = pdns::visit_directory(dirName, [&nbFileDescriptors]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
-    uint32_t num;
+    uint32_t num{};
     try {
       pdns::checked_stoi_into(num, std::string(name));
       if (std::to_string(num) == name) {
@@ -1438,6 +1437,7 @@ uint64_t getOpenFileDescriptors(const std::string& /* unused */)
     }
     catch (...) {
       // was not a number.
+      ;
     }
     return true;
   });
@@ -1457,10 +1457,15 @@ uint64_t getRealMemoryUsage(const std::string& /* unused */)
 {
 #ifdef __linux__
   ifstream ifs("/proc/self/statm");
-  if (!ifs)
+  if (!ifs) {
     return 0;
-
-  uint64_t size, resident, shared, text, lib, data;
+  }
+  uint64_t size{};
+  uint64_t resident{};
+  uint64_t shared{};
+  uint64_t text{};
+  uint64_t lib{};
+  uint64_t data{};
   ifs >> size >> resident >> shared >> text >> lib >> data;
 
   // We used to use "data" here, but it proves unreliable and even is marked "broken"
@@ -1479,8 +1484,9 @@ uint64_t getSpecialMemoryUsage(const std::string& /* unused */)
 {
 #ifdef __linux__
   ifstream ifs("/proc/self/smaps");
-  if (!ifs)
+  if (!ifs) {
     return 0;
+  }
   string line;
   uint64_t bytes = 0;
   string header("Private_Dirty:");
@@ -1711,10 +1717,7 @@ bool setPipeBufferSize([[maybe_unused]] int fileDesc, [[maybe_unused]] size_t si
   }
   int newSize = static_cast<int>(size);
   int res = fcntl(fileDesc, F_SETPIPE_SZ, newSize);
-  if (res == -1) {
-    return false;
-  }
-  return true;
+  return res != -1;
 #else
   errno = ENOSYS;
   return false;
