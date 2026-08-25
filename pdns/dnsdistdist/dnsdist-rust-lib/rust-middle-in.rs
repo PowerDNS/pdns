@@ -12,11 +12,11 @@
         type DNSSelector;
         type DNSActionWrapper;
         type DNSResponseActionWrapper;
-        fn registerProtobufLogger(config: &ProtobufLoggerConfiguration);
-        fn registerDnstapLogger(config: &DnstapLoggerConfiguration);
-        fn registerKVSObjects(config: &KeyValueStoresConfiguration);
-        fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>);
-        fn registerTimedIPSetObjects(sets: &Vec<TimedIpSetConfiguration>);
+        fn registerProtobufLogger(config: &ProtobufLoggerConfiguration) -> Result<()>;
+        fn registerDnstapLogger(config: &DnstapLoggerConfiguration) -> Result<()>;
+        fn registerKVSObjects(config: &KeyValueStoresConfiguration) -> Result<()>;
+        fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>) -> Result<()>;
+        fn registerTimedIPSetObjects(sets: &Vec<TimedIpSetConfiguration>) -> Result<()>;
     }
 }
 
