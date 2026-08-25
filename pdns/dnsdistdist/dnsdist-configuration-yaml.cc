@@ -1171,7 +1171,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
     for (const auto& cache : globalConfig.packet_caches) {
       DNSDistPacketCache::CacheSettings settings{
-        .d_maxEntries = cache.size,
+        .d_maxEntries = static_cast<size_t>(cache.size),
         .d_maxTTL = cache.max_ttl,
         .d_minTTL = cache.min_ttl,
         .d_tempFailureTTL = cache.temporary_failure_ttl,
