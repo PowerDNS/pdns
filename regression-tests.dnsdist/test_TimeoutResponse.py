@@ -40,10 +40,10 @@ def normalResponseCallback(request):
     response.answer.append(rrset)
     return response.to_wire()
 
-def dohTimeoutResponseCallback(request, headers, fromQueue, toQueue):
+def dohTimeoutResponseCallback(request, headers, fromQueue, toQueue, conn):
     return 200, timeoutResponseCallback(request)
 
-def dohNormalResponseCallback(request, headers, fromQueue, toQueue):
+def dohNormalResponseCallback(request, headers, fromQueue, toQueue, conn):
     return 200, normalResponseCallback(request)
 
 class TestTimeoutBackendUdpTcp(DNSDistTest):
