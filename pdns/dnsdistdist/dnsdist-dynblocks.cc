@@ -140,26 +140,32 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
   StatNode::Stat node;
   std::unordered_map<DNSName, SMTBlockParameters> namesToBlock;
   statNodeRoot.visit([this, &namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
-    bool block = false;
-    SMTBlockParameters blockParameters;
-    if (d_smtVisitorFFI) {
-      dnsdist_ffi_stat_node_t tmp(*node_, self, children, blockParameters);
-      block = d_smtVisitorFFI(&tmp);
-    }
-    else {
-      auto ret = d_smtVisitor(*node_, self, children);
-      block = std::get<0>(ret);
-      if (block) {
-        if (std::optional<std::string> tmp = std::get<1>(ret)) {
-          blockParameters.d_reason = std::move(*tmp);
-        }
-        if (std::optional<int> tmp = std::get<2>(ret)) {
-          blockParameters.d_action = static_cast<DNSAction::Action>(*tmp);
+    try {
+      bool block = false;
+      SMTBlockParameters blockParameters{};
+      if (d_smtVisitorFFI) {
+        dnsdist_ffi_stat_node_t tmp(*node_, self, children, blockParameters);
+        block = d_smtVisitorFFI(&tmp);
+      }
+      else {
+        auto ret = d_smtVisitor(*node_, self, children);
+        block = std::get<0>(ret);
+        if (block) {
+          if (std::optional<std::string> tmp = std::get<1>(ret)) {
+            blockParameters.d_reason = std::move(*tmp);
+          }
+          if (std::optional<int> tmp = std::get<2>(ret)) {
+            blockParameters.d_action = static_cast<DNSAction::Action>(*tmp);
+          }
         }
       }
+      if (block) {
+        namesToBlock.insert({DNSName(node_->fullname), std::move(blockParameters)});
+      }
     }
-    if (block) {
-      namesToBlock.insert({DNSName(node_->fullname), std::move(blockParameters)});
+    catch (const std::exception& exp) {
+      SLOG(warnlog("Error while executing the Dynamic Block Suffix Match policy: %s", exp.what()),
+           dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Warning, exp.what(), "Error while executing the Dynamic Block Suffix Match policy"));
     }
   },
                      node);
@@ -489,7 +495,13 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       bool suffixMatchRuleMatches = d_suffixMatchRule.matches(ringEntry.when);
       if (suffixMatchRuleMatches) {
         const bool hit = ringEntry.isACacheHit();
-        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<uint32_t>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt, g_rings.getSamplingRate());
+        try {
+          root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<uint32_t>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt, g_rings.getSamplingRate());
+        }
+        catch (const std::exception& exp) {
+          SLOG(warnlog("Error submitting name %s to Dynamic Block Suffix Match Rule policy: %s", ringEntry.name, exp.what()),
+               dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Warning, exp.what(), "Error submitting name to Dynamic Block Suffix Match Rule policy", "name", Logging::Loggable(ringEntry.name)));
+        }
       }
 
       if (d_excludedSubnets.match(ringEntry.requestor)) {
