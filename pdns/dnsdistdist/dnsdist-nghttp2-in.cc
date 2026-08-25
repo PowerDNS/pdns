@@ -1313,6 +1313,7 @@ void IncomingHTTP2Connection::stopIO()
   if (d_ioState) {
     d_ioState->reset();
   }
+  waitUntilAsyncOperationsAreDone();
 }
 
 uint32_t IncomingHTTP2Connection::getConcurrentStreamsCount() const
