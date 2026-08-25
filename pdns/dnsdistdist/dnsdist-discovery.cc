@@ -432,6 +432,7 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
     config.d_tlsSubjectName = backend.d_ds->d_config.remote.toString();
     config.d_tlsSubjectIsAddr = true;
   }
+  config.d_tlsParams.d_alpn = discoveredConfig.d_protocol == dnsdist::Protocol::DoT ? TLSFrontend::ALPN::DoT : TLSFrontend::ALPN::DoH;
 
   if (!backend.d_poolAfterUpgrade.empty()) {
     config.pools.clear();
