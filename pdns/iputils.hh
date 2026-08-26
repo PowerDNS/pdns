@@ -603,7 +603,7 @@ union SockaddrWrapper
   [[nodiscard]] string toString() const
   {
     if (sinun.sun_family == AF_UNIX) {
-      return sinun.sun_path;
+      return static_cast<const char*>(sinun.sun_path);
     }
     std::array<char, 1024> host{};
     if (sin4.sin_family != 0) {
@@ -746,7 +746,7 @@ public:
     }
   }
 
-  enum stringType
+  enum stringType : uint8_t
   {
     humanString,
     byteString,

@@ -25,7 +25,9 @@
 
 #include "iputils.hh"
 
+#ifdef __linux__
 #include <fstream>
+#endif
 #include <sys/socket.h>
 #include <boost/format.hpp>
 
@@ -66,12 +68,8 @@ static int doConnect(int sockfd, [[maybe_unused]] bool fastopen, const ComboAddr
     int flags = CONNECT_DATA_IDEMPOTENT | CONNECT_RESUME_ON_READ_WRITE;
     return connectx(sockfd, &endpoints, SAE_ASSOCID_ANY, flags, nullptr, 0, nullptr, nullptr);
   }
-  else {
 #endif
-    return connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-#ifdef CONNECTX_FASTOPEN
-  }
-#endif
+  return connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
 int SConnect(int sockfd, bool fastopen, const ComboAddress& remote)
@@ -380,9 +378,9 @@ void ComboAddress::truncate(unsigned int bits) noexcept
     len = 16;
   }
 
-  auto tozero = len * 8 - bits; // if set to 22, this will clear 1 byte, as it should
+  auto tozero = (len * 8) - bits; // if set to 22, this will clear 1 byte, as it should
 
-  memset(start + len - tozero / 8, 0, tozero / 8); // blot out the whole bytes on the right NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  memset(start + len - (tozero / 8), 0, tozero / 8); // blot out the whole bytes on the right NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
   auto bitsleft = tozero % 8; // 2 bits left to clear
   if (bitsleft == 0) {
@@ -393,7 +391,7 @@ void ComboAddress::truncate(unsigned int bits) noexcept
 
   // a b c d, to truncate to 22 bits, we just zeroed 'd' and need to zero 2 bits from c
   // so and by '11111100', which is ~((1<<2)-1)  = ~3
-  uint8_t* place = start + len - 1 - tozero / 8; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  uint8_t* place = start + len - 1 - (tozero / 8); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   *place &= (~((1 << bitsleft) - 1));
 }
 
