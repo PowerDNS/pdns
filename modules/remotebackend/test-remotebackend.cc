@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedRecord)
 {
   DNSResourceRecord resourceRecord;
   BOOST_TEST_MESSAGE("Testing feedRecord method");
-  backendUnderTest->startDomainCreationTransaction(ZoneName("example.com."), 3);
+  backendUnderTest->startDomainReplacementTransaction(ZoneName("example.com."), 3);
   resourceRecord.qname = DNSName("example.com.");
   resourceRecord.qtype = QType::SOA;
   resourceRecord.qclass = QClass::IN;
@@ -333,7 +333,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedRecord)
 
 BOOST_AUTO_TEST_CASE(test_method_replaceRRSet)
 {
-  backendUnderTest->startDomainCreationTransaction(ZoneName("example.com."), 3);
+  backendUnderTest->startDomainReplacementTransaction(ZoneName("example.com."), 3);
   DNSResourceRecord resourceRecord;
   std::vector<DNSResourceRecord> rrset;
   BOOST_TEST_MESSAGE("Testing replaceRRSet method");
@@ -350,7 +350,7 @@ BOOST_AUTO_TEST_CASE(test_method_replaceRRSet)
 BOOST_AUTO_TEST_CASE(test_method_feedEnts)
 {
   BOOST_TEST_MESSAGE("Testing feedEnts method");
-  backendUnderTest->startDomainCreationTransaction(ZoneName("example.com."), 3);
+  backendUnderTest->startDomainReplacementTransaction(ZoneName("example.com."), 3);
   map<DNSName, bool> nonterm = boost::assign::map_list_of(DNSName("_udp"), true)(DNSName("_sip._udp"), true);
   BOOST_CHECK(backendUnderTest->feedEnts(2, nonterm));
   backendUnderTest->commitTransaction();
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedEnts)
 BOOST_AUTO_TEST_CASE(test_method_feedEnts3)
 {
   BOOST_TEST_MESSAGE("Testing feedEnts3 method");
-  backendUnderTest->startDomainCreationTransaction(ZoneName("example.com"), 3);
+  backendUnderTest->startDomainReplacementTransaction(ZoneName("example.com"), 3);
   NSEC3PARAMRecordContent ns3prc;
   ns3prc.d_iterations = 1;
   ns3prc.d_salt = "\u00aa\u00bb\u00cc\u00dd";
@@ -371,7 +371,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedEnts3)
 BOOST_AUTO_TEST_CASE(test_method_abortTransaction)
 {
   BOOST_TEST_MESSAGE("Testing abortTransaction method");
-  backendUnderTest->startDomainCreationTransaction(ZoneName("example.com."), 3);
+  backendUnderTest->startDomainReplacementTransaction(ZoneName("example.com."), 3);
   BOOST_CHECK(backendUnderTest->abortTransaction());
 }
 

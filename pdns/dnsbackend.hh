@@ -300,7 +300,7 @@ public:
   }
 
   //! starts the transaction for replacing existing zone qname of id domainId.
-  virtual bool startDomainCreationTransaction(const ZoneName& /* qname */, domainid_t /* domainId */)
+  virtual bool startDomainReplacementTransaction(const ZoneName& /* qname */, domainid_t /* domainId */)
   {
     return false;
   }

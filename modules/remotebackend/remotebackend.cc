@@ -825,7 +825,7 @@ bool RemoteBackend::startTransactionInternal(const ZoneName& domain, domainid_t 
   }
   return true;
 }
-bool RemoteBackend::startDomainCreationTransaction(const ZoneName& qname, domainid_t domainId)
+bool RemoteBackend::startDomainReplacementTransaction(const ZoneName& qname, domainid_t domainId)
 {
   return startTransactionInternal(qname, domainId);
 }

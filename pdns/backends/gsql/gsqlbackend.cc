@@ -2319,7 +2319,7 @@ bool GSQLBackend::feedEnts3(domainid_t domain_id, const DNSName& /* domain */, m
   return true;
 }
 
-bool GSQLBackend::startDomainCreationTransaction(const ZoneName &domain, domainid_t domain_id)
+bool GSQLBackend::startDomainReplacementTransaction(const ZoneName &domain, domainid_t domain_id)
 {
   startDomainModificationTransaction(domain);
   try {

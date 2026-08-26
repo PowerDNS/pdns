@@ -974,7 +974,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
         }
       }
     }
-    transaction = ctx.domain.backend->startDomainCreationTransaction(domain, ctx.domain.id);
+    transaction = ctx.domain.backend->startDomainReplacementTransaction(domain, ctx.domain.id);
     SLOG(g_log << Logger::Info << ctx.logPrefix << "storage transaction started" << endl,
          ctx.slog->info(Logr::Info, "AXFR: storage transaction started"));
 

@@ -1973,7 +1973,7 @@ static int clearZone(const ZoneName &zone) {
     cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
-  if(!di.backend->startDomainCreationTransaction(zone, di.id)) {
+  if(!di.backend->startDomainReplacementTransaction(zone, di.id)) {
     cerr<<"Unable to start transaction for load of zone '"<<zone<<"'"<<endl;
     return EXIT_FAILURE;
   }
@@ -2019,7 +2019,7 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
   rewriteNames = srcinfo.zone != dstzone;
 
   if (!makeDomainTransaction) {
-    tgt->startDomainCreationTransaction(dstzone, dstinfo.id);
+    tgt->startDomainReplacementTransaction(dstzone, dstinfo.id);
   }
 
   while(src->get(rr)) {
@@ -2578,7 +2578,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       // If there are invalid records, we'll recreate the complete zone, as
       // this is the only reliable way to make them disappear.
       if (invalid != 0) {
-        info.backend->startDomainCreationTransaction(zone, info.id);
+        info.backend->startDomainReplacementTransaction(zone, info.id);
         for (const auto& record : post) {
           DNSResourceRecord resrec = DNSResourceRecord::fromWire(record);
           resrec.domain_id = info.id;
@@ -2679,7 +2679,7 @@ static bool createZoneWithDefaults(UtilBackend &backend, DomainInfo &info, const
     return false;
   }
   if (!makeDomainTransaction) {
-    info.backend->startDomainCreationTransaction(zone, info.id);
+    info.backend->startDomainReplacementTransaction(zone, info.id);
   }
   info.backend->setDomainMetadataOne(zone, "SOA-EDIT-API", "DEFAULT");
   info.backend->commitTransaction();
@@ -2715,7 +2715,7 @@ static int loadZone(const ZoneName& zone, const string& fname) {
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
 
   DNSResourceRecord rr;
-  if(!db->startDomainCreationTransaction(zone, di.id)) {
+  if(!db->startDomainReplacementTransaction(zone, di.id)) {
     cerr<<"Unable to start transaction for load of zone '"<<zone<<"'"<<endl;
     return EXIT_FAILURE;
   }
@@ -2797,7 +2797,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
   }
 
   rr.domain_id = di.id;
-  di.backend->startDomainCreationTransaction(zone, di.id);
+  di.backend->startDomainReplacementTransaction(zone, di.id);
   di.backend->feedRecord(rr, DNSName());
   if(!nsname.empty()) {
     cout<<"Also adding one NS record"<<endl;
@@ -3735,7 +3735,7 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
   }
   else {
     cout<<"Starting transaction to feed records"<<endl;
-    db->startDomainCreationTransaction(zone, di.id);
+    db->startDomainReplacementTransaction(zone, di.id);
   }
 
   rr.qtype=QType::SOA;
@@ -3773,7 +3773,7 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
   cout<<"[+] content field is over 255 bytes"<<endl;
 
   cout<<"Dropping all records, inserting SOA+2xA"<<endl;
-  db->startDomainCreationTransaction(zone, di.id);
+  db->startDomainReplacementTransaction(zone, di.id);
 
   rr.qtype=QType::SOA;
   rr.qname=zone.operator const DNSName&();

@@ -224,7 +224,7 @@ void Bind2Backend::setFresh(domainid_t domain_id)
   setLastCheck(domain_id, time(nullptr));
 }
 
-bool Bind2Backend::startDomainCreationTransactionInternal(BB2DomainInfo& bbd)
+bool Bind2Backend::startDomainReplacementTransactionInternal(BB2DomainInfo& bbd)
 {
   d_transaction_qname = bbd.d_name;
   d_transaction_id = bbd.d_id;
@@ -253,7 +253,7 @@ bool Bind2Backend::startDomainCreationTransactionInternal(BB2DomainInfo& bbd)
   return true;
 }
 
-bool Bind2Backend::startDomainCreationTransaction(const ZoneName& /* qname */, domainid_t domainId)
+bool Bind2Backend::startDomainReplacementTransaction(const ZoneName& /* qname */, domainid_t domainId)
 {
   d_transaction_tmpname.clear();
   d_transaction_id = UnknownDomainID;
@@ -271,7 +271,7 @@ bool Bind2Backend::startDomainCreationTransaction(const ZoneName& /* qname */, d
   if (bbd.d_pending) {
     return false;
   }
-  return startDomainCreationTransactionInternal(bbd);
+  return startDomainReplacementTransactionInternal(bbd);
 }
 
 bool Bind2Backend::startDomainModificationTransaction(const ZoneName& /* qname */)
@@ -1717,7 +1717,7 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName
   if (startTransaction) {
     // Remember this domain is pending until the transaction gets committed.
     bbd.d_pending = true;
-    startDomainCreationTransactionInternal(bbd);
+    startDomainReplacementTransactionInternal(bbd);
   }
   safePutBBDomainInfo(bbd);
 

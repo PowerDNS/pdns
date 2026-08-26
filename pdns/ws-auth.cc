@@ -2260,7 +2260,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   }
 
   if (!makeDomainTransaction) {
-    domainInfo.backend->startDomainCreationTransaction(zonename, domainInfo.id);
+    domainInfo.backend->startDomainReplacementTransaction(zonename, domainInfo.id);
   }
 
   try {
@@ -2420,7 +2420,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
       return;
     }
 
-    zoneData.domainInfo.backend->startDomainCreationTransaction(zoneData.zoneName, zoneData.domainInfo.id);
+    zoneData.domainInfo.backend->startDomainReplacementTransaction(zoneData.zoneName, zoneData.domainInfo.id);
     for (auto& resourceRecord : new_records) {
       resourceRecord.domain_id = static_cast<int>(zoneData.domainInfo.id);
       zoneData.domainInfo.backend->feedRecord(resourceRecord, DNSName());

@@ -195,7 +195,7 @@ public:
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm) override;
   bool feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool startDomainCreationTransaction(const ZoneName& qname, domainid_t domainId) override;
+  bool startDomainReplacementTransaction(const ZoneName& qname, domainid_t domainId) override;
   bool startDomainModificationTransaction(const ZoneName& qname) override;
   bool commitTransaction() override;
   bool abortTransaction() override;

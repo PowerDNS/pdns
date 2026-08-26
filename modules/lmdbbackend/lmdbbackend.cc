@@ -1405,7 +1405,7 @@ void LMDBBackend::updateDomainInfo(const DomainInfo& info)
   writeTransientDomainInfo(info);
 }
 
-bool LMDBBackend::startDomainCreationTransaction(const ZoneName& domain, domainid_t domain_id)
+bool LMDBBackend::startDomainReplacementTransaction(const ZoneName& domain, domainid_t domain_id)
 {
   if (d_rwtxn) {
     throw DBException("Attempt to start a transaction while one was open already");
@@ -1992,7 +1992,7 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
   for (auto id : idvec) {
 
     // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-    startDomainCreationTransaction(domain, id);
+    startDomainReplacementTransaction(domain, id);
 
     { // Remove metadata
       auto txn = d_tmeta->getRWTransaction();
@@ -2036,7 +2036,7 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
     startDomainModificationTransaction(transactionDomain);
   }
   else {
-    startDomainCreationTransaction(transactionDomain, transactionDomainId);
+    startDomainReplacementTransaction(transactionDomain, transactionDomainId);
   }
 
   return true;
