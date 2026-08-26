@@ -89,6 +89,8 @@ RemoteLoggerInterface::Result OTLPLogger::queueData(const std::string& data)
   case LoggerType::gRPC:
     // Should never get here
     throw std::runtime_error("gRPC support is not implemented");
+  default:
+    throw std::runtime_error("Unhandled protocol in OTLPLogger::queueData");
   }
 }
 
@@ -147,6 +149,8 @@ int OTLPLogger::sendBatch()
   case LoggerType::gRPC:
     // Should never get here
     throw std::runtime_error("gRPC support is not implemented");
+  default:
+    throw std::runtime_error("Unhandled protocol in OTLPLogger::sendBatch");
   }
 }
 
