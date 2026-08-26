@@ -995,7 +995,7 @@ bool setTCPNoDelay(int sock)
   return setsockopt(sock, /* socket affected */
                     IPPROTO_TCP, /* set option at TCP level */
                     TCP_NODELAY, /* name of option */
-                    &flag, /* the cast is historical cruft */
+                    &flag,
                     sizeof(flag))
     == 0; /* length of option value */
 }
@@ -1545,7 +1545,7 @@ uid_t strToUID(const string& str)
   const char* cstr = str.c_str();
   auto bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
   if (bufsize == -1) {
-    throw runtime_error("cannot retrieve uid");
+    throw runtime_error("cannot retrieve buffer size for passwd entry");
   }
   std::string buffer;
   buffer.resize(bufsize);
@@ -1584,7 +1584,7 @@ gid_t strToGID(const string& str)
   const char* cstr = str.c_str();
   auto bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
   if (bufsize == -1) {
-    throw runtime_error("cannot retrieve uid");
+    throw runtime_error("cannot retrieve buffer size for group entry");
   }
   std::string buffer;
   buffer.resize(bufsize);
