@@ -574,7 +574,7 @@ BOOST_AUTO_TEST_CASE(test_apl_record_in) {
   validAPL->toPacket(writer);
   writer.commit();
 
-  MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
+  MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
   // Location of the record's 2-byte RDLENGTH field.
   const size_t rdLengthPos = sizeof(dnsheader) + name.wirelength() + sizeof(uint16_t) + sizeof(uint16_t) + name.wirelength() + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t);
@@ -585,7 +585,7 @@ BOOST_AUTO_TEST_CASE(test_apl_record_in) {
   invalidPacket.at(rdLengthPos) = 0;
   invalidPacket.at(rdLengthPos + 1) = 5;
 
-  BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(invalidPacket.data()), invalidPacket.size()), MOADNSException);
+  BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(invalidPacket.data()), invalidPacket.size()), MOADNSException); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
 // special record test, because NSEC records are odd
