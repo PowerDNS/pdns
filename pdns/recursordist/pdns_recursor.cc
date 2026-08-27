@@ -1023,6 +1023,64 @@ static void addPolicyTagsToPBMessageIfNeeded(DNSComboWriter& comboWriter, pdns::
   }
 }
 
+static RecursorPacketCache::ECSInfo findScopeZero(const std::vector<uint8_t>& response)
+{
+  uint16_t optRR{};
+  size_t optLen{};
+  bool last{};
+  auto ret = locateEDNSOptRR(response, &optRR, &optLen, &last);
+  if (ret != 0) {
+    return {0, 0};
+  }
+
+  // Root + EDNS record fixed part + ttl
+  optRR += 1 + sizeof(EDNS0Record) + DNS_TTL_SIZE;
+
+  if (optRR >= response.size()) {
+    return {0, 0};
+  }
+  size_t pos{};
+  size_t size{};
+  ret = getEDNSOption(reinterpret_cast<const char*>(&response.at(optRR)), response.size(), EDNSOptionCode::ECS, &pos, &size);
+  if (ret != 0) {
+    return {0, 0};
+  }
+  // pos is relative to optRR
+  pos += optRR;
+  // skip option code;
+  pos += 2;
+
+  //cerr << "Found " << size << ' ' << makeHexDump(string(&response.at(pos), size)) << endl;
+  // Size includes optioncode and length, total 4 bytes
+  if (size < 4) {
+    return {0, 0};
+  }
+  size_t ecsLen = size - 4;
+
+  return {pos, ecsLen};
+}
+
+static void substituteScopeZero(std::string& response, RecursorPacketCache::ECSInfo ecsInfo, const std::string& ecsPayload)
+{
+  auto [pos, ecsLen] = ecsInfo;
+  // We only do the case where the substitute is exactly the same size as the original stored in the PC
+  if (ecsLen != ecsPayload.size()) {
+    return;
+  }
+  // Skip option length
+  pos += 2;
+  // Belt plus suspenders
+  if (pos + ecsLen > response.size()) {
+    //cerr << "Y " << pos << ' ' << ecsLen << ' ' << response.size() << endl;
+    return;
+  }
+  // XXX Do we need to check family?
+  //cerr << "Foun2 " << ecsLen << ' ' << makeHexDump(string(&response.at(pos), ecsLen)) << endl;
+  //cerr << "Paylo " << ecsPayload.size() << ' ' << makeHexDump(ecsPayload) << endl;
+  response.replace(pos, pos + ecsLen, ecsPayload);
+  //cerr << "After " << ecsLen << ' ' << makeHexDump(string(&response.at(pos), ecsLen)) << endl;
+}
+
 void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
   auto comboWriter = std::unique_ptr<DNSComboWriter>(static_cast<DNSComboWriter*>(arg));
@@ -1637,10 +1695,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
   sendit:;
 
     if (g_useIncomingECS && comboWriter->d_ecsFound && !resolver.wasVariable() && !variableAnswer) {
-      // The moment we add an ECS option we should no longer packet cache this.  An alternative is to
-      // overwrite the ECS info after retrieval from the packet cache, but that is much more
-      // complicated.
-      variableAnswer = true;
+      // Later we remember the offset and size of the ECS option added in the packet cache, so we
+      // can more easily subsititute the then current client specific ECS data after retrieval from
+      // the packet cache.
       EDNSSubnetOpts ednsOptions;
       ednsOptions.setSource(comboWriter->d_ednssubnet.getSource());
       ComboAddress sourceAddr;
@@ -1832,13 +1889,19 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     const bool intoPC = g_packetCache && !variableAnswer && !resolver.wasVariable() && (RecursorPacketCache::s_maxEntrySize == 0 || packet.size() <= RecursorPacketCache::s_maxEntrySize);
     if (intoPC) {
       minTTL = capPacketCacheTTL(*packetWriter.getHeader(), minTTL, seenAuthSOA);
+      // If we are adding ECS info, remember the offset and size in the PC
+      RecursorPacketCache::ECSInfo ecsInfo{};
+      if (g_useIncomingECS && comboWriter->d_ecsFound) {
+        ecsInfo = findScopeZero(packet);
+      }
+
       g_packetCache->insertResponsePacket(comboWriter->d_tag, comboWriter->d_qhash, std::move(comboWriter->d_query), comboWriter->d_mdp.d_qname,
                                           comboWriter->d_mdp.d_qtype, comboWriter->d_mdp.d_qclass,
                                           string(reinterpret_cast<const char*>(&*packet.begin()), packet.size()), // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
                                           g_now.tv_sec,
                                           minTTL,
                                           dnsQuestion.validationState,
-                                          std::move(pbDataForCache), comboWriter->d_tcp);
+                                          std::move(pbDataForCache), comboWriter->d_tcp, ecsInfo);
     }
 
     if (g_regressionTestMode) {
@@ -2118,7 +2181,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       DNSName& qname, uint16_t& qtype, uint16_t& qclass,
                       const struct timeval& now,
                       string& response, uint32_t& qhash,
-                      RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource)
+                      RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource, bool ecsFound, const EDNSSubnetOpts& edns)
 {
   if (!g_packetCache) {
     return false;
@@ -2127,14 +2190,25 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
   uint32_t age = 0;
   vState valState = vState::Indeterminate;
 
+  RecursorPacketCache::ECSInfo ecsInfo;
   if (qnameParsed) {
-    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
+    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp, ecsInfo);
   }
   else {
-    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, &qtype, &qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
+    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, &qtype, &qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp, ecsInfo);
   }
 
   if (cacheHit) {
+    if (g_useIncomingECS && ecsFound && ecsInfo.second != 0) {
+      // We need to patch the packet so it contains the ECS data for the current client, not the
+      // one that caused insertion into the packe cache originally.
+      EDNSSubnetOpts ednsOptions;
+      ednsOptions.setSource(edns.getSource());
+      ednsOptions.setScopePrefixLength(0);
+      auto ecsPayload = ednsOptions.makeOptString();
+      substituteScopeZero(response, ecsInfo, ecsPayload);
+    }
+
     if (vStateIsBogus(valState)) {
       if (t_bogusremotes) {
         t_bogusremotes->push_back(source);
@@ -2292,7 +2366,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   const dnsheader* dnsheader = headerdata.get();
   unsigned int ctag = 0;
   uint32_t qhash = 0;
-  bool needEDNSParse = false;
+  bool needEDNSParse = g_useIncomingECS;
   std::unordered_set<std::string> policyTags;
   std::map<std::string, RecursorLua4::MetaValue> meta;
   LuaContext::LuaObject data;
@@ -2416,7 +2490,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
          but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
          as cacheable we would cache it with a wrong tag, so better safe than sorry. */
       auto match = eventTrace.add(RecEventTrace::PCacheCheck);
-      bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source, mappedSource);
+      bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source, mappedSource, ecsFound, ednssubnet);
       eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false, match);
       if (cacheHit) {
         if (!g_quiet) {
