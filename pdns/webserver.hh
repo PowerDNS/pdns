@@ -45,7 +45,8 @@
 #endif
 #include "logging.hh"
 
-class HttpRequest : public YaHTTP::Request {
+class HttpRequest : public YaHTTP::Request
+{
 public:
   HttpRequest(string logprefix_ = "") :
     logprefix(std::move(logprefix_)) {};
@@ -60,7 +61,7 @@ public:
 
   // checks password _only_.
   [[nodiscard]] bool compareAuthorization(const CredentialsHolder& expectedCredentials) const;
-  [[nodiscard]] bool compareHeader(const string &header_name, const CredentialsHolder& expectedCredentials) const;
+  [[nodiscard]] bool compareHeader(const string& header_name, const CredentialsHolder& expectedCredentials) const;
 
   void setSLog(Logr::log_t log)
   {
@@ -69,10 +70,12 @@ public:
   std::shared_ptr<Logr::Logger> d_slog;
 };
 
-class HttpResponse: public YaHTTP::Response {
+class HttpResponse : public YaHTTP::Response
+{
 public:
   HttpResponse() = default;
-  HttpResponse(const YaHTTP::Response &resp) : YaHTTP::Response(resp) { };
+  HttpResponse(const YaHTTP::Response& resp) :
+    YaHTTP::Response(resp) {};
 
   void setPlainBody(const string& document);
   void setYamlBody(const string& document);
@@ -87,7 +90,6 @@ public:
   }
   std::shared_ptr<Logr::Logger> d_slog;
 };
-
 
 class HttpException
 {
@@ -111,54 +113,76 @@ protected:
   HttpResponse d_response;
 };
 
-class HttpBadRequestException : public HttpException {
+class HttpBadRequestException : public HttpException
+{
 public:
-  HttpBadRequestException() : HttpException(400) { };
-  HttpBadRequestException(const string& msg) : HttpException(400, msg) { };
+  HttpBadRequestException() :
+    HttpException(400) {};
+  HttpBadRequestException(const string& msg) :
+    HttpException(400, msg) {};
 };
 
-class HttpUnauthorizedException : public HttpException {
+class HttpUnauthorizedException : public HttpException
+{
 public:
-  HttpUnauthorizedException(string const &scheme) : HttpException(401)
+  HttpUnauthorizedException(string const& scheme) :
+    HttpException(401)
   {
     d_response.headers["WWW-Authenticate"] = scheme + " realm=\"PowerDNS\"";
   }
 };
 
-class HttpForbiddenException : public HttpException {
+class HttpForbiddenException : public HttpException
+{
 public:
-  HttpForbiddenException() : HttpException(403) { };
-  HttpForbiddenException(const string& msg) : HttpException(403, msg) { };
+  HttpForbiddenException() :
+    HttpException(403) {};
+  HttpForbiddenException(const string& msg) :
+    HttpException(403, msg) {};
 };
 
-class HttpNotFoundException : public HttpException {
+class HttpNotFoundException : public HttpException
+{
 public:
-  HttpNotFoundException() : HttpException(404) { };
-  HttpNotFoundException(const string& msg) : HttpException(404, msg) { };
+  HttpNotFoundException() :
+    HttpException(404) {};
+  HttpNotFoundException(const string& msg) :
+    HttpException(404, msg) {};
 };
 
-class HttpMethodNotAllowedException : public HttpException {
+class HttpMethodNotAllowedException : public HttpException
+{
 public:
-  HttpMethodNotAllowedException() : HttpException(405) { };
-  HttpMethodNotAllowedException(const string& msg) : HttpException(405, msg) { };
+  HttpMethodNotAllowedException() :
+    HttpException(405) {};
+  HttpMethodNotAllowedException(const string& msg) :
+    HttpException(405, msg) {};
 };
 
-class HttpConflictException : public HttpException {
+class HttpConflictException : public HttpException
+{
 public:
-  HttpConflictException() : HttpException(409) { };
-  HttpConflictException(const string& msg) : HttpException(409, msg) { };
+  HttpConflictException() :
+    HttpException(409) {};
+  HttpConflictException(const string& msg) :
+    HttpException(409, msg) {};
 };
 
-class HttpInternalServerErrorException : public HttpException {
+class HttpInternalServerErrorException : public HttpException
+{
 public:
-  HttpInternalServerErrorException() : HttpException(500) { };
-  HttpInternalServerErrorException(const string& msg) : HttpException(500, msg) { };
+  HttpInternalServerErrorException() :
+    HttpException(500) {};
+  HttpInternalServerErrorException(const string& msg) :
+    HttpException(500, msg) {};
 };
 
 class ApiException : public runtime_error
 {
 public:
-  ApiException(const string& what_arg) : runtime_error(what_arg) {
+  ApiException(const string& what_arg) :
+    runtime_error(what_arg)
+  {
   }
 };
 
@@ -182,7 +206,8 @@ public:
 
   SockaddrWrapper d_local;
 
-  std::shared_ptr<Socket> accept() {
+  std::shared_ptr<Socket> accept()
+  {
     return {d_server_socket.accept()};
   }
 
@@ -207,7 +232,8 @@ public:
     d_slog = log;
   }
 
-  void setApiKey(const string &apikey, bool hashPlaintext) {
+  void setApiKey(const string& apikey, bool hashPlaintext)
+  {
     if (!apikey.empty()) {
       d_apikey = make_unique<CredentialsHolder>(std::string(apikey), hashPlaintext);
     }
@@ -216,7 +242,8 @@ public:
     }
   }
 
-  void setPassword(const string &password, bool hashPlaintext) {
+  void setPassword(const string& password, bool hashPlaintext)
+  {
     if (!password.empty()) {
       d_webserverPassword = make_unique<CredentialsHolder>(std::string(password), hashPlaintext);
     }
@@ -225,15 +252,18 @@ public:
     }
   }
 
-  void setMaxBodySize(ssize_t size) { // in megabytes
+  void setMaxBodySize(ssize_t size)
+  { // in megabytes
     d_maxbodysize = size * 1024 * 1024;
   }
 
-  void setConnectionTimeout(int time) { // in seconds
+  void setConnectionTimeout(int time)
+  { // in seconds
     d_connectiontimeout = time;
   }
 
-  void setACL(const NetmaskGroup &nmg) {
+  void setACL(const NetmaskGroup& nmg)
+  {
     d_acl = nmg;
   }
 
@@ -245,29 +275,33 @@ public:
   void serveConnection(const std::shared_ptr<Socket>& client) const;
   void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
-  using HandlerFunction = std::function<void (HttpRequest *, HttpResponse *)>;
-  virtual void registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method = "", bool allowPassword=false);
+  using HandlerFunction = std::function<void(HttpRequest*, HttpResponse*)>;
+  virtual void registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method = "", bool allowPassword = false);
   void registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method = "");
 
-  bool registerConnection() {
+  bool registerConnection()
+  {
     if (!d_ccm) {
       return true;
     }
     return d_ccm->registerConnection();
   }
-  void releaseConnection() {
+  void releaseConnection()
+  {
     if (d_ccm) {
       d_ccm->releaseConnection();
     }
   }
 
-  enum class LogLevel : uint8_t {
-    None = 0,                // No logs from requests at all
-    Normal = 10,             // A "common log format"-like line e.g. '127.0.0.1 "GET /apache_pb.gif HTTP/1.0" 200 2326'
-    Detailed = 20,           // The full request headers and body, and the full response headers and body
+  enum class LogLevel : uint8_t
+  {
+    None = 0, // No logs from requests at all
+    Normal = 10, // A "common log format"-like line e.g. '127.0.0.1 "GET /apache_pb.gif HTTP/1.0" 200 2326'
+    Detailed = 20, // The full request headers and body, and the full response headers and body
   };
 
-  void setLogLevel(const string& level) {
+  void setLogLevel(const string& level)
+  {
     if (level == "none") {
       d_loglevel = LogLevel::None;
       return;
@@ -286,11 +320,13 @@ public:
     throw PDNSException("Unknown webserver log level: " + level);
   }
 
-  void setLogLevel(const LogLevel level) {
+  void setLogLevel(const LogLevel level)
+  {
     d_loglevel = level;
   };
 
-  LogLevel getLogLevel() {
+  LogLevel getLogLevel()
+  {
     return d_loglevel;
   };
 
@@ -306,7 +342,8 @@ protected:
   void logRequest(const HttpRequest& req, const ComboAddress& remote) const;
   void logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const;
 
-  virtual std::shared_ptr<Server> createServer() {
+  virtual std::shared_ptr<Server> createServer()
+  {
     return std::make_shared<Server>(d_listenaddress, d_port);
   }
 
