@@ -36,15 +36,15 @@ public:
   ZoneParserTNG& operator=(const ZoneParserTNG&) = default;
   ZoneParserTNG& operator=(ZoneParserTNG&&) = delete;
   ZoneParserTNG(const std::string& fname, ZoneName zname = g_rootzonename, std::string reldir = "", bool upgradeContent = false);
-  ZoneParserTNG(const std::vector<std::string>& zonedata, ZoneName zname, bool upgradeContent=false);
+  ZoneParserTNG(const std::vector<std::string>& zonedata, ZoneName zname, bool upgradeContent = false);
 
   ~ZoneParserTNG();
-  bool get(DNSResourceRecord& dnsrr, std::string* comment=nullptr);
+  bool get(DNSResourceRecord& dnsrr, std::string* comment = nullptr);
   using exception = std::runtime_error;
   using parts_t = std::deque<std::pair<std::string::size_type, std::string::size_type>>;
   ZoneName getZoneName();
   std::string getLineOfFile(); // for error reporting purposes
-  std::pair<std::string,int> getLineNumAndFile(); // idem
+  std::pair<std::string, int> getLineNumAndFile(); // idem
   void disableGenerate()
   {
     d_generateEnabled = false;
@@ -63,16 +63,18 @@ public:
     d_havespecificttl = true;
   }
   [[nodiscard]] std::vector<std::pair<std::string, time_t>> getFileset() const { return d_fileset; }
+
 private:
   bool getLine();
   bool getTemplateLine();
   void stackFile(const std::string& fname);
   unsigned makeTTLFromZone(const std::string& str);
 
-  struct filestate {
+  struct filestate
+  {
     filestate(FILE* filePtr, std::string filename) :
       d_fp(filePtr), d_filename(std::move(filename)) {}
-    FILE *d_fp;
+    FILE* d_fp;
     std::string d_filename;
     int d_lineno{0};
   };

@@ -176,5 +176,3 @@
 ./pdns/zone2json.cc
 ./pdns/zone2ldap.cc
 ./pdns/zone2sql.cc
-./pdns/zoneparser-tng.cc
-./pdns/zoneparser-tng.hh
