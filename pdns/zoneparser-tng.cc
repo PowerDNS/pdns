@@ -349,164 +349,167 @@ pair<string,int> ZoneParserTNG::getLineNumAndFile()
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool ZoneParserTNG::get(DNSResourceRecord& dnsrr, std::string* comment)
 {
- retry:;
-  if(!getTemplateLine() && !getLine()) {
-    return false;
-  }
-  boost::trim_right_if(d_line, boost::is_any_of(" \t\r\n\x1a"));
-  if(comment != nullptr) {
-    comment->clear();
-  }
-  if(comment != nullptr && d_line.find(';') != string::npos) {
-    *comment = d_line.substr(d_line.find(';'));
-  }
-  d_parts.clear();
-  vstringtok(d_parts, d_line);
-
-  if(d_parts.empty()) {
-    goto retry;
-  }
-  if(d_parts[0].first != d_parts[0].second && d_line[d_parts[0].first]==';') { // line consisting of nothing but comments
-    goto retry;
-  }
-  if(d_line[0]=='$') {
-    string command=makeString(d_line, d_parts[0]);
-    if(pdns_iequals(command,"$TTL") && d_parts.size() > 1) {
-      d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, d_parts[1]), boost::is_any_of(";")));
-      d_havespecificttl=true;
+  for (;;) {
+    if(!getTemplateLine() && !getLine()) {
+      return false;
     }
-    else if(pdns_iequals(command,"$INCLUDE") && d_parts.size() > 1 && d_fromfile) {
-      string fname=unquotify(makeString(d_line, d_parts[1]));
-      // Find the first semicolon and remove everything after it, including the semicolon
-      if (auto semicolon_pos = fname.find(';'); semicolon_pos != string::npos) {
-        fname.resize(semicolon_pos);
-      }
-      if (!fname.empty() && fname[0] != '/' && !d_reldir.empty()) {
-        fname = d_reldir + "/" + fname;
-      }
-      stackFile(fname);
+    boost::trim_right_if(d_line, boost::is_any_of(" \t\r\n\x1a"));
+    if(comment != nullptr) {
+      comment->clear();
     }
-    else if(pdns_iequals(command, "$ORIGIN") && d_parts.size() > 1) {
-      d_zonename = ZoneName(makeString(d_line, d_parts[1]));
+    if(comment != nullptr && d_line.find(';') != string::npos) {
+      *comment = d_line.substr(d_line.find(';'));
     }
-    else if(pdns_iequals(command, "$GENERATE") && d_parts.size() > 2) {
-      if (!d_generateEnabled) {
-        throw exception("$GENERATE is not allowed in this zone");
+    d_parts.clear();
+    vstringtok(d_parts, d_line);
+
+    if(d_parts.empty()) {
+      continue;
+    }
+    if(d_parts[0].first != d_parts[0].second && d_line[d_parts[0].first]==';') { // line consisting of nothing but comments
+      continue;
+    }
+    if(d_line[0]=='$') {
+      string command=makeString(d_line, d_parts[0]);
+      if(pdns_iequals(command,"$TTL") && d_parts.size() > 1) {
+        d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, d_parts[1]), boost::is_any_of(";")));
+        d_havespecificttl=true;
       }
-      // $GENERATE 1-127 $ CNAME $.0
-      // The range part can be one of two forms: start-stop or start-stop/step. If the first
-      // form is used, then step is set to 1. start, stop and step must be positive
-      // integers between 0 and (2^31)-1. start must not be larger than stop.
-      // http://www.zytrax.com/books/dns/ch8/generate.html
-      string range = makeString(d_line, d_parts.at(1));
-
-      auto splitOnOnlyOneSeparator = [range](const std::string& input, std::vector<std::string>& output, char separator) {
-        output.clear();
-
-        auto pos = input.find(separator);
-        if (pos == string::npos) {
-          output.emplace_back(input);
-          return;
+      else if(pdns_iequals(command,"$INCLUDE") && d_parts.size() > 1 && d_fromfile) {
+        string fname=unquotify(makeString(d_line, d_parts[1]));
+        // Find the first semicolon and remove everything after it, including the semicolon
+        if (auto semicolon_pos = fname.find(';'); semicolon_pos != string::npos) {
+          fname.resize(semicolon_pos);
         }
-        if (pos == (input.size()-1)) {
-          /* ends on a separator!? */
-          throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
+        if (!fname.empty() && fname[0] != '/' && !d_reldir.empty()) {
+          fname = d_reldir + "/" + fname;
         }
-        auto next = input.find(separator, pos + 1);
-        if (next != string::npos) {
-          /* more than one separator */
-          throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
-        }
-        output.emplace_back(input.substr(0, pos));
-        output.emplace_back(input.substr(pos + 1));
-      };
-
-      std::vector<std::string> fields;
-      splitOnOnlyOneSeparator(range, fields, '-');
-      if (fields.size() != 2) {
-        throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
+        stackFile(fname);
       }
+      else if(pdns_iequals(command, "$ORIGIN") && d_parts.size() > 1) {
+        d_zonename = ZoneName(makeString(d_line, d_parts[1]));
+      }
+      else if(pdns_iequals(command, "$GENERATE") && d_parts.size() > 2) {
+        if (!d_generateEnabled) {
+          throw exception("$GENERATE is not allowed in this zone");
+        }
+        // $GENERATE 1-127 $ CNAME $.0
+        // The range part can be one of two forms: start-stop or start-stop/step. If the first
+        // form is used, then step is set to 1. start, stop and step must be positive
+        // integers between 0 and (2^31)-1. start must not be larger than stop.
+        // http://www.zytrax.com/books/dns/ch8/generate.html
+        string range = makeString(d_line, d_parts.at(1));
 
-      auto parseValue = [](const std::string& parameters, const std::string& name, const std::string& str, uint32_t& value) {
-        try {
-          auto got = std::stoul(str);
-          if (got > std::numeric_limits<uint32_t>::max()) {
-            throw std::runtime_error("Invalid " + name + " value in $GENERATE parameters '" + parameters + "'");
+        auto splitOnOnlyOneSeparator = [range](const std::string& input, std::vector<std::string>& output, char separator) {
+          output.clear();
+
+          auto pos = input.find(separator);
+          if (pos == string::npos) {
+            output.emplace_back(input);
+            return;
           }
-          value = static_cast<uint32_t>(got);
+          if (pos == (input.size()-1)) {
+            /* ends on a separator!? */
+            throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
+          }
+          auto next = input.find(separator, pos + 1);
+          if (next != string::npos) {
+            /* more than one separator */
+            throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
+          }
+          output.emplace_back(input.substr(0, pos));
+          output.emplace_back(input.substr(pos + 1));
+        };
+
+        std::vector<std::string> fields;
+        splitOnOnlyOneSeparator(range, fields, '-');
+        if (fields.size() != 2) {
+          throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
         }
-        catch (const std::exception& e) {
-          throw std::runtime_error("Invalid " + name + " value in $GENERATE parameters '" + parameters + "': " + e.what());
+
+        auto parseValue = [](const std::string& parameters, const std::string& name, const std::string& str, uint32_t& value) {
+          try {
+            auto got = std::stoul(str);
+            if (got > std::numeric_limits<uint32_t>::max()) {
+              throw std::runtime_error("Invalid " + name + " value in $GENERATE parameters '" + parameters + "'");
+            }
+            value = static_cast<uint32_t>(got);
+          }
+          catch (const std::exception& e) {
+            throw std::runtime_error("Invalid " + name + " value in $GENERATE parameters '" + parameters + "': " + e.what());
+          }
+        };
+
+        parseValue(range, "start", fields.at(0), d_templatecounter);
+
+        /* now the remaining part(s) */
+        range = std::move(fields.at(1));
+        splitOnOnlyOneSeparator(range, fields, '/');
+
+        if (fields.size() > 2) {
+          throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
         }
-      };
 
-      parseValue(range, "start", fields.at(0), d_templatecounter);
+        parseValue(range, "stop", fields.at(0), d_templatestop);
 
-      /* now the remaining part(s) */
-      range = std::move(fields.at(1));
-      splitOnOnlyOneSeparator(range, fields, '/');
+        if (fields.size() == 2) {
+          parseValue(range, "step", fields.at(1), d_templatestep);
+        }
+        else {
+          d_templatestep = 1;
+        }
 
-      if (fields.size() > 2) {
-        throw std::runtime_error("Invalid range from $GENERATE parameters '" + range + "'");
-      }
+        if (d_templatestep < 1 ||
+            d_templatestop < d_templatecounter) {
+          throw std::runtime_error("Invalid $GENERATE parameters");
+        }
+        if (d_maxGenerateSteps != 0) {
+          size_t numberOfSteps = (d_templatestop - d_templatecounter) / d_templatestep;
+          if (numberOfSteps > d_maxGenerateSteps) {
+            throw std::runtime_error("The number of $GENERATE steps (" + std::to_string(numberOfSteps) + ") is too high, the maximum is set to " + std::to_string(d_maxGenerateSteps));
+          }
+        }
 
-      parseValue(range, "stop", fields.at(0), d_templatestop);
+        d_templateline = d_line;
+        d_parts.pop_front();
+        d_parts.pop_front();
 
-      if (fields.size() == 2) {
-        parseValue(range, "step", fields.at(1), d_templatestep);
+        d_templateparts = d_parts;
+        d_templateCounterWrapped = false;
+
+        continue;
       }
       else {
-        d_templatestep = 1;
+        throw exception("Can't parse zone line '" + d_line + "' " + getLineOfFile());
       }
+      continue;
+    }
 
-      if (d_templatestep < 1 ||
-          d_templatestop < d_templatecounter) {
-        throw std::runtime_error("Invalid $GENERATE parameters");
-      }
-      if (d_maxGenerateSteps != 0) {
-        size_t numberOfSteps = (d_templatestop - d_templatecounter) / d_templatestep;
-        if (numberOfSteps > d_maxGenerateSteps) {
-          throw std::runtime_error("The number of $GENERATE steps (" + std::to_string(numberOfSteps) + ") is too high, the maximum is set to " + std::to_string(d_maxGenerateSteps));
-        }
-      }
-
-      d_templateline = d_line;
+    bool prevqname=false;
+    string qname = makeString(d_line, d_parts[0]); // Don't use DNSName here!
+    if(dns_isspace(d_line[0])) {
+      dnsrr.qname=d_prevqname;
+      prevqname=true;
+    }else {
+      dnsrr.qname=DNSName(qname);
       d_parts.pop_front();
-      d_parts.pop_front();
-
-      d_templateparts = d_parts;
-      d_templateCounterWrapped = false;
-
-      goto retry;
+      if(qname.empty() || qname[0]==';') {
+        continue;
+      }
     }
-    else {
-      throw exception("Can't parse zone line '" + d_line + "' " + getLineOfFile());
-    }
-    goto retry;
-  }
 
-  bool prevqname=false;
-  string qname = makeString(d_line, d_parts[0]); // Don't use DNSName here!
-  if(dns_isspace(d_line[0])) {
-    dnsrr.qname=d_prevqname;
-    prevqname=true;
-  }else {
-    dnsrr.qname=DNSName(qname);
-    d_parts.pop_front();
-    if(qname.empty() || qname[0]==';') {
-      goto retry;
+    if(qname=="@") {
+      dnsrr.qname = DNSName(d_zonename);
     }
-  }
-  if(qname=="@") {
-    dnsrr.qname = DNSName(d_zonename);
-  }
-  else if(!prevqname && !isCanonical(qname)) {
-    dnsrr.qname += DNSName(d_zonename);
-  }
-  d_prevqname=dnsrr.qname;
+    else if(!prevqname && !isCanonical(qname)) {
+      dnsrr.qname += DNSName(d_zonename);
+    }
+    d_prevqname=dnsrr.qname;
 
-  if(d_parts.empty()) {
-    throw exception("Line with too little parts "+getLineOfFile());
+    if(d_parts.empty()) {
+      throw exception("Line with too little parts "+getLineOfFile());
+    }
+    break;
   }
   string nextpart;
 
