@@ -19,22 +19,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "dnsparser.hh"
-#include "sstuff.hh"
 #include "misc.hh"
-#include "dnswriter.hh"
-#include "dnsrecords.hh"
-#include <fstream>
 #include "dns.hh"
 #include "zoneparser-tng.hh"
 #include <deque>
 #include <boost/algorithm/string.hpp>
 #include <system_error>
-#include <cinttypes>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 const static string g_INstr("IN");
 
@@ -57,53 +53,53 @@ ZoneParserTNG::ZoneParserTNG(const vector<string>& zonedata, ZoneName zname, boo
 void ZoneParserTNG::stackFile(const std::string& fname)
 {
   if (d_filestates.size() >= d_maxIncludes) {
-    std::error_code ec (0, std::generic_category());
-    throw std::system_error(ec, "Include limit reached");
+    std::error_code errorCode (0, std::generic_category());
+    throw std::system_error(errorCode, "Include limit reached");
   }
-  int fd = open(fname.c_str(), O_RDONLY, 0);
-  if (fd == -1) {
+  int fileDesc = open(fname.c_str(), O_RDONLY, 0);
+  if (fileDesc == -1) {
     int err = errno;
-    std::error_code ec (err, std::generic_category());
-    throw std::system_error(ec, "Unable to open file '" + fname + "': " + stringerror(err));
+    std::error_code errorCode (err, std::generic_category());
+    throw std::system_error(errorCode, "Unable to open file '" + fname + "': " + stringerror(err));
   }
 
-  struct stat st = {};
-  if (fstat(fd, &st) == -1) {
+  struct stat stat = {};
+  if (fstat(fileDesc, &stat) == -1) {
     int err = errno;
-    close(fd);
-    std::error_code ec (err, std::generic_category());
-    throw std::system_error(ec, "Unable to stat file '" + fname + "': " + stringerror(err));
+    close(fileDesc);
+    std::error_code errorCode (err, std::generic_category());
+    throw std::system_error(errorCode, "Unable to stat file '" + fname + "': " + stringerror(err));
   }
-  if (!S_ISREG(st.st_mode)) {
-    close(fd);
-    std::error_code ec (0, std::generic_category());
-    throw std::system_error(ec, "File '" + fname + "': not a regular file");
+  if (!S_ISREG(stat.st_mode)) {
+    close(fileDesc);
+    std::error_code errroCode (0, std::generic_category());
+    throw std::system_error(errroCode, "File '" + fname + "': not a regular file");
   }
-  FILE *fp = fdopen(fd, "r");
-  if (fp == nullptr) {
+  FILE *filePtr = fdopen(fileDesc, "r");
+  if (filePtr == nullptr) {
     int err = errno;
-    close(fd);
-    std::error_code ec (err, std::generic_category());
-    throw std::system_error(ec, "Unable to open file '" + fname + "': " + stringerror(err));
+    close(fileDesc);
+    std::error_code errorCode (err, std::generic_category());
+    throw std::system_error(errorCode, "Unable to open file '" + fname + "': " + stringerror(err));
   }
 
-  filestate fs(fp, fname);
-  d_filestates.push(fs);
+  filestate state(filePtr, fname);
+  d_filestates.push(state);
   d_fromfile = true;
-  d_fileset.emplace_back(std::make_pair(fname, st.st_ctime));
+  d_fileset.emplace_back(fname, stat.st_ctime);
 }
 
 ZoneParserTNG::~ZoneParserTNG()
 {
   while(!d_filestates.empty()) {
-    fclose(d_filestates.top().d_fp);
+    fclose(d_filestates.top().d_fp); // NOLINT(cppcoreguidelines-owning-memory)
     d_filestates.pop();
   }
 }
 
 static string makeString(const string& line, const pair<string::size_type, string::size_type>& range)
 {
-  return string(line.c_str() + range.first, range.second - range.first);
+  return {&line.at(range.first), range.second - range.first};
 }
 
 static bool isTimeSpec(const string& nextpart)
@@ -122,8 +118,8 @@ static bool isTimeSpec(const string& nextpart)
       return false;
     }
 
-    char c = static_cast<char>(tolower(current));
-    return (c=='s' || c=='m' || c=='h' || c=='d' || c=='w' || c=='y');
+    char character = static_cast<char>(tolower(current));
+    return (character=='s' || character=='m' || character=='h' || character=='d' || character=='w' || character=='y');
   }
   return true;
 }
@@ -131,9 +127,9 @@ static bool isTimeSpec(const string& nextpart)
 
 unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
 {
-  if(str.empty())
+  if(str.empty()) {
     return 0;
-
+  }
   unsigned int val = 0;
   try {
     pdns::checked_stoi_into(val, str);
@@ -142,9 +138,9 @@ unsigned int ZoneParserTNG::makeTTLFromZone(const string& str)
     throw PDNSException("Unable to parse time specification '"+str+"' "+getLineOfFile());
   }
 
-  char lc=dns_tolower(str[str.length()-1]);
-  if (isdigit(static_cast<unsigned char>(lc)) == 0) {
-    switch(lc) {
+  auto character=dns_tolower(str[str.length()-1]);
+  if (isdigit(character) == 0) {
+    switch(character) {
     case 's':
       break;
     case 'm':
@@ -197,9 +193,9 @@ bool ZoneParserTNG::getTemplateLine()
     bool inescape=false;
 
     for(string::size_type pos = 0; pos < part.size() ; ++pos) {
-      char c=part[pos];
+      char character=part[pos];
       if(inescape) {
-        outpart.append(1, c);
+        outpart.append(1, character);
         inescape=false;
         continue;
       }
@@ -208,7 +204,7 @@ bool ZoneParserTNG::getTemplateLine()
         inescape=true;
         continue;
       }
-      if(c=='$') {
+      if(character=='$') {
         if(pos + 1 == part.size() || part[pos+1]!='{') {  // a trailing $, or not followed by {
           outpart.append(std::to_string(d_templatecounter));
           continue;
@@ -218,16 +214,17 @@ bool ZoneParserTNG::getTemplateLine()
 
         pos+=2;
         string::size_type startPos=pos;
-        for(; pos < part.size() && part[pos]!='}' ; ++pos)
+        for(; pos < part.size() && part[pos]!='}' ; ++pos) {
           ;
-
-        if(pos == part.size()) // partial spec
+        }
+        if(pos == part.size()) { // partial spec
           break;
-
+        }
         // we are on the '}'
 
-        string spec(part.c_str() + startPos, part.c_str() + pos);
-        int offset=0, width=0;
+        string spec(&part.at(startPos), &part.at(pos));
+        int offset=0;
+        int width=0;
         char radix='d';
         // parse format specifier
         int extracted = sscanf(spec.c_str(), "%d,%d,%c", &offset, &width, &radix);
@@ -238,30 +235,31 @@ bool ZoneParserTNG::getTemplateLine()
           throw PDNSException("Invalid width ("+std::to_string(width)+") for $GENERATE's lhs from '"+spec+"' "+getLineOfFile());
         }
 
-        char tmp[80];
+        std::array<char, 80> tmp{};
 
         /* a width larger than the output buffer does not make any sense */
         width = std::min(width, static_cast<int>(sizeof(tmp)));
 
         switch (radix) {
         case 'o':
-          snprintf(tmp, sizeof(tmp), "%0*o", width, d_templatecounter + offset);
+          snprintf(tmp.data(), tmp.size(), "%0*o", width, d_templatecounter + offset);
           break;
         case 'x':
-          snprintf(tmp, sizeof(tmp), "%0*x", width, d_templatecounter + offset);
+          snprintf(tmp.data(), tmp.size(), "%0*x", width, d_templatecounter + offset);
           break;
         case 'X':
-          snprintf(tmp, sizeof(tmp), "%0*X", width, d_templatecounter + offset);
+          snprintf(tmp.data(), tmp.size(), "%0*X", width, d_templatecounter + offset);
           break;
         case 'd':
         default:
-          snprintf(tmp, sizeof(tmp), "%0*d", width, d_templatecounter + offset);
+          snprintf(tmp.data(), tmp.size(), "%0*d", width, d_templatecounter + offset);
           break;
         }
-        outpart+=tmp;
+        outpart+=tmp.data();
       }
-      else
-        outpart.append(1, c);
+      else {
+        outpart.append(1, character);
+      }
     }
     retline+=outpart;
   }
@@ -279,35 +277,43 @@ bool ZoneParserTNG::getTemplateLine()
 
 static void chopComment(string& line)
 {
-  if(line.find(';')==string::npos)
+  if(line.find(';')==string::npos) {
     return;
-
+  }
   string::size_type pos = 0;
   auto len = line.length();
   bool inQuote = false;
   for(; pos < len; ++pos) {
-    if(line[pos]=='\\')
+    if(line[pos]=='\\') {
       pos++;
-    else if(line[pos]=='"')
-      inQuote=!inQuote;
-    else if(line[pos]==';' && !inQuote)
+    }
+    else if(line[pos]=='"') {
+      inQuote = !inQuote;
+    }
+    else if(line[pos]==';' && !inQuote) {
       break;
+    }
   }
-  if(pos != len)
+  if(pos != len) {
     line.resize(pos);
+  }
 }
 
-static bool findAndElide(string& line, char c)
+static bool findAndElide(string& line, char character)
 {
-  string::size_type pos, len = line.length();
+  string::size_type pos{};
+  string::size_type len = line.length();
   bool inQuote=false;
   for(pos = 0 ; pos < len; ++pos) {
-    if(line[pos]=='\\')
+    if(line[pos]=='\\') {
       pos++;
-    else if(line[pos]=='"')
-      inQuote=!inQuote;
-    else if(line[pos]==c && !inQuote)
+    }
+    else if(line[pos]=='"') {
+      inQuote = !inQuote;
+    }
+    else if(line[pos]==character && !inQuote) {
       break;
+    }
   }
   if(pos != len) {
     line.erase(pos, 1);
@@ -323,45 +329,46 @@ ZoneName ZoneParserTNG::getZoneName()
 
 string ZoneParserTNG::getLineOfFile()
 {
-  if (!d_zonedata.empty())
+  if (!d_zonedata.empty()) {
     return "on line "+std::to_string(std::distance(d_zonedata.begin(), d_zonedataline))+" of given string";
-
-  if (d_filestates.empty())
+  }
+  if (d_filestates.empty()) {
     return "";
-
+  }
   return "on line "+std::to_string(d_filestates.top().d_lineno)+" of file '"+d_filestates.top().d_filename+"'";
 }
 
 pair<string,int> ZoneParserTNG::getLineNumAndFile()
 {
-  if (d_filestates.empty())
+  if (d_filestates.empty()) {
     return {"", 0};
-  else
-    return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
+  }
+  return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
+bool ZoneParserTNG::get(DNSResourceRecord& dnsrr, std::string* comment)
 {
  retry:;
-  if(!getTemplateLine() && !getLine())
+  if(!getTemplateLine() && !getLine()) {
     return false;
-
+  }
   boost::trim_right_if(d_line, boost::is_any_of(" \t\r\n\x1a"));
-  if(comment)
+  if(comment != nullptr) {
     comment->clear();
-  if(comment && d_line.find(';') != string::npos)
+  }
+  if(comment != nullptr && d_line.find(';') != string::npos) {
     *comment = d_line.substr(d_line.find(';'));
-
+  }
   d_parts.clear();
   vstringtok(d_parts, d_line);
 
-  if(d_parts.empty())
+  if(d_parts.empty()) {
     goto retry;
-
-  if(d_parts[0].first != d_parts[0].second && d_line[d_parts[0].first]==';') // line consisting of nothing but comments
+  }
+  if(d_parts[0].first != d_parts[0].second && d_line[d_parts[0].first]==';') { // line consisting of nothing but comments
     goto retry;
-
+  }
   if(d_line[0]=='$') {
     string command=makeString(d_line, d_parts[0]);
     if(pdns_iequals(command,"$TTL") && d_parts.size() > 1) {
@@ -472,35 +479,40 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
 
       goto retry;
     }
-    else
-      throw exception("Can't parse zone line '"+d_line+"' "+getLineOfFile());
+    else {
+      throw exception("Can't parse zone line '" + d_line + "' " + getLineOfFile());
+    }
     goto retry;
   }
 
   bool prevqname=false;
   string qname = makeString(d_line, d_parts[0]); // Don't use DNSName here!
   if(dns_isspace(d_line[0])) {
-    rr.qname=d_prevqname;
+    dnsrr.qname=d_prevqname;
     prevqname=true;
   }else {
-    rr.qname=DNSName(qname);
+    dnsrr.qname=DNSName(qname);
     d_parts.pop_front();
-    if(qname.empty() || qname[0]==';')
+    if(qname.empty() || qname[0]==';') {
       goto retry;
+    }
   }
-  if(qname=="@")
-    rr.qname=DNSName(d_zonename);
-  else if(!prevqname && !isCanonical(qname))
-    rr.qname += DNSName(d_zonename);
-  d_prevqname=rr.qname;
+  if(qname=="@") {
+    dnsrr.qname = DNSName(d_zonename);
+  }
+  else if(!prevqname && !isCanonical(qname)) {
+    dnsrr.qname += DNSName(d_zonename);
+  }
+  d_prevqname=dnsrr.qname;
 
-  if(d_parts.empty())
+  if(d_parts.empty()) {
     throw exception("Line with too little parts "+getLineOfFile());
-
+  }
   string nextpart;
 
-  rr.ttl=d_defaultttl;
-  bool haveTTL{false}, haveQTYPE{false};
+  dnsrr.ttl=d_defaultttl;
+  bool haveTTL{false};
+  bool haveQTYPE{false};
   string qtypeString;
   pair<string::size_type, string::size_type> range;
 
@@ -508,9 +520,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     range=d_parts.front();
     d_parts.pop_front();
     nextpart=makeString(d_line, range);
-    if(nextpart.empty())
+    if(nextpart.empty()) {
       break;
-
+    }
     if(nextpart.find(';')!=string::npos) {
       break;
     }
@@ -522,19 +534,19 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       continue;
     }
     if(!haveTTL && !haveQTYPE && isTimeSpec(nextpart)) {
-      rr.ttl=makeTTLFromZone(nextpart);
+      dnsrr.ttl=makeTTLFromZone(nextpart);
       if (!d_havespecificttl) {
-        d_defaultttl = rr.ttl;
+        d_defaultttl = dnsrr.ttl;
       }
       haveTTL=true;
       // cout<<"ttl is probably: "<<rr.ttl<<endl;
       continue;
     }
-    if(haveQTYPE)
+    if(haveQTYPE) {
       break;
-
+    }
     try {
-      rr.qtype = DNSRecordContent::TypeToNumber(nextpart);
+      dnsrr.qtype = DNSRecordContent::TypeToNumber(nextpart);
       // cout<<"Got qtype ("<<rr.qtype.getCode()<<")\n";
       qtypeString = nextpart;
       haveQTYPE = true;
@@ -546,32 +558,34 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
                           "' doesn't look like a qtype, stopping loop");
     }
   }
-  if(!haveQTYPE)
-    throw exception("Malformed line "+getLineOfFile()+": '"+d_line+"'");
+  if(!haveQTYPE) {
+    throw exception("Malformed line " + getLineOfFile() + ": '" + d_line + "'");
+  }
 
   //  rr.content=d_line.substr(range.first);
-  rr.content.assign(d_line, range.first, string::npos);
-  chopComment(rr.content);
-  trim_if(rr.content, boost::is_any_of(" \r\n\t\x1a"));
+  dnsrr.content.assign(d_line, range.first, string::npos);
+  chopComment(dnsrr.content);
+  trim_if(dnsrr.content, boost::is_any_of(" \r\n\t\x1a"));
 
-  if(rr.content.size()==1 && rr.content[0]=='@')
-    rr.content=DNSName(d_zonename).toString();
-
-  if(findAndElide(rr.content, '(')) {      // have found a ( and elided it
-    if(!findAndElide(rr.content, ')')) {
+  if(dnsrr.content.size()==1 && dnsrr.content[0]=='@') {
+    dnsrr.content=DNSName(d_zonename).toString();
+  }
+  if(findAndElide(dnsrr.content, '(')) {      // have found a ( and elided it
+    if(!findAndElide(dnsrr.content, ')')) {
       while(getLine()) {
         boost::trim_right(d_line);
         chopComment(d_line);
         boost::trim(d_line);
 
         bool ended = findAndElide(d_line, ')');
-        rr.content+=" "+d_line;
-        if(ended)
+        dnsrr.content+=" "+d_line;
+        if(ended) {
           break;
+        }
       }
     }
   }
-  boost::trim_if(rr.content, boost::is_any_of(" \r\n\t\x1a"));
+  boost::trim_if(dnsrr.content, boost::is_any_of(" \r\n\t\x1a"));
 
   if (DNSRecordContent::isUnknownType(qtypeString)) {
     if (!d_upgradeContent) {
@@ -580,45 +594,45 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       // further changes to it.
       return true;
     }
-    rr.content = DNSRecordContent::upgradeContent(rr.qname, rr.qtype, rr.content);
+    dnsrr.content = DNSRecordContent::upgradeContent(dnsrr.qname, dnsrr.qtype, dnsrr.content);
   }
 
   vector<string> recparts;
-  switch(rr.qtype.getCode()) {
+  switch(dnsrr.qtype.getCode()) {
   case QType::MX:
-    stringtok(recparts, rr.content);
+    stringtok(recparts, dnsrr.content);
     if(recparts.size()==2) {
       if (recparts[1]!=".") {
         try {
           recparts[1] = toCanonic(d_zonename, recparts[1]).toStringRootDot();
         } catch (std::exception &e) {
-          throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
+          throw PDNSException("Error in record '" + dnsrr.qname.toLogString() + " " + dnsrr.qtype.toString() + "': " + e.what());
         }
       }
-      rr.content=recparts[0]+" "+recparts[1];
+      dnsrr.content=recparts[0]+" "+recparts[1];
     }
     break;
 
   case QType::RP:
-    stringtok(recparts, rr.content);
+    stringtok(recparts, dnsrr.content);
     if(recparts.size()==2) {
       recparts[0] = toCanonic(d_zonename, recparts[0]).toStringRootDot();
       recparts[1] = toCanonic(d_zonename, recparts[1]).toStringRootDot();
-      rr.content=recparts[0]+" "+recparts[1];
+      dnsrr.content=recparts[0]+" "+recparts[1];
     }
     break;
 
   case QType::SRV:
-    stringtok(recparts, rr.content);
+    stringtok(recparts, dnsrr.content);
     if(recparts.size()==4) {
       if(recparts[3]!=".") {
         try {
           recparts[3] = toCanonic(d_zonename, recparts[3]).toStringRootDot();
         } catch (std::exception &e) {
-          throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
+          throw PDNSException("Error in record '" + dnsrr.qname.toLogString() + " " + dnsrr.qtype.toString() + "': " + e.what());
         }
       }
-      rr.content=recparts[0]+" "+recparts[1]+" "+recparts[2]+" "+recparts[3];
+      dnsrr.content=recparts[0]+" "+recparts[1]+" "+recparts[2]+" "+recparts[3];
     }
     break;
 
@@ -630,53 +644,56 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
   case QType::DNAME:
   case QType::PTR:
     try {
-      rr.content = toCanonic(d_zonename, rr.content).toStringRootDot();
+      dnsrr.content = toCanonic(d_zonename, dnsrr.content).toStringRootDot();
     } catch (std::exception &e) {
-      throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
+      throw PDNSException("Error in record '" + dnsrr.qname.toLogString() + " " + dnsrr.qtype.toString() + "': " + e.what());
     }
     break;
   case QType::AFSDB:
-    stringtok(recparts, rr.content);
+    stringtok(recparts, dnsrr.content);
     if(recparts.size() == 2) {
       try {
         recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
       } catch (std::exception &e) {
-        throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
+        throw PDNSException("Error in record '" + dnsrr.qname.toLogString() + " " + dnsrr.qtype.toString() + "': " + e.what());
       }
     } else {
-      throw PDNSException("AFSDB record for "+rr.qname.toLogString()+" invalid");
+      throw PDNSException("AFSDB record for "+dnsrr.qname.toLogString()+" invalid");
     }
-    rr.content.clear();
-    for(string::size_type n = 0; n < recparts.size(); ++n) {
-      if (n != 0) {
-        rr.content.append(1,' ');
+    dnsrr.content.clear();
+    for(string::size_type parts = 0; parts < recparts.size(); ++parts) {
+      if (parts != 0) {
+        dnsrr.content.append(1,' ');
       }
 
-      rr.content+=recparts[n];
+      dnsrr.content+=recparts[parts];
     }
     break;
   case QType::SOA:
-    stringtok(recparts, rr.content);
-    if(recparts.size() > 7)
-      throw PDNSException("SOA record contents for "+rr.qname.toLogString()+" contains too many parts");
+    stringtok(recparts, dnsrr.content);
+    if(recparts.size() > 7) {
+      throw PDNSException("SOA record contents for " + dnsrr.qname.toLogString() + " contains too many parts");
+    }
     if(recparts.size() > 1) {
       try {
         recparts[0]=toCanonic(d_zonename, recparts[0]).toStringRootDot();
         recparts[1]=toCanonic(d_zonename, recparts[1]).toStringRootDot();
       } catch (std::exception &e) {
-        throw PDNSException("Error in record '" + rr.qname.toLogString() + " " + rr.qtype.toString() + "': " + e.what());
+        throw PDNSException("Error in record '" + dnsrr.qname.toLogString() + " " + dnsrr.qtype.toString() + "': " + e.what());
       }
     }
-    rr.content.clear();
-    for(string::size_type n = 0; n < recparts.size(); ++n) {
-      if (n != 0) {
-        rr.content.append(1,' ');
+    dnsrr.content.clear();
+    for(string::size_type parts = 0; parts < recparts.size(); ++parts) {
+      if (parts != 0) {
+        dnsrr.content.append(1,' ');
       }
 
-      if(n > 1)
-        rr.content+=std::to_string(makeTTLFromZone(recparts[n]));
-      else
-        rr.content+=recparts[n];
+      if(parts > 1) {
+        dnsrr.content += std::to_string(makeTTLFromZone(recparts[parts]));
+      }
+      else {
+        dnsrr.content += recparts[parts];
+      }
     }
     break;
   default:
@@ -701,7 +718,7 @@ bool ZoneParserTNG::getLine()
       d_filestates.top().d_lineno++;
       return true;
     }
-    fclose(d_filestates.top().d_fp);
+    fclose(d_filestates.top().d_fp); // NOLINT(cppcoreguidelines-owning-memory)
     d_filestates.pop();
   }
   return false;
