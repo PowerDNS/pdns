@@ -382,7 +382,10 @@ bool ZoneParserTNG::get(DNSResourceRecord& dnsrr, std::string* comment)
           fname.resize(semicolon_pos);
         }
         if (!fname.empty() && fname[0] != '/' && !d_reldir.empty()) {
-          fname = d_reldir + "/" + fname;
+          const auto tmp{fname};
+          fname.append(d_reldir);
+          fname.append("/");
+          fname.append(tmp);
         }
         stackFile(fname);
       }
@@ -431,11 +434,13 @@ bool ZoneParserTNG::get(DNSResourceRecord& dnsrr, std::string* comment)
           try {
             auto got = std::stoul(str);
             if (got > std::numeric_limits<uint32_t>::max()) {
+              // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
               throw std::runtime_error("Invalid " + name + " value in $GENERATE parameters '" + parameters + "'");
             }
             value = static_cast<uint32_t>(got);
           }
           catch (const std::exception& e) {
+            // NOLINTNEXTLINE(performance-inefficient-string-concatenation)
             throw std::runtime_error("Invalid " + name + " value in $GENERATE parameters '" + parameters + "': " + e.what());
           }
         };

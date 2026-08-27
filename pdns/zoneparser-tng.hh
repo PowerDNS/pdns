@@ -89,7 +89,7 @@ private:
   parts_t d_templateparts;
   size_t d_maxGenerateSteps{0};
   size_t d_maxIncludes{20};
-  int d_defaultttl;
+  uint32_t d_defaultttl;
   uint32_t d_templatecounter, d_templatestop, d_templatestep;
   bool d_havespecificttl;
   bool d_fromfile;
