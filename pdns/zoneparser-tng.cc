@@ -378,7 +378,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& dnsrr, std::string* comment)
         }
         if (!fname.empty() && fname[0] != '/' && !d_reldir.empty()) {
           const auto tmp{fname};
-          fname.append(d_reldir);
+          fname = d_reldir;
           fname.append("/");
           fname.append(tmp);
         }
