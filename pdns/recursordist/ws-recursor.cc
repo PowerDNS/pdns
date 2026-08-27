@@ -227,7 +227,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 
   Json::array records;
   for (const SyncRes::AuthDomain::records_t::value_type& record : zone.d_records) {
-    records.push_back(Json::object{
+    records.emplace_back(Json::object{
       {"name", record.d_name.toString()},
       {"type", DNSRecordContent::NumberToType(record.d_type)},
       {"ttl", (double)record.d_ttl},
@@ -406,7 +406,7 @@ static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
     }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);
-    doc.push_back(Json::object{
+    doc.emplace_back(Json::object{
       {"id", zoneId},
       {"url", "/api/v1/servers/localhost/zones/" + zoneId},
       {"name", val.first.toString()},
@@ -471,7 +471,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
     string zoneId = apiZoneNameToId(val.first);
     string zoneName = val.first.toString();
     if (pdns_ci_find(zoneName, qVar) != string::npos) {
-      doc.push_back(Json::object{
+      doc.emplace_back(Json::object{
         {"type", "zone"},
         {"zone_id", zoneId},
         {"name", zoneName}});
@@ -489,7 +489,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
         continue;
       }
 
-      doc.push_back(Json::object{
+      doc.emplace_back(Json::object{
         {"type", "record"},
         {"zone_id", zoneId},
         {"zone_name", zoneName},
@@ -585,7 +585,7 @@ static void fillOTCondition(const Netmask& netmask, HttpResponse* resp)
 {
   auto lock = g_initialOpenTelemetryConditions.lock();
   if (*lock) {
-    auto condition = (*lock)->lookup(netmask);
+    auto* condition = (*lock)->lookup(netmask);
     if (condition != nullptr && condition->first == netmask) { // exact match
       Json::object object{
         {"acl", condition->first.toString()},
@@ -634,7 +634,7 @@ static void apiServerOTConditionDetailDELETE(HttpRequest* req, HttpResponse* res
     Netmask netmask{req->parameters["acl"]};
     auto lock = g_initialOpenTelemetryConditions.lock();
     if (*lock) {
-      auto condition = (*lock)->lookup(netmask);
+      auto* condition = (*lock)->lookup(netmask);
       if (condition != nullptr && condition->first == netmask) { // exact match
         (*lock)->erase(condition->first);
         updateOTConditions(**lock);
@@ -666,7 +666,7 @@ static void apiServerOTConditionDetailPOST(HttpRequest* req, HttpResponse* resp)
     if (!*lock) {
       *lock = std::make_unique<OpenTelemetryTraceConditions>();
     }
-    auto conditionPtr = (*lock)->lookup(netmask);
+    auto* conditionPtr = (*lock)->lookup(netmask);
     if (conditionPtr != nullptr && conditionPtr->first == netmask) { // exact match
       throw ApiException("OTCondition already exists");
     }
@@ -703,7 +703,6 @@ static void apiServerOTConditionDetailPOST(HttpRequest* req, HttpResponse* resp)
   }
   fillOTCondition(netmask, resp);
   resp->status = 201;
-  return;
 }
 
 static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
@@ -912,7 +911,7 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
 
   map<string, string> stats;
   if (command == "get-query-ring") {
-    typedef pair<DNSName, uint16_t> query_t;
+    using query_t = pair<DNSName, uint16_t>;
     vector<query_t> queries;
     bool filter = !req->getvars["public-filtered"].empty();
 
@@ -926,7 +925,7 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
       queries = broadcastAccFunction<vector<query_t>>(pleaseGetQueryRing);
     }
 
-    typedef map<query_t, unsigned int> counts_t;
+    using counts_t = map<query_t, unsigned int>;
     counts_t counts;
     for (const query_t& count : queries) {
       if (filter) {
@@ -937,7 +936,7 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
       }
     }
 
-    typedef std::multimap<int, query_t> rcounts_t;
+    using rcounts_t = std::multimap<int, query_t>;
     rcounts_t rcounts;
 
     for (const auto& count : counts) {
@@ -949,14 +948,14 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
     unsigned int totIncluded = 0;
     for (const rcounts_t::value_type& count : rcounts) {
       totIncluded -= count.first;
-      entries.push_back(Json::array{
+      entries.emplace_back(Json::array{
         -count.first, count.second.first.toLogString(), DNSRecordContent::NumberToType(count.second.second)});
       if (tot++ >= 100) {
         break;
       }
     }
     if (queries.size() != totIncluded) {
-      entries.push_back(Json::array{
+      entries.emplace_back(Json::array{
         (int)(queries.size() - totIncluded), "", ""});
     }
     resp->setJsonBody(Json::object{{"entries", entries}});
@@ -979,13 +978,13 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
     else if (req->getvars["name"] == "timeouts") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetTimeouts);
     }
-    typedef map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts_t;
+    using counts_t = map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan>;
     counts_t counts;
     for (const ComboAddress& query : queries) {
       counts[query]++;
     }
 
-    typedef std::multimap<int, ComboAddress> rcounts_t;
+    using rcounts_t = std::multimap<int, ComboAddress>;
     rcounts_t rcounts;
 
     for (const auto& count : counts) {
@@ -997,14 +996,14 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
     unsigned int totIncluded = 0;
     for (const rcounts_t::value_type& count : rcounts) {
       totIncluded -= count.first;
-      entries.push_back(Json::array{
+      entries.emplace_back(Json::array{
         -count.first, count.second.toString()});
       if (tot++ >= 100) {
         break;
       }
     }
     if (queries.size() != totIncluded) {
-      entries.push_back(Json::array{
+      entries.emplace_back(Json::array{
         (int)(queries.size() - totIncluded), ""});
     }
 

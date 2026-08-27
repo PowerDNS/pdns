@@ -40,7 +40,7 @@
 
 #include "credentials.hh"
 #include "namespaces.hh"
-#ifndef REST_WS
+#ifndef RUST_WS
 #include "sstuff.hh"
 #endif
 #include "logging.hh"
@@ -48,7 +48,7 @@
 class HttpRequest : public YaHTTP::Request {
 public:
   HttpRequest(string logprefix_ = "") :
-    YaHTTP::Request(), logprefix(std::move(logprefix_)) {};
+    logprefix(std::move(logprefix_)) {};
 
   string logprefix;
   bool accept_yaml{false};
@@ -59,8 +59,8 @@ public:
   json11::Json json();
 
   // checks password _only_.
-  bool compareAuthorization(const CredentialsHolder& expectedCredentials) const;
-  bool compareHeader(const string &header_name, const CredentialsHolder& expectedCredentials) const;
+  [[nodiscard]] bool compareAuthorization(const CredentialsHolder& expectedCredentials) const;
+  [[nodiscard]] bool compareHeader(const string &header_name, const CredentialsHolder& expectedCredentials) const;
 
   void setSLog(Logr::log_t log)
   {
@@ -71,15 +71,15 @@ public:
 
 class HttpResponse: public YaHTTP::Response {
 public:
-  HttpResponse() : YaHTTP::Response() { };
+  HttpResponse() = default;
   HttpResponse(const YaHTTP::Response &resp) : YaHTTP::Response(resp) { };
 
   void setPlainBody(const string& document);
   void setYamlBody(const string& document);
   void setJsonBody(const string& document);
   void setJsonBody(const json11::Json& document);
-  void setErrorResult(const std::string& message, const int status);
-  void setSuccessResult(const std::string& message, const int status = 200);
+  void setErrorResult(const std::string& message, int status);
+  void setSuccessResult(const std::string& message, int status = 200);
 
   void setSLog(Logr::log_t log)
   {
@@ -92,12 +92,12 @@ public:
 class HttpException
 {
 public:
-  HttpException(int status) : d_response()
+  HttpException(int status)
   {
     d_response.status = status;
   };
 
-  HttpException(int status, const string& msg) : d_response()
+  HttpException(int status, const string& msg)
   {
     d_response.setErrorResult(msg, status);
   };
@@ -167,7 +167,13 @@ public:
 class Server
 {
 public:
-  Server(const string &localaddress, int port) : d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(d_local.sin4.sin_family, SOCK_STREAM, 0) {
+  Server(const Server&) = delete;
+  Server(Server&&) = delete;
+  Server& operator=(const Server&) = delete;
+  Server& operator=(Server&&) = delete;
+  Server(const string& localaddress, int port) :
+    d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(d_local.sin4.sin_family, SOCK_STREAM, 0)
+  {
     d_server_socket.setReuseAddr();
     d_server_socket.bind(d_local);
     d_server_socket.listen();
@@ -177,7 +183,7 @@ public:
   SockaddrWrapper d_local;
 
   std::shared_ptr<Socket> accept() {
-    return std::shared_ptr<Socket>(d_server_socket.accept());
+    return {d_server_socket.accept()};
   }
 
 protected:
@@ -189,6 +195,10 @@ protected:
 class WebServer : public boost::noncopyable
 {
 public:
+  WebServer(const WebServer&) = delete;
+  WebServer(WebServer&&) = delete;
+  WebServer& operator=(const WebServer&) = delete;
+  WebServer& operator=(WebServer&&) = delete;
   WebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string listenaddress, int port);
   virtual ~WebServer() = default;
 
@@ -215,12 +225,12 @@ public:
     }
   }
 
-  void setMaxBodySize(ssize_t s) { // in megabytes
-    d_maxbodysize = s * 1024 * 1024;
+  void setMaxBodySize(ssize_t size) { // in megabytes
+    d_maxbodysize = size * 1024 * 1024;
   }
 
-  void setConnectionTimeout(int t) { // in seconds
-    d_connectiontimeout = t;
+  void setConnectionTimeout(int time) { // in seconds
+    d_connectiontimeout = time;
   }
 
   void setACL(const NetmaskGroup &nmg) {
@@ -235,7 +245,7 @@ public:
   void serveConnection(const std::shared_ptr<Socket>& client) const;
   void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
-  typedef std::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
+  using HandlerFunction = std::function<void (HttpRequest *, HttpResponse *)>;
   virtual void registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method = "", bool allowPassword=false);
   void registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method = "");
 

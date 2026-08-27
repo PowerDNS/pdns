@@ -21,63 +21,6 @@
  */
 #pragma once
 
-#include "webserver.hh"
-
 class HttpRequest;
 class HttpResponse;
 extern void serveRustWeb();
-
-#ifndef RUST_WS
-
-#include <boost/utility.hpp>
-#include "namespaces.hh"
-#include "mplexer.hh"
-
-class AsyncServer : public Server
-{
-public:
-  AsyncServer(const string& localaddress, int port) :
-    Server(localaddress, port)
-  {
-    d_server_socket.setNonBlocking();
-  };
-
-  friend void AsyncServerNewConnectionMT(void* arg);
-
-  using newconnectioncb_t = std::function<void(const std::shared_ptr<Socket>&)>;
-  void asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback);
-
-private:
-  void newConnection();
-
-  newconnectioncb_t d_asyncNewConnectionCallback;
-};
-
-class AsyncWebServer : public WebServer
-{
-public:
-  AsyncWebServer(FDMultiplexer* fdm, const string& listenaddress, int port) :
-    WebServer(nullptr, listenaddress, port), d_fdm(fdm) {};
-  void go();
-
-private:
-  FDMultiplexer* d_fdm;
-  void serveConnection(const std::shared_ptr<Socket>& socket) const;
-
-protected:
-  std::shared_ptr<Server> createServer() override
-  {
-    return std::make_shared<AsyncServer>(d_listenaddress, d_port);
-  };
-};
-
-class RecursorWebServer : public boost::noncopyable
-{
-public:
-  explicit RecursorWebServer(FDMultiplexer* fdm);
-  static void jsonstat(HttpRequest* req, HttpResponse* resp);
-
-private:
-  std::unique_ptr<AsyncWebServer> d_ws{nullptr};
-};
-#endif

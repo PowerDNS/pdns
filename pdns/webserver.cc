@@ -22,7 +22,6 @@
 
 #include "config.h"
 
-#include "utility.hh"
 #include "webserver.hh"
 #include "misc.hh"
 #include <thread>
@@ -30,13 +29,10 @@
 #include <utility>
 #include <vector>
 #include "logger.hh"
-#include <stdio.h>
-#include "dns.hh"
 #include "base64.hh"
 #include "json.hh"
 #include "uuid-utils.hh"
 #include <yahttp/router.hpp>
-#include <algorithm>
 #include <bitset>
 #include <unistd.h>
 
@@ -136,13 +132,13 @@ void HttpResponse::setSuccessResult(const std::string& message, const int status
 static void bareHandlerWrapper(const WebServer::HandlerFunction& handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
   // wrapper to convert from YaHTTP::* to our subclasses
-  handler(static_cast<HttpRequest*>(req), static_cast<HttpResponse*>(resp));
+  handler(dynamic_cast<HttpRequest*>(req), dynamic_cast<HttpResponse*>(resp));
 }
 
 void WebServer::registerBareHandler(const string& url, const HandlerFunction& handler, const std::string& method)
 {
-  YaHTTP::THandlerFunction f = [=](YaHTTP::Request* req, YaHTTP::Response* resp){return bareHandlerWrapper(handler, req, resp);};
-  YaHTTP::Router::Map(method, url, std::move(f));
+  YaHTTP::THandlerFunction func = [=](YaHTTP::Request* req, YaHTTP::Response* resp){ bareHandlerWrapper(handler, req, resp);};
+  YaHTTP::Router::Map(method, url, std::move(func));
 }
 
 void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp, bool allowPassword)
@@ -400,35 +396,35 @@ void WebServer::logRequest(const HttpRequest& req, [[maybe_unused]] const ComboA
       g_log<<Logger::Notice<<logprefix<<"Request details:"<<endl;
 
       bool first = true;
-      for (const auto& r : req.getvars) {
+      for (const auto& var : req.getvars) {
         if (first) {
           first = false;
           g_log<<Logger::Notice<<logprefix<<" GET params:"<<endl;
         }
-        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<var.first<<": "<<var.second<<endl;
       }
 
       first = true;
-      for (const auto& r : req.postvars) {
+      for (const auto& var : req.postvars) {
         if (first) {
           first = false;
           g_log<<Logger::Notice<<logprefix<<" POST params:"<<endl;
         }
-        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<var.first<<": "<<var.second<<endl;
       }
 
       first = true;
-      for (const auto& h : req.headers) {
+      for (const auto& header : req.headers) {
         if (first) {
           first = false;
           g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
         }
-        bool redacted = h.first == "x-api-key";
+        bool redacted = header.first == "x-api-key";
         if (redacted) {
-          g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": (redacted)"<<endl;
+          g_log<<Logger::Notice<<logprefix<<"  "<<header.first<<": (redacted)"<<endl;
         }
         else {
-          g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+          g_log<<Logger::Notice<<logprefix<<"  "<<header.first<<": "<<header.second<<endl;
         }
       }
 
@@ -453,12 +449,12 @@ void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& /* rem
     if (!g_slogStructured) {
       g_log<<Logger::Notice<<logprefix<<"Response details:"<<endl;
       bool first = true;
-      for (const auto& h : resp.headers) {
+      for (const auto& header : resp.headers) {
         if (first) {
           first = false;
           g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
         }
-        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+        g_log<<Logger::Notice<<logprefix<<"  "<<header.first<<": "<<header.second<<endl;
       }
       if (resp.body.empty()) {
         g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
@@ -575,9 +571,9 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const
     logRequest(req, remote);
 
     WebServer::handleRequest(req, resp);
-    ostringstream ss;
-    resp.write(ss);
-    reply = ss.str();
+    ostringstream oss;
+    resp.write(oss);
+    reply = oss.str();
 
     logResponse(resp, remote, logprefix);
 
@@ -588,9 +584,10 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const
          d_slog->error(Logr::Error, e.reason, "HTTP Exception", "exception", Logging::Loggable("PDNSException")));
   }
   catch(std::exception &e) {
-    if(strstr(e.what(), "timeout")==nullptr)
-      SLOG(g_log<<Logger::Error<<logprefix<<"HTTP STL Exception: "<<e.what()<<endl,
+    if(strstr(e.what(), "timeout")==nullptr) {
+      SLOG(g_log << Logger::Error << logprefix << "HTTP STL Exception: " << e.what() << endl,
            d_slog->error(Logr::Error, e.what(), "HTTP Exception", "exception", Logging::Loggable("std::exception")));
+    }
   }
   catch(...) {
     SLOG(g_log<<Logger::Error<<logprefix<<"Unknown exception"<<endl,
@@ -678,8 +675,9 @@ void WebServer::bind()
 
 void WebServer::go()
 {
-  if(!d_server)
+  if(!d_server) {
     return;
+  }
   const string msg = "Exception in main webserver thread";
   try {
     while(true) {
