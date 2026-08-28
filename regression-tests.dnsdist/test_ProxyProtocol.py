@@ -615,6 +615,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         "_serverKey",
         "_proxyResponderPort",
     ]
+    _verboseMode = True
 
     def testNoHeader(self):
         """
