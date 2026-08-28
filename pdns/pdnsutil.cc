@@ -3360,121 +3360,14 @@ static int setZoneKind(const ZoneName& zone, const DomainInfo::DomainKind kind)
   return EXIT_SUCCESS;
 }
 
-static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool exportDS = false) // NOLINT(readability-function-cognitive-complexity)
+static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool exportDS, DomainInfo& di) //NOLINT(readability-identifier-length)
 {
-  UtilBackend B("default"); //NOLINT(readability-identifier-length)
-  DomainInfo di;
-
-  if (!B.getDomainInfo(zone, di)){
-    cerr << "No such zone in the database" << endl;
-    return false;
-  }
-
-  if (!di.account.empty()) {
-      cout<<"This zone is owned by "<<di.account<<endl;
-  }
-  if (!exportDS) {
-    cout << "This is a " << DomainInfo::getKindString(di.kind) << " zone";
-    if (g_verbose) {
-      cout << " (" << di.id << ")";
-    }
-    cout << endl;
-    auto variant = di.zone.getVariant();
-    if (!variant.empty()) {
-      cout<<"Variant: " << variant << endl;
-    }
-    if (di.isPrimaryType()) {
-      cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
-      SOAData sd;
-      if(B.getSOAUncached(zone, sd)) {
-        if(sd.serial == di.notified_serial)
-          cout<< "== ";
-        else
-          cout << "!= ";
-        cout<<sd.serial<<" (serial in the database)"<<endl;
-      }
-    }
-    else if (di.isSecondaryType()) {
-      cout << "Primar" << addS(di.primaries, "y", "ies") << ": ";
-      for (const auto& m : di.primaries)
-        cout<<m.toStringWithPort()<<" ";
-      cout<<endl;
-      struct tm tm;
-      localtime_r(&di.last_check, &tm);
-      char buf[80];
-      if(di.last_check != 0) {
-        strftime(buf, sizeof(buf)-1, "%a %F %H:%M:%S", &tm);
-      }
-      else {
-        strncpy(buf, "Never", sizeof(buf)-1);
-      }
-      buf[sizeof(buf)-1] = '\0';
-      cout << "Last time we got update from primary: " << buf << endl;
-      SOAData sd;
-      if(B.getSOAUncached(zone, sd)) {
-        cout<<"SOA serial in database: "<<sd.serial<<endl;
-        cout<<"Refresh interval: "<<sd.refresh<<" seconds"<<endl;
-      }
-      else
-        cout<<"No SOA serial found in database"<<endl;
-    }
-  }
-
-  if(!dnsseckeeper.isSecuredZone(zone)) {
-    auto &outstream = (exportDS ? cerr : cout);
-    outstream << "Zone is not actively secured" << endl;
-    if (exportDS) {
-      // it does not make sense to proceed here, and it might be useful
-      // for scripts to know that something is odd here
-      return false;
-    }
-  }
-
-  g_soa_edit_spread = ::arg().asBoundedNum<uint32_t>("soa-edit-spread", 0, 604800);
-  if (g_verbose && g_soa_edit_spread > 0) {
-    auto [inception, _] = getStartOfWeek();
-    auto delay = weekSpreadDelay(zone);
-    time_t bumpTt = inception + delay;
-    std::tm bumpTm{};
-    localtime_r(&bumpTt, &bumpTm);
-    cout << "soa-edit spread delay: " << delay << " (change time " << std::put_time(&bumpTm, "%c %Z") << ")" << endl;
-  }
+  DNSSECKeeper::keyset_t keyset;
+  keyset=dnsseckeeper.getKeys(zone);
 
   NSEC3PARAMRecordContent ns3pr;
   bool narrow = false;
   bool haveNSEC3=dnsseckeeper.getNSEC3PARAM(zone, &ns3pr, &narrow);
-
-  DNSSECKeeper::keyset_t keyset=dnsseckeeper.getKeys(zone);
-
-  if (!exportDS) {
-    std::vector<std::string> meta;
-
-    if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && !meta.empty()) {
-      cout << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
-    }
-
-    meta.clear();
-    if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && !meta.empty()) {
-      // Although AXFR-MASTER-TSIG may contain a list of keys, the current
-      // state of DNSSECKeeper::getTSIGForAccess() causes only the first one
-      // to be ever used, so only list the first item here.
-      cout << "Zone uses following TSIG key: " << meta.front() << endl;
-    }
-
-    std::map<std::string, std::vector<std::string> > metamap;
-    if(B.getAllDomainMetadata(zone, metamap)) {
-      cout<<"Metadata items: ";
-      if(metamap.empty())
-        cout<<"None";
-      cout<<endl;
-
-      for(const auto& m : metamap) {
-        for(const auto& i : m.second)
-          cout << '\t' << m.first<<'\t' << i <<endl;
-      }
-    }
-
-  }
 
   if (dnsseckeeper.isPresigned(zone)) {
     if (!exportDS) {
@@ -3492,7 +3385,7 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
 
     if(keys.empty()) {
       cerr << "No keys for zone '"<<zone<<"'."<<endl;
-      return true;
+      return;
     }
 
     if (!exportDS) {
@@ -3598,6 +3491,119 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
       }
     }
   }
+}
+
+static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool exportDS = false)
+{
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
+  DomainInfo di; //NOLINT(readability-identifier-length)
+
+  if (!B.getDomainInfo(zone, di)){
+    cerr << "No such zone in the database" << endl;
+    return false;
+  }
+
+  if (!di.account.empty()) {
+      cout<<"This zone is owned by "<<di.account<<endl;
+  }
+  if (!exportDS) {
+    cout << "This is a " << DomainInfo::getKindString(di.kind) << " zone";
+    if (g_verbose) {
+      cout << " (" << di.id << ")";
+    }
+    cout << endl;
+    auto variant = di.zone.getVariant();
+    if (!variant.empty()) {
+      cout<<"Variant: " << variant << endl;
+    }
+    if (di.isPrimaryType()) {
+      cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
+      SOAData sd;
+      if(B.getSOAUncached(zone, sd)) {
+        if(sd.serial == di.notified_serial)
+          cout<< "== ";
+        else
+          cout << "!= ";
+        cout<<sd.serial<<" (serial in the database)"<<endl;
+      }
+    }
+    else if (di.isSecondaryType()) {
+      cout << "Primar" << addS(di.primaries, "y", "ies") << ": ";
+      for (const auto& m : di.primaries)
+        cout<<m.toStringWithPort()<<" ";
+      cout<<endl;
+      struct tm tm;
+      localtime_r(&di.last_check, &tm);
+      char buf[80];
+      if(di.last_check != 0) {
+        strftime(buf, sizeof(buf)-1, "%a %F %H:%M:%S", &tm);
+      }
+      else {
+        strncpy(buf, "Never", sizeof(buf)-1);
+      }
+      buf[sizeof(buf)-1] = '\0';
+      cout << "Last time we got update from primary: " << buf << endl;
+      SOAData sd;
+      if(B.getSOAUncached(zone, sd)) {
+        cout<<"SOA serial in database: "<<sd.serial<<endl;
+        cout<<"Refresh interval: "<<sd.refresh<<" seconds"<<endl;
+      }
+      else
+        cout<<"No SOA serial found in database"<<endl;
+    }
+  }
+
+  if(!dnsseckeeper.isSecuredZone(zone)) {
+    auto &outstream = (exportDS ? cerr : cout);
+    outstream << "Zone is not actively secured" << endl;
+    if (exportDS) {
+      // it does not make sense to proceed here, and it might be useful
+      // for scripts to know that something is odd here
+      return false;
+    }
+  }
+
+  g_soa_edit_spread = ::arg().asBoundedNum<uint32_t>("soa-edit-spread", 0, 604800);
+  if (g_verbose && g_soa_edit_spread > 0) {
+    auto [inception, _] = getStartOfWeek();
+    auto delay = weekSpreadDelay(zone);
+    time_t bumpTt = inception + delay;
+    std::tm bumpTm{};
+    localtime_r(&bumpTt, &bumpTm);
+    cout << "soa-edit spread delay: " << delay << " (change time " << std::put_time(&bumpTm, "%c %Z") << ")" << endl;
+  }
+
+  if (!exportDS) {
+    std::vector<std::string> meta;
+
+    if (B.getDomainMetadata(zone, "TSIG-ALLOW-AXFR", meta) && !meta.empty()) {
+      cout << "Zone has following allowed TSIG key(s): " << boost::join(meta, ",") << endl;
+    }
+
+    meta.clear();
+    if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && !meta.empty()) {
+      // Although AXFR-MASTER-TSIG may contain a list of keys, the current
+      // state of DNSSECKeeper::getTSIGForAccess() causes only the first one
+      // to be ever used, so only list the first item here.
+      cout << "Zone uses following TSIG key: " << meta.front() << endl;
+    }
+
+    std::map<std::string, std::vector<std::string> > metamap;
+    if(B.getAllDomainMetadata(zone, metamap)) {
+      cout<<"Metadata items: ";
+      if(metamap.empty())
+        cout<<"None";
+      cout<<endl;
+
+      for(const auto& m : metamap) {
+        for(const auto& i : m.second)
+          cout << '\t' << m.first<<'\t' << i <<endl;
+      }
+    }
+
+  }
+
+  showZoneKeys(dnsseckeeper, zone, exportDS, di);
   if (!di.options.empty()) {
     cout << "Options:" << endl;
     cout << di.options << endl;
