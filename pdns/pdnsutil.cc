@@ -1038,11 +1038,17 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
 
     for (DNSBackend::KeyData& kd : dbkeyset) {
       DNSKEYRecordContent dkrc;
-      DNSCryptoKeyEngine::makeFromISCString(nullptr /* no structured logging */, dkrc, kd.content);
+      try {
+        DNSCryptoKeyEngine::makeFromISCString(nullptr /* no structured logging */, dkrc, kd.content);
 
-      if(dkrc.d_algorithm == DNSSECKeeper::RSASHA1) {
-        cout<<"[Error] zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
-        numerrors++;
+        if(dkrc.d_algorithm == DNSSECKeeper::RSASHA1) {
+          cout<<"[Error] zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
+          numerrors++;
+        }
+      }
+      catch (const std::exception& err) {
+        // Nothing. A proper diagnostic has already been fed to checkKeyErrors
+        // by the dk.checkKeys() call above.
       }
     }
   }
