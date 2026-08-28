@@ -3366,11 +3366,8 @@ static int setZoneKind(const ZoneName& zone, const DomainInfo::DomainKind kind)
   return EXIT_SUCCESS;
 }
 
-static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool exportDS, DomainInfo& di) //NOLINT(readability-identifier-length)
+static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool exportDS, DomainInfo& di) //NOLINT(readability-function-cognitive-complexity,readability-identifier-length)
 {
-  DNSSECKeeper::keyset_t keyset;
-  keyset=dnsseckeeper.getKeys(zone);
-
   NSEC3PARAMRecordContent ns3pr;
   bool narrow = false;
   bool haveNSEC3=dnsseckeeper.getNSEC3PARAM(zone, &ns3pr, &narrow);
@@ -3382,7 +3379,7 @@ static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool 
 
     // get us some keys
     vector<DNSKEYRecordContent> keys;
-    DNSZoneRecord zr;
+    DNSZoneRecord zr; // NOLINT(readability-identifier-length)
 
     di.backend->lookup(QType(QType::DNSKEY), zone.operator const DNSName&(), di.id );
     while(di.backend->get(zr)) {
@@ -3395,10 +3392,12 @@ static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool 
     }
 
     if (!exportDS) {
-      if(!haveNSEC3)
+      if(!haveNSEC3) {
         cout<<"Zone has NSEC semantics"<<endl;
-      else
+      }
+      else {
         cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+      }
       cout << "keys: "<<endl;
     }
 
@@ -3440,61 +3439,68 @@ static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool 
       catch(...)
       {}
     }
+    return;
   }
-  else if(keyset.empty())  {
+
+  DNSSECKeeper::keyset_t keyset;
+  keyset=dnsseckeeper.getKeys(zone);
+
+  if(keyset.empty())  {
     cerr << "No keys for zone '"<<zone<<"'."<<endl;
+    return;
   }
-  else {
+
+  if (!exportDS) {
+    if(!haveNSEC3) {
+      cout<<"Zone has NSEC semantics"<<endl;
+    }
+    else {
+      cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
+    }
+    cout << "keys: "<<endl;
+  }
+
+  for(const DNSSECKeeper::keyset_t::value_type& value :  keyset) {
+    string algname = DNSSECKeeper::algorithm2name(value.first.getAlgorithm());
     if (!exportDS) {
-      if(!haveNSEC3)
-        cout<<"Zone has NSEC semantics"<<endl;
-      else
-        cout<<"Zone has " << (narrow ? "NARROW " : "") <<"hashed NSEC3 semantics, configuration: "<<ns3pr.getZoneRepresentation()<<endl;
-      cout << "keys: "<<endl;
+      cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
+    }
+    if (value.first.getKey()->getBits() < 1) {
+      cout<<" <key missing or defunct, perhaps you should run 'pdnsutil hsm create-key'>" <<endl;
+      continue;
+    }
+    if (!exportDS) {
+      cout<<", flags = "<<std::to_string(value.first.getFlags());
+      cout<<", tag = "<<value.first.getDNSKEY().getTag();
+      cout<<", algo = "<<(int)value.first.getAlgorithm()<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive\t"<<(value.second.published ? " Published" : " Unpublished")<<"  ( " + algname + " ) "<<endl;
     }
 
-    for(const DNSSECKeeper::keyset_t::value_type& value :  keyset) {
-      string algname = DNSSECKeeper::algorithm2name(value.first.getAlgorithm());
-      if (!exportDS) {
-        cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
+    if (!exportDS) {
+      if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK || ::arg().mustDo("direct-dnskey")) {
+        cout<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<" DNSKEY = "<<zone.operator const DNSName&().toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
       }
-      if (value.first.getKey()->getBits() < 1) {
-        cout<<" <key missing or defunct, perhaps you should run 'pdnsutil hsm create-key'>" <<endl;
-        continue;
+    }
+    if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
+      const auto &key = value.first.getDNSKEY();
+      const std::string prefix(exportDS ? "" : "DS = ");
+      if (g_verbose) {
+        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
       }
-      if (!exportDS) {
-        cout<<", flags = "<<std::to_string(value.first.getFlags());
-        cout<<", tag = "<<value.first.getDNSKEY().getTag();
-        cout<<", algo = "<<(int)value.first.getAlgorithm()<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive\t"<<(value.second.published ? " Published" : " Unpublished")<<"  ( " + algname + " ) "<<endl;
-      }
-
-      if (!exportDS) {
-        if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK || ::arg().mustDo("direct-dnskey")) {
-          cout<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<" DNSKEY = "<<zone.operator const DNSName&().toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
-        }
-      }
-      if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
-        const auto &key = value.first.getDNSKEY();
-        const std::string prefix(exportDS ? "" : "DS = ");
-        if (g_verbose) {
-          cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
-        }
-        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
-        if (g_verbose) {
-          try {
-            string output=makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
-            cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
-          }
-          catch(...)
-          {}
-        }
+      cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+      if (g_verbose) {
         try {
-          string output=makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
-          cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
+          string output=makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
+          cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
         }
         catch(...)
         {}
       }
+      try {
+        string output=makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
+        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
+      }
+      catch(...)
+      {}
     }
   }
 }

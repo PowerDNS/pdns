@@ -922,14 +922,14 @@ static void addDefaultDNSSECKeys(DNSSECKeeper& dnssecKeeper, const ZoneName& zon
   try {
     if (k_algo != -1) {
       int64_t keyID{-1};
-      if (!dnssecKeeper.addKey(zonename, true, k_algo, keyID, k_size)) {
+      if (!dnssecKeeper.addKey(zonename, true, k_algo, keyID, static_cast<int>(k_size))) {
         throwUnableToSecure(zonename);
       }
     }
 
     if (z_algo != -1) {
       int64_t keyID{-1};
-      if (!dnssecKeeper.addKey(zonename, false, z_algo, keyID, z_size)) {
+      if (!dnssecKeeper.addKey(zonename, false, z_algo, keyID, static_cast<int>(z_size))) {
         throwUnableToSecure(zonename);
       }
     }
