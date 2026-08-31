@@ -195,6 +195,7 @@ tcp-drops\t0
 class TestTeeActionLua(TeeActionBase, DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _teeServerPort = pickAvailablePort()
     _teeProxyServerPort = pickAvailablePort()
     _toTeeQueue = Queue()

@@ -12,6 +12,7 @@ from dnsdisttests import DNSDistTest, pickAvailablePort, ResponderDropAction
 class HealthCheckTest(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _webTimeout = 2.0
     _webServerPort = pickAvailablePort()
     _webServerAPIKey = "apisecret"
@@ -350,6 +351,7 @@ class TestLazyHealthChecks(HealthCheckTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_do53Port", "_dotPort", "_dohPort"]
     _config_template = """
     setKey("%s")

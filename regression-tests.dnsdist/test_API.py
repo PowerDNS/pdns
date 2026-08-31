@@ -732,6 +732,7 @@ class TestAPICustomHeaders(APITestsBase):
     _basicOnlyPath = "/"
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
@@ -785,6 +786,7 @@ class TestStatsWithoutAuthentication(APITestsBase):
     _noAuthenticationPaths = ["/metrics", "/jsonstat?command=dynblocklist"]
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
@@ -854,6 +856,7 @@ class TestAPIAuth(APITestsBase):
     _basicOnlyPath = "/"
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
@@ -931,6 +934,7 @@ class TestAPIACL(APITestsBase):
     __test__ = True
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",

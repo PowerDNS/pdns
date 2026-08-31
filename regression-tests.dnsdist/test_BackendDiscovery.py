@@ -5,7 +5,7 @@ import threading
 import time
 import ssl
 
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
 class TestBackendDiscovery(DNSDistTest):
@@ -32,6 +32,7 @@ class TestBackendDiscovery(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = [
         "_consoleKeyB64",
         "_consolePort",
@@ -701,6 +702,7 @@ class TestBackendDiscovery(DNSDistTest):
 class TestBackendDiscoveryByHostname(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort"]
     _config_template = """
     setKey("%s")

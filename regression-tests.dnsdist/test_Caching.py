@@ -1015,6 +1015,7 @@ class TestCachingCacheFull(DNSDistTest):
 class TestCachingNoStale(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
@@ -1061,6 +1062,7 @@ class TestCachingNoStale(DNSDistTest):
 class TestCachingStale(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _staleCacheTTL = 60
     _config_params = ["_staleCacheTTL", "_consoleKeyB64", "_consolePort", "_testServerPort", "_testServerPort"]
     _config_template = """
@@ -1165,6 +1167,7 @@ class TestCachingStale(DNSDistTest):
 class TestCachingStaleExpunged(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _staleCacheTTL = 60
     _config_params = ["_staleCacheTTL", "_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
@@ -1241,6 +1244,7 @@ class TestCachingStaleExpunged(DNSDistTest):
 class TestCachingStaleExpungePrevented(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1, temporaryFailureTTL=0, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, maxNegativeTTL=3600, parseECS=false, keepStaleData=true})
@@ -1311,6 +1315,7 @@ class TestCachingStaleExpungePrevented(DNSDistTest):
 class TestCacheManagement(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
@@ -2423,6 +2428,7 @@ class TestCachingDontAge(DNSDistTest):
 class TestCachingECSWithoutPoolECS(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort", "_testServerPort"]
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
@@ -2477,6 +2483,7 @@ class TestCachingECSWithoutPoolECS(DNSDistTest):
 class TestCachingECSWithPoolECS(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})

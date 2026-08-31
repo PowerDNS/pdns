@@ -241,6 +241,7 @@ class TestOpenSSL(DNSDistTest, TLSTests):
     _extraStartupSleep = 1
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-tls.key"
     _serverCert = "server-tls.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -284,6 +285,7 @@ class TestOpenSSL(DNSDistTest, TLSTests):
 class TestGnuTLS(DNSDistTest, TLSTests):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-tls.key"
     _serverCert = "server-tls.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -328,6 +330,7 @@ class TestOpenSSLYaml(DNSDistTest, TLSTests):
     _extraStartupSleep = 1
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverKey = "server-tls.key"
     _serverCert = "server-tls.chain"
     _serverName = "tls.tests.dnsdist.org"
@@ -554,6 +557,7 @@ class TestProtocols(DNSDistTest):
 class TestPKCSTLSCertificate(DNSDistTest, TLSTests):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _serverCert = "server-tls.p12"
     _pkcsPassphrase = "passw0rd"
     _serverName = "tls.tests.dnsdist.org"
@@ -587,6 +591,7 @@ class TestPKCSTLSCertificate(DNSDistTest, TLSTests):
 class TestOpenSSLTLSTicketsKeyCallback(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _serverKey = "server.key"
     _serverCert = "server.chain"
@@ -636,6 +641,7 @@ class TestOpenSSLTLSTicketsKeyCallback(DNSDistTest):
 class TestGnuTLSTLSTicketsKeyCallback(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
 
     _serverKey = "server.key"
     _serverCert = "server.chain"

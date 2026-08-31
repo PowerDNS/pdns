@@ -2,7 +2,7 @@
 import base64
 import time
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
 class TestCacheHitResponses(DNSDistTest):
@@ -88,6 +88,7 @@ class TestCacheHitResponses(DNSDistTest):
 class TestStaleCacheHitResponses(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
     _config_params = ["_consoleKeyB64", "_consolePort", "_testServerPort"]
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
