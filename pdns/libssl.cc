@@ -710,8 +710,15 @@ void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& new
 {
   d_ticketKeys.write_lock()->push_front(std::move(newKey));
   if (TLSCtx::hasTicketsKeyAddedHook()) {
-    auto key = d_ticketKeys.read_lock()->front();
-    auto keyContent = key->content();
+    std::string keyContent;
+    {
+      auto keyRing = d_ticketKeys.read_lock();
+      if (keyRing->empty()) {
+        return;
+      }
+      const auto& key = keyRing->front();
+      keyContent = key->content();
+    }
     TLSCtx::getTicketsKeyAddedHook()(keyContent);
     // fills mem with 0's
     OPENSSL_cleanse(keyContent.data(), keyContent.size());
@@ -720,13 +727,17 @@ void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& new
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()
 {
-  return d_ticketKeys.read_lock()->front();
+  auto keyRing = d_ticketKeys.read_lock();
+  if (keyRing->empty()) {
+    return nullptr;
+  }
+  return keyRing->front();
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getDecryptionKey(unsigned char name[TLS_TICKETS_KEY_NAME_SIZE], bool& activeKey)
 {
   auto keys = d_ticketKeys.read_lock();
-  for (auto& key : *keys) {
+  for (const auto& key : *keys) {
     if (key->nameMatches(name)) {
       activeKey = (key == keys->front());
       return key;
