@@ -1396,24 +1396,13 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
-  uint64_t nbFileDescriptors = 0;
   const auto dirName = "/proc/" + std::to_string(getpid()) + "/fd/";
-  auto directoryError = pdns::visit_directory(dirName, [&nbFileDescriptors]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
-    uint32_t num;
-    try {
-      pdns::checked_stoi_into(num, std::string(name));
-      if (std::to_string(num) == name) {
-        nbFileDescriptors++;
-      }
-    } catch (...) {
-      // was not a number.
-    }
-    return true;
-  });
-  if (directoryError) {
-    return 0U;
+  struct stat status; // NOLINT(cppcoreguidelines-pro-type-member-init)
+  auto ret = stat(dirName.c_str(), &status);
+  if (ret != 0) {
+    return 0;
   }
-  return nbFileDescriptors;
+  return status.st_size;
 #elif defined(__OpenBSD__)
   // FreeBSD also has this in libopenbsd, but I don't know if that's available always
   return getdtablecount();
