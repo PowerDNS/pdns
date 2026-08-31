@@ -3442,11 +3442,21 @@ static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool 
     return;
   }
 
+  auto unusableKeys = dnsseckeeper.getUnusableKeyCount(zone);
+  if (unusableKeys != 0) {
+    cerr << "Zone has " << unusableKeys << " unusable keys, use 'zone check' for details" << endl;
+  }
+
   DNSSECKeeper::keyset_t keyset;
   keyset=dnsseckeeper.getKeys(zone);
 
   if(keyset.empty())  {
-    cerr << "No keys for zone '"<<zone<<"'."<<endl;
+    if (unusableKeys != 0) {
+      cerr << "No usable keys for zone '"<<zone<<"'."<<endl;
+    }
+    else {
+      cerr << "No keys for zone '"<<zone<<"'."<<endl;
+    }
     return;
   }
 

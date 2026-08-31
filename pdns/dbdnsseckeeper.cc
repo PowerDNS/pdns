@@ -654,6 +654,30 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
   return retkeyset;
 }
 
+unsigned int DNSSECKeeper::getUnusableKeyCount(const ZoneName& zone)
+{
+  unsigned int unusableKeys{0};
+
+  if(((++s_ops) % 100000) == 0) {
+    cleanup();
+  }
+
+  vector<DNSBackend::KeyData> dbkeyset;
+  d_keymetadb->getDomainKeys(zone, dbkeyset);
+
+  for(const DNSBackend::KeyData &keydata : dbkeyset) {
+    DNSKEYRecordContent dkrc;
+    try {
+      auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, keydata.content));
+    }
+    catch (const std::exception&) {
+      ++unusableKeys;
+    }
+  }
+
+  return unusableKeys;
+}
+
 bool DNSSECKeeper::checkKeys(const ZoneName& zone, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages)
 {
   vector<DNSBackend::KeyData> dbkeyset;
