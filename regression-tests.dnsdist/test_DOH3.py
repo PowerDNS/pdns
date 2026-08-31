@@ -3,7 +3,14 @@ import dns
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
-from quictests import QUICTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests, QUICTooLargeTests
+from quictests import (
+    QUICTests,
+    QUICWithCacheTests,
+    QUICACLTests,
+    QUICGetLocalAddressOnAnyBindTests,
+    QUICXFRTests,
+    QUICTooLargeTests,
+)
 
 
 class DOH3Common(object):
@@ -332,6 +339,44 @@ response_rules:
       type: "Drop"
     """
     _yaml_config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
+
+
+class TestDOH3WithCache(DOH3Common, QUICWithCacheTests, DNSDistTest):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _doqServerPort = pickAvailablePort()
+    _dohBaseURL = "https://%s:%d/" % (_serverName, _doqServerPort)
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    addDOH3Local("127.0.0.1:%d", "%s", "%s", {forwardViaUDPFirst=true})
+
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+    """
+    _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
+
+
+class TestDOH3WithCacheAndBBR(DOH3Common, QUICWithCacheTests, DNSDistTest):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _doqServerPort = pickAvailablePort()
+    _dohBaseURL = "https://%s:%d/" % (_serverName, _doqServerPort)
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    -- As of Quiche 0.24.7 BBR is no longer supported, but we should not choke on it
+    -- see https://github.com/cloudflare/quiche/issues/2342
+    addDOH3Local("127.0.0.1:%d", "%s", "%s", {congestionControlAlgo="bbr", forwardViaUDPFirst=true})
+
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+    """
+    _config_params = ["_testServerPort", "_doqServerPort", "_serverCert", "_serverKey"]
 
 
 class TestDOH3ACL(DOH3Common, QUICACLTests, DNSDistTest):
