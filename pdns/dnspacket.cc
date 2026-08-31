@@ -548,13 +548,12 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
     bool gotit=false;
 
     for(const auto & answer : mdp.d_answers) {
-      if (gotit) {
-        SLOG(g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl,
-             d_slog->info(Logr::Error, "More than one TKEY record found in query"));
-        return false;
-      }
-
       if(answer.d_type == QType::TKEY) {
+        if (gotit) {
+          SLOG(g_log<<Logger::Error<<"More than one TKEY record found in query"<<endl,
+               d_slog->info(Logr::Error, "More than one TKEY record found in query"));
+          return false;
+        }
         // cast can fail, f.e. if d_content is an UnknownRecordContent.
         auto content = getRR<TKEYRecordContent>(answer);
         if (!content) {
