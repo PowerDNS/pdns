@@ -740,6 +740,9 @@ public:
 
     try {
       if (frontend.d_tlsConfig.d_ticketKeyFile.empty()) {
+        if (d_ticketsKeyRotationDelay == 0) {
+          throw std::runtime_error("Trying to start a TLS frontend without any TLS session ticket encryption key loaded AND with rotation disabled!");
+        }
         handleTicketsKeyRotation(time(nullptr));
       }
       else {
@@ -1787,6 +1790,9 @@ public:
 
     try {
       if (frontend.d_tlsConfig.d_ticketKeyFile.empty()) {
+        if (d_ticketsKeyRotationDelay == 0) {
+          throw std::runtime_error("Trying to start a TLS frontend without any TLS session ticket encryption key loaded AND with rotation disabled!");
+        }
         handleTicketsKeyRotation(time(nullptr));
       }
       else {
