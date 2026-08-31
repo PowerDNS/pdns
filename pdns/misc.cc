@@ -1401,7 +1401,31 @@ uint64_t getOpenFileDescriptors(const std::string&)
   if (ret != 0) {
     return 0;
   }
-  return status.st_size;
+  if (status.st_size != 0) { // Until linux 6.1, this would return 0
+    return status.st_size;
+  }
+
+  // This can lead to performance issues with *many* open fds
+  uint64_t nbFileDescriptors = 0;
+  const auto dirName = "/proc/" + std::to_string(getpid()) + "/fd/";
+  auto directoryError = pdns::visit_directory(dirName, [&nbFileDescriptors]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+    uint32_t num{};
+    try {
+      pdns::checked_stoi_into(num, std::string(name));
+      if (std::to_string(num) == name) {
+        nbFileDescriptors++;
+      }
+    }
+    catch (...) {
+      // was not a number.
+      ;
+    }
+    return true;
+  });
+  if (directoryError) {
+    return 0U;
+  }
+  return nbFileDescriptors;
 #elif defined(__OpenBSD__)
   // FreeBSD also has this in libopenbsd, but I don't know if that's available always
   return getdtablecount();
