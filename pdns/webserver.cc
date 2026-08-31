@@ -22,7 +22,6 @@
 
 #include "config.h"
 
-#include "utility.hh"
 #include "webserver.hh"
 #include "misc.hh"
 #include <thread>
@@ -30,13 +29,10 @@
 #include <utility>
 #include <vector>
 #include "logger.hh"
-#include <stdio.h>
-#include "dns.hh"
 #include "base64.hh"
 #include "json.hh"
 #include "uuid-utils.hh"
 #include <yahttp/router.hpp>
-#include <algorithm>
 #include <bitset>
 #include <unistd.h>
 
@@ -49,14 +45,14 @@ namespace filesystem = std::filesystem;
 json11::Json HttpRequest::json()
 {
   string err;
-  if(this->body.empty()) {
-    SLOG(g_log<<Logger::Debug<<logprefix<<"JSON document expected in request body, but body was empty" << endl,
+  if (this->body.empty()) {
+    SLOG(g_log << Logger::Debug << logprefix << "JSON document expected in request body, but body was empty" << endl,
          d_slog->info(Logr::Debug, "JSON document expected in request body, but body was empty"));
     throw HttpBadRequestException();
   }
   json11::Json doc = json11::Json::parse(this->body, err);
   if (doc.is_null()) {
-    SLOG(g_log<<Logger::Debug<<logprefix<<"parsing of JSON document failed:" << err << endl,
+    SLOG(g_log << Logger::Debug << logprefix << "parsing of JSON document failed:" << err << endl,
          d_slog->error(Logr::Debug, err, "parsing of JSON document failed"));
     throw HttpBadRequestException();
   }
@@ -81,7 +77,7 @@ bool HttpRequest::compareAuthorization(const CredentialsHolder& credentials) con
   return auth_ok;
 }
 
-bool HttpRequest::compareHeader(const string &header_name, const CredentialsHolder& credentials) const
+bool HttpRequest::compareHeader(const string& header_name, const CredentialsHolder& credentials) const
 {
   auto header = headers.find(header_name);
   if (header == headers.end()) {
@@ -121,13 +117,13 @@ void HttpResponse::setJsonBody(const json11::Json& document)
 
 void HttpResponse::setErrorResult(const std::string& message, const int status_)
 {
-  setJsonBody(json11::Json::object { { "error", message } });
+  setJsonBody(json11::Json::object{{"error", message}});
   this->status = status_;
 }
 
 void HttpResponse::setSuccessResult(const std::string& message, const int status_)
 {
-  setJsonBody(json11::Json::object { { "result", message } });
+  setJsonBody(json11::Json::object{{"result", message}});
   this->status = status_;
 }
 
@@ -136,13 +132,13 @@ void HttpResponse::setSuccessResult(const std::string& message, const int status
 static void bareHandlerWrapper(const WebServer::HandlerFunction& handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
   // wrapper to convert from YaHTTP::* to our subclasses
-  handler(static_cast<HttpRequest*>(req), static_cast<HttpResponse*>(resp));
+  handler(dynamic_cast<HttpRequest*>(req), dynamic_cast<HttpResponse*>(resp));
 }
 
 void WebServer::registerBareHandler(const string& url, const HandlerFunction& handler, const std::string& method)
 {
-  YaHTTP::THandlerFunction f = [=](YaHTTP::Request* req, YaHTTP::Response* resp){return bareHandlerWrapper(handler, req, resp);};
-  YaHTTP::Router::Map(method, url, std::move(f));
+  YaHTTP::THandlerFunction func = [=](YaHTTP::Request* req, YaHTTP::Response* resp) { bareHandlerWrapper(handler, req, resp); };
+  YaHTTP::Router::Map(method, url, std::move(func));
 }
 
 void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp, bool allowPassword)
@@ -152,7 +148,7 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
   }
 
   if (!d_apikey) {
-    SLOG(g_log<<Logger::Error<<req->logprefix<<"HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl,
+    SLOG(g_log << Logger::Error << req->logprefix << "HTTP API Request \"" << req->url.path << "\": Authentication failed, API Key missing in config" << endl,
          d_slog->info(Logr::Error, "Authentication failed, API Key missing in config", "urlpath", Logging::Loggable(req->url.path)));
     throw HttpUnauthorizedException("X-API-Key");
   }
@@ -162,13 +158,14 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
   if (!auth_ok && allowPassword) {
     if (d_webserverPassword) {
       auth_ok = req->compareAuthorization(*d_webserverPassword);
-    } else {
+    }
+    else {
       auth_ok = true;
     }
   }
 
   if (!auth_ok) {
-    SLOG(g_log<<Logger::Error<<req->logprefix<<"HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl,
+    SLOG(g_log << Logger::Error << req->logprefix << "HTTP Request \"" << req->url.path << "\": Authentication by API Key failed" << endl,
          d_slog->info(Logr::Error, "Authentication by API Key failed", "urlpath", Logging::Loggable(req->url.path)));
     throw HttpUnauthorizedException("X-API-Key");
   }
@@ -185,10 +182,12 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
   try {
     resp->status = 200;
     handler(req, resp);
-  } catch (ApiException &e) {
+  }
+  catch (ApiException& e) {
     resp->setErrorResult(e.what(), 422);
     return;
-  } catch (JsonException &e) {
+  }
+  catch (JsonException& e) {
     resp->setErrorResult(e.what(), 422);
     return;
   }
@@ -199,17 +198,19 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
   }
 }
 
-void WebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword) {
-  auto func = [handler, allowPassword, this](HttpRequest *req, HttpResponse* resp){apiWrapper(handler, req, resp, allowPassword);};
+void WebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword)
+{
+  auto func = [handler, allowPassword, this](HttpRequest* req, HttpResponse* resp) { apiWrapper(handler, req, resp, allowPassword); };
   registerBareHandler(url, func, method);
 }
 
-void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp) {
+void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp)
+{
   if (d_webserverPassword) {
     bool auth_ok = req->compareAuthorization(*d_webserverPassword);
     if (!auth_ok) {
-      SLOG(g_log<<Logger::Debug<<req->logprefix<<"HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl,
-           d_slog->info(Logr::Debug, "HTTP Request: Web Authentication failed",  "urlpath",  Logging::Loggable(req->url.path)));
+      SLOG(g_log << Logger::Debug << req->logprefix << "HTTP Request \"" << req->url.path << "\": Web Authentication failed" << endl,
+           d_slog->info(Logr::Debug, "HTTP Request: Web Authentication failed", "urlpath", Logging::Loggable(req->url.path)));
       throw HttpUnauthorizedException("Basic");
     }
   }
@@ -217,8 +218,9 @@ void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpReques
   handler(req, resp);
 }
 
-void WebServer::registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method) {
-  auto func = [handler, this](HttpRequest *req, HttpResponse *resp){webWrapper(handler, req, resp);};
+void WebServer::registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method)
+{
+  auto func = [handler, this](HttpRequest* req, HttpResponse* resp) { webWrapper(handler, req, resp); };
   registerBareHandler(url, func, method);
 }
 
@@ -227,7 +229,7 @@ static void* WebServerConnectionThreadStart(WebServer* webServer, const std::sha
   setThreadName("rec/webhndlr");
 
   if (!webServer->registerConnection()) {
-    SLOG(g_log<<Logger::Error<<"Too many concurrent web server connections"<<endl,
+    SLOG(g_log << Logger::Error << "Too many concurrent web server connections" << endl,
          webServer->d_slog->info(Logr::Error, "Too many concurrent web server connections"));
     return nullptr;
   }
@@ -236,16 +238,16 @@ static void* WebServerConnectionThreadStart(WebServer* webServer, const std::sha
   try {
     webServer->serveConnection(client);
   }
-  catch(PDNSException &e) {
-    SLOG(g_log<<Logger::Error<<"PDNSException while serving a connection in main webserver thread: "<<e.reason<<endl,
+  catch (PDNSException& e) {
+    SLOG(g_log << Logger::Error << "PDNSException while serving a connection in main webserver thread: " << e.reason << endl,
          webServer->d_slog->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
   }
-  catch(std::exception &e) {
-    SLOG(g_log<<Logger::Error<<"STL Exception while serving a connection in main webserver thread: "<<e.what()<<endl,
+  catch (std::exception& e) {
+    SLOG(g_log << Logger::Error << "STL Exception while serving a connection in main webserver thread: " << e.what() << endl,
          webServer->d_slog->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
   }
-  catch(...) {
-    SLOG(g_log<<Logger::Error<<"Unknown exception while serving a connection in main webserver thread"<<endl,
+  catch (...) {
+    SLOG(g_log << Logger::Error << "Unknown exception while serving a connection in main webserver thread" << endl,
          webServer->d_slog->info(Logr::Error, msg));
   }
 
@@ -273,9 +275,11 @@ static void setupAllowedContentType(HttpRequest& req)
     // yaml wins over json, json wins over html
     if (header->second.find("application/x-yaml") != std::string::npos || header->second.find("text/x-yaml") != std::string::npos) {
       req.accept_yaml = true;
-    } else if (header->second.find("application/json") != std::string::npos) {
+    }
+    else if (header->second.find("application/json") != std::string::npos) {
       req.accept_json = true;
-    } else if (header->second.find("text/html") != std::string::npos) {
+    }
+    else if (header->second.find("text/html") != std::string::npos) {
       req.accept_html = true;
     }
   }
@@ -293,11 +297,11 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 
   try {
     if (!req.complete) {
-      SLOG(g_log<<Logger::Debug<<req.logprefix<<"Incomplete request" << endl,
+      SLOG(g_log << Logger::Debug << req.logprefix << "Incomplete request" << endl,
            d_slog->info(Logr::Debug, "Incomplete request"));
       throw HttpBadRequestException();
     }
-    SLOG(g_log<<Logger::Debug<<req.logprefix<<"Handling request \"" << req.url.path << "\"" << endl,
+    SLOG(g_log << Logger::Debug << req.logprefix << "Handling request \"" << req.url.path << "\"" << endl,
          log->info(Logr::Debug, "Handling request"));
 
     setupAllowedContentType(req);
@@ -306,7 +310,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
     YaHTTP::RoutingResult res = YaHTTP::Router::Route(&req, handler);
 
     if (res == YaHTTP::RouteNotFound) {
-      SLOG(g_log<<Logger::Debug<<req.logprefix<<"No route found for \"" << req.url.path << "\"" << endl,
+      SLOG(g_log << Logger::Debug << req.logprefix << "No route found for \"" << req.url.path << "\"" << endl,
            log->info(Logr::Debug, "No route found"));
       throw HttpNotFoundException();
     }
@@ -317,29 +321,29 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
     const string msg = "HTTP ISE Exception";
     try {
       handler(&req, &resp);
-      SLOG(g_log<<Logger::Debug<<req.logprefix<<"Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl,
+      SLOG(g_log << Logger::Debug << req.logprefix << "Result for \"" << req.url.path << "\": " << resp.status << ", body length: " << resp.body.size() << endl,
            log->info(Logr::Debug, "Result", "status", Logging::Loggable(resp.status), "bodyLength", Logging::Loggable(resp.body.size())));
     }
-    catch(HttpException&) {
+    catch (HttpException&) {
       throw;
     }
-    catch(PDNSException &e) {
-      SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": Exception: " << e.reason << endl,
+    catch (PDNSException& e) {
+      SLOG(g_log << Logger::Error << req.logprefix << "HTTP ISE for \"" << req.url.path << "\": Exception: " << e.reason << endl,
            log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
       throw HttpInternalServerErrorException(e.reason);
     }
-    catch(std::exception &e) {
-      SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": STL Exception: " << e.what() << endl,
+    catch (std::exception& e) {
+      SLOG(g_log << Logger::Error << req.logprefix << "HTTP ISE for \"" << req.url.path << "\": STL Exception: " << e.what() << endl,
            log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
       throw HttpInternalServerErrorException(e.what());
     }
-    catch(...) {
-      SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": Unknown Exception" << endl,
+    catch (...) {
+      SLOG(g_log << Logger::Error << req.logprefix << "HTTP ISE for \"" << req.url.path << "\": Unknown Exception" << endl,
            log->info(Logr::Error, msg));
       throw HttpInternalServerErrorException();
     }
   }
-  catch(HttpException &e) {
+  catch (HttpException& e) {
     resp = e.response();
     if (g_slogStructured) {
       // An HttpException does not initialize d_slog
@@ -348,7 +352,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
       }
     }
     // TODO rm this logline?
-    SLOG(g_log<<Logger::Debug<<req.logprefix<<"Error result for \"" << req.url.path << "\": " << resp.status << endl,
+    SLOG(g_log << Logger::Debug << req.logprefix << "Error result for \"" << req.url.path << "\": " << resp.status << endl,
          d_slog->error(Logr::Debug, resp.status, "Error result", "urlpath", Logging::Loggable(req.url.path)));
     string what = YaHTTP::Utility::status2text(resp.status);
     if (req.accept_json) {
@@ -356,10 +360,12 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
       if (resp.body.empty()) {
         resp.setErrorResult(what, resp.status);
       }
-    } else if (req.accept_html) {
+    }
+    else if (req.accept_html) {
       resp.headers["Content-Type"] = "text/html; charset=utf-8";
       resp.body = "<!html><title>" + what + "</title><h1>" + what + "</h1>";
-    } else {
+    }
+    else {
       resp.headers["Content-Type"] = "text/plain; charset=utf-8";
       resp.body = std::move(what);
     }
@@ -370,13 +376,14 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
 
   if (req.method == "HEAD") {
     resp.body = "";
-  } else {
+  }
+  else {
     resp.headers["Content-Length"] = std::to_string(resp.body.size());
   }
 }
 
 // Helper to log key-value maps used by YaHTTP
-template<>
+template <>
 std::string Logging::IterLoggable<YaHTTP::strstr_map_t::const_iterator>::to_string() const
 {
   std::ostringstream oss;
@@ -393,50 +400,52 @@ std::string Logging::IterLoggable<YaHTTP::strstr_map_t::const_iterator>::to_stri
   return oss.str();
 }
 
-void WebServer::logRequest(const HttpRequest& req, [[maybe_unused]] const ComboAddress& remote) const {
+void WebServer::logRequest(const HttpRequest& req, [[maybe_unused]] const ComboAddress& remote) const
+{
   if (d_loglevel >= WebServer::LogLevel::Detailed) {
     if (!g_slogStructured) {
       const auto& logprefix = req.logprefix;
-      g_log<<Logger::Notice<<logprefix<<"Request details:"<<endl;
+      g_log << Logger::Notice << logprefix << "Request details:" << endl;
 
       bool first = true;
-      for (const auto& r : req.getvars) {
+      for (const auto& var : req.getvars) {
         if (first) {
           first = false;
-          g_log<<Logger::Notice<<logprefix<<" GET params:"<<endl;
+          g_log << Logger::Notice << logprefix << " GET params:" << endl;
         }
-        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+        g_log << Logger::Notice << logprefix << "  " << var.first << ": " << var.second << endl;
       }
 
       first = true;
-      for (const auto& r : req.postvars) {
+      for (const auto& var : req.postvars) {
         if (first) {
           first = false;
-          g_log<<Logger::Notice<<logprefix<<" POST params:"<<endl;
+          g_log << Logger::Notice << logprefix << " POST params:" << endl;
         }
-        g_log<<Logger::Notice<<logprefix<<"  "<<r.first<<": "<<r.second<<endl;
+        g_log << Logger::Notice << logprefix << "  " << var.first << ": " << var.second << endl;
       }
 
       first = true;
-      for (const auto& h : req.headers) {
+      for (const auto& header : req.headers) {
         if (first) {
           first = false;
-          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
+          g_log << Logger::Notice << logprefix << " Headers:" << endl;
         }
-        bool redacted = h.first == "x-api-key";
+        bool redacted = header.first == "x-api-key";
         if (redacted) {
-          g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": (redacted)"<<endl;
+          g_log << Logger::Notice << logprefix << "  " << header.first << ": (redacted)" << endl;
         }
         else {
-          g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+          g_log << Logger::Notice << logprefix << "  " << header.first << ": " << header.second << endl;
         }
       }
 
       if (req.body.empty()) {
-        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
-      } else {
-        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
-        g_log<<Logger::Notice<<logprefix<<"  "<<req.body<<endl;
+        g_log << Logger::Notice << logprefix << " No body" << endl;
+      }
+      else {
+        g_log << Logger::Notice << logprefix << " Full body: " << endl;
+        g_log << Logger::Notice << logprefix << "  " << req.body << endl;
       }
     }
     else {
@@ -448,23 +457,25 @@ void WebServer::logRequest(const HttpRequest& req, [[maybe_unused]] const ComboA
   }
 }
 
-void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& /* remote */, const string& logprefix) const {
+void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& /* remote */, const string& logprefix) const
+{
   if (d_loglevel >= WebServer::LogLevel::Detailed) {
     if (!g_slogStructured) {
-      g_log<<Logger::Notice<<logprefix<<"Response details:"<<endl;
+      g_log << Logger::Notice << logprefix << "Response details:" << endl;
       bool first = true;
-      for (const auto& h : resp.headers) {
+      for (const auto& header : resp.headers) {
         if (first) {
           first = false;
-          g_log<<Logger::Notice<<logprefix<<" Headers:"<<endl;
+          g_log << Logger::Notice << logprefix << " Headers:" << endl;
         }
-        g_log<<Logger::Notice<<logprefix<<"  "<<h.first<<": "<<h.second<<endl;
+        g_log << Logger::Notice << logprefix << "  " << header.first << ": " << header.second << endl;
       }
       if (resp.body.empty()) {
-        g_log<<Logger::Notice<<logprefix<<" No body"<<endl;
-      } else {
-        g_log<<Logger::Notice<<logprefix<<" Full body: "<<endl;
-        g_log<<Logger::Notice<<logprefix<<"  "<<resp.body<<endl;
+        g_log << Logger::Notice << logprefix << " No body" << endl;
+      }
+      else {
+        g_log << Logger::Notice << logprefix << " Full body: " << endl;
+        g_log << Logger::Notice << logprefix << "  " << resp.body << endl;
       }
     }
     else {
@@ -474,8 +485,8 @@ void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& /* rem
   }
 }
 
-
-struct ValidChars {
+struct ValidChars
+{
   ValidChars()
   {
     // letter may be signed, but we only pass positive values
@@ -530,37 +541,39 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const
 
   HttpResponse resp;
   if (g_slogStructured) {
-    auto log = d_slog->withValues("uniqueid",  Logging::Loggable(to_string(unique)));
+    auto log = d_slog->withValues("uniqueid", Logging::Loggable(to_string(unique)));
     req.setSLog(log);
     resp.setSLog(log);
   }
-  resp.max_response_size=d_maxbodysize;
+  resp.max_response_size = d_maxbodysize;
   ComboAddress remote;
   string reply;
 
   try {
     YaHTTP::AsyncRequestLoader yarl;
     yarl.initialize(&req);
-    req.max_request_size=d_maxbodysize;
+    req.max_request_size = d_maxbodysize;
     int timeout = d_connectiontimeout;
     client->setNonBlocking();
 
     try {
-      while(!req.complete) {
+      while (!req.complete) {
         std::array<char, 16000> buf{};
         auto bytes = client->readWithTimeout(buf.data(), buf.size(), timeout);
         if (bytes > 0) {
           string data = string(buf.data(), bytes);
           req.complete = yarl.feed(data);
-        } else {
+        }
+        else {
           // read error OR EOF
           break;
         }
       }
       yarl.finalize();
-    } catch (YaHTTP::ParseError &e) {
+    }
+    catch (YaHTTP::ParseError& e) {
       // request stays incomplete
-      SLOG(g_log<<Logger::Warning<<logprefix<<"Unable to parse request: "<<e.what()<<endl,
+      SLOG(g_log << Logger::Warning << logprefix << "Unable to parse request: " << e.what() << endl,
            d_slog->error(Logr::Warning, e.what(), "Unable to parse request"));
     }
 
@@ -575,33 +588,34 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const
     logRequest(req, remote);
 
     WebServer::handleRequest(req, resp);
-    ostringstream ss;
-    resp.write(ss);
-    reply = ss.str();
+    ostringstream oss;
+    resp.write(oss);
+    reply = oss.str();
 
     logResponse(resp, remote, logprefix);
 
     client->writenWithTimeout(reply.c_str(), reply.size(), timeout);
   }
-  catch(PDNSException &e) {
-    SLOG(g_log<<Logger::Error<<logprefix<<"HTTP Exception: "<<e.reason<<endl,
+  catch (PDNSException& e) {
+    SLOG(g_log << Logger::Error << logprefix << "HTTP Exception: " << e.reason << endl,
          d_slog->error(Logr::Error, e.reason, "HTTP Exception", "exception", Logging::Loggable("PDNSException")));
   }
-  catch(std::exception &e) {
-    if(strstr(e.what(), "timeout")==nullptr)
-      SLOG(g_log<<Logger::Error<<logprefix<<"HTTP STL Exception: "<<e.what()<<endl,
+  catch (std::exception& e) {
+    if (strstr(e.what(), "timeout") == nullptr) {
+      SLOG(g_log << Logger::Error << logprefix << "HTTP STL Exception: " << e.what() << endl,
            d_slog->error(Logr::Error, e.what(), "HTTP Exception", "exception", Logging::Loggable("std::exception")));
+    }
   }
-  catch(...) {
-    SLOG(g_log<<Logger::Error<<logprefix<<"Unknown exception"<<endl,
+  catch (...) {
+    SLOG(g_log << Logger::Error << logprefix << "Unknown exception" << endl,
          d_slog->info(Logr::Error, "HTTP Exception"));
   }
 
   if (d_loglevel >= WebServer::LogLevel::Normal) {
-    SLOG(g_log<<Logger::Notice<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl,
+    SLOG(g_log << Logger::Notice << logprefix << remote << " \"" << req.method << " " << req.url.path << " HTTP/" << req.versionStr(req.version) << "\" " << resp.status << " " << reply.size() << endl,
          d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
                       "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
-                      "status", Logging::Loggable(resp.status), "respsize",  Logging::Loggable(reply.size())));
+                      "status", Logging::Loggable(resp.status), "respsize", Logging::Loggable(reply.size())));
   }
 }
 
@@ -613,7 +627,7 @@ WebServer::WebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string li
   d_maxbodysize(static_cast<ssize_t>(2 * 1024 * 1024))
 
 {
-    YaHTTP::Router::Map("OPTIONS", "/<*url>", [&allowCors = d_cross_origin_request_header](YaHTTP::Request *req, YaHTTP::Response *resp) {
+  YaHTTP::Router::Map("OPTIONS", "/<*url>", [&allowCors = d_cross_origin_request_header](YaHTTP::Request* req, YaHTTP::Response* resp) {
       // look for url in routes
       bool seen = false;
       std::vector<std::string> methods;
@@ -643,16 +657,15 @@ WebServer::WebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, string li
        resp->headers["access-control-max-age"] = "3600";
        resp->status = 200;
        resp->headers["content-type"]= "text/plain";
-       resp->body = "";
-    }, "OptionsHandlerRoute");
+       resp->body = ""; }, "OptionsHandlerRoute");
 }
 
 void WebServer::bind()
 {
   if (filesystem::is_socket(d_listenaddress.c_str())) {
-    int err=unlink(d_listenaddress.c_str());
-    if(err < 0 && errno!=ENOENT) {
-      SLOG(g_log<<Logger::Error<<d_logprefix<<"Listening on HTTP socket failed, unable to remove existing socket at "<<d_listenaddress<<endl,
+    int err = unlink(d_listenaddress.c_str());
+    if (err < 0 && errno != ENOENT) {
+      SLOG(g_log << Logger::Error << d_logprefix << "Listening on HTTP socket failed, unable to remove existing socket at " << d_listenaddress << endl,
            d_slog->error(Logr::Error, errno, "Listening on HTTP socket failed, unable to remove existing socket", "socket", Logging::Loggable(d_listenaddress)));
       d_server = nullptr;
       return;
@@ -662,15 +675,16 @@ void WebServer::bind()
   try {
     d_server = createServer();
     if (d_server->d_local.isUnixSocket()) {
-      SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_listenaddress<<endl,
+      SLOG(g_log << Logger::Warning << d_logprefix << "Listening for HTTP requests on " << d_listenaddress << endl,
            d_slog->info(Logr::Info, "Listening for HTTP requests", "path", Logging::Loggable(d_listenaddress)));
-    } else {
-        SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl,
-             d_slog->info(Logr::Info, "Listening for HTTP requests", "address", Logging::Loggable(d_server->d_local)));
+    }
+    else {
+      SLOG(g_log << Logger::Warning << d_logprefix << "Listening for HTTP requests on " << d_server->d_local.toStringWithPort() << endl,
+           d_slog->info(Logr::Info, "Listening for HTTP requests", "address", Logging::Loggable(d_server->d_local)));
     }
   }
-  catch(NetworkError &e) {
-    SLOG(g_log<<Logger::Error<<d_logprefix<<"Listening on HTTP socket failed: "<<e.what()<<endl,
+  catch (NetworkError& e) {
+    SLOG(g_log << Logger::Error << d_logprefix << "Listening on HTTP socket failed: " << e.what() << endl,
          d_slog->error(Logr::Error, e.what(), "Listening on HTTP socket failed", "exception", Logging::Loggable("NetworkError")));
     d_server = nullptr;
   }
@@ -678,11 +692,12 @@ void WebServer::bind()
 
 void WebServer::go()
 {
-  if(!d_server)
+  if (!d_server) {
     return;
+  }
   const string msg = "Exception in main webserver thread";
   try {
-    while(true) {
+    while (true) {
       const string acceptmsg = "Exception while accepting a connection in main webserver thread";
       try {
         auto client = d_server->accept();
@@ -692,38 +707,39 @@ void WebServer::go()
         if (d_server->d_local.isUnixSocket() || client->acl(d_acl)) {
           std::thread webHandler(WebServerConnectionThreadStart, this, client);
           webHandler.detach();
-        } else {
+        }
+        else {
           ComboAddress remote;
           if (client->getRemote(remote)) {
-            SLOG(g_log<<Logger::Error<<d_logprefix<<"Webserver closing socket: remote ("<< remote.toString() <<") does not match the set ACL("<<d_acl.toString()<<")"<<endl,
+            SLOG(g_log << Logger::Error << d_logprefix << "Webserver closing socket: remote (" << remote.toString() << ") does not match the set ACL(" << d_acl.toString() << ")" << endl,
                  d_slog->info(Logr::Error, "Webserver closing socket, remote does not match the set ACL", "remote", Logging::Loggable(remote), "acl", Logging::Loggable(d_acl)));
           }
         }
       }
-      catch(PDNSException &e) {
-        SLOG(g_log<<Logger::Error<<d_logprefix<<"PDNSException while accepting a connection in main webserver thread: "<<e.reason<<endl,
+      catch (PDNSException& e) {
+        SLOG(g_log << Logger::Error << d_logprefix << "PDNSException while accepting a connection in main webserver thread: " << e.reason << endl,
              d_slog->info(Logr::Error, e.reason, acceptmsg, Logging::Loggable("PDNSException")));
       }
-      catch(std::exception &e) {
-        SLOG(g_log<<Logger::Error<<d_logprefix<<"STL Exception while accepting a connection in main webserver thread: "<<e.what()<<endl,
+      catch (std::exception& e) {
+        SLOG(g_log << Logger::Error << d_logprefix << "STL Exception while accepting a connection in main webserver thread: " << e.what() << endl,
              d_slog->info(Logr::Error, e.what(), acceptmsg, Logging::Loggable("std::exception")));
       }
-      catch(...) {
-        SLOG(g_log<<Logger::Error<<d_logprefix<<"Unknown exception while accepting a connection in main webserver thread"<<endl,
+      catch (...) {
+        SLOG(g_log << Logger::Error << d_logprefix << "Unknown exception while accepting a connection in main webserver thread" << endl,
              d_slog->info(Logr::Error, msg));
       }
     }
   }
-  catch(PDNSException &e) {
-    SLOG(g_log<<Logger::Error<<d_logprefix<<"PDNSException in main webserver thread: "<<e.reason<<endl,
+  catch (PDNSException& e) {
+    SLOG(g_log << Logger::Error << d_logprefix << "PDNSException in main webserver thread: " << e.reason << endl,
          d_slog->info(Logr::Error, e.reason, msg, Logging::Loggable("PDNSException")));
   }
-  catch(std::exception &e) {
-    SLOG(g_log<<Logger::Error<<d_logprefix<<"STL Exception in main webserver thread: "<<e.what()<<endl,
+  catch (std::exception& e) {
+    SLOG(g_log << Logger::Error << d_logprefix << "STL Exception in main webserver thread: " << e.what() << endl,
          d_slog->info(Logr::Error, e.what(), msg, Logging::Loggable("std::exception")));
   }
-  catch(...) {
-    SLOG(g_log<<Logger::Error<<d_logprefix<<"Unknown exception in main webserver thread"<<endl,
+  catch (...) {
+    SLOG(g_log << Logger::Error << d_logprefix << "Unknown exception in main webserver thread" << endl,
          d_slog->info(Logr::Error, msg));
   }
   _exit(1);

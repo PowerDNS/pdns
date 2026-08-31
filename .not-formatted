@@ -171,8 +171,6 @@
 ./pdns/unix_utility.cc
 ./pdns/utility.hh
 ./pdns/uuid-utils.cc
-./pdns/webserver.cc
-./pdns/webserver.hh
 ./pdns/zone2json.cc
 ./pdns/zone2ldap.cc
 ./pdns/zone2sql.cc

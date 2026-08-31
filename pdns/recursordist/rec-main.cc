@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <sys/stat.h>
+#include <iomanip>
 
 #include "rec-main.hh"
 
@@ -41,6 +42,7 @@
 #include "version.hh"
 #include "ws-recursor.hh"
 #include "rec-keepwarm.hh"
+#include "json.hh" // keep
 
 #ifdef NOD_ENABLED
 #include "nod.hh"

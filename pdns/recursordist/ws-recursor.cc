@@ -227,7 +227,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 
   Json::array records;
   for (const SyncRes::AuthDomain::records_t::value_type& record : zone.d_records) {
-    records.push_back(Json::object{
+    records.emplace_back(Json::object{
       {"name", record.d_name.toString()},
       {"type", DNSRecordContent::NumberToType(record.d_type)},
       {"ttl", (double)record.d_ttl},
@@ -406,7 +406,7 @@ static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
     }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);
-    doc.push_back(Json::object{
+    doc.emplace_back(Json::object{
       {"id", zoneId},
       {"url", "/api/v1/servers/localhost/zones/" + zoneId},
       {"name", val.first.toString()},
@@ -471,7 +471,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
     string zoneId = apiZoneNameToId(val.first);
     string zoneName = val.first.toString();
     if (pdns_ci_find(zoneName, qVar) != string::npos) {
-      doc.push_back(Json::object{
+      doc.emplace_back(Json::object{
         {"type", "zone"},
         {"zone_id", zoneId},
         {"name", zoneName}});
@@ -489,7 +489,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
         continue;
       }
 
-      doc.push_back(Json::object{
+      doc.emplace_back(Json::object{
         {"type", "record"},
         {"zone_id", zoneId},
         {"zone_name", zoneName},
@@ -585,7 +585,7 @@ static void fillOTCondition(const Netmask& netmask, HttpResponse* resp)
 {
   auto lock = g_initialOpenTelemetryConditions.lock();
   if (*lock) {
-    auto condition = (*lock)->lookup(netmask);
+    auto* condition = (*lock)->lookup(netmask);
     if (condition != nullptr && condition->first == netmask) { // exact match
       Json::object object{
         {"acl", condition->first.toString()},
@@ -634,7 +634,7 @@ static void apiServerOTConditionDetailDELETE(HttpRequest* req, HttpResponse* res
     Netmask netmask{req->parameters["acl"]};
     auto lock = g_initialOpenTelemetryConditions.lock();
     if (*lock) {
-      auto condition = (*lock)->lookup(netmask);
+      auto* condition = (*lock)->lookup(netmask);
       if (condition != nullptr && condition->first == netmask) { // exact match
         (*lock)->erase(condition->first);
         updateOTConditions(**lock);
@@ -666,7 +666,7 @@ static void apiServerOTConditionDetailPOST(HttpRequest* req, HttpResponse* resp)
     if (!*lock) {
       *lock = std::make_unique<OpenTelemetryTraceConditions>();
     }
-    auto conditionPtr = (*lock)->lookup(netmask);
+    auto* conditionPtr = (*lock)->lookup(netmask);
     if (conditionPtr != nullptr && conditionPtr->first == netmask) { // exact match
       throw ApiException("OTCondition already exists");
     }
@@ -703,7 +703,6 @@ static void apiServerOTConditionDetailPOST(HttpRequest* req, HttpResponse* resp)
   }
   fillOTCondition(netmask, resp);
   resp->status = 201;
-  return;
 }
 
 static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
@@ -818,89 +817,6 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
 #include "rec-prometheus-gen.h"
 };
 
-#ifndef RUST_WS
-
-constexpr bool CHECK_PROMETHEUS_METRICS = false;
-
-static void validatePrometheusMetrics()
-{
-  MetricDefinitionStorage s_metricDefinitions;
-
-  auto varmap = getAllStatsMap(StatComponent::API);
-  for (const auto& tup : varmap) {
-    std::string metricName = tup.first;
-    // A few special cases not handled correctly by the check below
-    if (metricName.find("cpu-msec-") == 0) {
-      continue;
-    }
-    if (metricName.find("cumul-") == 0) {
-      continue;
-    }
-    if (metricName.find("auth-") == 0 && metricName.find("-answers") != string::npos) {
-      continue;
-    }
-    if (metricName.find("proxy-mapping-total") == 0) {
-      continue;
-    }
-    MetricDefinition metricDetails;
-
-    if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-      g_slog->info(Logr::Debug, "{ \"" + metricName + "\", MetricDefinition(PrometheusMetricType::counter, \"\")},");
-    }
-  }
-}
-
-RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
-{
-  if (CHECK_PROMETHEUS_METRICS) {
-    validatePrometheusMetrics();
-  }
-
-  d_ws = make_unique<AsyncWebServer>(fdm, arg()["webserver-address"], arg().asNum<uint16_t>("webserver-port"));
-  d_ws->setSLog(g_slog->withName("webserver"));
-
-  d_ws->setApiKey(arg()["api-key"], arg().mustDo("webserver-hash-plaintext-credentials"));
-  d_ws->setPassword(arg()["webserver-password"], arg().mustDo("webserver-hash-plaintext-credentials"));
-  d_ws->setLogLevel(arg()["webserver-loglevel"]);
-
-  NetmaskGroup acl;
-  acl.toMasks(::arg()["webserver-allow-from"]);
-  d_ws->setACL(acl);
-
-  d_ws->bind();
-
-  // legacy dispatch
-  d_ws->registerApiHandler(
-    "/jsonstat", [](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, "GET", true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush, "PUT");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFromPUT, "PUT");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFromGET, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFromGET, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFromPUT, "PUT");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics, "GET", true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailGET, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailPUT, "PUT");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailDELETE, "DELETE");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesGET, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesPOST, "POST");
-  d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, "GET", true);
-  d_ws->registerApiHandler("/api/v1/servers", apiServer, "GET");
-  d_ws->registerApiHandler("/api/v1", apiDiscoveryV1, "GET");
-  d_ws->registerApiHandler("/api", apiDiscovery, "GET");
-
-  for (const auto& url : g_urlmap) {
-    d_ws->registerWebHandler("/" + url.first, serveStuff, "GET");
-  }
-
-  d_ws->registerWebHandler("/", serveStuff, "GET");
-  d_ws->registerWebHandler("/metrics", prometheusMetrics, "GET");
-  d_ws->go();
-}
-#endif // !RUST_WS
-
 static void jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
@@ -912,7 +828,7 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
 
   map<string, string> stats;
   if (command == "get-query-ring") {
-    typedef pair<DNSName, uint16_t> query_t;
+    using query_t = pair<DNSName, uint16_t>;
     vector<query_t> queries;
     bool filter = !req->getvars["public-filtered"].empty();
 
@@ -926,7 +842,7 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
       queries = broadcastAccFunction<vector<query_t>>(pleaseGetQueryRing);
     }
 
-    typedef map<query_t, unsigned int> counts_t;
+    using counts_t = map<query_t, unsigned int>;
     counts_t counts;
     for (const query_t& count : queries) {
       if (filter) {
@@ -937,7 +853,7 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
       }
     }
 
-    typedef std::multimap<int, query_t> rcounts_t;
+    using rcounts_t = std::multimap<int, query_t>;
     rcounts_t rcounts;
 
     for (const auto& count : counts) {
@@ -949,14 +865,14 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
     unsigned int totIncluded = 0;
     for (const rcounts_t::value_type& count : rcounts) {
       totIncluded -= count.first;
-      entries.push_back(Json::array{
+      entries.emplace_back(Json::array{
         -count.first, count.second.first.toLogString(), DNSRecordContent::NumberToType(count.second.second)});
       if (tot++ >= 100) {
         break;
       }
     }
     if (queries.size() != totIncluded) {
-      entries.push_back(Json::array{
+      entries.emplace_back(Json::array{
         (int)(queries.size() - totIncluded), "", ""});
     }
     resp->setJsonBody(Json::object{{"entries", entries}});
@@ -979,13 +895,13 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
     else if (req->getvars["name"] == "timeouts") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetTimeouts);
     }
-    typedef map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts_t;
+    using counts_t = map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan>;
     counts_t counts;
     for (const ComboAddress& query : queries) {
       counts[query]++;
     }
 
-    typedef std::multimap<int, ComboAddress> rcounts_t;
+    using rcounts_t = std::multimap<int, ComboAddress>;
     rcounts_t rcounts;
 
     for (const auto& count : counts) {
@@ -997,14 +913,14 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
     unsigned int totIncluded = 0;
     for (const rcounts_t::value_type& count : rcounts) {
       totIncluded -= count.first;
-      entries.push_back(Json::array{
+      entries.emplace_back(Json::array{
         -count.first, count.second.toString()});
       if (tot++ >= 100) {
         break;
       }
     }
     if (queries.size() != totIncluded) {
-      entries.push_back(Json::array{
+      entries.emplace_back(Json::array{
         (int)(queries.size() - totIncluded), ""});
     }
 
@@ -1013,144 +929,6 @@ static void jsonstat(HttpRequest* req, HttpResponse* resp)
   }
   resp->setErrorResult("Command '" + command + "' not found", 404);
 }
-
-#ifndef RUST_WS
-
-void AsyncServerNewConnectionMT(void* arg)
-{
-  auto* server = static_cast<AsyncServer*>(arg);
-
-  try {
-    auto socket = server->accept(); // this is actually a shared_ptr
-    if (socket) {
-      server->d_asyncNewConnectionCallback(socket);
-    }
-  }
-  catch (NetworkError& e) {
-    // we're running in a shared process/thread, so can't just terminate/abort.
-    g_slog->withName("webserver")->error(Logr::Warning, e.what(), "Exception in web tread", Logging::Loggable("NetworkError"));
-    return;
-  }
-  catch (...) {
-    g_slog->withName("webserver")->info(Logr::Warning, "Exception in web tread");
-    return;
-  }
-}
-
-void AsyncServer::asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback)
-{
-  d_asyncNewConnectionCallback = callback;
-  fdm->addReadFD(d_server_socket.getHandle(), [this](int, boost::any&) { newConnection(); });
-}
-
-void AsyncServer::newConnection()
-{
-  getMT()->makeThread(&AsyncServerNewConnectionMT, this);
-}
-
-// This is an entry point from FDM, so it needs to catch everything.
-void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) const // NOLINT(readability-function-cognitive-complexity) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
-{
-  if (!socket->acl(d_acl)) {
-    return;
-  }
-
-  const auto unique = getUniqueID();
-  const string logprefix = d_logprefix + to_string(unique) + " ";
-
-  HttpRequest req(logprefix);
-  HttpResponse resp;
-#ifdef RECURSOR
-  auto log = d_slog->withValues("uniqueid", Logging::Loggable(to_string(unique)));
-  req.setSLog(log);
-  resp.setSLog(log);
-#endif
-
-  ComboAddress remote;
-  PacketBuffer reply;
-
-  try {
-    YaHTTP::AsyncRequestLoader yarl;
-    yarl.initialize(&req);
-    socket->setNonBlocking();
-
-    const struct timeval timeout{
-      g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
-    std::shared_ptr<TLSCtx> tlsCtx{nullptr};
-    if (d_loglevel > WebServer::LogLevel::None) {
-      socket->getRemote(remote);
-    }
-    auto handler = std::make_shared<TCPIOHandler>("", false, socket->releaseHandle(), timeout, tlsCtx);
-
-    PacketBuffer data;
-    try {
-      while (!req.complete) {
-        auto ret = arecvtcp(data, 16384, handler, true);
-        if (ret == LWResult::Result::Success) {
-          string str(reinterpret_cast<const char*>(data.data()), data.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): safe cast, data.data() returns unsigned char *
-          req.complete = yarl.feed(str);
-        }
-        else {
-          // read error OR EOF
-          break;
-        }
-      }
-      yarl.finalize();
-    }
-    catch (YaHTTP::ParseError& e) {
-      // request stays incomplete
-      req.d_slog->error(Logr::Warning, e.what(), "Unable to parse request");
-    }
-
-    if (!validURL(req.url)) {
-      throw PDNSException("Received request with invalid URL");
-    }
-    logRequest(req, remote);
-
-    WebServer::handleRequest(req, resp);
-    ostringstream stringStream;
-    resp.write(stringStream);
-    const string& str = stringStream.str();
-    reply.insert(reply.end(), str.cbegin(), str.cend());
-
-    logResponse(resp, remote, logprefix);
-
-    // now send the reply
-    if (asendtcp(reply, handler) != LWResult::Result::Success || reply.empty()) {
-      req.d_slog->info(Logr::Error, "Failed sending reply to HTTP client");
-    }
-    handler->close(); // needed to signal "done" to client
-    if (d_loglevel >= WebServer::LogLevel::Normal) {
-      req.d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
-                       "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
-                       "status", Logging::Loggable(resp.status), "respsize", Logging::Loggable(reply.size()));
-    }
-  }
-  catch (PDNSException& e) {
-    req.d_slog->error(Logr::Error, e.reason, "Exception handing request", "exception", Logging::Loggable("PDNSException"));
-  }
-  catch (std::exception& e) {
-    if (strstr(e.what(), "timeout") == nullptr) {
-      req.d_slog->error(Logr::Error, e.what(), "Exception handing request", "exception", Logging::Loggable("std::exception")))
-    }
-  }
-  catch (...) {
-    req.d_slog->error(Logr::Error, "Exception handing request");
-  }
-}
-
-void AsyncWebServer::go()
-{
-  if (!d_server) {
-    return;
-  }
-  auto server = std::dynamic_pointer_cast<AsyncServer>(d_server);
-  if (!server) {
-    return;
-  }
-  server->asyncWaitForConnections(d_fdm, [this](const std::shared_ptr<Socket>& socket) { serveConnection(socket); });
-}
-#endif // !RUST_WS
 
 void serveRustWeb()
 {
