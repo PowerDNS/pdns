@@ -22,6 +22,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 union ComboAddress;
 
@@ -51,7 +52,7 @@ struct EDNSCookiesOpt
       client.size() == 8 && (server.empty() || (server.size() >= 8 && server.size() <= 32)));
   }
 
-  [[nodiscard]] bool isValid(const std::string& secret, const ComboAddress& source) const;
+  [[nodiscard]] bool isValid(const std::string& secret, const ComboAddress& source, const std::vector<std::string>& oldSecrets = {}) const;
   void makeClientCookie();
   bool makeServerCookie(const std::string& secret, const ComboAddress& source);
 
