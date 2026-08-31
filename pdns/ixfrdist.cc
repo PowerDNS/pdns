@@ -71,6 +71,8 @@ AuthPacketCache PC;
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
 
+bool g_views{false};
+
 ArgvMap &arg()
 {
   static ArgvMap theArg;
