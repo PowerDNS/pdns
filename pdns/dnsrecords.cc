@@ -507,6 +507,9 @@ std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const DNSRecord &dr, 
 
     auto ret=std::make_shared<EUI48RecordContent>();
     pr.copyRecord((uint8_t*) &ret->d_eui48, 6);
+    if (!pr.eof()) {
+      throw MOADNSException("When parsing EUI48 trailing data was not parsed: '" + pr.getRemaining() + "'");
+    }
     return ret;
 }
 std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const string& zone)
@@ -551,6 +554,9 @@ std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const DNSRecord &dr, 
 
     auto ret=std::make_shared<EUI64RecordContent>();
     pr.copyRecord((uint8_t*) &ret->d_eui64, 8);
+    if (!pr.eof()) {
+      throw MOADNSException("When parsing EUI64 trailing data was not parsed: '" + pr.getRemaining() + "'");
+    }
     return ret;
 }
 std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const string& zone)
@@ -627,12 +633,16 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, Pa
       memset(ard.d_ip.d_ip6, 0, sizeof(ard.d_ip.d_ip6));
       for (u_int i=0; i < ard.d_afdlength; i++)
         pr.xfr8BitInt(ard.d_ip.d_ip6[i]);
-    } else
-    throw MOADNSException("Unknown family for APL record");
+    } else {
+      throw MOADNSException("Unknown family for APL record");
+    }
 
     processed += 4 + ard.d_afdlength;
 
     ret->aplrdata.push_back(ard);
+  }
+  if (!pr.eof()) {
+    throw MOADNSException("When parsing APL trailing data was not parsed: '" + pr.getRemaining() + "'");
   }
 
   return ret;
