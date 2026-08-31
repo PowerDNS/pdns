@@ -102,6 +102,7 @@ subdir('ext' / 'ipcrypt')
 subdir('ext' / 'ipcrypt2')
 subdir('ext' / 'json11')
 subdir('ext' / 'luawrapper')
+subdir('ext' / 'probds')
 subdir('ext' / 'protozero')
 subdir('ext' / 'yahttp')
 
@@ -155,6 +156,7 @@ common_sources += files(
   src_dir / 'dnsdist-lua-bindings-dnscrypt.cc',
   src_dir / 'dnsdist-lua-bindings-dnsparser.cc',
   src_dir / 'dnsdist-lua-bindings-dnsquestion.cc',
+  src_dir / 'dnsdist-lua-bindings-cache.cc',
   src_dir / 'dnsdist-lua-bindings-kvs.cc',
   src_dir / 'dnsdist-lua-bindings-mmdb.cc',
   src_dir / 'dnsdist-lua-bindings-network.cc',
@@ -419,6 +421,7 @@ deps = [
   dep_lua,
   dep_mmdb,
   dep_protozero,
+  dep_probds,
   dep_yahttp,
   dep_libre2,
   dep_threads,
@@ -569,6 +572,7 @@ test_sources += files(
   src_dir / 'test-dnsdist-ipcrypt2_cc.cc',
   src_dir / 'test-dnsdistdynblocks_hh.cc',
   src_dir / 'test-dnsdistedns.cc',
+  src_dir / 'test-dnsdistgenericcache_hh.cc',
   src_dir / 'test-dnsdistkvs_cc.cc',
   src_dir / 'test-dnsdistlbpolicies_cc.cc',
   src_dir / 'test-dnsdist-lua-ffi.cc',
