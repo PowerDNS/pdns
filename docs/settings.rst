@@ -1554,6 +1554,19 @@ itself in primary mode. In very complicated situations we could guess
 wrong and not notify a server that should be notified. In that case, set
 prevent-self-notification to "no".
 
+.. _setting-pkcs11:
+
+``pkcs11``
+----------
+
+.. versionadded:: 5.2.0
+
+- Boolean
+- Default: no
+
+When the PowerDNS Authoritative server is built with support for :doc:`PKCS#11 <dnssec/pkcs11>`,
+this switch enables the PKCS#11 engine.
+
 .. _setting-primary:
 
 ``primary``
