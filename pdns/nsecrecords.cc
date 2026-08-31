@@ -198,6 +198,9 @@ std::shared_ptr<NSECRecordContent::DNSRecordContent> NSECRecordContent::make(con
   pr.xfrName(ret->d_next);
 
   ret->d_bitmap.fromPacket(pr);
+  if (!pr.eof()) {
+    throw MOADNSException("When parsing NSEC trailing data was not parsed: '" + pr.getRemaining() + "'");
+  }
 
   return ret;
 }
@@ -268,6 +271,9 @@ std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(c
   pr.xfrBlob(ret->d_nexthash, len);
 
   ret->d_bitmap.fromPacket(pr);
+  if (!pr.eof()) {
+    throw MOADNSException("When parsing NSEC3 trailing data was not parsed: '" + pr.getRemaining() + "'");
+  }
   return ret;
 }
 
@@ -381,6 +387,9 @@ std::shared_ptr<CSYNCRecordContent::DNSRecordContent> CSYNCRecordContent::make(c
   pr.xfr16BitInt(ret->d_flags);
 
   ret->d_bitmap.fromPacket(pr);
+  if (!pr.eof()) {
+    throw MOADNSException("When parsing CSYNC trailing data was not parsed: '" + pr.getRemaining() + "'");
+  }
   return ret;
 }
 

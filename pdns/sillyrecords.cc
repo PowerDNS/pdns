@@ -233,6 +233,9 @@ std::shared_ptr<LOCRecordContent::DNSRecordContent> LOCRecordContent::make(const
   pr.xfr32BitInt(ret->d_latitude);
   pr.xfr32BitInt(ret->d_longitude);
   pr.xfr32BitInt(ret->d_altitude);
+  if (!pr.eof()) {
+    throw MOADNSException("When parsing LOC trailing data was not parsed: '" + pr.getRemaining() + "'");
+  }
 
   return ret;
 }
