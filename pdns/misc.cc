@@ -1397,9 +1397,8 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
-  const auto dirName = "/proc/" + std::to_string(getpid()) + "/fd/";
   struct stat status; // NOLINT(cppcoreguidelines-pro-type-member-init)
-  auto ret = stat(dirName.c_str(), &status);
+  auto ret = stat("/proc/self/fd", &status);
   if (ret != 0) {
     return 0;
   }
