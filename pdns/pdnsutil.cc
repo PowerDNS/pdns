@@ -68,6 +68,7 @@ po::variables_map g_vm;
 bool g_slogStructured{false};
 bool g_logDNSQueries{false};
 static Logger::Urgency s_logUrgency;
+bool g_views{false};
 
 string g_programname="pdns";
 

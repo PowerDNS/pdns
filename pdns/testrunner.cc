@@ -20,6 +20,7 @@ AuthZoneCache g_zoneCache;
 uint16_t g_maxNSEC3Iterations{0};
 bool g_slogStructured{false};
 bool g_logDNSQueries{false};
+bool g_views{false};
 
 ArgvMap& arg()
 {
