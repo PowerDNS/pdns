@@ -71,6 +71,7 @@ AuthPacketCache PC;
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
 bool g_logDNSQueries{false};
+bool g_views{false};
 
 ArgvMap &arg()
 {
