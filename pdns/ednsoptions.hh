@@ -58,3 +58,7 @@ bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, u
 
 void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res);
 bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options);
+
+// called with std::vector<uint8_t> and PacketBuffer
+template <typename T>
+int locateEDNSOptRR(const T& packet, uint16_t* optStart, size_t* optLen, bool* last);

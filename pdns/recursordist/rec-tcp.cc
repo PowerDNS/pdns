@@ -294,7 +294,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   DNSName qname;
   uint16_t qtype = 0;
   uint16_t qclass = 0;
-  bool needEDNSParse = false;
+  bool needEDNSParse = g_useIncomingECS;
   string requestorId;
   string deviceId;
   string deviceName;
@@ -458,7 +458,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
          but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
          as cacheable we would cache it with a wrong tag, so better safe than sorry. */
       auto match = comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck);
-      bool cacheHit = checkForCacheHit(qnameParsed, comboWriter->d_tag, conn->data, qname, qtype, qclass, g_now, response, comboWriter->d_qhash, pbData, true, comboWriter->d_source, comboWriter->d_mappedSource);
+      bool cacheHit = checkForCacheHit(qnameParsed, comboWriter->d_tag, conn->data, qname, qtype, qclass, g_now, response, comboWriter->d_qhash, pbData, true, comboWriter->d_source, comboWriter->d_mappedSource, comboWriter->d_ecsFound, comboWriter->d_ednssubnet);
       comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false, match);
 
       if (cacheHit) {
