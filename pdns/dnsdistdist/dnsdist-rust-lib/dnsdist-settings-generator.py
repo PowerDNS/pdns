@@ -482,25 +482,27 @@ def get_cpp_parameters(struct_name, parameters, skip_name):
             continue
         pname = get_rust_field_name(name)
         if len(output) > 0:
-            output += ', '
-        field = f'{struct_name}.{pname}'
-        if ptype == 'PacketBuffer':
-            field = f'PacketBuffer({field}.data(), {field}.data() + {field}.size())'
-        elif ptype == 'DNSName':
-            field = f'DNSName(std::string({field}))'
-        elif ptype == 'ComboAddress':
-            field = f'ComboAddress(std::string({field}))'
-        elif ptype == 'String':
-            field = f'std::string({field})'
-        elif ptype == 'ResponseConfig':
-            field = f'convertResponseConfig({field})'
-        elif ptype == 'Vec<SVCRecordParameters>':
-            field = f'convertSVCRecordParameters({field})'
-        elif ptype == 'SOAParams':
-            field = f'convertSOAParams({field})'
-        elif ptype == 'RCode':
+            output += ", "
+        field = f"{struct_name}.{pname}"
+        if ptype == "PacketBuffer":
+            field = f"PacketBuffer({field}.data(), {field}.data() + {field}.size())"
+        elif ptype == "DNSName":
+            field = f"DNSName(std::string({field}))"
+        elif ptype == "ComboAddress":
+            field = f"ComboAddress(std::string({field}))"
+        elif ptype == "OptionalComboAddress":
+            field = f"{field}.empty() ? std::nullopt : std::optional<ComboAddress>(std::string({field}))"
+        elif ptype == "String":
+            field = f"std::string({field})"
+        elif ptype == "ResponseConfig":
+            field = f"convertResponseConfig({field})"
+        elif ptype == "Vec<SVCRecordParameters>":
+            field = f"convertSVCRecordParameters({field})"
+        elif ptype == "SOAParams":
+            field = f"convertSOAParams({field})"
+        elif ptype == "RCode":
             field = f'dnsdist::configuration::yaml::strToRCode("{struct_name}", "{name}", {field})'
-        elif ptype == 'Opcode':
+        elif ptype == "Opcode":
             field = f'dnsdist::configuration::yaml::strToOpcode("{struct_name}", "{name}", {field})'
         output += field
     return output
