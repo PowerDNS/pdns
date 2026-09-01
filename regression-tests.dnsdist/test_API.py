@@ -1115,8 +1115,11 @@ class TestWebConcurrentConnections(APITestsBase):
         cls.startResponders()
         cls.startDNSDist()
         cls.setUpSockets()
-        # do no check if the web server socket is up, because this
-        # might mess up the concurrent connections counter
+        # startDNSDist now checks if the web server socket is up by default,
+        # which might mess up the concurrent connections counter. Let's wait one
+        # second to give more time to the web server thread to notice that the
+        # connection has been closed and decrease the connections counter.
+        time.sleep(1)
 
     def testConcurrentConnections(self):
         """
