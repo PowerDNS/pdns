@@ -1425,8 +1425,9 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 uint64_t getOpenFileDescriptors(const std::string& /* unused */)
 {
 #ifdef __linux__
+  const auto* const dirName = "/proc/self/fd";
   struct stat status; // NOLINT(cppcoreguidelines-pro-type-member-init)
-  auto ret = stat("/proc/self/fd", &status);
+  auto ret = stat(dirName, &status);
   if (ret != 0) {
     return 0;
   }
@@ -1436,7 +1437,6 @@ uint64_t getOpenFileDescriptors(const std::string& /* unused */)
 
   // This can lead to performance issues with *many* open fds
   uint64_t nbFileDescriptors = 0;
-  const auto dirName = "/proc/" + std::to_string(getpid()) + "/fd/";
   auto directoryError = pdns::visit_directory(dirName, [&nbFileDescriptors]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
     uint32_t num{};
     try {
