@@ -81,9 +81,9 @@ dependencies = [
 
 [[package]]
 name = "cxx"
-version = "1.0.191"
+version = "1.0.196"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd46505a9588ea42961c833d8e20a8956741f26f4aa84f5248a60c2137bf0373"
+checksum = "ac6f8908ed0826ab0aec7c8358a4de3a9b26c5ed391a5dc5135765d2fd1aa8fb"
 dependencies = [
  "cc",
  "cxx-build",
@@ -96,9 +96,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-build"
-version = "1.0.191"
+version = "1.0.196"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b78549cfae183ba0391f186544fdf1f5d96e9d3cf2683ee1449a3aea066e4e32"
+checksum = "6d8ae25c0ce72ac21a77b5deec4f49b452238ef97072f697dd6fd752b1355ecd"
 dependencies = [
  "cc",
  "codespan-reporting",
@@ -111,9 +111,9 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-cmd"
-version = "1.0.191"
+version = "1.0.196"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5f593aa804e4cd4fda75ca4c56820c15a27ac667f02bffe626c2ed16e2d747d"
+checksum = "27d53791812143bd27f74ab6055f22e875f04c59bbef0ca03d714ebec6f6f484"
 dependencies = [
  "clap",
  "codespan-reporting",
@@ -125,15 +125,15 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.191"
+version = "1.0.196"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5e77806f6ca008fe3cb35ac747db8f5cf30c038b81ae97077a6aecd7ca01a31"
+checksum = "fd557619f7dc2252bf7373f6bec5600ce60a2b477e5b3b84eb4e074bb297795e"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.191"
+version = "1.0.196"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e751ebe2dee4a88a26df4f11c2baf6aa1e7f652af9a3bef5b4db5ae33397577d"
+checksum = "7fe465fc5b9d0231ea141c4fae714a08f4f907855e1a7ca10cc90ab6c8b12ece"
 dependencies = [
  "indexmap",
  "proc-macro2",
@@ -692,7 +692,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
