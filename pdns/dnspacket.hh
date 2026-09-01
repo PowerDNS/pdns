@@ -207,6 +207,7 @@ private:
   bool d_haveednscookie{false};
   bool d_ednscookievalid{false};
   bool d_haveednssection{false};
+  bool d_ednspadding{false};
   bool d_isQuery;
 
   Logr::log_t d_slog;
