@@ -46,6 +46,7 @@
 
 bool g_slogStructured{false};
 bool g_logDNSQueries{false};
+bool g_views{false};
 
 extern std::unique_ptr<DNSBackend> backendUnderTest;
 
