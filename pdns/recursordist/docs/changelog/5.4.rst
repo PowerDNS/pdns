@@ -4,6 +4,38 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.4.6
+  :released: 3rd of September 2026
+
+  .. change::
+     :tags: Improvements
+     :pullreq: 17967
+     :tickets: 17869
+
+     Skip unexpected tags when deserializing protobuf messages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17968, 17983
+    :tickets: 17897
+
+    Store scope zero replies in packetcache and modify on retrieval.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17969
+    :tickets: 17696
+
+    Update our Rust deps.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17996
+    :tickets: 17973
+
+    Make getOpenFileDescriptors fast.
+
+.. changelog::
   :version: 5.4.5
   :released: 6th of August 2026
 
