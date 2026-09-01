@@ -1738,12 +1738,9 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
           throw ApiException("Private key algorithm (" + DNSSECKeeper::algorithm2name(dke->getBits()) + ") is inconsistent with the 'algorithm' field");
         }
       }
-      uint16_t flags = 0;
+      uint16_t flags = DNSKEYFlag::ZONE;
       if (keyOrZone) {
-        flags = 257;
-      }
-      else {
-        flags = 256;
+        flags |= DNSKEYFlag::SEP;
       }
 
       algorithm = dkrc.d_algorithm;

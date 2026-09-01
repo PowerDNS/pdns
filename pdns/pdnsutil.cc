@@ -3517,7 +3517,7 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
         cerr<<"Could not process key to extract metadata: "<<e.what()<<endl;
       }
       if (!exportDS) {
-        cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
+        cout << ((key.d_flags & DNSKEYFlag::SEP) != 0 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
         cout << "DNSKEY = " <<zone.operator const DNSName&().toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
       }
 
@@ -3648,7 +3648,7 @@ static bool secureZone(DNSSECKeeper& dsk, const ZoneName& zone)
     else
       cout << "Securing zone with default key size" << endl;
 
-    cout << "Adding " << (z_algo.empty() ? "CSK (257)" : "KSK") << " with algorithm " << k_algo << endl;
+    cout << "Adding " << (z_algo.empty() ? "CSK (with SEP bit)" : "KSK") << " with algorithm " << k_algo << endl;
 
     int k_real_algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
@@ -5074,13 +5074,13 @@ static int importZoneKeyPEM(vector<string>& cmds, const std::string_view synopsi
 
   cerr << std::to_string(algo) << endl;
 
-  uint16_t flags = 0;
+  uint16_t flags = DNSKEYFlag::ZONE;
   if (cmds.size() > 3) {
     if (pdns_iequals(cmds.at(3), "ZSK")) {
-      flags = 256;
+      flags |= 0;
     }
     else if (pdns_iequals(cmds.at(3), "KSK")) {
-      flags = 257;
+      flags |= DNSKEYFlag::SEP;
     }
     else {
       cerr << "Unknown key flag '" << cmds.at(3) << "'" << endl;
@@ -5088,7 +5088,7 @@ static int importZoneKeyPEM(vector<string>& cmds, const std::string_view synopsi
     }
   }
   else {
-    flags = 257; // ksk
+    flags |= DNSKEYFlag::SEP; // ksk
   }
   dpk.setKey(key, flags, algo);
 
@@ -5111,16 +5111,16 @@ static int importZoneKey(vector<string>& cmds, const std::string_view synopsis)
   DNSKEYRecordContent drc;
   shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromISCFile(nullptr /* no structured logging */, drc, fname.c_str()));
 
-  uint16_t flags = 257;
+  uint16_t flags = DNSKEYFlag::ZONE | DNSKEYFlag::SEP;
   bool active=true;
   bool published=true;
 
   for(unsigned int n = 2; n < cmds.size(); ++n) { // NOLINT(readability-identifier-length)
     if (pdns_iequals(cmds.at(n), "ZSK")) {
-      flags = 256;
+      flags &= ~DNSKEYFlag::SEP;
     }
     else if (pdns_iequals(cmds.at(n), "KSK")) {
-      flags = 257;
+      flags |= DNSKEYFlag::SEP;
     }
     else if (pdns_iequals(cmds.at(n), "active")) {
       active = true;
@@ -5225,7 +5225,8 @@ static int generateZoneKey(vector<string>& cmds, const std::string_view synopsis
   }
   dpk->create(bits);
   DNSSECPrivateKey dspk;
-  dspk.setKey(dpk, keyOrZone ? 257 : 256, algorithm);
+  uint16_t flags = DNSKEYFlag::ZONE | (keyOrZone? DNSKEYFlag::SEP : 0);
+  dspk.setKey(dpk, flags, algorithm);
 
   // print key to stdout
   cout << "Flags: " << dspk.getFlags() << endl <<
@@ -5537,7 +5538,8 @@ static int HSMAssign(vector<string>& cmds, const std::string_view synopsis)
     return 1;
   }
   DNSSECPrivateKey dpk;
-  dpk.setKey(dke, keyOrZone ? 257 : 256);
+  uint16_t flags = DNSKEYFlag::ZONE | (keyOrZone? DNSKEYFlag::SEP : 0);
+  dpk.setKey(dke, flags);
 
   // make sure this key isn't being reused.
   B.getDomainKeys(zone, keys);
