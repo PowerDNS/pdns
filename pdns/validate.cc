@@ -23,6 +23,7 @@
 #include "validate.hh"
 #include "dnssec.hh"
 #include "base32.hh"
+#include "dnssecinfra.hh"
 
 uint32_t g_signatureInceptionSkew{0};
 uint16_t g_maxNSEC3Iterations{0};
@@ -43,13 +44,13 @@ static bool isAZoneKey(const DNSKEYRecordContent& key)
      Let's check that this is a ZONE key, even though there is no other
      types of DNSKEYs at the moment.
   */
-  return (key.d_flags & 256) != 0;
+  return (key.d_flags & DNSKEYFlag::ZONE) != 0;
 }
 
 static bool isRevokedKey(const DNSKEYRecordContent& key)
 {
   /* rfc5011 Section 3 */
-  return (key.d_flags & 128) != 0;
+  return (key.d_flags & DNSKEYFlag::REVOKED) != 0;
 }
 
 static vector<shared_ptr<const DNSKEYRecordContent>> getByTag(const skeyset_t& keys, uint16_t tag, uint8_t algorithm, const OptLog& log)
