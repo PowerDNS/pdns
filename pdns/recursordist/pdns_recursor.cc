@@ -1019,7 +1019,7 @@ static void substituteScopeZero(std::string& response, RecursorPacketCache::ECSI
   // XXX Do we need to check family?
   //cerr << "Foun2 " << ecsLen << ' ' << makeHexDump(string(&response.at(pos), ecsLen)) << endl;
   //cerr << "Paylo " << ecsPayload.size() << ' ' << makeHexDump(ecsPayload) << endl;
-  response.replace(pos, pos + ecsLen, ecsPayload);
+  response.replace(pos, ecsLen, ecsPayload);
   //cerr << "After " << ecsLen << ' ' << makeHexDump(string(&response.at(pos), ecsLen)) << endl;
 }
 

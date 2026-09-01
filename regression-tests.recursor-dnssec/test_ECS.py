@@ -38,7 +38,7 @@ ecs-add-for=0.0.0.0/0
 """
 
     def checkScopeZero(self, options, scopeZeroResponse, family):
-        self.assertEqual(len(options), 1)
+        self.assertIn(len(options), [1, 2])
         self.assertEqual(options[0].otype, 8)
         self.assertEqual(options[0].scope, 0)
         ip = options[0].ip
@@ -301,6 +301,7 @@ class IncomingNoECSTest(ECSTest):
 
     _config_template = """edns-subnet-allow-list=
 use-incoming-edns-subnet=yes
+edns-padding-from=0.0.0.0/0
 forward-zones=ecs-echo.example=%s.21
     """ % (os.environ['PREFIX'])
 
@@ -308,24 +309,25 @@ forward-zones=ecs-echo.example=%s.21
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
 
         ecso = clientsubnetoption.ClientSubnetOption("192.0.0.0", 16)
-        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        padding = dns.edns.GenericOption(dns.edns.PADDING, "hello");
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso, padding], payload=512)
         self.sendECSQuery(query, expected, scopeZeroResponse="192.0.0.0")
         # Again, with more specific net
         ecso = clientsubnetoption.ClientSubnetOption("192.0.2.0", 24)
-        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso, padding], payload=512)
         self.sendECSQuery(query, expected, scopeZeroResponse="192.0.2.0")
 
         ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 32)
-        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso, padding], payload=512)
         self.sendECSQuery(query, expected, scopeZeroResponse="192.0.2.1")
         # Again. with different ECS
         ecso = clientsubnetoption.ClientSubnetOption("193.0.2.1", 32)
-        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso, padding], payload=512)
         self.sendECSQuery(query, expected, scopeZeroResponse="193.0.2.1")
 
         # Again. with different v6 ECS
         ecso = clientsubnetoption.ClientSubnetOption("dead:beef:beef:dead:cafe::", 32)
-        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso], payload=512)
+        query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso, padding], payload=512)
         self.sendECSQuery(query, expected, scopeZeroResponse="dead:beef::", family=socket.AF_INET6)
 
     def testNoECS(self):
