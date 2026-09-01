@@ -329,6 +329,10 @@ struct ClientState
   mutable stat_t responses{0};
   mutable stat_t tcpDiedReadingQuery{0};
   mutable stat_t tcpDiedSendingResponse{0};
+  mutable stat_t tcpDiedDuringProcessing{0};
+  mutable stat_t tcpBadALPN{0};
+  mutable stat_t tcpMaxDurationReached{0};
+  mutable stat_t tcpBadProxyProtocol{0};
   mutable stat_t tcpGaveUp{0};
   mutable stat_t tcpClientTimeouts{0};
   mutable stat_t tcpDownstreamTimeouts{0};

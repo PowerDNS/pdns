@@ -727,6 +727,14 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << frontsbase << "tcpclienttimeouts " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpdownstreamtimeouts " << "Amount of TCP connections terminated by a timeout while reading from the backend" << "\n";
   output << "# TYPE " << frontsbase << "tcpdownstreamtimeouts " << "counter" << "\n";
+  output << "# HELP " << frontsbase << "tcpdiedduringprocessing " << "Amount of TCP connections terminated by an internal error during processing" << "\n";
+  output << "# TYPE " << frontsbase << "tcpdiedduringprocessing " << "counter" << "\n";
+  output << "# HELP " << frontsbase << "tcpbadalpn " << "Amount of TCP connections terminated because the client did not send the expected ALPN" << "\n";
+  output << "# TYPE " << frontsbase << "tcpbadalpn " << "counter" << "\n";
+  output << "# HELP " << frontsbase << "tcpbadproxyprotocol " << "Amount of TCP connections terminated because the client send an invalid Proxy Protocol payload" << "\n";
+  output << "# TYPE " << frontsbase << "tcpbadproxyprotocol " << "counter" << "\n";
+  output << "# HELP " << frontsbase << "tcpmaxdurationreached " << "Amount of TCP connections terminated because the connection reached its maximum configured duration" << "\n";
+  output << "# TYPE " << frontsbase << "tcpmaxdurationreached " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpcurrentconnections " << "Amount of current incoming TCP connections from clients" << "\n";
   output << "# TYPE " << frontsbase << "tcpcurrentconnections " << "gauge" << "\n";
   output << "# HELP " << frontsbase << "tcpmaxconcurrentconnections " << "Maximum number of concurrent incoming TCP connections from clients" << "\n";
@@ -779,6 +787,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << frontsbase << "tcpgaveup" << label << front->tcpGaveUp.load() << "\n";
       output << frontsbase << "tcpclienttimeouts" << label << front->tcpClientTimeouts.load() << "\n";
       output << frontsbase << "tcpdownstreamtimeouts" << label << front->tcpDownstreamTimeouts.load() << "\n";
+      output << frontsbase << "tcpdiedduringprocessing" << label << front->tcpDiedDuringProcessing.load() << "\n";
+      output << frontsbase << "tcpbadalpn" << label << front->tcpBadALPN.load() << "\n";
+      output << frontsbase << "tcpbadproxyprotocol" << label << front->tcpBadProxyProtocol.load() << "\n";
+      output << frontsbase << "tcpmaxdurationreached" << label << front->tcpMaxDurationReached.load() << "\n";
       output << frontsbase << "tcpcurrentconnections" << label << front->tcpCurrentConnections.load() << "\n";
       output << frontsbase << "tcpmaxconcurrentconnections" << label << front->tcpMaxConcurrentConnections.load() << "\n";
       output << frontsbase << "tcpavgqueriesperconnection" << label << front->tcpAvgQueriesPerConnection.load() << "\n";
@@ -1220,6 +1232,10 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       {"tcpGaveUp", (double)front->tcpGaveUp.load()},
       {"tcpClientTimeouts", (double)front->tcpClientTimeouts},
       {"tcpDownstreamTimeouts", (double)front->tcpDownstreamTimeouts},
+      {"tcpDiedDuringProcessing", (double)front->tcpDiedDuringProcessing},
+      {"tcpBadALPN", (double)front->tcpBadALPN},
+      {"tcpBadProxyProtocol", (double)front->tcpBadProxyProtocol},
+      {"tcpMaxDurationReached", (double)front->tcpMaxDurationReached},
       {"tcpCurrentConnections", (double)front->tcpCurrentConnections},
       {"tcpMaxConcurrentConnections", (double)front->tcpMaxConcurrentConnections},
       {"tcpAvgQueriesPerConnection", (double)front->tcpAvgQueriesPerConnection},

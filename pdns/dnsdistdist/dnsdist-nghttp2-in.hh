@@ -77,6 +77,12 @@ private:
   static void handleWritableIOCallback(int descriptor, FDMultiplexer::funcparam_t& param);
 
   static constexpr size_t s_initialReceiveBufferSize{256U};
+  enum class ErrorContext : uint8_t
+  {
+    ErrorWhileReadingFromClient = 0,
+    ErrorWhileProcessingContent,
+    ErrorWhileWritingToClient
+  };
 
   IOState sendResponse(const struct timeval& now, TCPResponse&& response) override;
   bool forwardViaUDPFirst() const override
@@ -91,7 +97,7 @@ private:
   uint32_t getConcurrentStreamsCount() const;
   void updateIO(IOState newState, const timeval& now) override;
   void updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback);
-  void handleIOError();
+  void handleIOError(ErrorContext context);
   bool sendResponse(StreamID streamID, PendingQuery& context, uint16_t responseCode, const HeadersMap& customResponseHeaders, const std::string& contentType = "", bool addContentType = true);
   void handleIncomingQuery(PendingQuery&& query, StreamID streamID);
   bool checkALPN();

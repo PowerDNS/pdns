@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import requests
 import ssl
 import struct
 import time
@@ -17,6 +18,17 @@ class TestTCPLimits(DNSDistTest):
     _testServerPort = pickAvailablePort()
     _answerUnexpected = True
 
+    _webTimeout = 2.0
+    _webServerPort = pickAvailablePort()
+    _webServerBasicAuthPassword = "secret"
+    _webServerBasicAuthPasswordHashed = (
+        "$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM="
+    )
+    _webServerAPIKey = "apisecret"
+    _webServerAPIKeyHashed = (
+        "$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso="
+    )
+
     _tcpIdleTimeout = 2
     _maxTCPQueriesPerConn = 5
     _maxTCPConnsPerClient = 3
@@ -32,8 +44,41 @@ class TestTCPLimits(DNSDistTest):
     -- disable the maximum number of read IOs per query, otherwise the maximum duration (testTCPDuration)
     -- test gets us banned very quickly
     setMaxTCPReadIOsPerQuery(0)
+
+    -- to check metrics
+    webserver("127.0.0.1:%d")
+    setWebserverConfig({password="%s", apiKey="%s"})
     """
-    _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxTCPQueriesPerConn', '_maxTCPConnsPerClient', '_maxTCPConnDuration']
+    _config_params = [
+        "_testServerPort",
+        "_tcpIdleTimeout",
+        "_maxTCPQueriesPerConn",
+        "_maxTCPConnsPerClient",
+        "_maxTCPConnDuration",
+        "_webServerPort",
+        "_webServerBasicAuthPasswordHashed",
+        "_webServerAPIKeyHashed",
+    ]
+
+    def getFrontendMetrics(self):
+        headers = {"x-api-key": self._webServerAPIKey}
+        url = "http://127.0.0.1:" + str(self._webServerPort) + "/api/v1/servers/localhost"
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+
+        content = r.json()
+        self.assertIsNotNone(content)
+        self.assertIn("frontends", content)
+        frontends = content["frontends"]
+        self.assertEqual(len(frontends), 2)
+        for front in frontends:
+            self.assertIn("type", front)
+            if front["type"] == "TCP":
+                return front
+
+        # not found
+        self.fail()
 
     def testTCPQueriesPerConn(self):
         """
@@ -111,6 +156,9 @@ class TestTCPLimits(DNSDistTest):
         """
         name = 'duration.tcp.tests.powerdns.com.'
 
+        metrics = self.getFrontendMetrics()
+        self.assertIn("tcpMaxDurationReached", metrics)
+        counterBefore = metrics["tcpMaxDurationReached"]
         start = time.time()
         conn = self.openTCPConnection()
         # immediately send the maximum size
@@ -129,9 +177,13 @@ class TestTCPLimits(DNSDistTest):
                 break
 
         end = time.time()
-
         self.assertAlmostEqual(count / 10, self._maxTCPConnDuration, delta=2)
         self.assertAlmostEqual(end - start, self._maxTCPConnDuration, delta=2)
+
+        metrics = self.getFrontendMetrics()
+        self.assertIn("tcpMaxDurationReached", metrics)
+        counterAfter = metrics["tcpMaxDurationReached"]
+        self.assertEqual(counterAfter, counterBefore + 1)
 
         conn.close()
 
