@@ -43,6 +43,7 @@
 #include <cstring>
 #include <iostream>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include <algorithm>
 #include <poll.h>
