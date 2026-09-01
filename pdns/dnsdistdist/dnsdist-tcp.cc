@@ -474,23 +474,8 @@ IOState IncomingTCPConnectionState::sendResponse(const struct timeval& now, TCPR
   }
 }
 
-void IncomingTCPConnectionState::terminateClientConnection()
+void IncomingTCPConnectionState::waitUntilAsyncOperationsAreDone()
 {
-  DEBUGLOG("terminating client connection");
-  d_queuedResponses.clear();
-  /* we have already released idle connections that could be reused,
-     we don't care about the ones still waiting for responses */
-  for (auto& backend : d_ownedConnectionsToBackend) {
-    for (auto& conn : backend.second) {
-      conn->release(true);
-    }
-  }
-  d_ownedConnectionsToBackend.clear();
-
-  /* meaning we will no longer be 'active' when the backend
-     response or timeout comes in */
-  d_ioState.reset();
-
   /* if we do have remaining async descriptors associated with this TLS
      connection, we need to defer the destruction of the TLS object until
      the engine has reported back, otherwise we have a use-after-free.. */
@@ -510,6 +495,26 @@ void IncomingTCPConnectionState::terminateClientConnection()
       }
     }
   }
+}
+
+void IncomingTCPConnectionState::terminateClientConnection()
+{
+  DEBUGLOG("terminating client connection");
+  d_queuedResponses.clear();
+  /* we have already released idle connections that could be reused,
+     we don't care about the ones still waiting for responses */
+  for (auto& backend : d_ownedConnectionsToBackend) {
+    for (auto& conn : backend.second) {
+      conn->release(true);
+    }
+  }
+  d_ownedConnectionsToBackend.clear();
+
+  /* meaning we will no longer be 'active' when the backend
+     response or timeout comes in */
+  d_ioState.reset();
+
+  waitUntilAsyncOperationsAreDone();
 }
 
 void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response, bool fromBackend)
