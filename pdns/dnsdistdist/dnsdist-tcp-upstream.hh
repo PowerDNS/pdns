@@ -84,6 +84,7 @@ public:
   void handleCrossProtocolResponse(const struct timeval& now, TCPResponse&& response);
 
   void terminateClientConnection();
+  void waitUntilAsyncOperationsAreDone();
 
   bool canAcceptNewQueries(const struct timeval& now);
 
