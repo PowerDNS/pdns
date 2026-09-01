@@ -309,7 +309,7 @@ forward-zones=ecs-echo.example=%s.21
         expected = dns.rrset.from_text(nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
 
         ecso = clientsubnetoption.ClientSubnetOption("192.0.0.0", 16)
-        padding = dns.edns.GenericOption(dns.edns.PADDING, "hello");
+        padding = dns.edns.GenericOption(dns.edns.PADDING, "hello")
         query = dns.message.make_query(nameECS, "TXT", "IN", use_edns=True, options=[ecso, padding], payload=512)
         self.sendECSQuery(query, expected, scopeZeroResponse="192.0.0.0")
         # Again, with more specific net
