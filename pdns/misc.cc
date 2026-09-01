@@ -42,6 +42,7 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <algorithm>
@@ -1396,17 +1397,29 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
+  const auto* const dirName = "/proc/self/fd";
+  struct stat status; // NOLINT(cppcoreguidelines-pro-type-member-init)
+  auto ret = stat(dirName, &status);
+  if (ret != 0) {
+    return 0;
+  }
+  if (status.st_size != 0) { // Until linux 6.1, this would return 0
+    return status.st_size;
+  }
+
+  // This can lead to performance issues with *many* open fds
   uint64_t nbFileDescriptors = 0;
-  const auto dirName = "/proc/" + std::to_string(getpid()) + "/fd/";
   auto directoryError = pdns::visit_directory(dirName, [&nbFileDescriptors]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
-    uint32_t num;
+    uint32_t num{};
     try {
       pdns::checked_stoi_into(num, std::string(name));
       if (std::to_string(num) == name) {
         nbFileDescriptors++;
       }
-    } catch (...) {
+    }
+    catch (...) {
       // was not a number.
+      ;
     }
     return true;
   });
