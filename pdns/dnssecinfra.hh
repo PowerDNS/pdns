@@ -204,6 +204,12 @@ class DNSCryptoKeyEngine
     const unsigned int d_algorithm;
 };
 
+enum DNSKEYFlag : uint16_t {
+  ZONE    = 1<<8, // RFC 4034
+  REVOKED = 1<<7, // RFC 5011
+  SEP     = 1,    // RFC 4034
+};
+
 struct DNSSECPrivateKey
 {
   uint16_t getTag() const
