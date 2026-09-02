@@ -25,22 +25,6 @@ if dep_libssl.found()
     has = cxx.has_function(func, dependencies: dep_libssl)
     conf.set('HAVE_' + func.to_upper(), has, description: 'Have OpenSSL libssl ' + func)
   endforeach
-
-  funcs = [
-    'SSL_CTX_set1_groups_list',
-  ]
-  foreach func: funcs
-    has = cxx.has_header_symbol(
-      'openssl/ssl.h',
-      func,
-      dependencies: dep_libssl,
-    )
-    conf.set(
-      'HAVE_' + func.to_upper(),
-      has,
-      description: 'Have OpenSSL libssl ' + func,
-    )
-  endforeach
 endif
 
 conf.set('HAVE_LIBSSL', dep_libssl.found(), description: 'OpenSSL libssl')
