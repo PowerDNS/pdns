@@ -686,6 +686,7 @@ dnsdist-2.0.5.security-status                              60 IN TXT "3 Upgrade 
 dnsdist-2.0.6.security-status                              60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-09.html"
 dnsdist-2.0.7.security-status                              60 IN TXT "3 Upgrade now, see https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2026-11.html"
 dnsdist-2.0.8.security-status                              60 IN TXT "1 OK"
+dnsdist-2.0.9.security-status                              60 IN TXT "1 OK"
 dnsdist-2.1.0-alpha1.security-status                       60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 dnsdist-2.1.0-beta1.security-status                        60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 dnsdist-2.1.0-beta2.security-status                        60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
