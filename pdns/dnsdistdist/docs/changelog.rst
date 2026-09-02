@@ -2,6 +2,112 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.9
+  :released: TBD
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17944
+
+    Prevent an exception when accessing an empty StatNode
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17945
+
+    Don't close DoH on timeout, do on release (Karel Bilek)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17948
+
+    Fix build error on 32 bits systems (``armhf``, ...) (Hector Cao)
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17949
+
+    Fix the default value for IPv4 ECS source prefix
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17950
+
+    Fix naming And, Or and Not selectors, Continue action from YAML
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 17951
+
+    Fix the dropping of responses for DoQ and DoH3 queries
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17952
+
+    Gracefully handle errors in DynBlock's suffix match policy
+
+  .. change::
+    :tags: Improvements, YAML
+    :pullreq: 17953
+
+    Improve exception handling when parsing our YAML configuration
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 17954
+
+    Use the proper ALPN on auto-upgraded DoT/DoH backends
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17979
+
+    Update Quiche to 0.29.3
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17981
+
+    ``nghttp2``'s error callback is "solely for debugging purpose"
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17982
+
+    Properly set the "last IO blocked" flag from incoming DoH
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17986
+
+    Properly handle empty local address for TeeAction via YAML
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 17987
+
+    Fix drops in the web dashboard (Ersin Gündem)
+
+  .. change::
+    :tags: Bug Fixes, Metrics, DNS over HTTP3
+    :pullreq: 17989
+
+    Add missing DoH3 latency metrics to prometheus
+
+  .. change::
+    :tags: Improvements, DNS over TLS, DNS over HTTPS
+    :pullreq: 17990
+
+    Add more counters for TCP frontends
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17991
+
+    QAT fixes
+
+.. changelog::
   :version: 2.1.1
   :released: 6th of August 2026
 
