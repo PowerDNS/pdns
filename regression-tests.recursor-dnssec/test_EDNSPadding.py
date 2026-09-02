@@ -12,6 +12,7 @@ class RecursorEDNSPaddingTest(RecursorTest):
     _confdir = "RecursorEDNSPadding"
 
     def checkPadding(self, message, numberOfBytes=None):
+        self.assertEqual(len(message.wire) % 468, 0)
         self.assertEqual(message.edns, 0)
         self.assertEqual(len(message.options), 1)
         for option in message.options:
@@ -156,6 +157,26 @@ packetcache-ttl=60
         res = self.sendUDPQuery(query)
         self.checkPadding(res)
         self.assertRRsetInAnswer(res, expected)
+
+    def testQueryWithPaddingAndEDE(self):
+        name = "xxx.secure.example."
+        po = paddingoption.PaddingOption(64)
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+        self.checkPadding(res)
+
+        # This one shoudl have padding and EDE
+        name = "yyy.secure.example."
+        po = paddingoption.PaddingOption(64)
+        query = dns.message.make_query(name, "A", want_dnssec=True, options=[po])
+        query.flags |= dns.flags.CD
+        res = self.sendUDPQuery(query)
+        self.assertEqual(len(res.wire) % 468, 0)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 2)
+        self.assertEqual(res.options[0].otype, 15)
+        self.assertEqual(res.options[1].otype, 12)
 
     def testQueryWithPaddingButDisabledViaLua(self):
         name = "host1.secure.example."
