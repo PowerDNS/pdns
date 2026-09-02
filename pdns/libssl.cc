@@ -1303,9 +1303,8 @@ void libssl_set_alpn_select_callback([[maybe_unused]] SSL_CTX* ctx, [[maybe_unus
 #endif
 }
 
-bool libssl_set_alpn_protos([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] const std::vector<std::vector<uint8_t>>& protos)
+bool libssl_set_alpn_protos(SSL_CTX* ctx, const std::vector<std::vector<uint8_t>>& protos)
 {
-#ifdef HAVE_SSL_CTX_SET_ALPN_PROTOS
   std::vector<uint8_t> wire;
   for (const auto& proto : protos) {
     if (proto.size() > std::numeric_limits<uint8_t>::max()) {
@@ -1316,9 +1315,6 @@ bool libssl_set_alpn_protos([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] cons
     wire.insert(wire.end(), proto.begin(), proto.end());
   }
   return SSL_CTX_set_alpn_protos(ctx, wire.data(), wire.size()) == 0;
-#else
-  return false;
-#endif
 }
 
 
