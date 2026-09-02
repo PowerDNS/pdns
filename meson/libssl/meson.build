@@ -18,7 +18,6 @@ if dep_libssl.found()
     'SSL_CTX_set_num_tickets',
     'SSL_CTX_set_keylog_callback',
     'SSL_CTX_get0_privatekey',
-    'SSL_set_hostflags',
     'SSL_CTX_set_alpn_protos',
     'SSL_CTX_set_next_proto_select_cb',
     'SSL_get0_alpn_selected',
