@@ -19,7 +19,6 @@ if dep_libssl.found()
     'SSL_CTX_set_keylog_callback',
     'SSL_CTX_get0_privatekey',
     'SSL_CTX_use_cert_and_key',
-    'TLS_client_method',
   ]
 
   foreach func: funcs
