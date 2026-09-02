@@ -2,6 +2,124 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.1.2
+  :released: TBD
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17927
+
+    Improve exception handling when parsing our YAML configuration
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 17928
+
+    Fix the dropping of responses for DoQ and DoH3 queries
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17929
+
+    Gracefully handle errors in DynBlock's suffix match policy
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17930
+
+    Properly set the "last IO blocked" flag from incoming DoH
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17931
+
+    ``nghttp2``'s error callback is "solely for debugging purpose"
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17932
+
+    Fix a race when calling ``getPool``/``getCache`` from a Lua selector/action
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 17934
+
+    Fix a regression when dots are used in the carbon host name
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17935
+
+    Fix DNS over HTTPS in TLS asynchronous mode
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 17936
+
+    Fix drops in the web dashboard (Ersin Gündem)
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 17937
+
+    Add missing DoH3 latency metrics to prometheus
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 17938
+
+    Use the proper ALPN on auto-upgraded DoT/DoH backends
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17939
+
+    Update our Rust deps
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17940
+
+    Increase testrunner timeouts
+
+  .. change::
+    :tags: Improvements, DNS over TLS, DNS over HTTPS
+    :pullreq: 17942
+
+    Add more counters for TCP frontends
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 17943
+
+    Update Quiche to 0.29.3 in our packages
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 17975
+
+    Properly handle empty local address for TeeAction via YAML
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 17976
+
+    Keep the SSL context alive until all async ops are done
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, DNS over TLS
+    :pullreq: 17977
+
+    Handle having no TLS ticket keys
+
+  .. change::
+    :tags: Improvements, Metrics, Performance
+    :pullreq: 17993
+
+    Make ``getOpenFileDescriptors`` fast
+
+.. changelog::
   :version: 2.1.1
   :released: 6th of August 2026
 
