@@ -128,7 +128,8 @@ bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, i
     throw runtime_error("The algorithm does not support the given bit size.");
   }
   DNSSECPrivateKey dspk;
-  dspk.setKey(dpk, setSEPBit ? 257 : 256, algorithm);
+  auto flags = DNSKEYFlag::ZONE | (setSEPBit ? DNSKEYFlag::SEP : 0);
+  dspk.setKey(dpk, flags, algorithm);
   return addKey(name, dspk, keyId, active, published) && clearKeyCache(name);
 }
 
@@ -590,10 +591,11 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
     dpk.setKey(key, dkrc.d_flags);
 
     if(keydata.active) {
-      if(keydata.flags == 257)
+      if((keydata.flags & DNSKEYFlag::SEP) != 0) {
         algoSEP.insert(dkrc.d_algorithm);
-      else
+      } else {
         algoNoSEP.insert(dkrc.d_algorithm);
+      }
     }
   }
   set_intersection(algoSEP.begin(), algoSEP.end(), algoNoSEP.begin(), algoNoSEP.end(), std::back_inserter(algoHasSeparateKSK));
@@ -610,7 +612,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
 
     kmd.active = kd.active;
     kmd.published = kd.published;
-    kmd.hasSEPBit = (kd.flags == 257);
+    kmd.hasSEPBit = (kd.flags & DNSKEYFlag::SEP) != 0;
     kmd.id = kd.id;
 
     if (find(algoHasSeparateKSK.begin(), algoHasSeparateKSK.end(), dpk.getAlgorithm()) == algoHasSeparateKSK.end())
