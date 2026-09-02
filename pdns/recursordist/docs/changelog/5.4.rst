@@ -33,7 +33,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :pullreq: 17996
     :tickets: 17973
 
-    Make getOpenFileDescriptors fast.
+    Make getOpenFileDescriptors fast under Linux.
 
 .. changelog::
   :version: 5.4.5
