@@ -550,11 +550,9 @@ public:
 
     const unsigned char* alpn = nullptr;
     unsigned int alpnLen  = 0;
-#ifdef HAVE_SSL_GET0_ALPN_SELECTED
     if (alpn == nullptr) {
       SSL_get0_alpn_selected(d_conn.get(), &alpn, &alpnLen);
     }
-#endif /* HAVE_SSL_GET0_ALPN_SELECTED */
     if (alpn != nullptr && alpnLen > 0) {
       result.insert(result.end(), alpn, alpn + alpnLen);
     }
