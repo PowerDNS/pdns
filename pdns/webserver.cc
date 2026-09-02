@@ -129,6 +129,14 @@ void HttpResponse::setSuccessResult(const std::string& message, const int status
 
 #ifndef RUST_WS
 
+Server::Server(const string& localaddress, int port) :
+  d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(d_local.sin4.sin_family, SOCK_STREAM, 0)
+{
+  d_server_socket.setReuseAddr();
+  d_server_socket.bind(d_local);
+  d_server_socket.listen();
+}
+
 static void bareHandlerWrapper(const WebServer::HandlerFunction& handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
   // wrapper to convert from YaHTTP::* to our subclasses

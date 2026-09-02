@@ -195,13 +195,7 @@ public:
   Server(Server&&) = delete;
   Server& operator=(const Server&) = delete;
   Server& operator=(Server&&) = delete;
-  Server(const string& localaddress, int port) :
-    d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(d_local.sin4.sin_family, SOCK_STREAM, 0)
-  {
-    d_server_socket.setReuseAddr();
-    d_server_socket.bind(d_local);
-    d_server_socket.listen();
-  }
+  Server(const string& localaddress, int port);
   virtual ~Server() = default;
 
   SockaddrWrapper d_local;
