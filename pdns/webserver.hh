@@ -195,7 +195,7 @@ public:
   Server(Server&&) = delete;
   Server& operator=(const Server&) = delete;
   Server& operator=(Server&&) = delete;
-  Server(const string& localaddress, int port);
+  Server(const string& localaddress, int port, Logr::log_t slog);
   virtual ~Server() = default;
 
   SockaddrWrapper d_local;
@@ -338,7 +338,7 @@ protected:
 
   virtual std::shared_ptr<Server> createServer()
   {
-    return std::make_shared<Server>(d_listenaddress, d_port);
+    return std::make_shared<Server>(d_listenaddress, d_port, d_slog);
   }
 
   void apiWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp, bool allowPassword);
