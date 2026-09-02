@@ -19,15 +19,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "utility.hh"
 #include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include "pdnsexception.hh"
 #include "logger.hh"
 #include "logging.hh"
 #include "misc.hh"
@@ -36,7 +34,7 @@
 #include <sys/types.h>
 #include <sys/select.h>
 
-#include "namespaces.hh"
+#include <thread>
 
 // Connects to socket with timeout
 int Utility::timed_connect(Utility::sock_t sock,
@@ -46,8 +44,7 @@ int Utility::timed_connect(Utility::sock_t sock,
                            int timeout_usec)
 {
   fd_set set;
-  struct timeval timeout;
-  int ret;
+  struct timeval timeout{};
 
   timeout.tv_sec = timeout_sec;
   timeout.tv_usec = timeout_usec;
@@ -57,9 +54,11 @@ int Utility::timed_connect(Utility::sock_t sock,
 
   setNonBlocking(sock);
 
-  if ((ret = connect(sock, addr, sockaddr_size)) < 0) {
-    if (errno != EINPROGRESS)
+  auto ret = connect(sock, addr, sockaddr_size);
+  if (ret < 0) {
+    if (errno != EINPROGRESS) {
       return ret;
+    }
   }
 
   ret = select(sock + 1, nullptr, &set, nullptr, &timeout);
@@ -68,7 +67,7 @@ int Utility::timed_connect(Utility::sock_t sock,
   return ret;
 }
 
-void Utility::setBindAny([[maybe_unused]] int af, [[maybe_unused]] sock_t sock)
+void Utility::setBindAny([[maybe_unused]] int family, [[maybe_unused]] sock_t sock)
 {
   const int one = 1;
 
@@ -107,51 +106,52 @@ void Utility::setBindAny([[maybe_unused]] int af, [[maybe_unused]] sock_t sock)
 #endif
 }
 
-unsigned int Utility::sleep(unsigned int sec)
+void Utility::sleep(unsigned int sec)
 {
-  return ::sleep(sec);
+  std::this_thread::sleep_for(std::chrono::seconds(sec));
 }
 
 void Utility::usleep(unsigned long usec)
 {
-  struct timespec ts;
-  ts.tv_sec = usec / 1000000;
-  ts.tv_nsec = (usec % 1000000) * 1000;
-  // POSIX.1 recommends using nanosleep instead of usleep
-  ::nanosleep(&ts, nullptr);
+  std::this_thread::sleep_for(std::chrono::microseconds(usec));
 }
 
 // Drops the program's group privileges.
 void Utility::dropGroupPrivs(uid_t uid, gid_t gid)
 {
-  if (gid && gid != getegid()) {
+  if (gid != 0 && gid != getegid()) {
     if (setgid(gid) < 0) {
       int err = errno;
       SLOG(g_log << Logger::Critical << "Unable to set effective group id to " << gid << ": " << stringerror(err) << endl,
            g_slog->withName("runtime")->error(Logr::Critical, err, "Unable to set effective group id", "gid", Logging::Loggable(gid)));
-      exit(1);
+      exit(1); // NOLINT
     }
     else {
       SLOG(g_log << Logger::Info << "Set effective group id to " << gid << endl,
            g_slog->withName("runtime")->info(Logr::Info, "Set effective group id", "gid", Logging::Loggable(gid)));
     }
-    struct passwd* pw = getpwuid(uid);
-    if (!pw) {
+    auto size = sysconf(_SC_GETPW_R_SIZE_MAX);
+    std::vector<char> buf;
+    buf.resize(size);
+    struct passwd pwd{};
+    struct passwd *pwdPtr{nullptr};
+    auto ret = getpwuid_r(uid, &pwd, buf.data(), buf.size(), &pwdPtr);
+    if (ret != 0 || pwdPtr == nullptr) {
       SLOG(g_log << Logger::Warning << "Unable to determine user name for uid " << uid << endl,
            g_slog->withName("runtime")->info(Logr::Warning, "Unable to determine user name", "uid", Logging::Loggable(uid)));
       if (setgroups(0, nullptr) < 0) {
         int err = errno;
         SLOG(g_log << Logger::Critical << "Unable to drop supplementary gids: " << stringerror(err) << endl,
              g_slog->withName("runtime")->error(Logr::Critical, err, "Unable to drop supplementary gids"));
-        exit(1);
+        exit(1); // NOLINT
       }
     }
     else {
-      if (initgroups(pw->pw_name, gid) < 0) {
+      if (initgroups(pwdPtr->pw_name, static_cast<int>(gid)) < 0) {
         int err = errno;
         SLOG(g_log << Logger::Critical << "Unable to set supplementary groups: " << stringerror(err) << endl,
              g_slog->withName("runtime")->error(Logr::Critical, err, "Unable to set supplementary groups"));
-        exit(1);
+        exit(1); // NOLINT
       }
     }
   }
@@ -160,12 +160,12 @@ void Utility::dropGroupPrivs(uid_t uid, gid_t gid)
 // Drops the program's user privileges.
 void Utility::dropUserPrivs(uid_t uid)
 {
-  if (uid && uid != geteuid()) {
+  if (uid != 0 && uid != geteuid()) {
     if (setuid(uid) < 0) {
       int err = errno;
       SLOG(g_log << Logger::Critical << "Unable to set effective user id to " << uid << ": " << stringerror(err) << endl,
            g_slog->withName("runtime")->error(Logr::Critical, err, "Unable to set effective user id", "uid", Logging::Loggable(uid)));
-      exit(1);
+      exit(1); // NOLINT
     }
     else {
       SLOG(g_log << Logger::Info << "Set effective user id to " << uid << endl,
@@ -181,15 +181,15 @@ Utility::pid_t Utility::getpid()
 }
 
 // Returns the current time.
-int Utility::gettimeofday(struct timeval* tv)
+int Utility::gettimeofday(struct timeval* time)
 {
-  return ::gettimeofday(tv, nullptr);
+  return ::gettimeofday(time, nullptr);
 }
 
 // Writes a vector.
-int Utility::writev(int socket, const iovec* vector, size_t count)
+ssize_t Utility::writev(int socket, const iovec* vector, size_t count)
 {
-  return ::writev(socket, vector, count);
+  return ::writev(socket, vector, static_cast<int>(count));
 }
 
 /* this is cut and pasted from dietlibc, gratefully copied! */
@@ -197,9 +197,10 @@ static int isleap(int year)
 {
   /* every fourth year is a leap year except for century years that are
    * not divisible by 400. */
-  return (!(year % 4) && ((year % 100) || !(year % 400)));
+  return ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0)) ? 1 : 0;
 }
 
+// NOLINTBEGIN
 time_t Utility::timegm(struct tm* const t)
 {
   const static short spm[13] = /* days per month -- nonleap! */
@@ -217,7 +218,7 @@ time_t Utility::timegm(struct tm* const t)
       (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31),
       (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30),
       (31 + 28 + 31 + 30 + 31 + 30 + 31 + 31 + 30 + 31 + 30 + 31),
-  };
+    };
 
   time_t day;
   time_t i;
@@ -284,3 +285,4 @@ time_t Utility::timegm(struct tm* const t)
   i = 60;
   return ((day + t->tm_hour) * i + t->tm_min) * i + t->tm_sec;
 }
+// NOLINTEND

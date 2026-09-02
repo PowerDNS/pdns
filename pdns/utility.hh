@@ -111,7 +111,7 @@ public:
   static int gettimeofday(struct timeval* timeval);
 
   //! Writes a vector.
-  static int writev(Utility::sock_t socket, const iovec* vector, size_t count);
+  static ssize_t writev(Utility::sock_t socket, const iovec* vector, size_t count);
 
   //! Drops the program's group privileges.
   static void dropGroupPrivs(uid_t uid, gid_t gid);
@@ -123,7 +123,7 @@ public:
   static void setBindAny(int family, Utility::sock_t socket);
 
   //! Sleeps for a number of seconds.
-  static unsigned int sleep(unsigned int seconds);
+  static void sleep(unsigned int seconds);
 
   //! Sleeps for a number of microseconds.
   static void usleep(unsigned long usec);
