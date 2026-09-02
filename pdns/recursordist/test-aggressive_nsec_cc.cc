@@ -1052,7 +1052,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_replace)
   auto cache = make_unique<AggressiveNSECCache>(testSize);
 
   struct timeval now{};
-  Utility::gettimeofday(&now, nullptr);
+  Utility::gettimeofday(&now);
 
   vector<DNSName> names;
   names.reserve(testSize);
@@ -1097,7 +1097,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_very_big_replace)
   auto cache = make_unique<AggressiveNSECCache>(1000);
 
   struct timeval now{};
-  Utility::gettimeofday(&now, nullptr);
+  Utility::gettimeofday(&now);
 
   DNSRecord rec;
   rec.d_name = DNSName("powerdns.com");
@@ -1119,7 +1119,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)
   auto cache = make_unique<AggressiveNSECCache>(10000);
 
   struct timeval now{};
-  Utility::gettimeofday(&now, nullptr);
+  Utility::gettimeofday(&now);
 
   DNSRecord rec;
   rec.d_name = DNSName("www.powerdns.com");
@@ -1168,7 +1168,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
   auto cache = make_unique<AggressiveNSECCache>(2);
 
   struct timeval now{};
-  Utility::gettimeofday(&now, nullptr);
+  Utility::gettimeofday(&now);
 
   DNSRecord rec;
   rec.d_name = DNSName("www.powerdns.com");
@@ -1224,7 +1224,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   expected.emplace_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
 
   struct timeval now{};
-  Utility::gettimeofday(&now, nullptr);
+  Utility::gettimeofday(&now);
 
   DNSRecord rec;
   rec.d_name = DNSName("www.powerdns.com");

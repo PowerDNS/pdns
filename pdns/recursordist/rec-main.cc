@@ -2914,7 +2914,7 @@ static void recLoop()
           last_stat = g_now.tv_sec;
         }
 
-        Utility::gettimeofday(&g_now, nullptr);
+        Utility::gettimeofday(&g_now);
 
         if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
           t_multiTasker->makeThread(doCarbonDump, nullptr);

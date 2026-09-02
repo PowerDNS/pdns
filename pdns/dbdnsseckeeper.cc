@@ -1014,7 +1014,7 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
 void DNSSECKeeper::cleanup()
 {
   struct timeval now;
-  Utility::gettimeofday(&now, nullptr);
+  Utility::gettimeofday(&now);
 
   if(now.tv_sec - s_last_prune > (time_t)(30)) {
     {

@@ -181,7 +181,7 @@ void finishTCPReply(std::unique_ptr<DNSComboWriter>& comboWriter, bool hadError,
     return;
   }
 
-  Utility::gettimeofday(&g_now, nullptr); // needs to be updated
+  Utility::gettimeofday(&g_now); // needs to be updated
   struct timeval ttd = g_now;
 
   // If we cross from max to max-1 in flight requests, the fd was not listened to, add it back
@@ -288,7 +288,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
 {
   RecThreadInfo::self().incNumberOfDistributedQueries();
   struct timeval start{};
-  Utility::gettimeofday(&start, nullptr);
+  Utility::gettimeofday(&start);
 
   DNSName qname;
   uint16_t qtype = 0;
@@ -471,7 +471,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
         bool hadError = sendResponseOverTCP(comboWriter, response, g_slogtcpin);
         finishTCPReply(comboWriter, hadError, false);
         struct timeval now{};
-        Utility::gettimeofday(&now, nullptr);
+        Utility::gettimeofday(&now);
         uint64_t spentUsec = uSec(now - start);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
         comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent, 0, false, answerMatch);
@@ -512,7 +512,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
       t_fdm->removeReadFD(fileDesc); // should no longer awake ourselves when there is data to read
     }
     else {
-      Utility::gettimeofday(&g_now, nullptr); // needed?
+      Utility::gettimeofday(&g_now); // needed?
       struct timeval ttd = g_now;
       t_fdm->setReadTTD(fileDesc, ttd, g_tcpTimeout);
     }
@@ -764,7 +764,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
   }
 
   timeval ttd{};
-  Utility::gettimeofday(&ttd, nullptr);
+  Utility::gettimeofday(&ttd);
   ttd.tv_sec += g_tcpTimeout;
 
   t_fdm->addReadFD(tcpConn->getFD(), handleRunningTCPQuestion, tcpConn, &ttd);

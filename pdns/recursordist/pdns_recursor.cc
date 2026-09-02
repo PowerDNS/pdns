@@ -2522,7 +2522,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           g_slogudpin->error(Logr::Error, sendErr, "Sending UDP reply to client failed", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr));
         }
         struct timeval now{};
-        Utility::gettimeofday(&now, nullptr);
+        Utility::gettimeofday(&now);
         uint64_t spentUsec = uSec(now - tval);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
         t_Counters.updateSnap(g_regressionTestMode);
