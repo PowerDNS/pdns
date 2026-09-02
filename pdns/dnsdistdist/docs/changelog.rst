@@ -117,7 +117,7 @@ Changelog
     :tags: Improvements, Metrics, Performance
     :pullreq: 17993
 
-    Make ``getOpenFileDescriptors`` fast
+    Make ``getOpenFileDescriptors`` fast under Linux >= 6.1
 
 .. changelog::
   :version: 2.1.1
