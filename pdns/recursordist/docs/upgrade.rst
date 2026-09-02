@@ -28,6 +28,16 @@ New Settings
   It does not change validation or the AD bit.
   Because responses are packet-cached, adding or removing an NTA only affects the presence of this   Extended Error once the relevant cache entries expire or are flushed.
   See :ref:`ntas`.
+- The :ref:`setting-yaml-recursor.serve_rfc6761` setting has been introduced to NXDomain .test and .invalid by default, unless any subdomains are forwarded.
+
+Special-Use Domain Names
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The .onion domain is no longer forwarded to any authoritative server but responded to with an NXDomain, as prescribed by :rfc:`7686`.
+
+Any domains under .test and .invalid are no longer forwarded to authoritatives on the internet, but can be individually forwarded or overwritten.
+
+The Special Use Domains :rfc:`home.arpa <8375>`, :rfc:`resolver.arpa <9462>`, and :rfc:`service.arpa <9665>` are no longer forwarded to the internet, but can be individually overwritten or forwarded.
 
 5.1.10, 5.2.8, 5.3.5 and 5.5.0
 ------------------------------
