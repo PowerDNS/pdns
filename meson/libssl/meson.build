@@ -34,7 +34,6 @@ if dep_libssl.found()
   endforeach
 
   funcs = [
-    'SSL_CTX_set_min_proto_version',
     'SSL_CTX_set1_groups_list',
   ]
   foreach func: funcs

@@ -589,7 +589,6 @@ const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
 
 static bool libssl_set_min_tls_version(SSL_CTX& ctx, LibsslTLSVersion version)
 {
-#if defined(HAVE_SSL_CTX_SET_MIN_PROTO_VERSION) || defined(SSL_CTX_set_min_proto_version)
   /* These functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated
      Warning: SSL_CTX_set_min_proto_version is a function-like macro in OpenSSL */
   int vers;
@@ -618,28 +617,6 @@ static bool libssl_set_min_tls_version(SSL_CTX& ctx, LibsslTLSVersion version)
     return false;
   }
   return true;
-#else
-  long vers = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
-  switch(version) {
-  case LibsslTLSVersion::TLS10:
-    break;
-  case LibsslTLSVersion::TLS11:
-    vers |= SSL_OP_NO_TLSv1;
-    break;
-  case LibsslTLSVersion::TLS12:
-    vers |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1;
-    break;
-  case LibsslTLSVersion::TLS13:
-    vers |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_NO_TLSv1_2;
-    break;
-  default:
-    return false;
-  }
-
-  long options = SSL_CTX_get_options(&ctx);
-  SSL_CTX_set_options(&ctx, options | vers);
-  return true;
-#endif
 }
 
 OpenSSLTLSTicketKeysRing::OpenSSLTLSTicketKeysRing(size_t capacity)
