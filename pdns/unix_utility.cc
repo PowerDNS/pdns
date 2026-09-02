@@ -134,7 +134,8 @@ void Utility::dropGroupPrivs(uid_t uid, gid_t gid)
     std::vector<char> buf;
     buf.resize(size);
     struct passwd pwd{};
-    struct passwd *pwdPtr{nullptr};
+    struct passwd* pwdPtr{nullptr};
+
     auto ret = getpwuid_r(uid, &pwd, buf.data(), buf.size(), &pwdPtr);
     if (ret != 0 || pwdPtr == nullptr) {
       SLOG(g_log << Logger::Warning << "Unable to determine user name for uid " << uid << endl,

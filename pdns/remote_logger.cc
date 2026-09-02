@@ -33,6 +33,7 @@
 #include "dnsdist-logging.hh"
 #endif
 #include "logging.hh"
+#include "utility.hh"
 
 bool CircularWriteBuffer::hasRoomFor(const std::string& str) const
 {
@@ -302,7 +303,7 @@ void RemoteLogger::maintenanceThread()
           reconnect();
         }
       }
-      std::this_thread::sleep_for(std::chrono::seconds(d_reconnectWaitTime));
+      Utility::sleep(d_reconnectWaitTime);
     }
   }
   catch (const std::exception& e) {
