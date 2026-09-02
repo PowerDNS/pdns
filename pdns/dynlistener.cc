@@ -64,36 +64,23 @@ DynListener::~DynListener()
     unlink(d_socketname.c_str());
 }
 
-void DynListener::createSocketAndBind(int family, struct sockaddr*local, size_t len)
+void DynListener::createSocketAndBind(SockaddrWrapper& wrap)
 {
-  d_s=socket(family, SOCK_STREAM,0);
+  d_s = socket(wrap.sin4.sin_family, SOCK_STREAM, 0);
   setCloseOnExec(d_s);
 
   if(d_s < 0) {
-    if (family == AF_UNIX) {
-      SLOG(g_log<<Logger::Error<<"Unable to create control socket at '"<<((struct sockaddr_un*)local)->sun_path<<"', reason: "<<stringerror()<<endl,
-           d_slog->error(Logr::Error, errno, "Unable to create control socket", "path", Logging::Loggable(reinterpret_cast<struct sockaddr_un*>(local)->sun_path)));
-    }
-    else {
-      SLOG(g_log<<Logger::Error<<"Unable to create control socket on '"<<((ComboAddress *)local)->toStringWithPort()<<"', reason: "<<stringerror()<<endl,
-           d_slog->error(Logr::Error, errno, "Unable to create control socket", "socket", Logging::Loggable(reinterpret_cast<ComboAddress*>(local)->toStringWithPort())));
-    }
+    SLOG(g_log<<Logger::Error<<"Unable to create control socket on '"<<wrap.toStringWithPort()<<"', reason: "<<stringerror()<<endl,
+         d_slog->error(Logr::Error, errno, "Unable to create control socket", "socket", Logging::Loggable(wrap.toStringWithPort())));
     exit(1);
   }
   
-  int tmp=1;
-  if(setsockopt(d_s,SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
-    throw PDNSException(string("Setsockopt failed on control socket: ")+stringerror());
+  setReuseAddr(d_s);
     
-  if(bind(d_s, local, len) < 0) {
-    if (family == AF_UNIX) {
-      SLOG(g_log<<Logger::Critical<<"Unable to bind to control socket at '"<<((struct sockaddr_un*)local)->sun_path<<"', reason: "<<stringerror()<<endl,
-           d_slog->error(Logr::Critical, errno, "Unable to bind to control socket", "path", Logging::Loggable(reinterpret_cast<struct sockaddr_un*>(local)->sun_path)));
-    }
-    else {
-      SLOG(g_log<<Logger::Critical<<"Unable to bind to control socket on '"<<((ComboAddress *)local)->toStringWithPort()<<"', reason: "<<stringerror()<<endl,
-           d_slog->error(Logr::Critical, errno, "Unable to bind to control socket", "socket", Logging::Loggable(reinterpret_cast<ComboAddress*>(local)->toStringWithPort())));
-    }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if(bind(d_s, reinterpret_cast<const struct sockaddr*>(&wrap), wrap.getSocklen()) < 0) {
+    SLOG(g_log<<Logger::Critical<<"Unable to bind to control socket on '"<<wrap.toStringWithPort()<<"', reason: "<<stringerror()<<endl,
+         d_slog->error(Logr::Critical, errno, "Unable to bind to control socket", "socket", Logging::Loggable(wrap.toStringWithPort())));
     exit(1);
   }
 }
@@ -140,22 +127,15 @@ void DynListener::listenOnUnixDomain(const string& fname)
          d_slog->info(Logr::Critical, "Unable to bind to control socket, for it is not a valid UNIX socket path", "path", Logging::Loggable(fname)));
     exit(1);
   }
+
+  SockaddrWrapper wrap(&local);
   
-  createSocketAndBind(AF_UNIX, (struct sockaddr*)& local, sizeof(local));
-  d_socketname=fname;
-  if(!arg()["setgid"].empty()) {
-    if(chmod(fname.c_str(),0660)<0) {
-      SLOG(g_log<<Logger::Error<<"Unable to change group access mode of controlsocket at '"<<fname<<"', reason: "<<stringerror()<<endl,
-           d_slog->error(Logr::Error, errno, "Unable to change group access mode of control socket", "path", Logging::Loggable(fname)));
-    }
-    if(chown(fname.c_str(),static_cast<uid_t>(-1), strToGID(arg()["setgid"]))<0) {
-      SLOG(g_log<<Logger::Error<<"Unable to change group ownership of controlsocket at '"<<fname<<"', reason: "<<stringerror()<<endl,
-           d_slog->error(Logr::Error, errno, "Unable to change group ownership of control socket", "path", Logging::Loggable(fname)));
-    }
-  }
-  
+  createSocketAndBind(wrap);
+  wrap.tightenSocketPermissions(d_slog, ::arg()["setgid"]);
+
   listen(d_s, 10);
   
+  d_socketname=fname;
   SLOG(g_log<<Logger::Warning<<"Listening on controlsocket in '"<<fname<<"'"<<endl,
        d_slog->info(Logr::Warning, "Listening on control socket", "path", Logging::Loggable(fname)));
   d_nonlocal=true;
@@ -163,11 +143,11 @@ void DynListener::listenOnUnixDomain(const string& fname)
 
 void DynListener::listenOnTCP(const ComboAddress& local)
 {
-  if (local.isIPv4()) {
-    createSocketAndBind(AF_INET, (struct sockaddr*)& local, local.getSocklen());
-  } else if (local.isIPv6()) {
-    createSocketAndBind(AF_INET6, (struct sockaddr*)& local, local.getSocklen());
-  }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  SockaddrWrapper wrap(reinterpret_cast<const struct sockaddr*>(&local), local.getSocklen());
+  
+  createSocketAndBind(wrap);
+
   listen(d_s, 10);
 
   d_socketaddress=local;
