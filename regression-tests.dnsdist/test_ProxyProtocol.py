@@ -77,7 +77,8 @@ def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, server
             else:
                 continue
 
-        incoming.settimeout(5.0)
+        incoming.setblocking(False)
+
         payload = ProxyProtocol.getPayload(
             False,
             True,
@@ -91,7 +92,6 @@ def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, server
 
         outgoing = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         outgoing.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        outgoing.settimeout(2.0)
         if sni:
             if hasattr(ssl, "create_default_context"):
                 sslctx = ssl.create_default_context(cafile=ca)
@@ -101,9 +101,10 @@ def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, server
             else:
                 outgoing = ssl.wrap_socket(outgoing, ca_certs=ca, cert_reqs=ssl.CERT_REQUIRED)
 
-        outgoing.connect(("127.0.0.1", forwardingPort))
+        outgoing.settimeout(2.0)
 
-        outgoing.send(payload)
+        outgoing.connect(("127.0.0.1", forwardingPort))
+        outgoing.sendall(payload)
 
         sel = selectors.DefaultSelector()
 
@@ -111,14 +112,14 @@ def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, server
             data = conn.recv(512)
             if not data or len(data) == 0:
                 return False
-            outgoing.send(data)
+            outgoing.sendall(data)
             return True
 
         def readFromBackend(conn):
             data = conn.recv(512)
             if not data or len(data) == 0:
                 return False
-            incoming.send(data)
+            incoming.sendall(data)
             return True
 
         sel.register(incoming, selectors.EVENT_READ, readFromClient)
@@ -131,11 +132,14 @@ def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, server
                     if not (key.data)(key.fileobj):
                         done = True
                         break
-            except socket.timeout:
+            except socket.timeout as exp:
+                print(exp)
                 break
-            except Exception:
+            except Exception as exp:
+                print(exp)
                 break
 
+        sel.close()
         incoming.close()
         outgoing.close()
 
@@ -611,6 +615,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         "_serverKey",
         "_proxyResponderPort",
     ]
+    _verboseMode = True
 
     def testNoHeader(self):
         """
