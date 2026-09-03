@@ -667,6 +667,45 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
+                         bool enableRedirection = false;
+                         getOptionalValue<bool>(vars, "enableRedirection", enableRedirection);
+                         uint32_t redirectRetryInterval = 3600;
+                         uint32_t redirectMaxFollowCount = 10;
+                         uint16_t redirectDoHKey = dnsdist::ServiceDiscovery::s_defaultDoHSVCKey;
+                         bool keepAfterRedirect = false;
+                         std::string redirectionPool;
+                         if (enableRedirection) {
+                           if (getOptionalValue<std::string>(vars, "redirectionRetryInterval", valueStr) > 0) {
+                             try {
+                               redirectRetryInterval = static_cast<uint32_t>(std::stoul(valueStr));
+                             }
+                             catch (const std::exception& e) {
+                               SLOG(warnlog("Error parsing 'redirectionRetryInterval' value: %s", e.what()),
+                                    getLogger("newServer")->error(Logr::Warning, e.what(), "Error parsing 'redirectionRetryInterval' value", "backend.address", Logging::Loggable(serverAddressStr), "value", Logging::Loggable(valueStr)));
+                             }
+                           }
+                           getOptionalValue<bool>(vars, "redirectionKeep", keepAfterRedirect);
+                           getOptionalValue<std::string>(vars, "redirectionPool", redirectionPool);
+                           if (getOptionalValue<std::string>(vars, "redirectionDoHKey", valueStr) > 0) {
+                             try {
+                               redirectDoHKey = static_cast<uint16_t>(std::stoul(valueStr));
+                             }
+                             catch (const std::exception& e) {
+                               SLOG(warnlog("Error parsing 'redirectionDoHKey' value: %s", e.what()),
+                                    getLogger("newServer")->error(Logr::Warning, e.what(), "Error parsing 'redirectionDoHKey' value", "backend.address", Logging::Loggable(serverAddressStr), "value", Logging::Loggable(valueStr)));
+                             }
+                           }
+                           if (getOptionalValue<std::string>(vars, "redirectionMaxFollowCount", valueStr) > 0) {
+                             try {
+                               redirectMaxFollowCount = static_cast<uint32_t>(std::stoul(valueStr));
+                             }
+                             catch (const std::exception& e) {
+                               SLOG(warnlog("Error parsing 'redirectionMaxFollowCount' value: %s", e.what()),
+                                    getLogger("newServer")->error(Logr::Warning, e.what(), "Error parsing 'redirectionMaxFollowCount' value", "backend.address", Logging::Loggable(serverAddressStr), "value", Logging::Loggable(valueStr)));
+                             }
+                           }
+                         }
+
                          // create but don't connect the socket in client or check-config modes
                          auto ret = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), !(client || configCheck));
 #ifdef HAVE_XSK
@@ -714,7 +753,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 #endif /* HAVE_XSK */
                          if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
-                           dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, std::move(upgradePool), upgradeDoHKey, keepAfterUpgrade);
+                           dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, std::move(upgradePool), upgradeDoHKey, keepAfterUpgrade, enableRedirection, redirectRetryInterval, std::move(redirectionPool), redirectDoHKey, keepAfterRedirect, redirectMaxFollowCount);
+                         }
+
+                         if (enableRedirection && ret->getProtocol() != dnsdist::Protocol::DoUDP && (ret->getProtocol() == dnsdist::Protocol::DoH || ret->getProtocol() == dnsdist::Protocol::DoT)) {
+                           dnsdist::ServiceDiscovery::addRedirectableServer(ret, redirectRetryInterval, std::move(redirectionPool), redirectDoHKey, keepAfterRedirect, redirectMaxFollowCount);
                          }
 
                          /* this needs to be done _AFTER_ the order has been set,
