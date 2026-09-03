@@ -113,7 +113,7 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO], [
         [AC_LANG_PROGRAM([#include <openssl/bn.h>], [BN_new()])],
         [
             AC_MSG_RESULT([yes])
-            AC_CHECK_FUNCS([RAND_bytes RAND_pseudo_bytes CRYPTO_memcmp OPENSSL_init_crypto EVP_MD_CTX_new EVP_MD_CTX_free RSA_get0_key])
+            AC_CHECK_FUNCS([RAND_bytes CRYPTO_memcmp OPENSSL_init_crypto EVP_MD_CTX_new EVP_MD_CTX_free RSA_get0_key])
             # you might be wondering why the stdarg.h and stddef.h includes,
             # in which case please have a look at https://github.com/PowerDNS/pdns/issues/12926
             # and weep, yelling at Red Hat

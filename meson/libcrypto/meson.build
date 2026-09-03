@@ -80,7 +80,6 @@ endif
 
 funcs = [
   'RAND_bytes',
-  'RAND_pseudo_bytes',
   'CRYPTO_memcmp',
   'OPENSSL_init_crypto',
   'EVP_MD_CTX_new',
