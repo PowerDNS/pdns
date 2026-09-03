@@ -81,7 +81,6 @@ endif
 funcs = [
   'RAND_bytes',
   'CRYPTO_memcmp',
-  'OCSP_basic_sign',
 ]
 
 foreach func: funcs

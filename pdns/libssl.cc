@@ -421,7 +421,6 @@ static std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<s
   return ocspResponses;
 }
 
-#ifdef HAVE_OCSP_BASIC_SIGN
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin)
 {
   const EVP_MD* rmd = EVP_sha256();
@@ -466,7 +465,6 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 
   return true;
 }
-#endif /* HAVE_OCSP_BASIC_SIGN */
 #endif /* DISABLE_OCSP_STAPLING */
 
 static int libssl_get_last_key_type(SSL_CTX& ctx)
