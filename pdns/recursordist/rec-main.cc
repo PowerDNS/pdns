@@ -798,11 +798,11 @@ static void writePid(Logr::log_t log)
   }
   ofstream ostr(g_pidfname.c_str(), std::ios_base::app);
   if (ostr) {
-    ostr << Utility::getpid() << endl;
+    ostr << getpid() << endl;
   }
   else {
     int err = errno;
-    log->error(Logr::Error, err, "Writing pid failed", "pid", Logging::Loggable(Utility::getpid()), "file", Logging::Loggable(g_pidfname));
+    log->error(Logr::Error, err, "Writing pid failed", "pid", Logging::Loggable(getpid()), "file", Logging::Loggable(g_pidfname));
   }
 }
 
@@ -1949,7 +1949,7 @@ static int initForks(Logr::log_t log)
     daemonize(log);
   }
 
-  if (Utility::getpid() == 1) {
+  if (getpid() == 1) {
     /* We are running as pid 1, register sigterm and sigint handler
 
       The Linux kernel will handle SIGTERM and SIGINT for all processes, except PID 1.
@@ -2588,7 +2588,7 @@ public:
   {
     if (last_run < now - period) {
       function();
-      Utility::gettimeofday(&last_run);
+      gettimeofday(&last_run, nullptr);
       now = last_run;
     }
   }
@@ -2605,7 +2605,7 @@ public:
 
   void updateLastRun()
   {
-    Utility::gettimeofday(&last_run);
+    gettimeofday(&last_run, nullptr);
   }
 
   [[nodiscard]] bool hasRun() const
@@ -2623,7 +2623,7 @@ private:
 static void houseKeepingWork(Logr::log_t log)
 {
   struct timeval now{};
-  Utility::gettimeofday(&now);
+  gettimeofday(&now, nullptr);
   t_Counters.updateSnap(now, g_regressionTestMode);
 
   // Below are the tasks that run for every recursorThread, including handler and taskThread
@@ -2840,11 +2840,11 @@ static void runLuaMaintenance(RecThreadInfo& threadInfo, time_t& last_lua_mainte
       // Only on threads processing queries
       if (g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
         struct timeval start{};
-        Utility::gettimeofday(&start);
+        gettimeofday(&start, nullptr);
         t_pdl->maintenance();
         last_lua_maintenance = g_now.tv_sec;
         struct timeval stop{};
-        Utility::gettimeofday(&stop);
+        gettimeofday(&stop, nullptr);
         t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
         ++t_Counters.at(rec::Counter::maintenanceCalls);
       }
@@ -2884,11 +2884,11 @@ static void recLoop()
       // We want to call handler thread often, it gets scheduled about 2 times per second
       if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % handlerAndTaskInterval == 0) || s_counter % otherInterval == 0) {
         timeval start{};
-        Utility::gettimeofday(&start);
+        gettimeofday(&start, nullptr);
         t_multiTasker->makeThread(houseKeeping, nullptr);
         if (!threadInfo.isTaskThread()) {
           timeval stop{};
-          Utility::gettimeofday(&stop);
+          gettimeofday(&stop, nullptr);
           t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
           ++t_Counters.at(rec::Counter::maintenanceCalls);
         }
@@ -2914,7 +2914,7 @@ static void recLoop()
           last_stat = g_now.tv_sec;
         }
 
-        Utility::gettimeofday(&g_now, nullptr);
+        gettimeofday(&g_now, nullptr);
 
         if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
           t_multiTasker->makeThread(doCarbonDump, nullptr);

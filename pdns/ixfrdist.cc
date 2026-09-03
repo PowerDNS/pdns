@@ -326,7 +326,7 @@ static void communicatorReceiveNotificationAnswers(const int sock4, const int so
 
   // receive incoming notification answers on the nonblocking sockets and take them off the list
   while (waitForMultiData(fds, 0, 0, &sock) > 0) {
-    Utility::socklen_t fromlen = sizeof(from);
+    socklen_t fromlen = sizeof(from);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto size = recvfrom(sock, buffer.data(), buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&from), &fromlen);
     if (size < 0) {

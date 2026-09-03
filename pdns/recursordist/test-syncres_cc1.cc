@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(test_root_primed_ns_update)
   sr->setAsyncCallback(asynccb);
 
   struct timeval now;
-  Utility::gettimeofday(&now, nullptr);
+  gettimeofday(&now, nullptr);
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
@@ -2336,7 +2336,7 @@ BOOST_AUTO_TEST_CASE(test_broken_cname_chain)
   const DNSName unrelated("unrelated.com.");
 
   timeval now{};
-  Utility::gettimeofday(&now, nullptr);
+  gettimeofday(&now, nullptr);
 
   sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int qtype, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(address)) {

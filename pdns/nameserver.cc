@@ -257,7 +257,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
   ComboAddress remote;
   extern StatBag S;
   ssize_t len=-1;
-  Utility::sock_t sock=-1;
+  int sock=-1;
 
   struct msghdr msgh;
   struct iovec iov;

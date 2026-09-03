@@ -76,13 +76,13 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
     }
   
     uint16_t replen=htons(packet.size());
-    Utility::iovec iov[2];
-    iov[0].iov_base=reinterpret_cast<char*>(&replen);
-    iov[0].iov_len=2;
-    iov[1].iov_base=packet.data();
-    iov[1].iov_len=packet.size();
+    std::array<iovec, 2> iov{};
+    iov[0].iov_base = &replen;
+    iov[0].iov_len = iov.size();
+    iov[1].iov_base = packet.data();
+    iov[1].iov_len = packet.size();
   
-    int ret=Utility::writev(d_sock, iov, 2);
+    auto ret = writev(d_sock, iov.data(), iov.size());
     if(ret < 0)
       throw ResolverException("Error sending question to "+d_remote.toStringWithPort()+": "+stringerror());
     if(ret != (int)(2+packet.size())) {
@@ -243,7 +243,7 @@ void AXFRRetriever::connect(uint16_t timeout)
     throw ResolverException("Error connecting: "+stringerror());
   }
   else {
-    Utility::socklen_t len=sizeof(err);
+    socklen_t len=sizeof(err);
     if(getsockopt(d_sock, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
       throw ResolverException("Error connecting: "+stringerror()); // Solaris
 
