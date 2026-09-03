@@ -81,7 +81,7 @@ void Utility::setBindAny([[maybe_unused]] int family, [[maybe_unused]] int sock)
 #endif
 
 #ifdef IP_BINDANY
-  if (af == AF_INET)
+  if (family == AF_INET)
     if (setsockopt(sock, IPPROTO_IP, IP_BINDANY, &one, sizeof(one)) < 0) {
       int err = errno;
       SLOG(g_log << Logger::Warning << "Warning: IP_BINDANY setsockopt failed: " << stringerror(err) << endl,
@@ -89,7 +89,7 @@ void Utility::setBindAny([[maybe_unused]] int family, [[maybe_unused]] int sock)
     }
 #endif
 #ifdef IPV6_BINDANY
-  if (af == AF_INET6) {
+  if (family == AF_INET6) {
     if (setsockopt(sock, IPPROTO_IPV6, IPV6_BINDANY, &one, sizeof(one)) < 0) {
       int err = errno;
       SLOG(g_log << Logger::Warning << "Warning: IPV6_BINDANY setsockopt failed: " << stringerror(err) << endl,
