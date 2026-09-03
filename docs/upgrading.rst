@@ -11,6 +11,13 @@ upgrade notes if your version is older than 3.4.2.
 5.1.x to master
 ---------------
 
+lua-records-exec-limit feature applies to all scripts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :ref:`setting-lua-records-exec-limit` setting, which will abort Lua records
+taking too much time to complete, is now applied to all Lua scripts, including
+prequery, axfr, and DNS Update policy scripts.
+
 NAPTR additional answers
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
