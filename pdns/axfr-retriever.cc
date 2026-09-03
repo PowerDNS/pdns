@@ -76,13 +76,13 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
     }
   
     uint16_t replen=htons(packet.size());
-    iovec iov[2];
-    iov[0].iov_base=reinterpret_cast<char*>(&replen);
-    iov[0].iov_len=2;
-    iov[1].iov_base=packet.data();
-    iov[1].iov_len=packet.size();
+    std::array<iovec, 2> iov{};
+    iov[0].iov_base = &replen;
+    iov[0].iov_len = iov.size();
+    iov[1].iov_base = packet.data();
+    iov[1].iov_len = packet.size();
   
-    int ret = writev(d_sock, iov, 2);
+    auto ret = writev(d_sock, iov.data(), iov.size());
     if(ret < 0)
       throw ResolverException("Error sending question to "+d_remote.toStringWithPort()+": "+stringerror());
     if(ret != (int)(2+packet.size())) {
