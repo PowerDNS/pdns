@@ -1077,7 +1077,7 @@ bool GSQLBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
 
 unsigned int GSQLBackend::getCapabilities()
 {
-  unsigned int caps = CAP_COMMENTS | CAP_DIRECT | CAP_LIST | CAP_CREATE | CAP_SEARCH;
+  unsigned int caps = CAP_COMMENTS | CAP_DIRECT | CAP_LIST | CAP_CREATE | CAP_SEARCH | CAP_DOMAIN_TRANSACTION;
   if (d_dnssecQueries) {
     caps |= CAP_DNSSEC;
   }
@@ -1932,7 +1932,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& do
   return false;
 }
 
-bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
+bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account, DomainInfo& info, bool startTransaction)
 {
   vector<string> primaries_s;
   primaries_s.reserve(primaries.size());
@@ -1940,6 +1940,10 @@ bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
     primaries_s.push_back(primary.toStringWithPortExcept(53));
   }
 
+  if (startTransaction) {
+    info.backend = this; // to be able to abortTransaction if the operation fails
+    startDomainModificationTransaction(domain);
+  }
   try {
     reconnectIfNeeded();
 
@@ -1956,13 +1960,18 @@ bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new domain '"+domain.toLogString()+"': "+ e.txtReason());
   }
-  return true;
+  return getDomainInfo(domain, info, false);
 }
 
-bool GSQLBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account)
+bool GSQLBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info, bool startTransaction)
 {
   string name;
   vector<ComboAddress> primaries({ComboAddress(ipAddress, 53)});
+
+  if (startTransaction) {
+    info.backend = this; // to be able to abortTransaction if the operation fails
+    startDomainModificationTransaction(domain);
+  }
   try {
     if (!nameserver.empty()) {
       // figure out all IP addresses for the primary
@@ -1988,12 +1997,12 @@ bool GSQLBackend::createSecondaryDomain(const string& ipAddress, const ZoneName&
         primaries = std::move(tmp);
       }
     }
-    createDomain(domain, DomainInfo::Secondary, primaries, account);
+    createDomain(domain, DomainInfo::Secondary, primaries, account, info, false);
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new secondary domain '" + domain.toLogString() + "': " + e.txtReason());
   }
-  return true;
+  return getDomainInfo(domain, info, false);
 }
 
 bool GSQLBackend::deleteDomain(const ZoneName &domain)
@@ -2310,7 +2319,26 @@ bool GSQLBackend::feedEnts3(domainid_t domain_id, const DNSName& /* domain */, m
   return true;
 }
 
-bool GSQLBackend::startTransaction(const ZoneName &domain, domainid_t domain_id)
+bool GSQLBackend::startDomainReplacementTransaction(const ZoneName &domain, domainid_t domain_id)
+{
+  startDomainModificationTransaction(domain);
+  try {
+    // clang-format off
+    d_DeleteZoneQuery_stmt->
+      bind("domain_id", domain_id)->
+      execute()->
+      reset();
+    // clang-format on
+  }
+  catch (SSqlException &e) {
+    d_inTransaction = false;
+    throw PDNSException("Database failed to delete contents of domain '" + domain.toLogString() + "': "+e.txtReason());
+  }
+
+  return true;
+}
+
+bool GSQLBackend::startDomainModificationTransaction(const ZoneName &domain)
 {
   try {
     reconnectIfNeeded();
@@ -2320,14 +2348,6 @@ bool GSQLBackend::startTransaction(const ZoneName &domain, domainid_t domain_id)
     }
     d_db->startTransaction();
     d_inTransaction = true;
-    if(domain_id != UnknownDomainID) {
-      // clang-format off
-      d_DeleteZoneQuery_stmt->
-        bind("domain_id", domain_id)->
-        execute()->
-        reset();
-      // clang-format on
-    }
   }
   catch (SSqlException &e) {
     d_inTransaction = false;

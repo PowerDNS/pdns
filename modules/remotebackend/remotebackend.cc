@@ -718,7 +718,7 @@ bool RemoteBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& 
   return true;
 }
 
-bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account)
+bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account, DomainInfo& info, bool /* startTransaction */)
 {
   Json query = Json::object{
     {"method", "createSlaveDomain"},
@@ -730,7 +730,12 @@ bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneNam
                    }}};
 
   Json answer;
-  return this->send(query) && this->recv(answer);
+  if (!this->send(query) || !this->recv(answer)) {
+    return false;
+  }
+  // Although we know most of the information to be returned in [info], we
+  // do not know the domain id, so we need to query the remote.
+  return getDomainInfo(domain, info, false);
 }
 
 bool RemoteBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qtype, const vector<DNSResourceRecord>& rrset)
@@ -805,7 +810,7 @@ bool RemoteBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<D
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::startTransaction(const ZoneName& domain, domainid_t domain_id)
+bool RemoteBackend::startTransactionInternal(const ZoneName& domain, domainid_t domain_id)
 {
   this->d_trxid = time((time_t*)nullptr);
 
@@ -819,6 +824,14 @@ bool RemoteBackend::startTransaction(const ZoneName& domain, domainid_t domain_i
     return false;
   }
   return true;
+}
+bool RemoteBackend::startDomainReplacementTransaction(const ZoneName& qname, domainid_t domainId)
+{
+  return startTransactionInternal(qname, domainId);
+}
+bool RemoteBackend::startDomainModificationTransaction(const ZoneName& qname)
+{
+  return startTransactionInternal(qname, UnknownDomainID);
 }
 
 bool RemoteBackend::commitTransaction()

@@ -1712,7 +1712,7 @@ static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dsk)
   DNSResourceRecord rr;
   makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr, nullptr); // no structured logger in pdnsutil yet
 
-  sd.db->startTransaction(zone, UnknownDomainID);
+  sd.db->startDomainModificationTransaction(zone);
 
   auto rrs = vector<DNSResourceRecord>{rr};
   if (!sd.db->replaceRRSet(sd.domain_id, zone.operator const DNSName&(), rr.qtype, rrs)) {
@@ -1751,7 +1751,7 @@ static int deleteZone(const ZoneName &zone) {
     return EXIT_FAILURE;
   }
 
-  di.backend->startTransaction(zone, UnknownDomainID);
+  di.backend->startDomainModificationTransaction(zone);
   try {
     if(di.backend->deleteDomain(zone)) {
       di.backend->commitTransaction();
@@ -1975,7 +1975,7 @@ static int clearZone(const ZoneName &zone) {
     cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
-  if(!di.backend->startTransaction(zone, di.id)) {
+  if(!di.backend->startDomainReplacementTransaction(zone, di.id)) {
     cerr<<"Unable to start transaction for load of zone '"<<zone<<"'"<<endl;
     return EXIT_FAILURE;
   }
@@ -1997,19 +1997,19 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
   DomainInfo dstinfo;
   DNSResourceRecord rr; // NOLINT(readability-identifier-length)
 
+  auto tgt_caps = tgt->getCapabilities();
   // Check target backend fits the requirements (only matters for b2b-migrate)
   // TODO: figure a way to quickly know if there are comments and reject a
   // target backend without comments support
-  if (srcinfo.zone.hasVariant() && (tgt->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+  if (srcinfo.zone.hasVariant() && (tgt_caps & DNSBackend::CAP_VIEWS) == 0) {
     cerr << "Target backend does not support views." << endl;
     throw PDNSException("Failed to create zone");
   }
 
   // Create zone
-  if (!tgt->createDomain(dstzone, srcinfo.kind, srcinfo.primaries, srcinfo.account)) {
-    throw PDNSException("Failed to create zone " + dstzone.toLogString());
-  }
-  if (!tgt->getDomainInfo(dstzone, dstinfo)) {
+  bool makeDomainTransaction = (tgt_caps & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
+  if (!tgt->createDomain(dstzone, srcinfo.kind, srcinfo.primaries, srcinfo.account, dstinfo, makeDomainTransaction)) {
+    tgt->abortTransaction();
     throw PDNSException("Failed to create zone " + dstzone.toLogString());
   }
 
@@ -2020,7 +2020,9 @@ static void copyZoneContents(const DomainInfo& srcinfo, const ZoneName& dstzone,
 
   rewriteNames = srcinfo.zone != dstzone;
 
-  tgt->startTransaction(dstzone, dstinfo.id);
+  if (!makeDomainTransaction) {
+    tgt->startDomainReplacementTransaction(dstzone, dstinfo.id);
+  }
 
   while(src->get(rr)) {
     rr.domain_id = dstinfo.id;
@@ -2578,7 +2580,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
       // If there are invalid records, we'll recreate the complete zone, as
       // this is the only reliable way to make them disappear.
       if (invalid != 0) {
-        info.backend->startTransaction(zone, info.id);
+        info.backend->startDomainReplacementTransaction(zone, info.id);
         for (const auto& record : post) {
           DNSResourceRecord resrec = DNSResourceRecord::fromWire(record);
           resrec.domain_id = info.id;
@@ -2586,7 +2588,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
         }
       }
       else {
-        info.backend->startTransaction(zone, UnknownDomainID);
+        info.backend->startDomainModificationTransaction(zone);
         {
           map<pair<DNSName,uint16_t>, vector<DNSRecord>> grouped;
           for (const auto& rec : post) {
@@ -2667,12 +2669,20 @@ static int zonemdVerifyFile(const ZoneName& zone, const string& fname) {
 // default metadata, matching the behaviour of the REST API.
 static bool createZoneWithDefaults(UtilBackend &backend, DomainInfo &info, const ZoneName& zone, DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries)
 {
-  backend.createDomain(zone, kind, primaries, "");
-  if (!backend.getDomainInfo(zone, info)) {
+  // As we don't know which backend will get to create the zone yet, ask for
+  // a domain transaction anyway, and we'll adjust our expectations after that.
+  bool success = backend.createDomain(zone, kind, primaries, "", info, true /* startTransaction */);
+  bool makeDomainTransaction = info.backend != nullptr && (info.backend->getCapabilities() & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
+  if (!success) {
     cerr << "Zone '" << zone << "' was not created." << endl;
+    if (makeDomainTransaction) {
+      info.backend->abortTransaction();
+    }
     return false;
   }
-  info.backend->startTransaction(zone, static_cast<int>(info.id));
+  if (!makeDomainTransaction) {
+    info.backend->startDomainReplacementTransaction(zone, info.id);
+  }
   info.backend->setDomainMetadataOne(zone, "SOA-EDIT-API", "DEFAULT");
   info.backend->commitTransaction();
   return true;
@@ -2707,7 +2717,7 @@ static int loadZone(const ZoneName& zone, const string& fname) {
   zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
 
   DNSResourceRecord rr;
-  if(!db->startTransaction(zone, di.id)) {
+  if(!db->startDomainReplacementTransaction(zone, di.id)) {
     cerr<<"Unable to start transaction for load of zone '"<<zone<<"'"<<endl;
     return EXIT_FAILURE;
   }
@@ -2789,7 +2799,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
   }
 
   rr.domain_id = di.id;
-  di.backend->startTransaction(zone, di.id);
+  di.backend->startDomainReplacementTransaction(zone, di.id);
   di.backend->feedRecord(rr, DNSName());
   if(!nsname.empty()) {
     cout<<"Also adding one NS record"<<endl;
@@ -2911,7 +2921,7 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
 
   bool allowUnderscores = areUnderscoresAllowed(zone, di);
 
-  di.backend->startTransaction(zone, UnknownDomainID);
+  di.backend->startDomainModificationTransaction(zone);
 
   DNSResourceRecord oldrr;
   vector<DNSResourceRecord> oldrrs;
@@ -3037,7 +3047,7 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
   }
 
   QType qt(QType::chartocode(type_.c_str()));
-  di.backend->startTransaction(zone, UnknownDomainID);
+  di.backend->startDomainModificationTransaction(zone);
   di.backend->replaceRRSet(di.id, name, qt, vector<DNSResourceRecord>());
   di.backend->commitTransaction();
   return EXIT_SUCCESS;
@@ -3701,19 +3711,26 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0].get();
   cout << "Creating secondary zone " << zone << endl;
-  db->createSecondaryDomain("127.0.0.1", zone, "", "_testschema");
-  cout << "Secondary zone created" << endl;
-
   DomainInfo di;
-  // di.backend and B are mostly identical
-  if(!B.getDomainInfo(zone, di) || di.backend == nullptr) {
-    cout << "Can't find zone we just created, aborting" << endl;
+  bool makeDomainTransaction = (db->getCapabilities() & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
+  if (!db->createSecondaryDomain("127.0.0.1", zone, "", "_testschema", di, makeDomainTransaction)) {
+    if (makeDomainTransaction) {
+      di.backend->abortTransaction();
+    }
+    cout << "Can't create secondary zone, aborting" << endl;
     return EXIT_FAILURE;
   }
+  cout << "Secondary zone created" << endl;
+
   db=di.backend;
   DNSResourceRecord rr, rrget;
-  cout<<"Starting transaction to feed records"<<endl;
-  db->startTransaction(zone, di.id);
+  if (makeDomainTransaction) {
+    cout<<"Feeding records"<<endl;
+  }
+  else {
+    cout<<"Starting transaction to feed records"<<endl;
+    db->startDomainReplacementTransaction(zone, di.id);
+  }
 
   rr.qtype=QType::SOA;
   rr.qname=zone.operator const DNSName&();
@@ -3750,7 +3767,7 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
   cout<<"[+] content field is over 255 bytes"<<endl;
 
   cout<<"Dropping all records, inserting SOA+2xA"<<endl;
-  db->startTransaction(zone, di.id);
+  db->startDomainReplacementTransaction(zone, di.id);
 
   rr.qtype=QType::SOA;
   rr.qname=zone.operator const DNSName&();
@@ -4498,7 +4515,7 @@ static int addComment(vector<string>& cmds, const std::string_view synopsis)
     return EXIT_FAILURE;
   }
 
-  di.backend->startTransaction(zone, UnknownDomainID);
+  di.backend->startDomainModificationTransaction(zone);
   if (!di.backend->feedComment(comment)) {
     cerr << "Backend does not support comments" << endl;
     di.backend->abortTransaction();
