@@ -48,8 +48,6 @@
    Pool checks ?
  */
 
-extern int  g_luaRecordExecLimit;
-
 // Slightly different from dnsdist-lua.hh, as we need ordering
 template <class T>
 using LuaAssociativeTable = std::map<std::string, T>;
@@ -1546,11 +1544,6 @@ static string lua_pickclosest(const iplist_t& ips)
   return pickclosest(s_lua_record_ctx->slog, s_lua_record_ctx->bestwho, conv).toString();
 }
 
-static void lua_report(const string& /* event */, const boost::optional<string>& /* line */)
-{
-  throw std::runtime_error("Script took too long");
-}
-
 static string lua_geoiplookup(const string &address, const GeoIPInterface::GeoIPQueryAttribute attr)
 {
   return getGeo(s_lua_record_ctx->slog, address, attr);
@@ -1747,10 +1740,6 @@ static std::unordered_map<std::string, int> lua_variables{
 
 static void setupLuaRecords(LuaContext& lua)
 {
-  lua.writeFunction("report", [](const string& event, const boost::optional<string>& line) -> void {
-      lua_report(event, line);
-    });
-
   lua.writeFunction("latlon", []() -> string {
       return lua_latlon();
     });
@@ -1913,9 +1902,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(Logr::log_t slog, const std::
     }
     lua.writeVariable("bestwho", s_lua_record_ctx->bestwho);
 
-    if (g_luaRecordExecLimit > 0) {
-      lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
-    }
+    LUA->setExecLimit();
 
     string actual;
     if(!code.empty() && code[0]!=';')

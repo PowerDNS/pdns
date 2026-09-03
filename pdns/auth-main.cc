@@ -108,7 +108,6 @@ bool g_8bitDNS;
 bool g_logDNSQueries;
 #ifdef HAVE_LUA_RECORDS
 bool g_doLuaRecord;
-int g_luaRecordExecLimit;
 time_t g_luaHealthChecksInterval{5};
 time_t g_luaHealthChecksExpireDelay{3600};
 time_t g_luaConsistentHashesExpireDelay{86400};
@@ -819,7 +818,7 @@ static void mainthread()
 #ifdef HAVE_LUA_RECORDS
     g_doLuaRecord = ::arg().mustDo("enable-lua-records");
     g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
-    ::arg().assignNum(g_luaRecordExecLimit, "lua-records-exec-limit");
+    ::arg().assignNum(AuthLua4::s_luaRecordExecLimit, "lua-records-exec-limit");
     g_luaRecordInsertWhitespace = ::arg().mustDo("lua-records-insert-whitespace");
     ::arg().assignNum(g_luaHealthChecksInterval, "lua-health-checks-interval");
     ::arg().assignNum(g_luaConsistentHashesExpireDelay, "lua-consistent-hashes-expire-delay");

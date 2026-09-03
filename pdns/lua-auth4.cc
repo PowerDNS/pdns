@@ -169,4 +169,25 @@ std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) {
   return nullptr;
 }
 
-AuthLua4::~AuthLua4() = default;
+static void lua_report(const string& /* event */, const boost::optional<string>& /* line */)
+{
+  throw std::runtime_error("Script took too long");
+}
+
+AuthLua4::AuthLua4(const std::string& includePath) : BaseLua4(includePath)
+{
+  prepareContext();
+}
+
+int AuthLua4::s_luaRecordExecLimit{0};
+
+void AuthLua4::setExecLimit()
+{
+  if (s_luaRecordExecLimit > 0) {
+    d_lw->writeFunction("report", [](const string& event, const boost::optional<string>& line) -> void {
+        lua_report(event, line);
+      });
+
+    d_lw->executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % s_luaRecordExecLimit));
+  }
+}
