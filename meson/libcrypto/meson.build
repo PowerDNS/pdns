@@ -81,7 +81,6 @@ endif
 funcs = [
   'RAND_bytes',
   'CRYPTO_memcmp',
-  'OPENSSL_init_crypto',
   'RSA_get0_key',
   'OCSP_basic_sign',
 ]

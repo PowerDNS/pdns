@@ -65,7 +65,6 @@ static int s_keyLogIndex{-1};
 void registerOpenSSLUser()
 {
   if (s_users.fetch_add(1) == 0) {
-#ifdef HAVE_OPENSSL_INIT_CRYPTO
 #ifndef DISABLE_OPENSSL_ERROR_STRINGS
     uint64_t cryptoOpts = OPENSSL_INIT_LOAD_CONFIG;
     const uint64_t sslOpts = 0;
@@ -87,7 +86,6 @@ void registerOpenSSLUser()
 
     OPENSSL_init_crypto(cryptoOpts, nullptr);
     OPENSSL_init_ssl(sslOpts, nullptr);
-#endif /* HAVE_OPENSSL_INIT_CRYPTO */
 
     s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
 
