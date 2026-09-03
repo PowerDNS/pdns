@@ -550,11 +550,9 @@ public:
 
     const unsigned char* alpn = nullptr;
     unsigned int alpnLen  = 0;
-#ifdef HAVE_SSL_GET0_ALPN_SELECTED
     if (alpn == nullptr) {
       SSL_get0_alpn_selected(d_conn.get(), &alpn, &alpnLen);
     }
-#endif /* HAVE_SSL_GET0_ALPN_SELECTED */
     if (alpn != nullptr && alpnLen > 0) {
       result.insert(result.end(), alpn, alpn + alpnLen);
     }
@@ -787,11 +785,7 @@ public:
 
     OpenSSLTLSConnection::generateConnectionIndexIfNeeded();
 
-#ifdef HAVE_TLS_CLIENT_METHOD
     d_tlsCtx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(TLS_client_method()), SSL_CTX_free);
-#else
-    d_tlsCtx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(SSLv23_client_method()), SSL_CTX_free);
-#endif
     if (!d_tlsCtx) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Error creating TLS context");
@@ -819,14 +813,12 @@ public:
     }
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
-#ifdef HAVE_SSL_CTX_SET1_GROUPS_LIST
   if (!params.d_ecdheCurves.empty()) {
     if (SSL_CTX_set1_groups_list(d_tlsCtx.get(), params.d_ecdheCurves.c_str()) != 1) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Failed to set the TLS ECDHE curve to '" + params.d_ecdheCurves + "' for the TLS context");
     }
   }
-#endif /* HAVE_SSL_CTX_SET1_GROUPS_LIST */
 
     if (params.d_validateCertificates) {
       if (params.d_caStore.empty())  {

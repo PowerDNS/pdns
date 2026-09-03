@@ -589,7 +589,6 @@ const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
 
 static bool libssl_set_min_tls_version(SSL_CTX& ctx, LibsslTLSVersion version)
 {
-#if defined(HAVE_SSL_CTX_SET_MIN_PROTO_VERSION) || defined(SSL_CTX_set_min_proto_version)
   /* These functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated
      Warning: SSL_CTX_set_min_proto_version is a function-like macro in OpenSSL */
   int vers;
@@ -618,28 +617,6 @@ static bool libssl_set_min_tls_version(SSL_CTX& ctx, LibsslTLSVersion version)
     return false;
   }
   return true;
-#else
-  long vers = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3;
-  switch(version) {
-  case LibsslTLSVersion::TLS10:
-    break;
-  case LibsslTLSVersion::TLS11:
-    vers |= SSL_OP_NO_TLSv1;
-    break;
-  case LibsslTLSVersion::TLS12:
-    vers |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1;
-    break;
-  case LibsslTLSVersion::TLS13:
-    vers |= SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_NO_TLSv1_2;
-    break;
-  default:
-    return false;
-  }
-
-  long options = SSL_CTX_get_options(&ctx);
-  SSL_CTX_set_options(&ctx, options | vers);
-  return true;
-#endif
 }
 
 OpenSSLTLSTicketKeysRing::OpenSSLTLSTicketKeysRing(size_t capacity)
@@ -988,13 +965,11 @@ static std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> getNewServerContext(con
 #endif /* OPENSSL_VERSION_MAJOR < 4 */
 #endif
 
-#ifdef HAVE_SSL_CTX_SET1_GROUPS_LIST
   if (!config.d_ecdheCurves.empty()) {
     if (SSL_CTX_set1_groups_list(ctx.get(), config.d_ecdheCurves.c_str()) != 1) {
       throw std::runtime_error("Failed to set the TLS ECDHE curve to '" + config.d_ecdheCurves + "': " + libssl_get_error_string());
     }
   }
-#endif /* HAVE_SSL_CTX_SET1_GROUPS_LIST */
 
   if (config.d_maxStoredSessions == 0) {
     /* disable stored sessions entirely */
@@ -1330,16 +1305,13 @@ pdns::UniqueFilePtr libssl_set_key_log_file([[maybe_unused]] SSL_CTX* ctx, [[may
 }
 
 /* called in a client context, if the client advertised more than one ALPN value and the server returned more than one as well, to select the one to use. */
-void libssl_set_alpn_select_callback([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] int (*callback)(SSL* ssl, const unsigned char** out, unsigned char* outlen, const unsigned char* inPtr, unsigned int inlen, void* arg), [[maybe_unused]] void* arg)
+void libssl_set_alpn_select_callback(SSL_CTX* ctx, int (*callback)(SSL* ssl, const unsigned char** out, unsigned char* outlen, const unsigned char* inPtr, unsigned int inlen, void* arg), void* arg)
 {
-#ifdef HAVE_SSL_CTX_SET_ALPN_SELECT_CB
   SSL_CTX_set_alpn_select_cb(ctx, callback, arg);
-#endif
 }
 
-bool libssl_set_alpn_protos([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] const std::vector<std::vector<uint8_t>>& protos)
+bool libssl_set_alpn_protos(SSL_CTX* ctx, const std::vector<std::vector<uint8_t>>& protos)
 {
-#ifdef HAVE_SSL_CTX_SET_ALPN_PROTOS
   std::vector<uint8_t> wire;
   for (const auto& proto : protos) {
     if (proto.size() > std::numeric_limits<uint8_t>::max()) {
@@ -1350,9 +1322,6 @@ bool libssl_set_alpn_protos([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] cons
     wire.insert(wire.end(), proto.begin(), proto.end());
   }
   return SSL_CTX_set_alpn_protos(ctx, wire.data(), wire.size()) == 0;
-#else
-  return false;
-#endif
 }
 
 
