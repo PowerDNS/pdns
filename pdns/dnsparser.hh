@@ -68,14 +68,13 @@ class MOADNSParser;
 class PacketReader
 {
 public:
-  PacketReader(const std::string_view& content, uint16_t initialPos=sizeof(dnsheader), bool internalRepresentation = false)
-    : d_pos(initialPos), d_startrecordpos(initialPos), d_content(content), d_internal(internalRepresentation)
+  PacketReader(const std::string_view& content, uint16_t initialPos=sizeof(dnsheader), bool internalRepresentation = false, bool standalone = false)
+    : d_pos(initialPos), d_startrecordpos(initialPos), d_internal(internalRepresentation), d_standalone(standalone), d_content(content)
   {
     if(content.size() > std::numeric_limits<uint16_t>::max())
       throw std::out_of_range("packet too large");
 
     d_recordlen = (uint16_t) content.size();
-    not_used = 0;
   }
 
   uint32_t get32BitInt();
@@ -209,9 +208,9 @@ private:
   uint16_t d_pos;
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
-  uint16_t not_used; // Aligns the whole class on 8-byte boundaries
-  const std::string_view d_content;
   bool d_internal;
+  bool d_standalone; // no dnsheader at the beginning of content
+  const std::string_view d_content;
 };
 
 struct DNSRecord;
