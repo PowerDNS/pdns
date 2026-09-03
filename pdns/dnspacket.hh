@@ -170,6 +170,8 @@ public:
   static uint16_t s_udpTruncationThreshold;
   static bool s_doEDNSSubnetProcessing;
   static bool s_doEDNSCookieProcessing;
+  static uint8_t s_ECSscopeMaskIPv4;
+  static uint8_t s_ECSscopeMaskIPv6;
   static string s_EDNSCookieKey;
   EDNSSubnetOpts d_eso;
 
