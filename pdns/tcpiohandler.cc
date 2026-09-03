@@ -1,3 +1,24 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #include "config.h"
 #include "dolog.hh"
@@ -83,7 +104,7 @@ public:
     // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer): it cannot be initialized before calling libssl_init_server_context()
     d_sniMap = std::move(ctx.d_sniMap);
     for (auto& entry : d_sniMap) {
-      SSL_CTX_set_tlsext_servername_callback(entry.second.get(), &sni_server_name_callback);
+      SSL_CTX_set_tlsext_servername_callback(entry.second.get(), &sni_server_name_callback); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
     }
 
     if (!d_tlsCtx) {
@@ -169,7 +190,7 @@ public:
       throw std::runtime_error("Error creating TLS object");
     }
 
-    if (!SSL_set_fd(d_conn.get(), d_socket)) {
+    if (SSL_set_fd(d_conn.get(), d_socket) == 0) {
       throw std::runtime_error("Error assigning socket");
     }
 
@@ -190,7 +211,7 @@ public:
       throw std::runtime_error("Error creating TLS object");
     }
 
-    if (!SSL_set_fd(d_conn.get(), d_socket)) {
+    if (SSL_set_fd(d_conn.get(), d_socket) == 0) {
       throw std::runtime_error("Error assigning socket");
     }
 
@@ -230,53 +251,50 @@ public:
       return results;
     }
 
-    OSSL_ASYNC_FD fds[32];
-    size_t numfds = sizeof(fds)/sizeof(*fds);
+    std::array<OSSL_ASYNC_FD, 32> fds{};
+    size_t numfds = fds.size();
     SSL_get_all_async_fds(d_conn.get(), nullptr, &numfds);
     if (numfds == 0) {
       return results;
     }
 
-    SSL_get_all_async_fds(d_conn.get(), fds, &numfds);
+    SSL_get_all_async_fds(d_conn.get(), fds.data(), &numfds);
     results.reserve(numfds);
     for (size_t idx = 0; idx < numfds; idx++) {
-      results.push_back(fds[idx]);
+      results.push_back(fds.at(idx));
     }
 #endif
     return results;
   }
 
-  IOState convertIORequestToIOState(int res) const
+  [[nodiscard]] IOState convertIORequestToIOState(int res) const
   {
     int error = SSL_get_error(d_conn.get(), res);
     if (error == SSL_ERROR_WANT_READ) {
       return IOState::NeedRead;
     }
-    else if (error == SSL_ERROR_WANT_WRITE) {
+    if (error == SSL_ERROR_WANT_WRITE) {
       return IOState::NeedWrite;
     }
-    else if (error == SSL_ERROR_SYSCALL) {
+    if (error == SSL_ERROR_SYSCALL) {
       if (errno == 0) {
         throw std::runtime_error("TLS connection closed by remote end");
       }
-      else {
-        throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(strerror(errno)));
-      }
+      throw std::runtime_error("Syscall error while processing TLS connection: " + std::string(stringerror(errno)));
     }
-    else if (error == SSL_ERROR_ZERO_RETURN) {
+    if (error == SSL_ERROR_ZERO_RETURN) {
       throw std::runtime_error("TLS connection closed by remote end");
     }
 #ifdef SSL_MODE_ASYNC
-    else if (error == SSL_ERROR_WANT_ASYNC) {
+    if (error == SSL_ERROR_WANT_ASYNC) {
       return IOState::Async;
     }
 #endif
     else {
       if (shouldDoVerboseLogging()) {
         throw std::runtime_error("Error while processing TLS connection: (" + std::to_string(error) + ") " + libssl_get_error_string());
-      } else {
-        throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));
       }
+      throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));
     }
   }
 
@@ -288,7 +306,7 @@ public:
       if (res == 0) {
         throw std::runtime_error("Timeout while reading from TLS connection");
       }
-      else if (res < 0) {
+      if (res < 0) {
         throw std::runtime_error("Error waiting to read from TLS connection");
       }
     }
@@ -297,7 +315,7 @@ public:
       if (res == 0) {
         throw std::runtime_error("Timeout while writing to TLS connection");
       }
-      else if (res < 0) {
+      if (res < 0) {
         throw std::runtime_error("Error waiting to write to TLS connection");
       }
     }
@@ -313,7 +331,7 @@ public:
     if (res == 1) {
       return IOState::Done;
     }
-    else if (res < 0) {
+    if (res < 0) {
       return convertIORequestToIOState(res);
     }
 
@@ -340,7 +358,7 @@ public:
       }
 
       if (timeout.tv_sec != 0 || timeout.tv_usec != 0) {
-        struct timeval now;
+        struct timeval now{};
         gettimeofday(&now, nullptr);
         struct timeval elapsed = now - start;
         if (now < start || remainingTime < elapsed) {
@@ -374,7 +392,7 @@ public:
     if (res == 1) {
       return IOState::Done;
     }
-    else if (res < 0) {
+    if (res < 0) {
       return convertIORequestToIOState(res);
     }
 
@@ -412,13 +430,11 @@ public:
     }
 
     do {
-      int res = SSL_write(d_conn.get(), reinterpret_cast<const char *>(&buffer.at(pos)), static_cast<int>(toWrite - pos));
+      int res = SSL_write(d_conn.get(), &buffer.at(pos), static_cast<int>(toWrite - pos));
       if (res <= 0) {
         return convertIORequestToIOState(res);
       }
-      else {
-        pos += static_cast<size_t>(res);
-      }
+      pos += static_cast<size_t>(res);
     }
     while (pos < toWrite);
 
@@ -432,15 +448,13 @@ public:
   IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete) override
   {
     do {
-      int res = SSL_read(d_conn.get(), reinterpret_cast<char *>(&buffer.at(pos)), static_cast<int>(toRead - pos));
+      int res = SSL_read(d_conn.get(), &buffer.at(pos), static_cast<int>(toRead - pos));
       if (res <= 0) {
         return convertIORequestToIOState(res);
       }
-      else {
-        pos += static_cast<size_t>(res);
-        if (allowIncomplete) {
-          break;
-        }
+      pos += static_cast<size_t>(res);
+      if (allowIncomplete) {
+        break;
       }
     }
     while (pos < toRead);
@@ -457,6 +471,7 @@ public:
     }
 
     do {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
       int res = SSL_read(d_conn.get(), (reinterpret_cast<char *>(buffer) + got), static_cast<int>(bufferSize - got));
       if (res <= 0) {
         handleIORequest(res, readTimeout);
@@ -469,7 +484,7 @@ public:
       }
 
       if (totalTimeout.tv_sec != 0 || totalTimeout.tv_usec != 0) {
-        struct timeval now;
+        struct timeval now{};
         gettimeofday(&now, nullptr);
         struct timeval elapsed = now - start;
         if (now < start || remainingTime < elapsed) {
@@ -488,6 +503,7 @@ public:
   {
     size_t got = 0;
     do {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
       int res = SSL_write(d_conn.get(), (reinterpret_cast<const char *>(buffer) + got), static_cast<int>(bufferSize - got));
       if (res <= 0) {
         handleIORequest(res, writeTimeout);
@@ -501,19 +517,19 @@ public:
     return got;
   }
 
-  bool isUsable() const override
+  [[nodiscard]] bool isUsable() const override
   {
     if (!d_conn) {
       return false;
     }
 
-    char buf;
+    char buf{};
     int res = SSL_peek(d_conn.get(), &buf, sizeof(buf));
     if (res > 0) {
       return true;
     }
     try {
-      convertIORequestToIOState(res);
+      (void)convertIORequestToIOState(res);
       return true;
     }
     catch (...) {
@@ -530,18 +546,18 @@ public:
     }
   }
 
-  std::string getServerNameIndication() const override
+  [[nodiscard]] std::string getServerNameIndication() const override
   {
     if (d_conn) {
       const char* value = SSL_get_servername(d_conn.get(), TLSEXT_NAMETYPE_host_name);
-      if (value) {
-        return std::string(value);
+      if (value != nullptr) {
+        return value;
       }
     }
-    return std::string();
+    return {};
   }
 
-  std::vector<uint8_t> getNextProtocol() const override
+  [[nodiscard]] std::vector<uint8_t> getNextProtocol() const override
   {
     std::vector<uint8_t> result;
     if (!d_conn) {
@@ -554,6 +570,7 @@ public:
       SSL_get0_alpn_selected(d_conn.get(), &alpn, &alpnLen);
     }
     if (alpn != nullptr && alpnLen > 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       result.insert(result.end(), alpn, alpn + alpnLen);
     }
     return result;
@@ -580,7 +597,7 @@ public:
     return {0, ""};
   }
 
-  LibsslTLSVersion getTLSVersion() const override
+  [[nodiscard]] LibsslTLSVersion getTLSVersion() const override
   {
     auto proto = SSL_version(d_conn.get());
     switch (proto) {
@@ -599,7 +616,7 @@ public:
     }
   }
 
-  bool hasSessionBeenResumed() const override
+  [[nodiscard]] bool hasSessionBeenResumed() const override
   {
     if (d_conn) {
       return SSL_session_reused(d_conn.get()) != 0;
@@ -614,8 +631,8 @@ public:
 
   void setSession(std::unique_ptr<TLSSession>& session) override
   {
-    auto sess = dynamic_cast<OpenSSLSession*>(session.get());
-    if (!sess) {
+    auto* sess = dynamic_cast<OpenSSLSession*>(session.get());
+    if (sess == nullptr) {
       throw std::runtime_error("Unable to convert OpenSSL session");
     }
 
@@ -645,7 +662,7 @@ public:
   static void generateConnectionIndexIfNeeded()
   {
     auto init = s_initTLSConnIndex.lock();
-    if (*init == true) {
+    if (*init) {
       return;
     }
 
@@ -718,7 +735,7 @@ public:
 
 #ifndef DISABLE_OCSP_STAPLING
       if (!d_feContext->d_ocspResponses.empty()) {
-        SSL_CTX_set_tlsext_status_cb(ctx, &OpenSSLTLSIOCtx::ocspStaplingCb);
+        SSL_CTX_set_tlsext_status_cb(ctx, &OpenSSLTLSIOCtx::ocspStaplingCb); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
         SSL_CTX_set_tlsext_status_arg(ctx, &d_feContext->d_ocspResponses);
       }
 #endif /* DISABLE_OCSP_STAPLING */
@@ -814,7 +831,7 @@ public:
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
   if (!params.d_ecdheCurves.empty()) {
-    if (SSL_CTX_set1_groups_list(d_tlsCtx.get(), params.d_ecdheCurves.c_str()) != 1) {
+    if (SSL_CTX_set1_groups_list(d_tlsCtx.get(), params.d_ecdheCurves.c_str()) != 1) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Failed to set the TLS ECDHE curve to '" + params.d_ecdheCurves + "' for the TLS context");
     }
@@ -878,20 +895,24 @@ public:
   }
 
 #if OPENSSL_VERSION_MAJOR >= 3
-  static int ticketKeyCb(SSL* s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
+  // NOLINTNEXTLINE(*-avoid-c-arrays) it's the API 
+  static int ticketKeyCb(SSL* ssl, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* ivec, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
 #else
-  static int ticketKeyCb(SSL* s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
+  // NOLINTNEXTLINE(*-avoid-c-arrays) it's the API 
+  static int ticketKeyCb(SSL* ssl, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* ivec, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
 #endif
   {
-    auto* ctx = reinterpret_cast<OpenSSLFrontendContext*>(libssl_get_ticket_key_callback_data(s));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto* ctx = reinterpret_cast<OpenSSLFrontendContext*>(libssl_get_ticket_key_callback_data(ssl));
     if (ctx == nullptr) {
       return -1;
     }
 
-    int ret = libssl_ticket_key_callback(s, ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
+    int ret = libssl_ticket_key_callback(ssl, ctx->d_ticketKeys, keyName, ivec, ectx, hctx, enc);
     if (enc == 0) {
       if (ret == 0 || ret == 2) {
-        auto* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(s, OpenSSLTLSConnection::getConnectionIndex()));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        auto* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(ssl, OpenSSLTLSConnection::getConnectionIndex()));
         if (conn != nullptr) {
           if (ret == 0) {
             conn->setUnknownTicketKey();
@@ -912,14 +933,16 @@ public:
     if (ssl == nullptr || arg == nullptr) {
       return SSL_TLSEXT_ERR_NOACK;
     }
-    const auto ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const auto* ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
     return libssl_ocsp_stapling_callback(ssl, *ocspMap);
   }
 #endif /* DISABLE_OCSP_STAPLING */
 
   static int newTicketFromServerCb(SSL* ssl, SSL_SESSION* session)
   {
-    OpenSSLTLSConnection* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(ssl, OpenSSLTLSConnection::getConnectionIndex()));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(ssl, OpenSSLTLSConnection::getConnectionIndex()));
     if (session == nullptr || conn == nullptr) {
       return 0;
     }
@@ -1002,15 +1025,15 @@ public:
 
 private:
   /* called in a client context, if the client advertised more than one ALPN value and the server returned more than one as well, to select the one to use. */
-  static int alpnServerSelectCallback(SSL*, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
+  static int alpnServerSelectCallback(SSL* /* ssl */, const unsigned char** out, unsigned char* outlen, const unsigned char* inBuffer, unsigned int inlen, void* arg)
   {
-    if (!arg) {
+    if (arg == nullptr) {
       return SSL_TLSEXT_ERR_ALERT_WARNING;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
-    OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
+    auto* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
 
-    const pdns::views::UnsignedCharView inView(in, inlen);
+    const pdns::views::UnsignedCharView inView(inBuffer, inlen);
     // Server preference algorithm as per RFC 7301 section 3.2
     for (const auto& tentative : obj->d_alpnProtos) {
       size_t pos = 0;
