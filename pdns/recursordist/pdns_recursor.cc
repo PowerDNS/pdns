@@ -962,7 +962,7 @@ static void dumpTrace(const string& trace, const timeval& timev)
     return;
   }
   timeval now{};
-  Utility::gettimeofday(&now);
+  gettimeofday(&now, nullptr);
   int traceFd = dup(t_tracefd);
   if (traceFd == -1) {
     int err = errno;
@@ -2522,7 +2522,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           g_slogudpin->error(Logr::Error, sendErr, "Sending UDP reply to client failed", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr));
         }
         struct timeval now{};
-        Utility::gettimeofday(&now);
+        gettimeofday(&now, nullptr);
         uint64_t spentUsec = uSec(now - tval);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
         t_Counters.updateSnap(g_regressionTestMode);

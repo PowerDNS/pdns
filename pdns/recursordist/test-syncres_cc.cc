@@ -234,7 +234,7 @@ void initSR(std::unique_ptr<SyncRes>& sr, bool dnssec, bool debug, time_t fakeNo
     now.tv_usec = 0;
   }
   else {
-    Utility::gettimeofday(&now);
+    gettimeofday(&now, nullptr);
   }
 
   initSR(debug);

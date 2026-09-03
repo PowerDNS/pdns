@@ -24,7 +24,7 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
 
   string pkgv(PACKAGEVERSION);
   struct timeval now{};
-  Utility::gettimeofday(&now);
+  gettimeofday(&now, nullptr);
 
   /* update last_secpoll right now, even if it fails
      we don't want to retry right away and hammer the server */

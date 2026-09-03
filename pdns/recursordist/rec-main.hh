@@ -284,13 +284,13 @@ static bool sendResponseOverTCP(const std::unique_ptr<DNSComboWriter>& comboWrit
   buf[0] = packet.size() / 256;
   buf[1] = packet.size() % 256;
 
-  std::array<Utility::iovec, 2> iov{};
+  std::array<iovec, 2> iov{};
   iov[0].iov_base = static_cast<void*>(buf.data());
   iov[0].iov_len = 2;
   iov[1].iov_base = static_cast<void*>(const_cast<typename T::value_type*>(packet.data()));
   iov[1].iov_len = packet.size();
 
-  int wret = Utility::writev(comboWriter->d_socket, iov.data(), iov.size());
+  auto wret = writev(comboWriter->d_socket, iov.data(), iov.size());
   bool hadError = true;
 
   if (wret == 0) {

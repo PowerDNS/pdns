@@ -88,30 +88,16 @@ public:
 class Utility
 {
 public:
-  using iovec = ::iovec;
-  using pid_t = ::pid_t;
-  using sock_t = int;
-  using socklen_t = ::socklen_t;
-
   //! Connect with timeout
   // Returns:
   //    > 0 on success
   //    -1 on error
   //    0 on timeout
-  static int timed_connect(sock_t sock,
+  static int timed_connect(int sock,
                            const sockaddr* addr,
                            socklen_t sockaddr_size,
                            int timeout_sec,
                            int timeout_usec);
-
-  //! Returns the process id of the current process.
-  static pid_t getpid();
-
-  //! Gets the current time.
-  static int gettimeofday(struct timeval* timeval);
-
-  //! Writes a vector.
-  static ssize_t writev(Utility::sock_t socket, const iovec* vector, size_t count);
 
   //! Drops the program's group privileges.
   static void dropGroupPrivs(uid_t uid, gid_t gid);
@@ -120,7 +106,7 @@ public:
   static void dropUserPrivs(uid_t uid);
 
   //! Sets the socket into Bind-any mode
-  static void setBindAny(int family, Utility::sock_t socket);
+  static void setBindAny(int family, int socket);
 
   //! Sleeps for a number of seconds.
   static void sleep(unsigned int seconds);

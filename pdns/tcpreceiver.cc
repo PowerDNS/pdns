@@ -1498,7 +1498,7 @@ void TCPNameserver::thread()
     for(;;) {
       int fd;
       ComboAddress remote;
-      Utility::socklen_t addrlen=remote.getSocklen();
+      socklen_t addrlen=remote.getSocklen();
 
       int ret=poll(&d_prfds[0], d_prfds.size(), -1); // blocks, forever if need be
       if(ret <= 0)

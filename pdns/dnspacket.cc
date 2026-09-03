@@ -728,7 +728,7 @@ Netmask DNSPacket::getRealRemote() const
   return d_haveednssubnet ? d_eso.getSource() : Netmask{getInnerRemote()};
 }
 
-void DNSPacket::setSocket(Utility::sock_t sock)
+void DNSPacket::setSocket(int sock)
 {
   d_socket = sock;
 }

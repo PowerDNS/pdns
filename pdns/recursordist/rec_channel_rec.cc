@@ -437,7 +437,7 @@ static uint64_t dumpAggressiveNSECCache(int fileDesc)
   fprintf(filePtr.get(), "; aggressive NSEC cache dump follows\n;\n");
 
   struct timeval now{};
-  Utility::gettimeofday(&now);
+  gettimeofday(&now, nullptr);
   return g_aggressiveNSECCache->dumpToFile(filePtr, now);
 }
 

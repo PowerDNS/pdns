@@ -246,7 +246,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
 
   // receive incoming notifications on the nonblocking socket and take them off the list
   while (waitForMultiData(fds, 0, 0, &sock) > 0) {
-    Utility::socklen_t fromlen = sizeof(from);
+    socklen_t fromlen = sizeof(from);
     const auto size = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&from, &fromlen);
     if (size < 0) {
       break;

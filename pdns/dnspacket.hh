@@ -79,11 +79,11 @@ public:
 
   boost::optional<ComboAddress> d_anyLocal;
 
-  Utility::sock_t getSocket() const
+  [[nodiscard]] int getSocket() const
   {
     return d_socket;
   }
-  void setSocket(Utility::sock_t sock);
+  void setSocket(int sock);
 
   // these manipulate 'd'
   void setA(bool); //!< make this packet authoritative - manipulates 'd'

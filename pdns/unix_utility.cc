@@ -37,9 +37,9 @@
 #include <thread>
 
 // Connects to socket with timeout
-int Utility::timed_connect(Utility::sock_t sock,
+int Utility::timed_connect(int sock,
                            const sockaddr* addr,
-                           Utility::socklen_t sockaddr_size,
+                           socklen_t sockaddr_size,
                            int timeout_sec,
                            int timeout_usec)
 {
@@ -67,7 +67,7 @@ int Utility::timed_connect(Utility::sock_t sock,
   return ret;
 }
 
-void Utility::setBindAny([[maybe_unused]] int family, [[maybe_unused]] sock_t sock)
+void Utility::setBindAny([[maybe_unused]] int family, [[maybe_unused]] int sock)
 {
   const int one = 1;
 
@@ -173,24 +173,6 @@ void Utility::dropUserPrivs(uid_t uid)
            g_slog->withName("runtime")->info(Logr::Info, "Set effective user", "uid", Logging::Loggable(uid)));
     }
   }
-}
-
-// Returns the current process id.
-Utility::pid_t Utility::getpid()
-{
-  return ::getpid();
-}
-
-// Returns the current time.
-int Utility::gettimeofday(struct timeval* time)
-{
-  return ::gettimeofday(time, nullptr);
-}
-
-// Writes a vector.
-ssize_t Utility::writev(int socket, const iovec* vector, size_t count)
-{
-  return ::writev(socket, vector, static_cast<int>(count));
 }
 
 /* this is cut and pasted from dietlibc, gratefully copied! */
