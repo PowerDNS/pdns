@@ -38,6 +38,11 @@ PKCS#11 now requires setting an option
 
 When PowerDNS is built with :doc:`PKCS#11 support <dnssec/pkcs11>`, the PKCS#11 engine is disabled by the :ref:`setting-pkcs11` configuration setting by default. To use the PKCS#11 engine, this setting must be set to ``yes``.
 
+Lua DNS Update policy script behaviour changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :ref:`Lua DNS Update policy script <dnsupdate-lua-dnsupdate-policy-script>` now honors :ref:`setting-lua-global-include-dir`.
+
 5.0.x to 5.1.x
 --------------
 
