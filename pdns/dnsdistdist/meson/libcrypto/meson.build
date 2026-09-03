@@ -82,8 +82,6 @@ funcs = [
   'RAND_bytes',
   'CRYPTO_memcmp',
   'OPENSSL_init_crypto',
-  'EVP_MD_CTX_new',
-  'EVP_MD_CTX_free',
   'RSA_get0_key',
   'OCSP_basic_sign',
 ]
