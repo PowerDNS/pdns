@@ -143,9 +143,7 @@ int libssl_ticket_key_callback(SSL* s, OpenSSLTLSTicketKeysRing& keyring, unsign
 
 #ifndef DISABLE_OCSP_STAPLING
 int libssl_ocsp_stapling_callback(SSL* ssl, const std::map<int, std::string>& ocspMap);
-#ifdef HAVE_OCSP_BASIC_SIGN
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin);
-#endif
 #endif /* DISABLE_OCSP_STAPLING */
 
 void libssl_set_error_counters_callback(SSL_CTX& ctx, TLSErrorCounters* counters);

@@ -65,7 +65,6 @@ static int s_keyLogIndex{-1};
 void registerOpenSSLUser()
 {
   if (s_users.fetch_add(1) == 0) {
-#ifdef HAVE_OPENSSL_INIT_CRYPTO
 #ifndef DISABLE_OPENSSL_ERROR_STRINGS
     uint64_t cryptoOpts = OPENSSL_INIT_LOAD_CONFIG;
     const uint64_t sslOpts = 0;
@@ -87,7 +86,6 @@ void registerOpenSSLUser()
 
     OPENSSL_init_crypto(cryptoOpts, nullptr);
     OPENSSL_init_ssl(sslOpts, nullptr);
-#endif /* HAVE_OPENSSL_INIT_CRYPTO */
 
     s_ticketsKeyIndex = SSL_CTX_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
 
@@ -423,7 +421,6 @@ static std::map<int, std::string> libssl_load_ocsp_responses(const std::vector<s
   return ocspResponses;
 }
 
-#ifdef HAVE_OCSP_BASIC_SIGN
 bool libssl_generate_ocsp_response(const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin)
 {
   const EVP_MD* rmd = EVP_sha256();
@@ -468,7 +465,6 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 
   return true;
 }
-#endif /* HAVE_OCSP_BASIC_SIGN */
 #endif /* DISABLE_OCSP_STAPLING */
 
 static int libssl_get_last_key_type(SSL_CTX& ctx)

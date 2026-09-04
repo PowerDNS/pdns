@@ -11,6 +11,14 @@ upgrade notes if your version is older than 3.4.2.
 5.1.x to master
 ---------------
 
+Cryptographic library requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Vestigial (and probably by now not sufficient enough) support for building with
+very old OpenSSL (or compatible) libraries, not providing the OpenSSL 1.1.0
+API, has been removed. No operating system aged less than 10 years should be
+affected by this, but we're mentioning it, just in case.
+
 NAPTR additional answers
 ^^^^^^^^^^^^^^^^^^^^^^^^
 

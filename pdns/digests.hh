@@ -32,11 +32,7 @@ namespace pdns
 {
 inline std::string hash(const EVP_MD* messageDigest, const std::string& input)
 {
-#if defined(HAVE_EVP_MD_CTX_NEW) && defined(HAVE_EVP_MD_CTX_FREE)
   auto mdctx = std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
-#else
-  auto mdctx = std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
-#endif
   if (!mdctx) {
     throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " context initialization failed");
   }
