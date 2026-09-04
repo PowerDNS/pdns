@@ -2819,9 +2819,20 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
       if (iter->content == new_record.content) {
         // We found the record we've been instructed to add or delete.
         seenRecord = true;
-        // If it is to be added, we don't have anything more to do.
+        bool keepOld{true};
         // If it is to be deleted, just remove it from the RRset we're building.
         if (operationType == PRUNE) {
+          keepOld = false;
+        }
+        else {
+          // If it is to be added, we don't have anything more to do, unless the
+          // [disabled] value differs.
+          if (operationType == EXTEND && iter->disabled != new_record.disabled) {
+            keepOld = false;
+            seenRecord = false;
+          }
+        }
+        if (!keepOld) {
           rrset.erase(iter);
         }
         break;

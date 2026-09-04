@@ -2880,6 +2880,7 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
   rr.qtype = DNSRecordContent::TypeToNumber(cmds.at(2));
   ::arg().assignNum(rr.ttl, "default-ttl");
   rr.auth = true;
+  rr.disabled = false;
   rr.domain_id = di.id;
   rr.qname = name;
 
@@ -2920,12 +2921,22 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
     // would-be new records which contents are identical to the existing ones.
     di.backend->lookup(QType(QType::ANY), rr.qname, static_cast<int>(di.id));
     while (di.backend->get(oldrr)) {
-      oldrrs.push_back(oldrr);
+      bool keepOld{true};
       for (auto iter = newrrs.begin(); iter != newrrs.end(); ++iter) {
         if (iter->content == oldrr.content) {
-          newrrs.erase(iter);
+          // If the contents are identical but the [disabled] value differs,
+          // discard the old record and keep the new.
+          if (iter->disabled == oldrr.disabled) {
+            newrrs.erase(iter);
+          }
+          else {
+            keepOld = false;
+          }
           break;
         }
+      }
+      if (keepOld) {
+        oldrrs.push_back(oldrr);
       }
     }
     newrrs.insert(newrrs.end(), oldrrs.begin(), oldrrs.end());
