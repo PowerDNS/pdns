@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include "arguments.hh"
 #include "webserver.hh"
 #include "misc.hh"
 #include <thread>
@@ -128,6 +129,17 @@ void HttpResponse::setSuccessResult(const std::string& message, const int status
 }
 
 #ifndef RUST_WS
+
+Server::Server(const string& localaddress, int port, Logr::log_t slog) :
+  d_local(localaddress.empty() ? "0.0.0.0" : localaddress, port), d_server_socket(d_local.sin4.sin_family, SOCK_STREAM, 0)
+{
+  d_server_socket.setReuseAddr();
+  d_server_socket.bind(d_local);
+  if (d_local.isUnixSocket()) {
+    d_local.tightenSocketPermissions(slog, ::arg()["setgid"]);
+  }
+  d_server_socket.listen();
+}
 
 static void bareHandlerWrapper(const WebServer::HandlerFunction& handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {

@@ -36,6 +36,8 @@
 
 #include "namespaces.hh"
 
+#include "iputils.hh"
+
 class DynListener : public boost::noncopyable
 {
 public:
@@ -60,7 +62,7 @@ private:
 
   void listenOnUnixDomain(const std::string& fname);
   void listenOnTCP(const ComboAddress&);
-  void createSocketAndBind(int family, struct sockaddr*local, size_t len);
+  void createSocketAndBind(SockaddrWrapper& wrap);
 
   NetmaskGroup d_tcprange;
   int d_s{-1};

@@ -1413,7 +1413,7 @@ testrunner_SOURCES = \
 	gss_context.cc gss_context.hh \
 	histogram.hh \
 	ipcipher.cc ipcipher.hh \
-	iputils.cc \
+	iputils.cc iputils.hh \
 	ixfr.cc ixfr.hh \
 	logger.cc logger.hh \
 	logging.cc logging.hh \
