@@ -818,6 +818,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
     if (!script.empty()) {
       try {
         pdl = make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
+        pdl->setExecLimit();
         pdl->loadFile(script);
         SLOG(g_log << Logger::Info << ctx.logPrefix << "loaded Lua script '" << script << "'" << endl,
              ctx.slog->info(Logr::Info, "XFR: loaded Lua script", "name", Logging::Loggable(script)));
