@@ -603,7 +603,7 @@ bool setPipeBufferSize(int fileDesc, size_t size);
 
 uint64_t udpErrorStats(const std::string& str);
 uint64_t udp6ErrorStats(const std::string& str);
-uint64_t tcpErrorStats(const std::string& str);
+uint64_t tcpErrorStats(const std::string& label);
 uint64_t getRealMemoryUsage(const std::string&);
 uint64_t getSpecialMemoryUsage(const std::string&);
 uint64_t getOpenFileDescriptors(const std::string&);

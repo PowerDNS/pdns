@@ -1297,29 +1297,53 @@ uint64_t udp6ErrorStats([[maybe_unused]] const std::string& str)
   return 0;
 }
 
-uint64_t tcpErrorStats(const std::string& /* str */)
+uint64_t tcpErrorStats(const std::string& label)
 {
 #ifdef __linux__
   ifstream ifs("/proc/net/netstat");
   if (!ifs) {
-    return 0;
+    return 0U;
   }
 
   string line;
-  vector<string> parts;
+  std::vector<string> parts;
+  std::optional<size_t> position{std::nullopt};
   while (getline(ifs, line)) {
-    if (line.size() > 9 && boost::starts_with(line, "TcpExt: ") && isdigit(line.at(8)) != 0) {
+    if (line.size() <= 9 || !boost::starts_with(line, "TcpExt: ")) {
+      continue;
+    }
+
+    if (!position.has_value() && isdigit(line.at(8)) == 0) {
+      // this is the line with the labels, let's try to find ours
+      parts.clear();
       stringtok(parts, line, " \n\t\r");
-
-      if (parts.size() < 21) {
-        break;
+      size_t currentPosition = 0;
+      for (const auto& tentativeLabel : parts) {
+        if (tentativeLabel == label) {
+          position = currentPosition;
+          break;
+        }
+        ++currentPosition;
       }
+      if (!position.has_value()) {
+        // label not found, bye
+        return 0U;
+      }
+      continue;
+    }
 
-      return std::stoull(parts.at(20));
+    if (position.has_value() && isdigit(line.at(8)) != 0) {
+      // this is the line with the values
+      parts.clear();
+      stringtok(parts, line, " \n\t\r");
+      if (parts.size() < *position) {
+        return 0U;
+      }
+      return std::stoull(parts.at(*position));
     }
   }
 #endif
-  return 0;
+  return 0U;
 }
 
 uint64_t getCPUIOWait(const std::string& /* str */)
