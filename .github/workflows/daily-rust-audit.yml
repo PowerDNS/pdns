@@ -18,6 +18,8 @@ jobs:
         branch:
           - master
           - rel/dnsdist-2.0.x
+          - rel/dnsdist-2.1.x
+          - rel/rec-5.4.x
           - rel/rec-5.3.x
           - rel/rec-5.2.x
           - rel/rec-5.1.x
