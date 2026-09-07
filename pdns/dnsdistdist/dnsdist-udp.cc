@@ -679,23 +679,6 @@ static void MultipleMessagesUDPResponseFromBackendThread(std::shared_ptr<Downstr
     int msgsGot = static_cast<int>(vectSize);
     /* go now */
     for (;;) {
-
-      /* reset the IO vector.
-         No need to reset the parts that have not been used, though. */
-      for (int idx = 0; idx < msgsGot; idx++) {
-        auto& slot = recvData[idx];
-        /* only resize if the buffer is actually smaller than expected */
-        if (slot.packet.size() < (initialBufferSize + 1)) {
-          slot.packet.resize((initialBufferSize + 1));
-        }
-        /* but we need to set the IOv pointer and size anyway,
-           because if the buffer has been resized at any point
-           during the processing (to add EDNS options, for example)
-           the pointer might now be invalid */
-        slot.iov.iov_base = &slot.packet.at(0);
-        slot.iov.iov_len = slot.packet.size();
-      }
-
       if (dss->isStopped()) {
         break;
       }
@@ -718,6 +701,22 @@ static void MultipleMessagesUDPResponseFromBackendThread(std::shared_ptr<Downstr
       }
 
       for (const auto& sockDesc : sockets) {
+        /* reset the IO vector.
+           No need to reset the parts that have not been used, though. */
+        for (int idx = 0; idx < msgsGot; idx++) {
+          auto& slot = recvData[idx];
+          /* only resize if the buffer is actually smaller than expected */
+          if (slot.packet.size() < (initialBufferSize + 1)) {
+            slot.packet.resize((initialBufferSize + 1));
+          }
+          /* but we need to set the IOv pointer and size anyway,
+             because if the buffer has been resized at any point
+             during the processing (to add EDNS options, for example)
+             the pointer might now be invalid */
+          slot.iov.iov_base = &slot.packet.at(0);
+          slot.iov.iov_len = slot.packet.size();
+        }
+
         /* block until we have at least one message ready, but return
            as many as possible to save the syscall costs */
         msgsGot = recvmmsg(sockDesc, msgVec.data(), vectSize, MSG_WAITFORONE, nullptr);
