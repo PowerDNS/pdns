@@ -18,6 +18,8 @@ jobs:
         branch:
           - master
           - rel/dnsdist-2.0.x
+          - rel/dnsdist-2.1.x
+          - rel/rec-5.4.x
           - rel/rec-5.3.x
           - rel/rec-5.2.x
           - rel/rec-5.1.x
@@ -32,21 +34,21 @@ jobs:
 
       - name: Check recursor's Rust library dependencies (settings)
         if: ${{ ! startsWith(matrix.branch, 'rel/dnsdist-') && (matrix.branch == 'rel/rec-5.1.x' || matrix.branch == 'rel/rec-5.2.x') }}
-        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
+        uses: rustsec/audit-check@858dc40f52ca2b8570b7a997c1c4e35c6fc9a432
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: pdns/recursordist/settings/rust
 
       - name: Check recursor's Rust library dependencies (rec-rust-lib)
         if: ${{ ! startsWith(matrix.branch, 'rel/dnsdist-') && (matrix.branch != 'rel/rec-5.1.x' && matrix.branch != 'rel/rec-5.2.x') }}
-        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
+        uses: rustsec/audit-check@858dc40f52ca2b8570b7a997c1c4e35c6fc9a432
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: pdns/recursordist/rec-rust-lib/rust
 
       - name: Check DNSdist's Rust library dependencies
         if: ${{ ! startsWith(matrix.branch, 'rel/rec-') }}
-        uses: rustsec/audit-check@69366f33c96575abad1ee0dba8212993eecbe998
+        uses: rustsec/audit-check@858dc40f52ca2b8570b7a997c1c4e35c6fc9a432
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: pdns/dnsdistdist/dnsdist-rust-lib/rust
