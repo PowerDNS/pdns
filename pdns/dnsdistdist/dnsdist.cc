@@ -91,6 +91,10 @@
 #include "sstuff.hh"
 #include "threadname.hh"
 
+#ifdef HAVE_LIBSODIUM
+#include <sodium.h>
+#endif
+
 /* Known sins:
 
    Receiver is currently single threaded
