@@ -22,7 +22,7 @@ You can build packages from your own fork of the PowerDNS repository. Go to the 
 
 On your fork, go to the `Actions` tab. You will be greeted by a message stating `Workflows aren’t being run on this forked repository`. You can click `I understand my workflows, go ahead and enable them`.
 
-Please be aware that by default some of the workflows are executed once every day, and enabling them will consume billing time our of your GitHub actions quota, although at the moment GitHub disables these by default: `This scheduled workflow is disabled because scheduled workflows are disabled by default in forks`. 
+Please be aware that by default some of the workflows are executed once every day, and enabling them will consume billing time our of your GitHub actions quota, although at the moment GitHub disables these by default: `This scheduled workflow is disabled because scheduled workflows are disabled by default in forks`.
 
 On the left side, click on `Trigger specific package build`.
 
@@ -42,45 +42,37 @@ Once it's done, you can retrieve the generated package in the list of artifacts 
 Adding a new OS to the list
 ---------------------------
 
-Adding a new OS is usually easy, provided that it does not differ too much from an existing one. For example, to add support for Debian Bookworm (already present in the current repository), one had to:
+Adding a new OS is usually easy, provided that it does not differ too much from an existing one. For example, to add support for Debian Trixie (already present in the current repository), one had to:
 
-Copy the existing instructions for Debian bullseye:
+Copy the existing instructions for Debian bookworm:
 ```
-cp builder-support/dockerfiles/Dockerfile.target.debian-bullseye builder-support/dockerfiles/Dockerfile.target.debian-bookworm
+cp builder-support/dockerfiles/Dockerfile.target.debian-bookworm builder-support/dockerfiles/Dockerfile.target.debian-trixie
 ```
 
-In the new `builder-support/dockerfiles/Dockerfile.target.debian-bookworm` file, replace every occurrence of `debian-bullseye` by `debian-bookworm`, and of `debian:bullseye` by `debian:bookworm`
+In the new `builder-support/dockerfiles/Dockerfile.target.debian-trixie` file, replace every occurrence of `debian-bookworm` by `debian-trixie`, and of `debian:bookworm` by `debian:trixie`
 
 Then add the new target to the list of OSes in the `.github/workflows/builder-dispatch.yml` workflow file:
 ```
 default: >-
-  el-8
-  el-9
-  debian-bullseye
+  [...]
   debian-bookworm
-  ubuntu-focal
-  ubuntu-jammy
+  debian-trixie
+  [...]
 ```
 
 If release packages should be automatically built for this new target, then `.github/workflows/build-packages.yml` has to be updated as well:
 ```
 default: >-
-  el-8
-  el-9
-  debian-bullseye
+  [...]
   debian-bookworm
-  ubuntu-focal
-  ubuntu-jammy
+  debian-trixie
+  [...]
 ```
 
 Not forgetting to update the list of hashes later in the same file:
 ```
-pkghashes-el-8: ${{ steps.pkghashes.outputs.pkghashes-el-8 }}
-pkghashes-el-9: ${{ steps.pkghashes.outputs.pkghashes-el-9 }}
-pkghashes-debian-bullseye: ${{ steps.pkghashes.outputs.pkghashes-debian-bullseye }}
 pkghashes-debian-bookworm: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm }}
-pkghashes-ubuntu-focal: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal }}
-pkghashes-ubuntu-jammy: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy }}
+pkghashes-debian-trixie: ${{ steps.pkghashes.outputs.pkghashes-debian-trixie }}
 ```
 
 For targets that get release packages, also add them to `.github/workflows/build-packages-daily-master.yml` so that we notice breakage.
