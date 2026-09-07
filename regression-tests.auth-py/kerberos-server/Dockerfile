@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:trixie
 
 EXPOSE 749 88
 
