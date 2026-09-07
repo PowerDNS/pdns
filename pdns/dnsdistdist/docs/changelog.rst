@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 2.1.2
-  :released: TBD
+  :released: 8th of September 2026
 
   .. change::
     :tags: Bug Fixes, YAML
@@ -118,6 +118,13 @@ Changelog
     :pullreq: 17993
 
     Make ``getOpenFileDescriptors`` fast under Linux >= 6.1
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 18017
+    :tickets: 18012
+
+    Fix TCP listen overflows metric
 
 .. changelog::
   :version: 2.1.1
