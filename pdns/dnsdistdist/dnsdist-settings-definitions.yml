@@ -1464,6 +1464,34 @@ outgoing_auto_upgrade:
       default: "false"
       description: "Whether the auto-upgraded version of this backend should use the lazy health-checking mode. Default is false, which means it will use the regular health-checking mode"
 
+outgoing_auto_redirect:
+  description: "Setting to automatically use a more desirable resolver if a backend supports it"
+  parameters:
+    - name: "enabled"
+      type: "bool"
+      default: "false"
+      description: "Whether to use the 'Encrypted DNS Server Redirection' mechanism to automatically use a more desirable resolver, depending on the priorities present in the SVCB record returned by the backend"
+    - name: "retry_interval"
+      type: "u32"
+      default: "3600"
+      description: "If ``enabled`` is set, how often to retry if redirection has failed"
+    - name: "pool"
+      type: "String"
+      default: ""
+      description: "If ``enabled`` is set, in which pool to place the newly redirected backend. Default is empty which means the backend is placed in the default pool"
+    - name: "doh_key"
+      type: "u8"
+      default: "7"
+      description: "If ``enabled`` is set, the value to use for the SVC key corresponding to the DoH path. Default is 7"
+    - name: "max_follow_count"
+      type: "u32"
+      default: "10"
+      description: "If ``enabled`` is set, how many redirections to follow before stopping, to prevent long redirection chains"
+    - name: "keep"
+      type: "bool"
+      default: "false"
+      description: "If ``enabled`` is set, whether to keep the pre-redirection backend around after a redirection. Default is false which means it will be replaced, until the process is repeated"
+
 backend:
   description: "Generic settings for backends"
   parameters:
@@ -1576,6 +1604,10 @@ backend:
       type: "OutgoingAutoUpgradeConfiguration"
       default: true
       description: "Auto-upgrade related settings"
+    - name: "auto_redirect"
+      type: "OutgoingAutoRedirectConfiguration"
+      default: true
+      description: "Auto-redirect related settings"
     - name: "max_concurrent_tcp_connections"
       type: "u32"
       default: 0
