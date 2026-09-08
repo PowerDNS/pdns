@@ -123,6 +123,8 @@ public:
   // whether we have seen at least one NSEC(3) record in AUTHORITY.
   // This might indicate a denial of the DS in referrals
   bool d_seenNSEC{false};
+  // whether the answer denies the existence of a DS (referrals)
+  bool d_deniesDS{false};
 };
 
 class EDNSSubnetOpts;

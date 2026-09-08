@@ -2001,12 +2001,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 }
 
-#if 0
-// FIXME
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
 {
   std::unique_ptr<SyncRes> sr;
-  initSR(sr, true, false);
+  initSR(sr, true);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 
@@ -2084,7 +2082,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)
 {

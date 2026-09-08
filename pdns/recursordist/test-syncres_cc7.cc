@@ -1796,8 +1796,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_missing_soa_on_nodata)
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
-#if 0
-// FIXME
 BOOST_AUTO_TEST_CASE(test_dnssec_insecure_missing_soa_on_nxd)
 {
   std::unique_ptr<SyncRes> sr;
@@ -1933,7 +1931,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_nxdomain)
   /* we don't store empty results */
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_insecure_cut_with_cname_at_apex)
 {

@@ -952,8 +952,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
-#if 0
-// FIXME
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_does_not_deny_next_closer)
 {
   std::unique_ptr<SyncRes> sr;
@@ -1064,7 +1062,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_does_not_deny_next_clo
   }
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
 {
@@ -1186,8 +1183,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_before_rrsig)
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
-#if 0
-// FIXME!!
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname)
 {
   /* this tests makes sure that we correctly detect that we need to gather
@@ -1291,7 +1286,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 
   /* again, to test the cache */
   ret.clear();
@@ -1299,7 +1294,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 7U);
+  BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname_missing_rrsig)
@@ -1417,7 +1412,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_proof_cname_missing_rr
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 8U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_nodata_nowildcard)
 {
@@ -1590,8 +1584,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
-#if 0
-// FIXME
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_too_many_nsec3s)
 {
   std::unique_ptr<SyncRes> sr;
@@ -1762,7 +1754,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_too_many_nsec3s_per_query)
 
   SyncRes::s_maxnsec3iterationsperq = 0;
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_nsec3)
 {
@@ -2072,8 +2063,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard)
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
-#if 0
-//FIXME
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_proof_cname)
 {
   std::unique_ptr<SyncRes> resolver;
@@ -2100,7 +2089,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_proof_cname)
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
-      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, domain == DNSName("com.") || domain == DNSName("powerdns.com."));
     }
     if (isRootServer(address)) {
       setLWResult(res, 0, false, false, true);
@@ -2149,7 +2138,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_proof_cname)
           addRRSIG(keys, res->d_records, DNSName("powerdns.com"), 300, false, std::nullopt, DNSName("*.powerdns.com"));
           /* we need to add the proof that this name does not exist, so the wildcard may apply
              but we are NOT adding it! */
-          /* first the closest encloser */
         }
         else if (domain == alias) {
           addRecordToLW(res, domain, QType::A, "192.0.2.42", DNSResourceRecord::ANSWER, 600);
@@ -2167,7 +2155,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_proof_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
 
   /* again, to test the cache */
   ret.clear();
@@ -2175,9 +2163,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_proof_cname)
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
-  BOOST_CHECK_EQUAL(queriesCount, 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 9U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
 {
@@ -2292,8 +2279,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_wildcard_too_many_iterations)
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
 
-#if 0
-// FIXME
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
 {
   std::unique_ptr<SyncRes> sr;
@@ -2397,7 +2382,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing)
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_wildcard_expanded_onto_itself)
 {
