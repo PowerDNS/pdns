@@ -10,7 +10,8 @@ To visually interact with dnsdist, a webserver can be enabled.
       .. code-block:: yaml
 
         webserver:
-          listen_address: "127.0.0.1:8083"
+          listen_addresses:
+            - "127.0.0.1:8083"
           password: "supersecretpassword"
           api_key: "supersecretAPIkey"
 
@@ -34,7 +35,8 @@ Only connections from 127.0.0.1 and ::1 are allowed by default. To allow connect
       .. code-block:: yaml
 
         webserver:
-          listen_address: "127.0.0.1:8083"
+          listen_addresses:
+            - "127.0.0.1:8083"
           password: "supersecretpassword"
           api_key: "supersecretAPIkey"
           acl:
@@ -77,7 +79,8 @@ For example, to remove the X-Frame-Options header and add a X-Custom one:
       .. code-block:: yaml
 
         webserver:
-          listen_address: "127.0.0.1:8083"
+          listen_addresses:
+            - "127.0.0.1:8083"
           password: "supersecretpassword"
           api_key: "supersecretAPIkey"
           custom_headers:
