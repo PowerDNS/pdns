@@ -737,7 +737,7 @@ private:
      This is unfortunately needed to deal with very crappy so-called DNS servers */
   void fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
   void rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSRecord>& newRecords, unsigned int depth, const string& prefix);
-  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, const std::optional<Netmask>&, bool sendRDQuery, const ComboAddress& remoteIP, bool overTCP, tcache_t& tcache);
+  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, const std::optional<Netmask>&, bool sendRDQuery, const ComboAddress& remoteIP, bool overTCP, tcache_t& tcache, vState state);
   bool processRecords(const std::string& prefix, const DNSName& qname, QType qtype, const DNSName& auth, LWResult& lwr, bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, int& rcode, bool& negIndicHasSignatures, unsigned int depth);
 
   bool doSpecialNamesResolve(const DNSName& qname, QType qtype, QClass qclass, vector<DNSRecord>& ret);
