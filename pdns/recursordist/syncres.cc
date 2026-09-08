@@ -4412,24 +4412,26 @@ SyncRes::tcache_t SyncRes::validateSignatures(const std::string& prefix, LWResul
       expectSignature = true;
     }
 
-    if (lwr.d_isCNAMEAnswer && (tCacheEntry.first.place != DNSResourceRecord::ANSWER || tCacheEntry.first.type != QType::CNAME || tCacheEntry.first.name != qname)) {
-      /*
-        rfc2181 states:
-        Note that the answer section of an authoritative answer normally
-        contains only authoritative data.  However when the name sought is an
-        alias (see section 10.1.1) only the record describing that alias is
-        necessarily authoritative.  Clients should assume that other records
-        may have come from the server's cache.  Where authoritative answers
-        are required, the client should query again, using the canonical name
-        associated with the alias.
-      */
-      isAA = false;
-      expectSignature = false;
-    }
-    if (lwr.d_isDNAMEAnswer && (tCacheEntry.first.place != DNSResourceRecord::ANSWER || tCacheEntry.first.type != QType::DNAME || !qname.isPartOf(tCacheEntry.first.name))) {
-      /* see above */
-      isAA = false;
-      expectSignature = false;
+    if (tCacheEntry.first.type != QType::NSEC && tCacheEntry.first.type != QType::NSEC3) {
+      if (lwr.d_isCNAMEAnswer && (tCacheEntry.first.place != DNSResourceRecord::ANSWER || tCacheEntry.first.type != QType::CNAME || tCacheEntry.first.name != qname)) {
+        /*
+          rfc2181 states:
+          Note that the answer section of an authoritative answer normally
+          contains only authoritative data.  However when the name sought is an
+          alias (see section 10.1.1) only the record describing that alias is
+          necessarily authoritative.  Clients should assume that other records
+          may have come from the server's cache.  Where authoritative answers
+          are required, the client should query again, using the canonical name
+          associated with the alias.
+        */
+        isAA = false;
+        expectSignature = false;
+      }
+      if (lwr.d_isDNAMEAnswer && (tCacheEntry.first.place != DNSResourceRecord::ANSWER || tCacheEntry.first.type != QType::DNAME || !qname.isPartOf(tCacheEntry.first.name))) {
+        /* see above */
+        isAA = false;
+        expectSignature = false;
+      }
     }
 
     if ((lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) && tCacheEntry.first.place == DNSResourceRecord::AUTHORITY && tCacheEntry.first.type == QType::NS && auth == tCacheEntry.first.name) {
