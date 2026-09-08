@@ -384,3 +384,71 @@ bool MMDBKVStore::getValue(const std::string& key, std::string& value)
   return result;
 }
 #endif // HAVE_MMDB
+
+#ifdef HAVE_REDIS
+
+RedisKVStore::RedisKVStore(const std::shared_ptr<RedisClient>& redisClient, std::optional<std::string> lookupAction, std::optional<std::string> dataName, const std::optional<std::vector<std::string>>& rawArgs, const std::optional<std::vector<std::string>>& rawExistsArgs, std::shared_ptr<RedisStats> stats) :
+  d_stats(stats)
+{
+  std::unique_ptr<RedisLookupAction> command;
+  if (lookupAction && !boost::iequals(lookupAction.value(), "get")) {
+    if (!dataName && !boost::iequals(lookupAction.value(), "raw")) {
+      throw std::runtime_error("Option 'dataName' is required for lookup action " + lookupAction.value());
+    }
+    if (boost::iequals(lookupAction.value(), "hget")) {
+      command = std::make_unique<RedisHGetLookupAction>(dataName.value());
+    }
+    else if (boost::iequals(lookupAction.value(), "sismember")) {
+      command = std::make_unique<RedisSIsMemberLookupAction>(dataName.value());
+    }
+    else if (boost::iequals(lookupAction.value(), "raw")) {
+      if (!rawArgs) {
+        throw std::runtime_error("Option 'rawArgs' is required for lookup action " + lookupAction.value());
+      }
+      command = std::make_unique<RedisRawLookupAction>(rawArgs.value(), rawExistsArgs);
+    }
+    else {
+      throw std::runtime_error("Unknown lookup action: " + lookupAction.value());
+    }
+  }
+  else {
+    if (dataName) {
+      command = std::make_unique<RedisGetLookupAction>(dataName.value());
+    }
+    else {
+      command = std::make_unique<RedisGetLookupAction>();
+    }
+  }
+  d_redis = std::make_unique<RedisKVClient>(redisClient, std::move(command), stats);
+}
+
+bool RedisKVStore::reload()
+{
+  return true;
+}
+
+bool RedisKVStore::getValue(const std::string& key, std::string& value)
+{
+  auto result = d_redis->getValue(key, value);
+  if (result) {
+    d_stats->d_successfulLookups += 1;
+  }
+  else {
+    d_stats->d_failedLookups += 1;
+  }
+  return result;
+}
+
+bool RedisKVStore::keyExists(const std::string& key)
+{
+  auto result = d_redis->keyExists(key);
+  if (result) {
+    d_stats->d_successfulLookups += 1;
+  }
+  else {
+    d_stats->d_failedLookups += 1;
+  }
+  return result;
+}
+
+#endif // HAVE_REDIS

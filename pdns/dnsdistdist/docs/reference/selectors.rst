@@ -81,7 +81,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 .. function:: KeyValueStoreLookupRule(kvs, lookupKey)
 
   Return true if the key returned by 'lookupKey' exists in the key value store referenced by 'kvs'.
-  The store can be a CDB (:func:`newCDBKVStore`), a LMDB database (:func:`newLMDBKVStore`), or a MMDB database (:func: `newMMDBKVStore`).
+  The store can be a CDB (:func:`newCDBKVStore`), a LMDB database (:func:`newLMDBKVStore`), a MMDB database (:func: `newMMDBKVStore`), or a Redis instance (:func:`newRedisKVStore`).
   The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
   source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
 
