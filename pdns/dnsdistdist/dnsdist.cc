@@ -1245,6 +1245,9 @@ static ListeningSockets initListeningSockets()
   for (const auto& local : currentConfig.d_webServerAddresses) {
     try {
       auto webServerSocket = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
+      if (local.isIPv6()) {
+        SSetsockopt(webServerSocket.getHandle(), IPPROTO_IPV6, IPV6_V6ONLY, 1);
+      }
       webServerSocket.bind(local, true);
       webServerSocket.listen(5);
       result.d_webServerSockets.emplace_back(local, std::move(webServerSocket));
