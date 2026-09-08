@@ -5973,7 +5973,7 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
   updateValidationState(qname, state, cnameContext.state, prefix);
 }
 
-static void normalizeTTLs(std::vector<DNSRecord>& records, bool updatingRootNS, bool ecsSpecific, unsigned int minimumTTL, unsigned int minimumECSTTL)
+static void normalizeTTLs(LWResult::AnswerType answerType, std::vector<DNSRecord>& records, bool updatingRootNS, bool ecsSpecific, unsigned int minimumTTL, unsigned int minimumECSTTL, unsigned int maxNegativeAnswerTTL)
 {
   if (minimumTTL != 0) {
     for (auto& rec : records) {
@@ -5991,8 +5991,14 @@ static void normalizeTTLs(std::vector<DNSRecord>& records, bool updatingRootNS, 
   if (ecsSpecific && minimumECSTTL > 0 && (minimumTTL == 0 || minimumECSTTL > minimumTTL)) {
     for (auto& rec : records) {
       if (rec.d_place == DNSResourceRecord::ANSWER) {
-        rec.d_ttl = max(rec.d_ttl, minimumECSTTL);
+        rec.d_ttl = std::max(rec.d_ttl, minimumECSTTL);
       }
+    }
+  }
+
+  if (maxNegativeAnswerTTL != 0 && (answerType == LWResult::AnswerType::NXDomain || answerType == LWResult::AnswerType::NoData)) {
+    for (auto& rec : records) {
+      rec.d_ttl = std::min(rec.d_ttl, maxNegativeAnswerTTL);
     }
   }
 }
@@ -6165,7 +6171,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
   sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
 
-  normalizeTTLs(lwr.d_records, d_updatingRootNS, ednsmask.has_value(), s_minimumTTL, s_minimumECSTTL);
+  normalizeTTLs(lwr.d_answerType, lwr.d_records, d_updatingRootNS, ednsmask.has_value(), s_minimumTTL, s_minimumECSTTL, s_maxnegttl);
 
   auto tcache = validateSignatures(prefix, lwr, qname, qtype, auth, wasForwarded && sendRDQuery, state, depth);
   // will also update the negative cache
