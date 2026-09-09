@@ -2,7 +2,14 @@
 import dns
 import dns.edns
 import dns.message
+import time
+import struct
+import ipaddress
+import binascii
+import subprocess
+import os
 
+import siphash
 from authtests import AuthTest
 
 
@@ -108,3 +115,244 @@ launch={backend}
 edns-cookie-secret=random
 logging-structured
 """
+
+
+class TestMultipleEdnsCookies(TestEdnsCookies):
+    """
+    This tests whether or not the auth a valid cookie signed with and older key
+    """
+
+    _config_template = """
+launch={backend}
+edns-cookie-secret=aabbccddeeff11223344556677889900,00998877665544332211ffeeddccbbaa
+logging-structured
+"""
+
+    def testOldCookie(self):
+        clientcookie = b"\x22\x11\x33\x44\x55\x66\x77\x88"
+
+        key = binascii.unhexlify("00998877665544332211ffeeddccbbaa")
+
+        servercookie = b"\x01\x00\x00\x00"  # version + 3 reserved bytes
+        servercookie += struct.pack("!I", int(time.time()))  # 4-byte timestamp
+
+        toHash = clientcookie
+        toHash += servercookie
+        toHash += struct.pack("!I", int(ipaddress.IPv4Address("127.0.0.1")))
+        servercookie += siphash.SipHash_2_4(key, toHash).digest()
+
+        opts = [dns.edns.GenericOption(dns.edns.COOKIE, clientcookie + servercookie)]
+        query = dns.message.make_query("www.example.org", "A", options=opts)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        for opt in res.options:
+            # Ensure we got a new cookie from the server
+            if opt.otype == dns.edns.COOKIE:
+                self.assertNotEqual(opt.to_wire(), opts[0].data)
+
+                # Generate the cookie ourselves to see if the server used the correct secret
+                servercookie = b"\x01\x00\x00\x00"
+                servercookie += opt.to_wire()[
+                    12:16
+                ]  # Get the timestamp from the server-sent cookie, it *may* have rolled
+
+                toHash = clientcookie
+                toHash += servercookie
+                toHash += struct.pack("!I", int(ipaddress.IPv4Address("127.0.0.1")))
+
+                newKey = binascii.unhexlify("aabbccddeeff11223344556677889900")
+                servercookie += siphash.SipHash_2_4(newKey, toHash).digest()
+                self.assertEqual(opt.to_wire(), clientcookie + servercookie)
+                return
+
+
+class TestEdnsCookieManagement(AuthTest):
+    _config_template = """
+launch={backend}
+edns-cookie-secret=aabbccddeeff11223344556677889900,00998877665544332211ffeeddccbbaa
+logging-structured
+"""
+
+    _zones = {
+        "example.org": """
+example.org.                 3600 IN SOA  {soa}
+example.org.                 3600 IN NS   ns1.example.org.
+example.org.                 3600 IN NS   ns2.example.org.
+ns1.example.org.             3600 IN A    192.0.2.10
+ns2.example.org.             3600 IN A    192.0.2.11
+
+www.example.org.             3600 IN A    192.0.2.5
+        """,
+    }
+
+    _pdns_control = os.environ.get("PDNSCONTROL", "")
+
+    def testManagement(self):
+        """We test everything in one function, as functions are run in parallel and we can't rely on any ordering"""
+
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "list"], capture_output=True
+        )
+        self.assertEqual(result.stdout, b"aabbccddeeff11223344556677889900 *\n00998877665544332211ffeeddccbbaa\n")
+
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "add", "random"],
+            capture_output=True,
+        )
+        self.assertEqual(result.stdout[0:21], b"COOKIE secret set to ")
+        cookieSecret = result.stdout.split()[-1]
+        expected = cookieSecret + b" *\naabbccddeeff11223344556677889900\n00998877665544332211ffeeddccbbaa\n"
+        listResult = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "list"], capture_output=True
+        )
+        self.assertEqual(listResult.stdout, expected)
+
+        result = subprocess.run(
+            args=[
+                self._pdns_control,
+                "--socket-dir=configs/auth",
+                "cookie-secret",
+                "add",
+                "11223344556677889900aabbccddeeff",
+            ],
+            capture_output=True,
+        )
+        self.assertEqual(result.stdout, b"COOKIE secret set to 11223344556677889900aabbccddeeff\n")
+        expected = (
+            b"11223344556677889900aabbccddeeff *\n"
+            + cookieSecret
+            + b"\naabbccddeeff11223344556677889900\n00998877665544332211ffeeddccbbaa\n"
+        )
+        listResult = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "list"], capture_output=True
+        )
+        self.assertEqual(listResult.stdout, expected)
+
+        result = subprocess.run(
+            args=[
+                self._pdns_control,
+                "--socket-dir=configs/auth",
+                "cookie-secret",
+                "delete",
+                "11223344556677889900aabbccddeeff",
+            ],
+            capture_output=True,
+        )
+        self.assertEqual(
+            result.stdout, b"COOKIE secret 11223344556677889900aabbccddeeff is the active secret, refusing to remove\n"
+        )
+
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "delete", cookieSecret],
+            capture_output=True,
+        )
+        self.assertEqual(result.stdout, b"COOKIE secret " + cookieSecret + b" removed\n")
+        expected = (
+            b"11223344556677889900aabbccddeeff *\naabbccddeeff11223344556677889900\n00998877665544332211ffeeddccbbaa\n"
+        )
+        listResult = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "list"], capture_output=True
+        )
+        self.assertEqual(listResult.stdout, expected)
+
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "delete", "last"],
+            capture_output=True,
+        )
+        self.assertEqual(result.stdout, b"COOKIE secret 00998877665544332211ffeeddccbbaa removed\n")
+        expected = b"11223344556677889900aabbccddeeff *\naabbccddeeff11223344556677889900\n"
+        listResult = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "list"], capture_output=True
+        )
+        self.assertEqual(listResult.stdout, expected)
+
+        # delete the last inactive secret
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "delete", "last"],
+            capture_output=True,
+        )
+        self.assertEqual(result.stdout, b"COOKIE secret aabbccddeeff11223344556677889900 removed\n")
+
+        # Should report that no secret was removed
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "delete", "last"],
+            capture_output=True,
+        )
+        self.assertEqual(result.stdout, b"No inactive keys, nothing removed\n")
+
+    def testHelp(self):
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret"], capture_output=True
+        )
+        self.assertEqual(
+            result.stdout, b"Usage: cookie-secret COMMAND [OPTIONS]\n    Where COMMAND is 'list', 'add', or 'delete'\n"
+        )
+
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "add"], capture_output=True
+        )
+        self.assertEqual(result.stdout, b"Usage: cookie-secret add <SECRET|random>\n")
+
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "delete"], capture_output=True
+        )
+        self.assertEqual(result.stdout, b"Usage: cookie-secret delete <SECRET|last>\n")
+
+    def testErrors(self):
+        # Too short secret for add
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "add", "ffee"], capture_output=True
+        )
+        self.assertEqual(result.stdout, b"wrong size for new secret (4), must be 32\n")
+
+        # Not hex
+        result = subprocess.run(
+            args=[
+                self._pdns_control,
+                "--socket-dir=configs/auth",
+                "cookie-secret",
+                "add",
+                "zzzzzzzzz01234567890abcdefabcdef",
+            ],
+            capture_output=True,
+        )
+        self.assertEqual(
+            result.stdout,
+            b"Can not convert zzzzzzzzz01234567890abcdefabcdef to bytes: Invalid value while parsing the hex string 'zzzzzzzzz01234567890abcdefabcdef'\n",
+        )
+
+        # Too short secret for removal
+        result = subprocess.run(
+            args=[self._pdns_control, "--socket-dir=configs/auth", "cookie-secret", "delete", "ffee99"],
+            capture_output=True,
+        )
+        self.assertEqual(result.stdout, b"wrong size for old secret (6), must be 32\n")
+
+        # Doesn't exist
+        result = subprocess.run(
+            args=[
+                self._pdns_control,
+                "--socket-dir=configs/auth",
+                "cookie-secret",
+                "delete",
+                "12345678901234567890abcdefabcdef",
+            ],
+            capture_output=True,
+        )
+        self.assertEqual(result.stdout, b"COOKIE secret 12345678901234567890abcdefabcdef not found\n")
+
+        # Not hex
+        result = subprocess.run(
+            args=[
+                self._pdns_control,
+                "--socket-dir=configs/auth",
+                "cookie-secret",
+                "delete",
+                "zzzzzzzzz01234567890abcdefabcdef",
+            ],
+            capture_output=True,
+        )
+        self.assertEqual(
+            result.stdout,
+            b"Can not convert zzzzzzzzz01234567890abcdefabcdef to bytes: Invalid value while parsing the hex string 'zzzzzzzzz01234567890abcdefabcdef'\n",
+        )
