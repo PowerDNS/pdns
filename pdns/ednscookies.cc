@@ -151,7 +151,7 @@ bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unus
   // Maybe an old secret will match?
   for (const auto& oldSecret : oldSecrets) {
     if (oldSecret.length() != crypto_shorthash_KEYBYTES) {
-      return false;
+      continue;
     }
     hashResult.clear();
     hashResult.resize(8);
