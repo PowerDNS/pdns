@@ -33,11 +33,16 @@ New Settings
 Special-Use Domain Names
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-The .onion domain is no longer forwarded to any authoritative server but responded to with an NXDomain, as prescribed by :rfc:`7686`.
+Several special use domains have been added. These domains (and names under them) should not be sent to authoritatives on the Internet, and will be responded to with an NXDOMAIN response.
+However, these domains and names under them can still be forwarded or served locally by :program:`PowerDNS Recursor`.
+This is the case for the following domains:
 
-Any domains under .test and .invalid are no longer forwarded to authoritatives on the internet, but can be individually forwarded or overwritten.
-
-The Special Use Domains :rfc:`home.arpa <8375>`, :rfc:`resolver.arpa <9462>`, and :rfc:`service.arpa <9665>` are no longer forwarded to the internet, but can be individually overwritten or forwarded.
+* .onion, specified in :rfc:`7686`.
+* .test, specified in :rfc:`6761`
+* .invalid, specified in :rfc:`6761`
+* home.arpa, specified in :rfc:`8375`
+* resolver.arpa, specified in :rfc:`9462`
+* service.arpa, specified in :rfc:`9665`
 
 5.1.10, 5.2.8, 5.3.5 and 5.5.0
 ------------------------------
