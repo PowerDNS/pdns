@@ -321,3 +321,12 @@ bool parseEtcHostsLine(std::vector<std::string>& parts, std::string& line)
   stringtok(parts, line, "\t\r\n ");
   return parts.size() >= 2;
 }
+
+void makeEmptyZone(SyncRes::domainmap_t& newMap, const std::string zoneName, Logr::log_t log)
+{
+  DNSRecord dnsRecord;
+  dnsRecord.d_name = DNSName(zoneName);
+  SyncRes::AuthDomain authDomain = makeSOAAndNSNodes(dnsRecord, DNSName("localhost."));
+
+  addToDomainMap(newMap, std::move(authDomain), dnsRecord.d_name, log, true, false);
+}

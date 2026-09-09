@@ -28,6 +28,21 @@ New Settings
   It does not change validation or the AD bit.
   Because responses are packet-cached, adding or removing an NTA only affects the presence of this   Extended Error once the relevant cache entries expire or are flushed.
   See :ref:`ntas`.
+- The :ref:`setting-yaml-recursor.serve_rfc6761` setting has been introduced to NXDomain .test and .invalid by default, unless any subdomains are forwarded.
+
+Special-Use Domain Names
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Several special use domains have been added. These domains (and names under them) should not be sent to authoritatives on the Internet, and will be responded to with an NXDOMAIN response.
+However, these domains and names under them can still be forwarded or served locally by :program:`PowerDNS Recursor`.
+This is the case for the following domains:
+
+* .onion, specified in :rfc:`7686`.
+* .test, specified in :rfc:`6761`
+* .invalid, specified in :rfc:`6761`
+* home.arpa, specified in :rfc:`8375`
+* resolver.arpa, specified in :rfc:`9462`
+* service.arpa, specified in :rfc:`9665`
 
 5.1.10, 5.2.8, 5.3.5 and 5.5.0
 ------------------------------
