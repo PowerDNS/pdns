@@ -32,7 +32,7 @@ namespace Check
 // Tuple type used for diagnostic reports.
 // The priority is used to tell errors (Logr::Error) from non-fatal
 // diagnostics (Logr::Warning)
-using diag = std::tuple<Logr::Priority, DNSResourceRecord, std::string>;
+using diag = std::tuple<Logr::Priority, DNSName, QType, std::string>;
 
 // Validate a view name. Although view names never appear on the wire, we
 // restrict them to [a-zA-Z0-9-_. ], with empty names or names with leading
