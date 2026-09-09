@@ -563,17 +563,17 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   processAllowNotifyFor(newSet);
   processAllowNotifyForFile(newSet, log);
 
-  // RFC 7686 tells us to NXDomain .onion unless the resolver is hooked up to resolve it
-  makeEmptyZone(*newMap, "onion.", log);
-
-  // RFC 8375
-  makeEmptyZone(*newMap, "home.arpa.", log);
-
-  // RFC 9462 says "idem", but for resolver.arpa
-  makeEmptyZone(*newMap, "resolver.arpa.", log);
-
-  // RFC 9665 say "idem", for service.arpa
-  makeEmptyZone(*newMap, "service.arpa.", log);
+  // Add Special Use domains, unless already forwarded
+  for (const auto& domain : {
+         "onion.", // RFC 7686
+         "home.arpa.", // RFC 8375
+         "resolver.arpa", // RFC 9462
+         "service.arpa", // RFC 9665
+       }) {
+    if (newMap->count(DNSName(domain)) == 0) {
+      makeEmptyZone(*newMap, domain, log);
+    }
+  }
 
   return {newMap, newSet};
 }
