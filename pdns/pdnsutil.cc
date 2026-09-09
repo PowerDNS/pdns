@@ -83,114 +83,114 @@ namespace {
 
 // Forward declarations of command handlers
 
-static int B2BMigrate(vector<string>& cmds, std::string_view synopsis);
-#ifdef HAVE_P11KIT1 // [
-static int HSMAssign(vector<string>& cmds, std::string_view synopsis);
-static int HSMCreateKey(vector<string>& cmds, std::string_view synopsis);
-#else // ] [
-static int HSM(vector<string>& cmds, std::string_view synopsis);
-#endif // ]
-static int activateTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int activateZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int addAutoprimary(vector<string>& cmds, std::string_view synopsis);
-static int addMeta(vector<string>& cmds, std::string_view synopsis);
-static int addComment(vector<string>& cmds, std::string_view synopsis);
-static int listComments(vector<string>& cmds, std::string_view synopsis);
-static int addRecord(vector<string>& cmds, std::string_view synopsis);
-static int addZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int backendCmd(vector<string>& cmds, std::string_view synopsis);
-static int backendLookup(vector<string>& cmds, std::string_view synopsis);
-static int benchDb(vector<string>& cmds, std::string_view synopsis);
-static int changeSecondaryZonePrimary(vector<string>& cmds, std::string_view synopsis);
-static int checkAllZones(vector<string>& cmds, std::string_view synopsis);
-static int checkZone(vector<string>& cmds, std::string_view synopsis);
-static int clearZone(vector<string>& cmds, std::string_view synopsis);
-static int copyZone(vector<string>& cmds, std::string_view synopsis);
-static int createBindDb(vector<string>& cmds, std::string_view synopsis);
-static int createSecondaryZone(vector<string>& cmds, std::string_view synopsis);
-static int createZone(vector<string>& cmds, std::string_view synopsis);
-static int deactivateTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int deactivateZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int deleteRRSet(vector<string>& cmds, std::string_view synopsis);
-static int deleteTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int deleteZone(vector<string>& cmds, std::string_view synopsis);
-static int disableDNSSEC(vector<string>& cmds, std::string_view synopsis);
-static int editZone(vector<string>& cmds, std::string_view synopsis);
-static int exportZoneDNSKey(vector<string>& cmds, std::string_view synopsis);
-static int exportZoneDS(vector<string>& cmds, std::string_view synopsis);
-static int exportZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int exportZoneKeyPEM(vector<string>& cmds, std::string_view synopsis);
-static int generateTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int generateZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int getMeta(vector<string>& cmds, std::string_view synopsis);
-static int hashPassword(vector<string>& cmds, std::string_view synopsis);
-static int hashZoneRecord(vector<string>& cmds, std::string_view synopsis);
-static int importTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int importZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int importZoneKeyPEM(vector<string>& cmds, std::string_view synopsis);
-static int increaseSerial(vector<string>& cmds, std::string_view synopsis);
-static int ipDecrypt(vector<string>& cmds, std::string_view synopsis);
-static int ipEncrypt(vector<string>& cmds, std::string_view synopsis);
-static int listAlgorithms(vector<string>& cmds, std::string_view synopsis);
-static int listAllZones(vector<string>& cmds, std::string_view synopsis);
-static int listAutoprimaries(vector<string>& cmds, std::string_view synopsis);
-static int listKeys(vector<string>& cmds, std::string_view synopsis);
-static int listMemberZones(vector<string>& cmds, std::string_view synopsis);
-static int listNetwork(vector<string>& cmds, std::string_view synopsis);
-static int listTSIGKeys(vector<string>& cmds, std::string_view synopsis);
-static int listView(vector<string>& cmds, std::string_view synopsis);
-static int listViews(vector<string>& cmds, std::string_view synopsis);
-static int listZone(vector<string>& cmds, std::string_view synopsis);
-static int lmdbGetBackendVersion(vector<string>& cmds, std::string_view synopsis);
-static int loadZone(vector<string>& cmds, std::string_view synopsis);
-static int publishZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int rawLuaFromContent(vector<string>& cmds, std::string_view synopsis);
-static int rectifyAllZones(vector<string>& cmds, std::string_view synopsis);
-static int rectifyZone(vector<string>& cmds, std::string_view synopsis);
-static int removeAutoprimary(vector<string>& cmds, std::string_view synopsis);
-static int removeZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int replaceRRSet(vector<string>& cmds, std::string_view synopsis);
-static int secureAllZones(vector<string>& cmds, std::string_view synopsis);
-static int secureZone(vector<string>& cmds, std::string_view synopsis);
-static int setAccount(vector<string>& cmds, std::string_view synopsis);
-static int setCatalog(vector<string>& cmds, std::string_view synopsis);
-static int setKind(vector<string>& cmds, std::string_view synopsis);
-static int setMeta(vector<string>& cmds, std::string_view synopsis);
-static int setNetwork(vector<string>& cmds, std::string_view synopsis);
-static int setNsec3(vector<string>& cmds, std::string_view synopsis);
-static int setOption(vector<string>& cmds, std::string_view synopsis);
-static int setOptionsJson(vector<string>& cmds, std::string_view synopsis);
-static int setPresigned(vector<string>& cmds, std::string_view synopsis);
-static int setPublishCDNSKey(vector<string>& cmds, std::string_view synopsis);
-static int setPublishCDs(vector<string>& cmds, std::string_view synopsis);
-static int setSignalingZone(vector<string>& cmds, std::string_view synopsis);
-static int showZone(vector<string>& cmds, std::string_view synopsis);
-static int testAlgorithm(vector<string>& cmds, std::string_view synopsis);
-static int testAlgorithms(vector<string>& cmds, std::string_view synopsis);
-static int testSchema(vector<string>& cmds, std::string_view synopsis);
-static int testSpeed(vector<string>& cmds, std::string_view synopsis);
-static int unpublishZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int unsetNSec3(vector<string>& cmds, std::string_view synopsis);
-static int unsetPresigned(vector<string>& cmds, std::string_view synopsis);
-static int unsetPublishCDNSKey(vector<string>& cmds, std::string_view synopsis);
-static int unsetPublishCDs(vector<string>& cmds, std::string_view synopsis);
-static int verifyCrypto(vector<string>& cmds, std::string_view synopsis);
-static int viewAddZone(vector<string>& cmds, std::string_view synopsis);
-static int viewDelZone(vector<string>& cmds, std::string_view synopsis);
-static int zonemdVerifyFile(vector<string>& cmds, std::string_view synopsis);
-
-// Command dispatchers
-
 // Command handlers are invoked with the non-processed command arguments vector,
 // not containing the command name (as multiple command syntaxes may lead to
 // the same handler); therefore their arguments start at position zero in
 // the vector.
-using commandHandler = int (*)(std::vector<std::string>&, const std::string_view);
+using commandHandler = int(vector<string>& cmds, std::string_view synopsis);
+
+static commandHandler B2BMigrate;
+#ifdef HAVE_P11KIT1 // [
+static commandHandler HSMAssign;
+static commandHandler HSMCreateKey;
+#else // ] [
+static commandHandler HSM;
+#endif // ]
+static commandHandler activateTSIGKey;
+static commandHandler activateZoneKey;
+static commandHandler addAutoprimary;
+static commandHandler addMeta;
+static commandHandler addComment;
+static commandHandler listComments;
+static commandHandler addRecord;
+static commandHandler addZoneKey;
+static commandHandler backendCmd;
+static commandHandler backendLookup;
+static commandHandler benchDb;
+static commandHandler changeSecondaryZonePrimary;
+static commandHandler checkAllZones;
+static commandHandler checkZone;
+static commandHandler clearZone;
+static commandHandler copyZone;
+static commandHandler createBindDb;
+static commandHandler createSecondaryZone;
+static commandHandler createZone;
+static commandHandler deactivateTSIGKey;
+static commandHandler deactivateZoneKey;
+static commandHandler deleteRRSet;
+static commandHandler deleteTSIGKey;
+static commandHandler deleteZone;
+static commandHandler disableDNSSEC;
+static commandHandler editZone;
+static commandHandler exportZoneDNSKey;
+static commandHandler exportZoneDS;
+static commandHandler exportZoneKey;
+static commandHandler exportZoneKeyPEM;
+static commandHandler generateTSIGKey;
+static commandHandler generateZoneKey;
+static commandHandler getMeta;
+static commandHandler hashPassword;
+static commandHandler hashZoneRecord;
+static commandHandler importTSIGKey;
+static commandHandler importZoneKey;
+static commandHandler importZoneKeyPEM;
+static commandHandler increaseSerial;
+static commandHandler ipDecrypt;
+static commandHandler ipEncrypt;
+static commandHandler listAlgorithms;
+static commandHandler listAllZones;
+static commandHandler listAutoprimaries;
+static commandHandler listKeys;
+static commandHandler listMemberZones;
+static commandHandler listNetwork;
+static commandHandler listTSIGKeys;
+static commandHandler listView;
+static commandHandler listViews;
+static commandHandler listZone;
+static commandHandler lmdbGetBackendVersion;
+static commandHandler loadZone;
+static commandHandler publishZoneKey;
+static commandHandler rawLuaFromContent;
+static commandHandler rectifyAllZones;
+static commandHandler rectifyZone;
+static commandHandler removeAutoprimary;
+static commandHandler removeZoneKey;
+static commandHandler replaceRRSet;
+static commandHandler secureAllZones;
+static commandHandler secureZone;
+static commandHandler setAccount;
+static commandHandler setCatalog;
+static commandHandler setKind;
+static commandHandler setMeta;
+static commandHandler setNetwork;
+static commandHandler setNsec3;
+static commandHandler setOption;
+static commandHandler setOptionsJson;
+static commandHandler setPresigned;
+static commandHandler setPublishCDNSKey;
+static commandHandler setPublishCDs;
+static commandHandler setSignalingZone;
+static commandHandler showZone;
+static commandHandler testAlgorithm;
+static commandHandler testAlgorithms;
+static commandHandler testSchema;
+static commandHandler testSpeed;
+static commandHandler unpublishZoneKey;
+static commandHandler unsetNSec3;
+static commandHandler unsetPresigned;
+static commandHandler unsetPublishCDNSKey;
+static commandHandler unsetPublishCDs;
+static commandHandler verifyCrypto;
+static commandHandler viewAddZone;
+static commandHandler viewDelZone;
+static commandHandler zonemdVerifyFile;
+
+// Command dispatchers
 
 struct commandEntry {
   // set if need to invoke reportAllTypes() before invoking handler
   bool requiresInitialization{false};
-  commandHandler handler{nullptr};
+  commandHandler* handler{nullptr};
   // one-line command synopsis, without command name
   std::string_view synopsis;
   // short description, may span multiple lines, every line starts with a tab
@@ -6179,19 +6179,19 @@ static void checkCommandSyntax()
     std::make_pair("backend-lookup", backendLookup),
     std::make_pair("bench-db", benchDb),
     std::make_pair("change-secondary-zone-primary", changeSecondaryZonePrimary),
-    std::make_pair("check-all-zones", (commandHandler)checkAllZones),
-    std::make_pair("check-zone", (commandHandler)checkZone),
-    std::make_pair("clear-zone", (commandHandler)clearZone),
+    std::make_pair("check-all-zones", checkAllZones),
+    std::make_pair("check-zone", checkZone),
+    std::make_pair("clear-zone", clearZone),
     std::make_pair("create-bind-db", createBindDb),
     std::make_pair("create-secondary-zone", createSecondaryZone),
-    std::make_pair("create-zone", (commandHandler)createZone),
+    std::make_pair("create-zone", createZone),
     std::make_pair("deactivate-tsig-key", deactivateTSIGKey),
     std::make_pair("deactivate-zone-key", deactivateZoneKey),
-    std::make_pair("delete-rrset", (commandHandler)deleteRRSet),
+    std::make_pair("delete-rrset", deleteRRSet),
     std::make_pair("delete-tsig-key", deleteTSIGKey),
-    std::make_pair("delete-zone", (commandHandler)deleteZone),
+    std::make_pair("delete-zone", deleteZone),
     std::make_pair("disable-dnssec", disableDNSSEC),
-    std::make_pair("edit-zone", (commandHandler)editZone),
+    std::make_pair("edit-zone", editZone),
     std::make_pair("export-zone-dnskey", exportZoneDNSKey),
     std::make_pair("export-zone-ds", exportZoneDS),
     std::make_pair("export-zone-key", exportZoneKey),
@@ -6199,7 +6199,7 @@ static void checkCommandSyntax()
     std::make_pair("generate-tsig-key", generateTSIGKey),
     std::make_pair("generate-zone-key", generateZoneKey),
     std::make_pair("get-meta", getMeta),
-    std::make_pair("hash-password", (commandHandler)hashPassword),
+    std::make_pair("hash-password", hashPassword),
     std::make_pair("hash-zone-record", hashZoneRecord),
 #ifndef HAVE_P11KIT1 // [
     std::make_pair("hsm", HSM),
@@ -6207,30 +6207,30 @@ static void checkCommandSyntax()
     std::make_pair("import-tsig-key", importTSIGKey),
     std::make_pair("import-zone-key", importZoneKey),
     std::make_pair("import-zone-key-pem", importZoneKeyPEM),
-    std::make_pair("increase-serial", (commandHandler)increaseSerial),
+    std::make_pair("increase-serial", increaseSerial),
     std::make_pair("ipdecrypt", ipDecrypt),
     std::make_pair("ipencrypt", ipEncrypt),
     std::make_pair("list-algorithms", listAlgorithms),
-    std::make_pair("list-all-zones", (commandHandler)listAllZones),
+    std::make_pair("list-all-zones", listAllZones),
     std::make_pair("list-autoprimaries", listAutoprimaries),
-    std::make_pair("list-keys", (commandHandler)listKeys),
-    std::make_pair("list-member-zones", (commandHandler)listMemberZones),
+    std::make_pair("list-keys", listKeys),
+    std::make_pair("list-member-zones", listMemberZones),
     std::make_pair("list-networks", listNetwork),
     std::make_pair("list-tsig-keys", listTSIGKeys),
     std::make_pair("list-view", listView),
     std::make_pair("list-views", listViews),
-    std::make_pair("list-zone", (commandHandler)listZone),
+    std::make_pair("list-zone", listZone),
     std::make_pair("lmdb-get-backend-version", lmdbGetBackendVersion),
-    std::make_pair("load-zone", (commandHandler)loadZone),
+    std::make_pair("load-zone", loadZone),
     std::make_pair("publish-zone-key", publishZoneKey),
     std::make_pair("raw-lua-from-content", rawLuaFromContent),
-    std::make_pair("rectify-all-zones", (commandHandler)rectifyAllZones),
-    std::make_pair("rectify-zone", (commandHandler)rectifyZone),
+    std::make_pair("rectify-all-zones", rectifyAllZones),
+    std::make_pair("rectify-zone", rectifyZone),
     std::make_pair("remove-autoprimary", removeAutoprimary),
     std::make_pair("remove-zone-key", removeZoneKey),
     std::make_pair("replace-rrset", replaceRRSet),
     std::make_pair("secure-all-zones", secureAllZones),
-    std::make_pair("secure-zone", (commandHandler)secureZone),
+    std::make_pair("secure-zone", secureZone),
     std::make_pair("set-account", setAccount),
     std::make_pair("set-catalog", setCatalog),
     std::make_pair("set-kind", setKind),
@@ -6242,23 +6242,23 @@ static void checkCommandSyntax()
     std::make_pair("set-presigned", setPresigned),
     std::make_pair("set-publish-cdnskey", setPublishCDNSKey),
     std::make_pair("set-publish-cds", setPublishCDs),
-    std::make_pair("show-zone", (commandHandler)showZone),
-    std::make_pair("test-algorithm", (commandHandler)testAlgorithm),
-    std::make_pair("test-algorithms", (commandHandler)testAlgorithms),
-    std::make_pair("test-schema", (commandHandler)testSchema),
-    std::make_pair("test-speed", (commandHandler)testSpeed),
+    std::make_pair("show-zone", showZone),
+    std::make_pair("test-algorithm", testAlgorithm),
+    std::make_pair("test-algorithms", testAlgorithms),
+    std::make_pair("test-schema", testSchema),
+    std::make_pair("test-speed", testSpeed),
     std::make_pair("unpublish-zone-key", unpublishZoneKey),
     std::make_pair("unset-nsec3", unsetNSec3),
     std::make_pair("unset-presigned", unsetPresigned),
     std::make_pair("unset-publish-cdnskey", unsetPublishCDNSKey),
     std::make_pair("unset-publish-cds", unsetPublishCDs),
-    std::make_pair("verify-crypto", (commandHandler)verifyCrypto),
+    std::make_pair("verify-crypto", verifyCrypto),
     std::make_pair("view-add-zone", viewAddZone),
     std::make_pair("view-del-zone", viewDelZone),
-    std::make_pair("zonemd-verify-file", (commandHandler)zonemdVerifyFile),
+    std::make_pair("zonemd-verify-file", zonemdVerifyFile),
     // aliases
-    std::make_pair("test-all-zones", (commandHandler)checkAllZones),
-    std::make_pair("test-zone", (commandHandler)checkZone)
+    std::make_pair("test-all-zones", checkAllZones),
+    std::make_pair("test-zone", checkZone)
   };
   for (const auto& pair : tests) {
     std::vector<std::string> cmds{pair.first};
