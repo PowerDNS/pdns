@@ -383,6 +383,26 @@ For listing/modifying comments.
 -  ``search-comments-query``: Called to search for comment by name or
    content.
 
+Views queries
+^^^^^^^^^^^^^
+
+For :doc:`Views <../views>` support. Only used when the backend has detected
+the ``networks`` and ``views`` tables in the database schema.
+
+-  ``view-list-query``: Called to list all views. Returns fields: view.
+-  ``view-list-zones-query``: Called to list all zone variants within a
+   view. Given fields: view. Returns fields: zone, variant.
+-  ``view-add-zone-query``: Called to add (or replace) a zone variant
+   within a view. Given fields: view, zone, variant.
+-  ``view-del-zone-query``: Called to remove a zone variant from a view.
+   Given fields: view, zone.
+-  ``network-set-query``: Called to associate a network with a view.
+   Given fields: network, view.
+-  ``network-unset-query``: Called to remove a network's association
+   with any view. Given fields: network.
+-  ``network-list-query``: Called to list all network-to-view
+   associations. Returns fields: network, view.
+
 Specifying queries
 ^^^^^^^^^^^^^^^^^^
 

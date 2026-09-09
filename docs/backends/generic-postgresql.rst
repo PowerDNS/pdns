@@ -12,7 +12,7 @@ Generic PostgreSQL backend
 * Disabled data: Yes
 * Comments: Yes
 * Search: Yes
-* Views: No
+* Views: Yes (requires the ``networks`` and ``views`` tables, detected automatically)
 * API: Read-Write
 * :ref:`Multiple instances <setting-launch>`: Yes
 * Zone caching: Yes
@@ -111,7 +111,8 @@ Default: yes.
 Default schema
 --------------
 
-This is the 4.7 schema.
+This is the 4.7 schema, plus the ``networks`` and ``views`` tables used by
+:doc:`Views <../views>` support.
 
 .. literalinclude:: ../../modules/gpgsqlbackend/schema.pgsql.sql
    :language: SQL

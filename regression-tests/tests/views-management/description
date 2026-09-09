@@ -1,2 +1,2 @@
 Tests for views management.
-The expected result for non-LMDB backends is failure.
+The expected result for backends without CAP_VIEWS support is failure.
