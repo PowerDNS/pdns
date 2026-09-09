@@ -1865,6 +1865,18 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # verify that the zone contents did not change
         data2 = self.get_zone(name)
         self.assertEqual(get_rrset(data, "a." + name), get_rrset(data2, "a." + name))
+        # add the same record again, this time disabled
+        rrset["records"][0]["disabled"] = True
+        payload = {"rrsets": [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
+        self.assert_success(r)
+        # verify that (only) the new record is there and has changed state
+        data = self.get_zone(name)
+        self.assertEqual(get_rrset(data, "a." + name, "A")["records"], rrset["records"])
 
     def test_zone_rr_bogus_extend(self):
         name, payload, zone = self.create_zone()
