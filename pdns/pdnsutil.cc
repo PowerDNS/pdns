@@ -1478,7 +1478,7 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
     if (allowUnderscores) {
       flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
     }
-    std::vector<std::tuple<Logr::Priority, DNSResourceRecord, std::string>> errors;
+    std::vector<Check::diag> errors;
     Check::checkRRSet({}, records, zone, flags, errors);
     for (const auto& error : errors) {
       const auto [prio, rec, why] = error;
@@ -2965,7 +2965,7 @@ static int addOrReplaceRecord(bool isAdd, const std::vector<std::string>& cmds, 
     newrrs.insert(newrrs.end(), oldrrs.begin(), oldrrs.end());
   }
 
-  std::vector<std::tuple<Logr::Priority, DNSResourceRecord, string>> diagnostics;
+  std::vector<Check::diag> diagnostics;
   Check::RRSetFlags flags{Check::RRSET_CHECK_TTL};
   if (allowUnderscores) {
     flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
