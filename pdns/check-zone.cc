@@ -53,7 +53,7 @@ bool validateViewName(std::string_view name, std::string& error)
   return true;
 }
 
-void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<std::tuple<Logr::Priority, DNSResourceRecord, string>>& diagnostics)
+void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSResourceRecord>& newrrs, const ZoneName& zone, RRSetFlags flags, std::vector<diag>& diagnostics)
 {
   // QTypes that MUST NOT have multiple records of the same type in a given RRset.
   static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
@@ -62,14 +62,14 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
   // QTypes that are NOT allowed at apex.
   static const std::set<uint16_t> nonApexTypes = {QType::DS};
 
-  sort(allrrs.begin(), allrrs.end(),
+  sort(newrrs.begin(), newrrs.end(),
        [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
          /* we need _strict_ weak ordering */
          return std::tie(rec_a.qname, rec_a.qtype, rec_a.content) < std::tie(rec_b.qname, rec_b.qtype, rec_b.content);
        });
 
   DNSResourceRecord previous;
-  for (const auto& rec : allrrs) {
+  for (const auto& rec : newrrs) {
     bool lowercase{false};
     switch (rec.qtype) {
     case QType::MX:
@@ -92,7 +92,7 @@ void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecor
         }
         // Enforce identical TTLs for all records with the same name and type,
         // if required. This is optional because some callers are able to
-        // compute allrrs in a way which already enforces this, and therefore
+        // compute [newrrs] in a way which already enforces this, and therefore
         // it is useless to check a second time.
         if ((flags & RRSET_CHECK_TTL) != 0) {
           if (rec.ttl != previous.ttl) {

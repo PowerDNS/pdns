@@ -1865,7 +1865,7 @@ static bool areUnderscoresAllowed(const ZoneName& zonename, DNSBackend& backend)
 // not, in which case the response body and status have been filled up.
 static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone, Check::RRSetFlags flags)
 {
-  std::vector<std::tuple<Logr::Priority, DNSResourceRecord, string>> diagnostics;
+  std::vector<Check::diag> diagnostics;
 
   // Do not perform Lua records updates if not allowed to.
   if (!::arg().mustDo("enable-lua-record-updates")) {
