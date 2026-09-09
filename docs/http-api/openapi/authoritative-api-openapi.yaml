@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.21"
+  version: "0.0.22"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -654,6 +654,8 @@ paths:
       responses:
         "204":
           description: "Returns 204 No Content on success."
+        "422":
+          description: "Returned when the requested changes are in error. Contains an error message"
         default:
           $ref: "#/components/responses/Error"
 
@@ -673,6 +675,8 @@ paths:
       responses:
         "204":
           description: "Returns 204 No Content on success."
+        "422":
+          description: "Returned when the requested changes are in error. Contains an error message"
         default:
           $ref: "#/components/responses/Error"
 
