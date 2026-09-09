@@ -379,17 +379,25 @@ void TCPNameserver::doConnection(int fd, Logr::log_t slog)
       if (packet->hasEDNSCookie())
         S.inc("tcp-cookie-queries");
 
-      if(packet->qtype.getCode()==QType::AXFR) {
+      if(packet->qtype.getCode()==QType::AXFR || packet->qtype.getCode()==QType::IXFR) {
+        // Since we will bypass PacketHandler here, we need to perform some
+        // sanity checks.
+        if (packet->hasEDNS()) {
+          if (packet->getEDNSVersion() > 0) {
+            auto resp = packet->replyPacket();
+            resp->setEDNSRcode(ERCode::BADVERS);
+            sendPacket(resp, fd);
+            continue;
+          }
+        }
         packet->d_xfr=true;
         g_zoneCache.setZoneVariant(*packet);
-        doAXFR(packet->qdomainzone, packet, fd, slog);
-        continue;
-      }
-
-      if(packet->qtype.getCode()==QType::IXFR) {
-        packet->d_xfr=true;
-        g_zoneCache.setZoneVariant(*packet);
-        doIXFR(packet, fd, slog);
+        if(packet->qtype.getCode()==QType::AXFR) {
+          doAXFR(packet->qdomainzone, packet, fd, slog);
+        }
+        else {
+          doIXFR(packet, fd, slog);
+        }
         continue;
       }
 
@@ -399,8 +407,8 @@ void TCPNameserver::doConnection(int fd, Logr::log_t slog)
       if(g_logDNSQueries)  {
         if (g_slogStructured) {
           slogger = slog->withValues("remote", Logging::Loggable(packet->getRemoteString()), "query", Logging::Loggable(packet->qdomain), "type", Logging::Loggable(packet->qtype), "dnssecok", Logging::Loggable(packet->d_dnssecOk), "bufsize", Logging::Loggable(packet->getMaxReplyLen()));
-	}
-	else {
+        }
+        else {
           g_log << Logger::Notice<<"TCP Remote "<< packet->getRemoteString() <<" wants '" << packet->qdomain<<"|"<<packet->qtype.toString() <<
                "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen();
         }
