@@ -1871,7 +1871,7 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
   if (!::arg().mustDo("enable-lua-record-updates")) {
     for (const auto& rec : records) {
       if (rec.qtype == QType::LUA) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, std::string("update of Lua records is not allowed")));
+        diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string("update of Lua records is not allowed")));
       }
     }
   }
@@ -1883,8 +1883,8 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
 
   Json::array errs;
   for (const auto& error : diagnostics) {
-    const auto& [_, rec, why] = error; // we report everything as errors
-    errs.emplace_back(std::string{"RRset "} + rec.qname.toString() + " IN " + rec.qtype.toString() + ": " + why);
+    const auto& [_, qname, type, why] = error; // we report everything as errors
+    errs.emplace_back(std::string{"RRset "} + qname.toString() + " IN " + type.toString() + ": " + why);
   }
 
   Json::object body;

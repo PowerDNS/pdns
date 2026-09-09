@@ -1464,8 +1464,8 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
     std::vector<Check::diag> errors;
     Check::checkRRSet({}, records, zone, flags, errors);
     for (const auto& error : errors) {
-      const auto [prio, rec, why] = error;
-      cerr << "[" << Logr::Logger::toString(prio) << "] " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
+      const auto [prio, qname, type, why] = error;
+      cerr << "[" << Logr::Logger::toString(prio) << "] " << qname.toString() << " IN " << type.toString() << ": " << why << endl;
       if (prio == Logr::Error) {
         numerrors++;
       }
@@ -2945,8 +2945,8 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
   oldrrs.clear(); // no longer needed
   if (!diagnostics.empty()) {
     for (const auto& error : diagnostics) {
-      const auto [prio, rec, why] = error;
-      cerr << Logr::Logger::toString(prio) << ": RRset " << rec.qname.toString() << " IN " << rec.qtype.toString() << ": " << why << endl;
+      const auto [prio, qname, type, why] = error;
+      cerr << Logr::Logger::toString(prio) << ": RRset " << qname.toString() << " IN " << type.toString() << ": " << why << endl;
     }
     return EXIT_FAILURE;
   }

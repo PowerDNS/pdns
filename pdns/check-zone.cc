@@ -85,10 +85,10 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, "only one such record allowed"));
+          diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, "only one such record allowed"));
         }
         if (previous.content == contentstr) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, std::string{"duplicate record with content \""} + rec.content + "\""));
+          diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string{"duplicate record with content \""} + rec.content + "\""));
         }
         // Enforce identical TTLs for all records with the same name and type,
         // if required. This is optional because some callers are able to
@@ -99,7 +99,7 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
             // This error message may be misleading if a TTL discrepancy already
             // exists in the RRset, as it might blame an existing record rather
             // than those being added. ¯\_(ツ)_/¯
-            diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, std::string{"uses a different TTL value than the remainder of the RRset"}));
+            diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string{"uses a different TTL value than the remainder of the RRset"}));
           }
         }
       }
@@ -113,10 +113,10 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
           // order to decide which record to blame in order to make the error
           // message as less confusing as possible.
           if (std::find(oldrrs.begin(), oldrrs.end(), rec) != oldrrs.end()) {
-            diagnostics.emplace_back(std::make_tuple(Logr::Error, previous, std::string{"conflicts with existing "} + rec.qtype.toString() + " RRset of the same name"));
+            diagnostics.emplace_back(std::make_tuple(Logr::Error, previous.qname, previous.qtype, std::string{"conflicts with existing "} + rec.qtype.toString() + " RRset of the same name"));
           }
           else {
-            diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, std::string{"conflicts with existing "} + previous.qtype.toString() + " RRset of the same name"));
+            diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string{"conflicts with existing "} + previous.qtype.toString() + " RRset of the same name"));
           }
         }
       }
@@ -124,11 +124,11 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
 
     if (rec.qname == zone.operator const DNSName&()) {
       if (nonApexTypes.count(rec.qtype.getCode()) != 0) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec, "is not allowed at apex"));
+        diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, "is not allowed at apex"));
       }
     }
     else if (atApexTypes.count(rec.qtype.getCode()) != 0) {
-      diagnostics.emplace_back(std::make_tuple(rec.qtype == QType::SOA ? Logr::Error : Logr::Warning, rec, "is only allowed at apex"));
+      diagnostics.emplace_back(std::make_tuple(rec.qtype == QType::SOA ? Logr::Error : Logr::Warning, rec.qname, rec.qtype, "is only allowed at apex"));
     }
 
     // Check if the DNSNames that should be hostnames, are hostnames
@@ -137,7 +137,7 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
       checkHostnameCorrectness(rec, allowUnderscores);
     }
     catch (const std::exception& e) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec, e.what()));
+      diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, e.what()));
     }
 
     previous = rec;
