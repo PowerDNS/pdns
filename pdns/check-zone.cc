@@ -490,8 +490,9 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                       continue;
                     }
                   }
-                  else
+                  else {
                     noncnames.insert(drr.qname);
+                  }
                 }
 
                 if (drr.qtype == QType::MX || drr.qtype == QType::NS || drr.qtype == QType::SRV) {
@@ -613,11 +614,10 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
 
   } // end of scope for checkCNAME and cnames
 
-  bool ok, ds_ns, done;
   for (const auto& rec : records) {
-    ok = rec.auth;
-    ds_ns = false;
-    done = !canDoDNSSEC;
+    bool report = !rec.auth;
+    bool ds_ns = false;
+    bool done = !canDoDNSSEC;
     for (const auto& qname : checkOcclusion) {
       if (qname.second == QType::NS) {
         if (qname.first == rec.qname) {
@@ -628,17 +628,19 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
         }
         if (!rec.auth) {
           if (rec.qname.isPartOf(qname.first) && (qname.first != rec.qname || rec.qtype != QType::DS)) {
-            ok = done = true;
+            report = false;
+            done = true;
           }
           if (rec.qtype == QType::ENT && qname.first.isPartOf(rec.qname)) {
-            ok = done = true;
+            report = false;
+            done = true;
           }
         }
         else if (rec.qname.isPartOf(qname.first) && ((qname.first != rec.qname || rec.qtype != QType::DS) || rec.qtype == QType::NS)) {
           // Note that record is authoritative, but occluded.
           // TODO: This probably should have been caught by the first round of
           // occlusion checks, check if this is redundant. (Added in #6653)
-          ok = false;
+          report = true;
           done = true;
         }
       }
@@ -647,7 +649,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
       diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, "DS record without a delegation"));
     }
     // Make sure we don't suggest rectifying the zone unless it exists.
-    if (!ok && isExistingZone) {
+    if (report && isExistingZone) {
       if (rec.auth) {
         diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, "occluded until empty non-terminals are added, consider rectifying zone"));
       }
@@ -662,16 +664,16 @@ static void checkZoneMetadata(UeberBackend& ueber, const ZoneName& zone, std::ve
 {
   std::map<std::string, std::vector<std::string>> metadatas;
   if (ueber.getAllDomainMetadata(zone, metadatas)) {
-    for (const auto& metaData : metadatas) {
+    for (const auto& metadata : metadatas) {
       std::set<std::string> seen;
       std::set<std::string> messaged;
 
-      for (const auto& value : metaData.second) {
+      for (const auto& value : metadata.second) {
         if (seen.count(value) == 0) {
           seen.insert(value);
         }
         else if (messaged.count(value) == 0) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("duplicate metadata key value pair with key '") + metaData.first + "' and value '" + value + "'"));
+          diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("duplicate metadata key value pair with key '") + metadata.first + "' and value '" + value + "'"));
           messaged.insert(value);
         }
       }
