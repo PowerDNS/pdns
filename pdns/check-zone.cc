@@ -151,13 +151,13 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
 
 static void checkZoneTLSA(const set<DNSName>& tlsas, const set<DNSName>& cnames, const set<DNSName>& noncnames, std::vector<diag>& diagnostics)
 {
-  for(const auto& origname: tlsas) {
+  for (const auto& origname : tlsas) {
     auto name = origname;
-    name.trimToLabels(name.countLabels()-2);
+    name.trimToLabels(name.countLabels() - 2);
     if (cnames.find(name) == cnames.end() && noncnames.find(name) == noncnames.end()) {
       // No specific record for the name in the TLSA record exists, this
       // is already worth emitting a warning. Let's see if a wildcard exist.
-      cout<<"[Warning] ";
+      cout << "[Warning] ";
       DNSName wcname(name);
       wcname.chopOff();
       wcname.prependRawLabel("*");
@@ -194,10 +194,10 @@ static void checkZoneSVCB(QType type, const ZoneName& zone, const svcbset_t& tar
 
     const auto& trueTarget = target.isRoot() ? name : target;
     if (prio > 0) {
-      if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
+      if (v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
         diagnostics.emplace_back(std::make_tuple(Logr::Warning, name, type, std::string("has automatic IPv4 hints, but no A record for the target at ") + trueTarget.toString() + " exists"));
       }
-      if(v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
+      if (v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
         diagnostics.emplace_back(std::make_tuple(Logr::Warning, name, type, std::string("has automatic IPv6 hints, but no AAAA record for the target at ") + trueTarget.toString() + " exists"));
       }
     }
@@ -209,45 +209,46 @@ static void normalizeSOARecord(DNSResourceRecord& drr, std::vector<diag>& diagno
   vector<string> parts;
   stringtok(parts, drr.content);
 
-  if(parts.size() < 7) {
+  if (parts.size() < 7) {
     diagnostics.emplace_back(std::make_tuple(Logr::Info, drr.qname, drr.qtype, "SOA autocomplete is deprecated, missing field(s) in SOA content"));
   }
 
-  if(parts.size() >= 2) {
-    if(parts[1].find('@') != string::npos) {
+  if (parts.size() >= 2) {
+    if (parts[1].find('@') != string::npos) {
       diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "found @-sign in SOA RNAME, should probably be a dot (.)"));
     }
   }
 
   ostringstream ostr;
-  ostr<<drr.content;
-  for(auto pleft=parts.size(); pleft < 7; ++pleft) {
-    ostr<<" 0";
+  ostr << drr.content;
+  for (auto pleft = parts.size(); pleft < 7; ++pleft) {
+    ostr << " 0";
   }
-  drr.content=ostr.str();
+  drr.content = ostr.str();
 }
 
 static bool checkRecordContents(DNSResourceRecord& drr, std::vector<diag>& diagnostics)
 {
   // Make sure TXT record contents are quoted
-  if(drr.qtype.getCode() == QType::TXT && !drr.content.empty() && drr.content[0]!='"') {
-    drr.content = "\""+drr.content+"\"";
+  if (drr.qtype.getCode() == QType::TXT && !drr.content.empty() && drr.content[0] != '"') {
+    drr.content = "\"" + drr.content + "\"";
   }
 
   try {
     shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
-    string tmp=drc->serialize(drr.qname);
+    string tmp = drc->serialize(drr.qname);
     tmp = drc->getZoneRepresentation(true);
     if (drr.qtype.getCode() != QType::AAAA) {
       if (!pdns_iequals(tmp, drr.content)) {
-        if(drr.qtype.getCode() == QType::SOA) {
+        if (drr.qtype.getCode() == QType::SOA) {
           tmp = drc->getZoneRepresentation(false);
         }
-        if(!pdns_iequals(tmp, drr.content)) {
+        if (!pdns_iequals(tmp, drr.content)) {
           diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("parsed record contents (" + tmp + ") do not match original content (" + drr.content + ")")));
         }
       }
-    } else {
+    }
+    else {
       struct in6_addr tmpbuf{};
       if (inet_pton(AF_INET6, drr.content.c_str(), &tmpbuf) != 1) {
         diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("not a valid IPv6 address: ") + drr.content));
@@ -255,8 +256,7 @@ static bool checkRecordContents(DNSResourceRecord& drr, std::vector<diag>& diagn
     }
     return true;
   }
-  catch(std::exception& e)
-  {
+  catch (std::exception& e) {
     diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, std::string("error processing record: ") + e.what()));
     return false;
   }
@@ -269,7 +269,7 @@ static void checkNSEC3Params(Logr::log_t slog, UeberBackend& ueber, DNSSECKeeper
 
   if (haveNSEC3) {
     auto wirelength = zone.operator const DNSName&().wirelength();
-    if(isSecure && wirelength > 222) {
+    if (isSecure && wirelength > 222) {
       diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("zone has NSEC3 semantics but its name is too long to have the hash prepended (") + std::to_string(wirelength) + " bytes long, whereas the maximum is 222 bytes)"));
     }
 
@@ -288,7 +288,7 @@ static void checkNSEC3Params(Logr::log_t slog, UeberBackend& ueber, DNSSECKeeper
       DNSKEYRecordContent dkrc;
       DNSCryptoKeyEngine::makeFromISCString(slog, dkrc, keydata.content);
 
-      if(dkrc.d_algorithm == DNSSECKeeper::RSASHA1) {
+      if (dkrc.d_algorithm == DNSSECKeeper::RSASHA1) {
         diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("zone has NSEC3 semantics, but the ") + (keydata.active ? "active" : "inactive") + " key with id " + std::to_string(keydata.id) + " has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database, or NSEC3 should be disabled"));
       }
     }
@@ -296,7 +296,7 @@ static void checkNSEC3Params(Logr::log_t slog, UeberBackend& ueber, DNSSECKeeper
 
   if (!validKeys) {
     diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, "zone has at least one invalid DNS Private Key"));
-    for (const auto &msg : checkKeyErrors) {
+    for (const auto& msg : checkKeyErrors) {
       diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, msg));
     }
   }
@@ -305,7 +305,7 @@ static void checkNSEC3Params(Logr::log_t slog, UeberBackend& ueber, DNSSECKeeper
 static void checkParentDelegation(UeberBackend& ueber, const ZoneName& zone, std::vector<diag>& diagnostics)
 {
   ZoneName parent(zone);
-  while(parent.chopOff()) {
+  while (parent.chopOff()) {
     SOAData sd_p;
     if (ueber.getSOAUncached(parent, sd_p)) {
       bool seen_ns = false;
@@ -333,267 +333,266 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
   bool hasNsAtApex = false;
   std::set<std::pair<DNSName, QType>> checkOcclusion;
   {
-  std::vector<DNSResourceRecord> checkCNAME;
-  std::set<DNSName> cnames;
-  {
-  std::set<DNSName> glue;
-  std::set<DNSName> checkglue;
-{
-  std::set<DNSName> arecords;
-  std::set<DNSName> aaaarecords;
-  std::set<DNSName> addresses;
-  {
-  std::set<DNSName> httpsAliases;
-  std::set<DNSName> httpsRecords;
-  svcbset_t httpsTargets;
-  {
-  std::set<DNSName> svcbAliases;
-  std::set<DNSName> svcbRecords;
-  svcbset_t svcbTargets;
-  {
-  std::set<DNSName> tlsas;
-  std::set<DNSName> noncnames;
-
-  for(auto &drr : records) { // We modify SOA and TXT record contents
-    if(drr.qtype.getCode() == QType::TLSA) {
-      tlsas.insert(drr.qname);
-    }
-    if(drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) {
-      addresses.insert(drr.qname);
-    }
-#ifdef HAVE_LUA_RECORDS
-    if(drr.qtype.getCode() == QType::LUA) {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
-      auto luarec = std::dynamic_pointer_cast<LUARecordContent>(drc);
-      QType qtype = luarec->d_type;
-      if(qtype == QType::A || qtype == QType::AAAA) {
-        addresses.insert(drr.qname);
-      }
-    }
-#endif
-    if(drr.qtype.getCode() == QType::A) {
-      arecords.insert(drr.qname);
-    }
-    if(drr.qtype.getCode() == QType::AAAA) {
-      aaaarecords.insert(drr.qname);
-    }
-    if(drr.qtype.getCode() == QType::SOA) {
-      normalizeSOARecord(drr, diagnostics); // updates record
-      // If there are extra (bogus) SOA records, picking the TTL from the last
-      // seen might be wrong, but's a minor problem compared to the existence
-      // of spurious SOA records...
-      if (minimumTTL == 0) {
-        try {
-          SOAData soadata;
-          fillSOAData(drr.content, soadata);
-          minimumTTL = soadata.minimum;
-        }
-        catch (const PDNSException&) {
-          // ignored
-        }
-      }
-    }
-
-    if (!checkRecordContents(drr, diagnostics)) {
-      continue;
-    }
-
-    if(!drr.qname.isPartOf(zone)) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "out-of-zone record"));
-      continue;
-    }
-
-    if (drr.qtype.getCode() == QType::SVCB || drr.qtype.getCode() == QType::HTTPS) {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
-      // I, too, like to live dangerously
-      auto svcbrc = std::dynamic_pointer_cast<SVCBBaseRecordContent>(drc);
-      if (svcbrc->getPriority() == 0 && svcbrc->hasParams()) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "aliasform has service parameters"));
-      }
-
-      if(svcbrc->getPriority() != 0) {
-        // Service Form
-        if (svcbrc->hasParam(SvcParam::no_default_alpn) && !svcbrc->hasParam(SvcParam::alpn)) {
-          /* draft-ietf-dnsop-svcb-https-03 section 6.1
-           *  When "no-default-alpn" is specified in an RR, "alpn" must
-           *  also be specified in order for the RR to be "self-consistent"
-           *  (Section 2.4.3).
-           */
-          diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "not self-consistent due to 'no-default-alpn' parameter without 'alpn' parameter"));
-        }
-        if (svcbrc->hasParam(SvcParam::mandatory)) {
-          auto keys = svcbrc->getParam(SvcParam::mandatory).getMandatory();
-          for (auto const& key : keys) {
-            if (!svcbrc->hasParam(key)) {
-              diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("not self-consistent due to missing '") + SvcParam::keyToString(key) + "' parameter listed in 'mandatory'"));
-            }
-          }
-        }
-      }
-
-      bool isSvcb = drr.qtype.getCode() == QType::SVCB;
-      set<DNSName>& aliases = isSvcb ? svcbAliases : httpsAliases;
-      svcbset_t& targets = isSvcb ? svcbTargets : httpsTargets;
-      set<DNSName>& ourrecords = isSvcb ? svcbRecords : httpsRecords;
-
-      if (svcbrc->getPriority() == 0) {
-        if (aliases.find(drr.qname) != aliases.end()) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "more than one aliasform to this name"));
-        }
-        aliases.insert(drr.qname);
-      }
-      targets.emplace(drr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint));
-      ourrecords.insert(drr.qname);
-    }
-
-    if (isSecure && isOptOut && (drr.qname.hasLabels() && drr.qname.getRawLabel(0) == "*")) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "wildcard records in opt-out zones are insecure, consider disabling the opt-out flag for this zone to avoid this warning"));
-    }
-
-    if(drr.qname==zone.operator const DNSName&()) {
-      // apex checks
-      if (drr.qtype.getCode() == QType::NS) {
-        hasNsAtApex=true;
-      }
-    } else {
-      // non-apex checks
-      if (drr.qtype.getCode() == QType::NS) {
-        if (DNSName(drr.content).isPartOf(drr.qname)) {
-          checkglue.insert(DNSName(toLower(drr.content)));
-        }
-        checkOcclusion.insert({drr.qname, drr.qtype});
-      } else if (drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) {
-        glue.insert(drr.qname);
-      }
-    }
-
-    // DNAMEs can occur both at the apex and below it
-    if (drr.qtype == QType::DNAME) {
-      checkOcclusion.insert({drr.qname, drr.qtype});
-    }
-
-    if((drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) && !drr.qname.isWildcard() && !drr.qname.isHostname()) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Info, drr.qname, drr.qtype, "not a valid hostname"));
-    }
-
-    if (drr.qtype.getCode() == QType::CNAME) {
-      if (cnames.count(drr.qname) == 0) {
-        cnames.insert(drr.qname);
-      }
-    } else {
-      if (drr.qtype.getCode() == QType::RRSIG) {
-        if(!presigned) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "RRSIG in non-presigned zone do not belong in the database"));
-          continue;
-        }
-      } else
-        noncnames.insert(drr.qname);
-    }
-
-    if (drr.qtype == QType::MX || drr.qtype == QType::NS || drr.qtype == QType::SRV) {
-      checkCNAME.push_back(drr);
-    }
-
-    if(drr.qtype.getCode() == QType::NSEC || drr.qtype.getCode() == QType::NSEC3)
+    std::vector<DNSResourceRecord> checkCNAME;
+    std::set<DNSName> cnames;
     {
-      diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "NSEC or NSEC3 records do not belong in the database"));
-      continue;
-    }
-
-    if(!presigned && drr.qtype.getCode() == QType::DNSKEY)
-    {
-      if(::arg().mustDo("direct-dnskey"))
+      std::set<DNSName> glue;
+      std::set<DNSName> checkglue;
       {
-        if (drr.ttl != minimumTTL)
+        std::set<DNSName> arecords;
+        std::set<DNSName> aaaarecords;
+        std::set<DNSName> addresses;
         {
-          diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("DNSKEY TTL of ") + std::to_string(drr.ttl) + " differs from SOA minimum of " + std::to_string(minimumTTL)));
+          std::set<DNSName> httpsAliases;
+          std::set<DNSName> httpsRecords;
+          svcbset_t httpsTargets;
+          {
+            std::set<DNSName> svcbAliases;
+            std::set<DNSName> svcbRecords;
+            svcbset_t svcbTargets;
+            {
+              std::set<DNSName> tlsas;
+              std::set<DNSName> noncnames;
+
+              for (auto& drr : records) { // We modify SOA and TXT record contents
+                if (drr.qtype.getCode() == QType::TLSA) {
+                  tlsas.insert(drr.qname);
+                }
+                if (drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) {
+                  addresses.insert(drr.qname);
+                }
+#ifdef HAVE_LUA_RECORDS
+                if (drr.qtype.getCode() == QType::LUA) {
+                  shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
+                  auto luarec = std::dynamic_pointer_cast<LUARecordContent>(drc);
+                  QType qtype = luarec->d_type;
+                  if (qtype == QType::A || qtype == QType::AAAA) {
+                    addresses.insert(drr.qname);
+                  }
+                }
+#endif
+                if (drr.qtype.getCode() == QType::A) {
+                  arecords.insert(drr.qname);
+                }
+                if (drr.qtype.getCode() == QType::AAAA) {
+                  aaaarecords.insert(drr.qname);
+                }
+                if (drr.qtype.getCode() == QType::SOA) {
+                  normalizeSOARecord(drr, diagnostics); // updates record
+                  // If there are extra (bogus) SOA records, picking the TTL from the last
+                  // seen might be wrong, but's a minor problem compared to the existence
+                  // of spurious SOA records...
+                  if (minimumTTL == 0) {
+                    try {
+                      SOAData soadata;
+                      fillSOAData(drr.content, soadata);
+                      minimumTTL = soadata.minimum;
+                    }
+                    catch (const PDNSException&) {
+                      // ignored
+                    }
+                  }
+                }
+
+                if (!checkRecordContents(drr, diagnostics)) {
+                  continue;
+                }
+
+                if (!drr.qname.isPartOf(zone)) {
+                  diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "out-of-zone record"));
+                  continue;
+                }
+
+                if (drr.qtype.getCode() == QType::SVCB || drr.qtype.getCode() == QType::HTTPS) {
+                  shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
+                  // I, too, like to live dangerously
+                  auto svcbrc = std::dynamic_pointer_cast<SVCBBaseRecordContent>(drc);
+                  if (svcbrc->getPriority() == 0 && svcbrc->hasParams()) {
+                    diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "aliasform has service parameters"));
+                  }
+
+                  if (svcbrc->getPriority() != 0) {
+                    // Service Form
+                    if (svcbrc->hasParam(SvcParam::no_default_alpn) && !svcbrc->hasParam(SvcParam::alpn)) {
+                      /* draft-ietf-dnsop-svcb-https-03 section 6.1
+                       *  When "no-default-alpn" is specified in an RR, "alpn" must
+                       *  also be specified in order for the RR to be "self-consistent"
+                       *  (Section 2.4.3).
+                       */
+                      diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "not self-consistent due to 'no-default-alpn' parameter without 'alpn' parameter"));
+                    }
+                    if (svcbrc->hasParam(SvcParam::mandatory)) {
+                      auto keys = svcbrc->getParam(SvcParam::mandatory).getMandatory();
+                      for (auto const& key : keys) {
+                        if (!svcbrc->hasParam(key)) {
+                          diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("not self-consistent due to missing '") + SvcParam::keyToString(key) + "' parameter listed in 'mandatory'"));
+                        }
+                      }
+                    }
+                  }
+
+                  bool isSvcb = drr.qtype.getCode() == QType::SVCB;
+                  set<DNSName>& aliases = isSvcb ? svcbAliases : httpsAliases;
+                  svcbset_t& targets = isSvcb ? svcbTargets : httpsTargets;
+                  set<DNSName>& ourrecords = isSvcb ? svcbRecords : httpsRecords;
+
+                  if (svcbrc->getPriority() == 0) {
+                    if (aliases.find(drr.qname) != aliases.end()) {
+                      diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "more than one aliasform to this name"));
+                    }
+                    aliases.insert(drr.qname);
+                  }
+                  targets.emplace(drr.qname, svcbrc->getPriority(), svcbrc->getTarget(), svcbrc->autoHint(SvcParam::ipv4hint), svcbrc->autoHint(SvcParam::ipv6hint));
+                  ourrecords.insert(drr.qname);
+                }
+
+                if (isSecure && isOptOut && (drr.qname.hasLabels() && drr.qname.getRawLabel(0) == "*")) {
+                  diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "wildcard records in opt-out zones are insecure, consider disabling the opt-out flag for this zone to avoid this warning"));
+                }
+
+                if (drr.qname == zone.operator const DNSName&()) {
+                  // apex checks
+                  if (drr.qtype.getCode() == QType::NS) {
+                    hasNsAtApex = true;
+                  }
+                }
+                else {
+                  // non-apex checks
+                  if (drr.qtype.getCode() == QType::NS) {
+                    if (DNSName(drr.content).isPartOf(drr.qname)) {
+                      checkglue.insert(DNSName(toLower(drr.content)));
+                    }
+                    checkOcclusion.insert({drr.qname, drr.qtype});
+                  }
+                  else if (drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) {
+                    glue.insert(drr.qname);
+                  }
+                }
+
+                // DNAMEs can occur both at the apex and below it
+                if (drr.qtype == QType::DNAME) {
+                  checkOcclusion.insert({drr.qname, drr.qtype});
+                }
+
+                if ((drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) && !drr.qname.isWildcard() && !drr.qname.isHostname()) {
+                  diagnostics.emplace_back(std::make_tuple(Logr::Info, drr.qname, drr.qtype, "not a valid hostname"));
+                }
+
+                if (drr.qtype.getCode() == QType::CNAME) {
+                  if (cnames.count(drr.qname) == 0) {
+                    cnames.insert(drr.qname);
+                  }
+                }
+                else {
+                  if (drr.qtype.getCode() == QType::RRSIG) {
+                    if (!presigned) {
+                      diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "RRSIG in non-presigned zone do not belong in the database"));
+                      continue;
+                    }
+                  }
+                  else
+                    noncnames.insert(drr.qname);
+                }
+
+                if (drr.qtype == QType::MX || drr.qtype == QType::NS || drr.qtype == QType::SRV) {
+                  checkCNAME.push_back(drr);
+                }
+
+                if (drr.qtype.getCode() == QType::NSEC || drr.qtype.getCode() == QType::NSEC3) {
+                  diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "NSEC or NSEC3 records do not belong in the database"));
+                  continue;
+                }
+
+                if (!presigned && drr.qtype.getCode() == QType::DNSKEY) {
+                  if (::arg().mustDo("direct-dnskey")) {
+                    if (drr.ttl != minimumTTL) {
+                      diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("DNSKEY TTL of ") + std::to_string(drr.ttl) + " differs from SOA minimum of " + std::to_string(minimumTTL)));
+                    }
+                  }
+                  else {
+                    diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "DNSKEY in non-presigned zone will mostly be ignored and can cause problems"));
+                  }
+                }
+              } // end of complete records loop
+
+              for (const auto& name : cnames) {
+                if (noncnames.find(name) != noncnames.end()) {
+                  diagnostics.emplace_back(std::make_tuple(Logr::Error, name, QType::CNAME, "other non-CNAME records with same label exist"));
+                }
+              }
+
+              checkZoneTLSA(tlsas, cnames, noncnames, diagnostics);
+            } // end of scope for tlsas and noncnames
+
+            checkZoneSVCB(QType::SVCB, zone, svcbTargets, svcbAliases, svcbRecords, arecords, aaaarecords, addresses, diagnostics);
+          } // end of scope for svcbTargets, svcbAliases and svcbRecords
+          checkZoneSVCB(QType::HTTPS, zone, httpsTargets, httpsAliases, httpsRecords, arecords, aaaarecords, addresses, diagnostics);
+        } // end of scope for httpsTargets, httpsAliases and httpsRecords
+
+      } // end of scope for arecords, aaaarecords and addresses
+
+      checkRRSet({}, records, zone, flags, diagnostics);
+
+      if (!hasNsAtApex) {
+        diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, "no NS record at zone apex"));
+      }
+
+      for (const auto& qname : checkglue) {
+        if (glue.count(qname) == 0) {
+          diagnostics.emplace_back(std::make_tuple(Logr::Warning, qname, QType::NS, "missing glue"));
         }
       }
-      else
-      {
-        diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "DNSKEY in non-presigned zone will mostly be ignored and can cause problems"));
-      }
-    }
-  } // end of complete records loop
 
-  for(const auto &name: cnames) {
-    if (noncnames.find(name) != noncnames.end()) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Error, name, QType::CNAME, "other non-CNAME records with same label exist"));
-    }
-  }
+    } // end of scope for glue and checkglue
 
-  checkZoneTLSA(tlsas, cnames, noncnames, diagnostics);
-  } // end of scope for tlsas and noncnames
-
-  checkZoneSVCB(QType::SVCB, zone, svcbTargets, svcbAliases, svcbRecords, arecords, aaaarecords, addresses, diagnostics);
-  } // end of scope for svcbTargets, svcbAliases and svcbRecords
-  checkZoneSVCB(QType::HTTPS, zone, httpsTargets, httpsAliases, httpsRecords, arecords, aaaarecords, addresses, diagnostics);
-  } // end of scope for httpsTargets, httpsAliases and httpsRecords
-
-  } // end of scope for arecords, aaaarecords and addresses
-
-  checkRRSet({}, records, zone, flags, diagnostics);
-
-  if(!hasNsAtApex) {
-    diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, "no NS record at zone apex"));
-  }
-
-  for(const auto &qname : checkglue) {
-    if (glue.count(qname) == 0) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, qname, QType::NS, "missing glue"));
-    }
-  }
-
-  } // end of scope for glue and checkglue
-
-  for (const auto& qname : checkOcclusion) {
-    for (const auto& drr : records) {
-      // a name does not occlude itself in the following situations:
-      if (qname.first == drr.qname) {
-        // NS does not occlude
-        if (qname.second == QType::NS) {
-          // ... DS or NS
-          if (drr.qtype == QType::NS || drr.qtype == QType::DS) {
-            continue;
-          }
-          // ... presigned if RRSIG is for DS or NSEC
-          if (presigned && drr.qtype == QType::RRSIG) {
-            shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
-            auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(drc);
-            QType qtype = rrsig->d_type;
-            if (qtype == QType::DS || qtype == QType::NSEC) {
+    for (const auto& qname : checkOcclusion) {
+      for (const auto& drr : records) {
+        // a name does not occlude itself in the following situations:
+        if (qname.first == drr.qname) {
+          // NS does not occlude
+          if (qname.second == QType::NS) {
+            // ... DS or NS
+            if (drr.qtype == QType::NS || drr.qtype == QType::DS) {
               continue;
             }
+            // ... presigned if RRSIG is for DS or NSEC
+            if (presigned && drr.qtype == QType::RRSIG) {
+              shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(drr.qtype.getCode(), QClass::IN, drr.content));
+              auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(drc);
+              QType qtype = rrsig->d_type;
+              if (qtype == QType::DS || qtype == QType::NSEC) {
+                continue;
+              }
+            }
+          }
+          // a DNAME does not occlude itself
+          if (qname.second == QType::DNAME && drr.qtype == QType::DNAME) {
+            continue;
           }
         }
-        // a DNAME does not occlude itself
-        if (qname.second == QType::DNAME && drr.qtype == QType::DNAME) {
-          continue;
-        }
-      }
 
-      // for most types, X occludes X and (type-dependent) almost everything under X
-      if (drr.qname.isPartOf(qname.first)) {
+        // for most types, X occludes X and (type-dependent) almost everything under X
+        if (drr.qname.isPartOf(qname.first)) {
 
-        // but a DNAME does not occlude anything at its name, only the things under it
-        if (qname.second == QType::DNAME && drr.qname == qname.first) {
-          continue;
-        }
+          // but a DNAME does not occlude anything at its name, only the things under it
+          if (qname.second == QType::DNAME && drr.qname == qname.first) {
+            continue;
+          }
 
-        // the record under inspection is:
-        // occluded by a DNAME, or
-        // occluded by a delegation, and is not glue or ENTs leading towards that glue
-        if (qname.second == QType::DNAME || (drr.qtype != QType::ENT && drr.qtype.getCode() != QType::A && drr.qtype.getCode() != QType::AAAA)) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("is occluded by a ") + (qname.second == QType::NS ? "delegation" : "DNAME") + " at '" + qname.first.toString() + "'"));
+          // the record under inspection is:
+          // occluded by a DNAME, or
+          // occluded by a delegation, and is not glue or ENTs leading towards that glue
+          if (qname.second == QType::DNAME || (drr.qtype != QType::ENT && drr.qtype.getCode() != QType::A && drr.qtype.getCode() != QType::AAAA)) {
+            diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("is occluded by a ") + (qname.second == QType::NS ? "delegation" : "DNAME") + " at '" + qname.first.toString() + "'"));
+          }
         }
       }
     }
-  }
 
-  for (auto const& rec : checkCNAME) {
-    DNSName target;
-    shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rec.qtype.getCode(), QClass::IN, rec.content));
-    switch (rec.qtype) {
+    for (auto const& rec : checkCNAME) {
+      DNSName target;
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rec.qtype.getCode(), QClass::IN, rec.content));
+      switch (rec.qtype) {
       case QType::MX:
         target = std::dynamic_pointer_cast<MXRecordContent>(drc)->d_mxname;
         break;
@@ -606,11 +605,11 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
       default:
         // can't happen due to the way checkCNAME is filled
         break;
+      }
+      if (target.isPartOf(zone) && cnames.count(target) != 0) {
+        diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, std::string("has a target (") + target.toString() + ") that is a CNAME"));
+      }
     }
-    if (target.isPartOf(zone) && cnames.count(target) != 0) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, std::string("has a target (") + target.toString() + ") that is a CNAME"));
-    }
-  }
 
   } // end of scope for checkCNAME and cnames
 
@@ -619,12 +618,12 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
     ok = rec.auth;
     ds_ns = false;
     done = !canDoDNSSEC;
-    for( const auto& qname : checkOcclusion ) {
-      if( qname.second == QType::NS ) {
-        if( qname.first == rec.qname ) {
+    for (const auto& qname : checkOcclusion) {
+      if (qname.second == QType::NS) {
+        if (qname.first == rec.qname) {
           ds_ns = true;
         }
-        if ( done ) {
+        if (done) {
           continue;
         }
         if (!rec.auth) {
