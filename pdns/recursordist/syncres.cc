@@ -5181,20 +5181,20 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& negEntry
   return getDenial(csp, negEntry.d_name, negEntry.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE, d_validationContext, LogObject(prefix));
 }
 
-vState SyncRes::checkWildcardProof(const DNSName& qname, const QType& qtype, DNSRecord& rec, const LWResult& lwr, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount)
+vState SyncRes::checkWildcardProof(const DNSName& name, const QType& type, const LWResult& lwr, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount)
 {
   if (vStateIsBogus(state)) {
     return state;
   }
+
   /* positive answer synthesized from a wildcard */
   NegCache::NegCacheEntry negEntry;
-  negEntry.d_name = qname;
+  negEntry.d_name = name;
   negEntry.d_qtype = QType::ENT; // this encodes 'whole record'
-  uint32_t lowestTTL = rec.d_ttl;
+  uint32_t lowestTTL = std::numeric_limits<uint32_t>::max();
   harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
 
-  auto recordState = getValidationStatus(qname, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
-
+  auto recordState = getValidationStatus(name, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
   if (recordState != vState::Secure) {
     return recordState;
   }
@@ -5204,7 +5204,8 @@ vState SyncRes::checkWildcardProof(const DNSName& qname, const QType& qtype, DNS
      as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
   */
   cspmap_t csp = harvestCSPFromNE(negEntry);
-  dState res = getDenial(csp, qname, negEntry.d_qtype.getCode(), false, false, d_validationContext, LogObject(prefix), false, wildcardLabelsCount);
+  dState res = getDenial(csp, name, negEntry.d_qtype.getCode(), false, false, d_validationContext, LogObject(prefix), false, wildcardLabelsCount);
+
   if (res == dState::NXDOMAIN) {
     return recordState;
   }
@@ -5214,17 +5215,16 @@ vState SyncRes::checkWildcardProof(const DNSName& qname, const QType& qtype, DNS
     /* Some part could not be validated, for example a NSEC3 record with a too large number of iterations,
        this is not enough to warrant a Bogus, but go Insecure. */
     tmpState = vState::Insecure;
-    LOG(prefix << qname << ": Unable to validate denial in wildcard expanded positive response found for " << qname << ", returning Insecure, res=" << res << endl);
+    LOG(prefix << name << ": Unable to validate denial in wildcard expanded positive response found for " << name << ", returning Insecure, res=" << res << endl);
   }
   else {
-    LOG(prefix << qname << ": Invalid denial in wildcard expanded positive response found for " << qname << ", returning Bogus, res=" << res << endl);
-    rec.d_ttl = std::min(rec.d_ttl, s_maxbogusttl);
+    LOG(prefix << name << ": Invalid denial in wildcard expanded positive response found for " << name << ", returning Bogus, res=" << res << endl);
   }
 
-  updateValidationState(qname, state, tmpState, prefix);
+  updateValidationState(name, state, tmpState, prefix);
 
   /* we already stored the record with a different validation status, let's fix it */
-  updateValidationStatusInCache(qname, qtype, lwr.d_aabit, tmpState);
+  updateValidationStatusInCache(name, type, lwr.d_aabit, tmpState);
   return tmpState;
 }
 
@@ -5267,9 +5267,6 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         if (auto content = getRR<CNAMERecordContent>(rec)) {
           newtarget = DNSName(content->getTarget());
         }
-        if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end() && expandedIt->second.shouldDenialOfExistenceBeValidated()) {
-          checkWildcardProof(qname, QType::CNAME, rec, lwr, state, depth, prefix, expandedIt->second.d_labelsCount);
-        }
       }
       else if (rec.d_type == QType::DNAME && qname.isPartOf(rec.d_name)) { // DNAME
         ret.push_back(rec);
@@ -5288,9 +5285,6 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           }
           try {
             newtarget = qname.makeRelative(dnameOwner) + dnameTarget;
-            if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); expandedIt != lwr.d_synthesizedFromWildcard.end() && expandedIt->second.shouldDenialOfExistenceBeValidated()) {
-              checkWildcardProof(qname, QType::DNAME, rec, lwr, state, depth, prefix, expandedIt->second.d_labelsCount);
-            }
           }
           catch (const std::exception& e) {
             // We should probably catch an std::range_error here and set the rcode to YXDOMAIN (RFC 6672, section 2.2)
@@ -5872,11 +5866,12 @@ void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& pref
         continue;
       }
 
-      if (const auto wildcardIt = lwr.d_synthesizedFromWildcard.find(qname); wildcardIt != lwr.d_synthesizedFromWildcard.end()) {
+#warning this is not right: either we need to check only the qname (what we are doing here) and the loop is useless, or we need to be checking the current record
+      if (const auto wildcardIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); wildcardIt != lwr.d_synthesizedFromWildcard.end()) {
         if (wildcardIt->second.shouldDenialOfExistenceBeValidated()) {
           // the second parameter, qtype, can go once the validation will be done before updating the cache
           auto& recordState = tcache.at(CacheKey{rec.d_name, rec.d_type, rec.d_place}).validationState;
-          recordState = checkWildcardProof(wildcardIt->first, qtype, rec, lwr, state, depth, prefix, wildcardIt->second.d_labelsCount);
+          recordState = checkWildcardProof(wildcardIt->first, rec.d_type, lwr, state, depth, prefix, wildcardIt->second.d_labelsCount);
         }
       }
     }

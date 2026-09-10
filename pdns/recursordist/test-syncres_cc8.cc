@@ -8,7 +8,7 @@
 
 BOOST_AUTO_TEST_SUITE(syncres_cc8)
 
-static dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, const OptLog& log = std::nullopt, bool needWildcardProof = true, unsigned int wildcardLabelsCount = 0)
+static dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, const OptLog& log = std::nullopt, bool needWildcardProof = true, std::optional<unsigned int> wildcardLabelsCount = std::nullopt)
 {
   pdns::validation::ValidationContext context;
   context.d_nsec3IterationsRemainingQuota = std::numeric_limits<decltype(context.d_nsec3IterationsRemainingQuota)>::max();

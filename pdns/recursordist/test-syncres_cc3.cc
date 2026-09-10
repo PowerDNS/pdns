@@ -1350,7 +1350,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   /* unsigned */
   const DNSName target("test.");
   /* signed */
-  const DNSName cnameTarget("cname.zone.");
+  const DNSName cnameTarget("cname.");
   testkeysset_t keys;
 
   auto luaconfsCopy = g_luaconfs.getCopy();

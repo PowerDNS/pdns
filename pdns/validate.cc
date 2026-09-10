@@ -550,10 +550,10 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   useful when we have a positive answer synthesized from a wildcard and we only need to prove that the next closer
   does not exist.
 */
-dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, const OptLog& log, bool needWildcardProof, unsigned int wildcardLabelsCount) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
+dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, const OptLog& log, bool needWildcardProof, std::optional<unsigned int> wildcardLabelsCount) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
   bool nsec3Seen = false;
-  if ((!needWildcardProof && wildcardLabelsCount == 0) || wildcardLabelsCount > qname.countLabels()) {
+  if ((!needWildcardProof && !wildcardLabelsCount) || (wildcardLabelsCount && *wildcardLabelsCount > qname.countLabels())) {
     throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthesized from a wildcard");
   }
 
@@ -576,13 +576,13 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
         }
 
         DNSName nameToDeny;
-        if (!needWildcardProof) {
+        if (!needWildcardProof && wildcardLabelsCount) {
           /* we are trying to prove that a wildcard can apply, so in effect we need to prove that the
              next closer does not exist: the next closer can be different from the qname,
              and can prevent the wildcard from applying.
           */
           nameToDeny = qname;
-          nameToDeny.trimToLabels(wildcardLabelsCount + 1);
+          nameToDeny.trimToLabels(*wildcardLabelsCount + 1);
         }
         else {
           nameToDeny = qname;
@@ -917,7 +917,7 @@ dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16
     */
     found = true;
     unsigned int closestEncloserLabelsCount = closestEncloser.countLabels();
-    while (wildcardLabelsCount > 0 && closestEncloserLabelsCount > wildcardLabelsCount) {
+    while (*wildcardLabelsCount > 0 && closestEncloserLabelsCount > *wildcardLabelsCount) {
       closestEncloser.chopOff();
       closestEncloserLabelsCount--;
     }
