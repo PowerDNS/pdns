@@ -5314,10 +5314,6 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
       done = true;
       rcode = RCode::NoError;
 
-      //if (const auto& expandedIt = lwr.d_synthesizedFromWildcard.find(qname); expandedIt != lwr.d_synthesizedFromWildcard.end() && expandedIt->second.shouldDenialOfExistenceBeValidated()) {
-      //  checkWildcardProof(qname, qtype, rec, lwr, state, depth, prefix, expandedIt->second.d_labelsCount);
-      //}
-
       ret.push_back(rec);
     }
     else if ((rec.d_type == QType::RRSIG || rec.d_type == QType::NSEC || rec.d_type == QType::NSEC3) && rec.d_place == DNSResourceRecord::ANSWER) {
