@@ -3366,10 +3366,10 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ZonesApiTestCase, AuthZonesHelperMixin):
-    def setUp(self):
-        super(AuthRootZone, self).setUp()
-        # zone name is not unique, so delete the zone before each individual test.
+    def tearDown(self):
+        # zone name is not unique, so delete the zone after each individual test.
         self.session.delete(self.url("/api/v1/servers/localhost/zones/=2E"))
+        super(AuthRootZone, self).tearDown()
 
     def test_create_zone(self):
         name, payload, data = self.create_zone(name=".", serial=22, soa_edit_api="")
