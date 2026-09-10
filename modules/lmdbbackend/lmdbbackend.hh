@@ -388,7 +388,7 @@ private:
   time_t d_currentrrsettime;
   MDBOutVal d_currentKey;
   MDBOutVal d_currentVal;
-  bool d_includedisabled;
+  bool d_includedisabled{false};
 
   ZoneName d_transactiondomain;
   domainid_t d_transactiondomainid;
