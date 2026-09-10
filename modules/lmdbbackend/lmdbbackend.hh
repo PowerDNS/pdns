@@ -427,9 +427,9 @@ private:
     // database contents at cursor
     MDBOutVal val;
     // whether to include disabled records in the results
-    bool includedisabled;
+    bool includedisabled{false};
     // whether we are doing comments (false=records, true=comments)
-    bool comments;
+    bool comments{false};
     // comment found by last call to getInternal
     Comment comment;
 
