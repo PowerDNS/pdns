@@ -1551,6 +1551,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
 
   DNSName relqname = qdomain.makeRelative(hunt);
   if (relqname.empty()) {
+    d_getcursor.reset();
     return;
   }
   // cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<" and type "<<type.toString()<<endl;

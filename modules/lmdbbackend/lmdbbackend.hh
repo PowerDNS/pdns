@@ -355,7 +355,7 @@ private:
   time_t d_currentrrsettime;
   MDBOutVal d_currentKey;
   MDBOutVal d_currentVal;
-  bool d_includedisabled;
+  bool d_includedisabled{false};
 
   DNSName d_transactiondomain;
   uint32_t d_transactiondomainid;
