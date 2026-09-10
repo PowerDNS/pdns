@@ -45,6 +45,7 @@ enum RRSetFlags : unsigned int
 {
   RRSET_ALLOW_UNDERSCORES = 1 << 0, // Allow underscore in names
   RRSET_CHECK_TTL = 1 << 1, // Check the TTL of the RRset
+  RRSET_IGNORE_MISSING_ENT = 1 << 2, // Assume zone rectification follows
 };
 
 // Append a list of (severity, record, message) diagnostic tuples to

@@ -1925,6 +1925,7 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
   }
 
   if (isCompleteZone) {
+    flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_IGNORE_MISSING_ENT);
     Check::checkZone(resp->d_slog, records, zone, kind, flags, diagnostics);
   }
   else {
