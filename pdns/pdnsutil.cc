@@ -2426,6 +2426,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
         for(const DNSRecord& rec : post) {
           DNSResourceRecord drr = DNSResourceRecord::fromWire(rec);
           drr.domain_id = info.id;
+          drr.auth = true;
           checkrr.push_back(std::move(drr));
         }
         if(checkZoneRecords(dsk, B, zone, &checkrr) != 0) {
