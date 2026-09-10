@@ -1055,7 +1055,7 @@ static int checkZoneRecords(UeberBackend &B, const ZoneName& zone, const vector<
   }
   std::vector<Check::diag> errors;
 
-  checkZone(nullptr /* no structured logging */, records, zone, flags, errors);
+  checkZone(nullptr /* no structured logging */, records, zone, di.kind, flags, errors);
 
   for (const auto& error : errors) {
     const auto [prio, qname, type, why] = error;

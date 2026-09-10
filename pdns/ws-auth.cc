@@ -1863,7 +1863,7 @@ static bool areUnderscoresAllowed(const ZoneName& zonename, DNSBackend& backend)
 
 // Wrapper around checkRRSet; returns true if all checks successful, false if
 // not, in which case the response body and status have been filled up.
-static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone, Check::RRSetFlags flags, bool isCompleteZone)
+static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone, DomainInfo::DomainKind kind, Check::RRSetFlags flags, bool isCompleteZone)
 {
   std::vector<Check::diag> diagnostics;
 
@@ -1877,7 +1877,7 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
   }
 
   if (isCompleteZone) {
-    Check::checkZone(resp->d_slog, records, zone, flags, diagnostics);
+    Check::checkZone(resp->d_slog, records, zone, kind, flags, diagnostics);
   }
   else {
     Check::checkRRSet({}, records, zone, flags, diagnostics);
@@ -2253,7 +2253,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   // Flags = 0, as new zones do not have RFC1123-CONFORMANCE metadata yet, and
   // all records use the same default ttl value.
-  if (!checkNewRecords(resp, new_records, zonename, static_cast<Check::RRSetFlags>(0), true)) {
+  if (!checkNewRecords(resp, new_records, zonename, zonekind, static_cast<Check::RRSetFlags>(0), true)) {
     return;
   }
 
@@ -2433,7 +2433,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
     if (allowUnderscores) {
       flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
     }
-    if (!checkNewRecords(resp, new_records, zoneData.zoneName, flags, false)) {
+    if (!checkNewRecords(resp, new_records, zoneData.zoneName, newKind, flags, true)) {
       return;
     }
 
@@ -2764,7 +2764,7 @@ static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zo
       if (allowUnderscores) {
         flags = Check::RRSET_ALLOW_UNDERSCORES;
       }
-      if (!checkNewRecords(resp, new_records, zonename, flags, false)) {
+      if (!checkNewRecords(resp, new_records, zonename, domainInfo.kind, flags, false)) {
         // Proper error response has been set up, no need to do anything further.
         return ABORT;
       }
@@ -2862,7 +2862,7 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
     if (allowUnderscores) {
       flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
     }
-    if (!checkNewRecords(resp, rrset, zonename, flags, false)) {
+    if (!checkNewRecords(resp, rrset, zonename, domainInfo.kind, flags, false)) {
       // Proper error response has been set up, no need to do anything further.
       return ABORT;
     }

@@ -327,7 +327,7 @@ static void checkParentDelegation(UeberBackend& ueber, const ZoneName& zone, std
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const ZoneName& zone, RRSetFlags flags, bool isExistingZone, bool canDoDNSSEC, bool presigned, bool isSecure, bool isOptOut, std::vector<diag>& diagnostics)
+static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const ZoneName& zone, DomainInfo::DomainKind kind, RRSetFlags flags, bool isExistingZone, bool canDoDNSSEC, bool presigned, bool isSecure, bool isOptOut, std::vector<diag>& diagnostics)
 {
   uint32_t minimumTTL{0};
   bool hasNsAtApex = false;
@@ -534,7 +534,9 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
 
       checkRRSet({}, records, zone, flags, diagnostics);
 
-      if (!hasNsAtApex) {
+      bool isCatalogType = (kind == DomainInfo::Producer || kind == DomainInfo::Consumer);
+      bool isSecondaryType = (kind == DomainInfo::Secondary || kind == DomainInfo::Consumer);
+      if (!hasNsAtApex && !(isSecondaryType || isCatalogType)) {
         diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, "no NS record at zone apex"));
       }
 
@@ -681,7 +683,7 @@ static void checkZoneMetadata(UeberBackend& ueber, const ZoneName& zone, std::ve
   }
 }
 
-void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, std::vector<diag>& diagnostics)
+void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const ZoneName& zone, DomainInfo::DomainKind kind, RRSetFlags flags, std::vector<diag>& diagnostics)
 {
   UeberBackend ueber;
   DNSSECKeeper dsk(slog, &ueber);
@@ -697,6 +699,7 @@ void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const Z
     isDomainInfoValid = ueber.getDomainInfo(zone, info, false);
     if (isDomainInfoValid) {
       canDoDNSSEC = info.backend->doesDNSSEC();
+      kind = info.kind;
     }
   }
   catch (const PDNSException& e) {
@@ -724,7 +727,7 @@ void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const Z
   checkParentDelegation(ueber, zone, diagnostics);
 
   // Check records
-  checkZoneRecords(allrrs, zone, flags, isDomainInfoValid, canDoDNSSEC, presigned, isSecure, isOptOut, diagnostics);
+  checkZoneRecords(allrrs, zone, kind, flags, isDomainInfoValid, canDoDNSSEC, presigned, isSecure, isOptOut, diagnostics);
 
   // Check metadata
   if (isDomainInfoValid) {

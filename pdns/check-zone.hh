@@ -26,6 +26,8 @@
 // (preferably a container if it makes sense to report multiple errors);
 // it's up to each caller to decide how to report such errors.
 
+#include "dnsbackend.hh" // DomainInfo
+
 namespace Check
 {
 
@@ -67,6 +69,6 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
 // Check a complete zone contents and metadata.
 // NOTE: sorts records [allrrs] in in-place due to the invocation of checkRRSet
 // above.
-void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, std::vector<diag>& diagnostics);
+void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const ZoneName& zone, DomainInfo::DomainKind kind, RRSetFlags flags, std::vector<diag>& diagnostics);
 
 } // namespace Check
