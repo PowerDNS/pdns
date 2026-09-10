@@ -638,7 +638,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
             done = true;
           }
         }
-        else if (rec.qname.isPartOf(qname.first) && ((qname.first != rec.qname || rec.qtype != QType::DS) || rec.qtype == QType::NS)) {
+        else if ((flags & RRSET_IGNORE_MISSING_ENT) == 0 && rec.qname.isPartOf(qname.first) && ((qname.first != rec.qname || rec.qtype != QType::DS) || rec.qtype == QType::NS)) {
           // Note that record is authoritative, but occluded.
           // TODO: This probably should have been caught by the first round of
           // occlusion checks, check if this is redundant. (Added in #6653)
