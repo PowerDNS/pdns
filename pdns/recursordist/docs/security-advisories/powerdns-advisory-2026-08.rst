@@ -1,7 +1,7 @@
 PowerDNS Security Advisory 2026-08 for PowerDNS Recursor: Multiple Issues
 =========================================================================
 
-CVE-2026-3361: ZoneToCache can poison the cache
+CVE-2026-33612: ZoneToCache can poison the cache
 -----------------------------------------------
 
 - CVE: CVE-2026-33612
