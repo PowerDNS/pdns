@@ -64,4 +64,9 @@ enum RRSetFlags : unsigned int
 // thus will not perform checks which require the complete zone knowledge.
 void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSResourceRecord>& newrrs, const ZoneName& zone, RRSetFlags flags, std::vector<diag>& diagnostics);
 
+// Check a complete zone contents and metadata.
+// NOTE: sorts records [allrrs] in in-place due to the invocation of checkRRSet
+// above.
+void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, std::vector<diag>& diagnostics);
+
 } // namespace Check
