@@ -399,7 +399,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
             "type": "A",
             "ttl": 3600,
             "records": [
-                # The contents are not lexographically ordered when creating
+                # The contents are not lexicographically ordered when creating
                 {
                     "content": "4.3.2.1",
                     "disabled": False,
@@ -416,7 +416,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
             "type": "NS",
             "ttl": 3600,
             "records": [
-                # The contents are not lexographically ordered when creating
+                # The contents are not lexicographically ordered when creating
                 {
                     "content": "ns2.example.com.",
                     "disabled": False,
@@ -433,7 +433,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(
             get_rrset(data, name, "A")["records"],
             [
-                # The content should be lexographically ordered when retrieving
+                # The content should be lexicographically ordered when retrieving
                 {
                     "content": "127.0.0.1",
                     "disabled": False,
@@ -598,7 +598,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone_with_custom_soa(self):
         name = unique_zone_name()
-        content = "ns1.example.net. testmaster@example.net. 10 10800 3600 604800 3600"
+        content = "ns1.example.net. testmaster.example.net. 10 10800 3600 604800 3600"
         rrset = {
             "name": name,
             "type": "soa",  # test uppercasing of type, too.
