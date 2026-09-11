@@ -632,6 +632,8 @@ union SockaddrWrapper
   {
     memset(&sinun, 0, sizeof(sinun));
   }
+
+  void tightenSocketPermissions(Logr::log_t slog, const std::string& gid) const;
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */
