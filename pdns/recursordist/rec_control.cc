@@ -342,6 +342,8 @@ int main(int argc, char** argv)
     "trace-regex",
   };
   try {
+    // needed to be able to parse (and convert to YAML) custom RPZ entries
+    reportAllTypes();
     initArguments(argc, argv, log);
     string sockname = "pdns_recursor";
 
