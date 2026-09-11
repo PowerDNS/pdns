@@ -1011,13 +1011,22 @@ class TestAPIWithoutAuthentication(APITestsBase):
 
 class TestDashboardWithoutAuthentication(APITestsBase):
     __test__ = True
-    _basicPath = "/"
-    _config_params = ["_testServerPort", "_webServerPort"]
+    _noAuthPaths = ["/", "/index.html", "/jsonstat?command=stats", "/jsonstat?command=dynblocklist", "/api/v1/servers/localhost"]
+    _apiKeyPaths = [
+        "/api/v1/servers/localhost/config",
+        "/api/v1/servers/localhost/pool?name=",
+        "/api/v1/servers/localhost/rings",
+        "/api/v1/servers/localhost/statistics",
+    ]
+    _basicAuthPaths = [
+        "/metrics",
+    ]
+    _config_params = ["_testServerPort", "_webServerPort", "_webServerBasicAuthPasswordHashed", "_webServerAPIKeyHashed"]
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
     newServer({address="127.0.0.1:%d"})
     webserver("127.0.0.1:%d")
-    setWebserverConfig({ dashboardRequiresAuthentication=false })
+    setWebserverConfig({ dashboardRequiresAuthentication=false, password="%s", apiKey="%s" })
     """
     _verboseMode = True
 
@@ -1026,13 +1035,36 @@ class TestDashboardWithoutAuthentication(APITestsBase):
         API: Dashboard do not require authentication
         """
 
-        for path in [self._basicPath]:
+        for path in self._noAuthPaths:
             url = "http://127.0.0.1:" + str(self._webServerPort) + path
-
             r = requests.get(url, timeout=self._webTimeout)
             self.assertTrue(r)
             self.assertEqual(r.status_code, 200)
 
+        # these should still require authentication
+        for path in self._apiKeyPaths + self._basicAuthPaths:
+            url = "http://127.0.0.1:" + str(self._webServerPort) + path
+            r = requests.get(url, timeout=self._webTimeout)
+            self.assertEqual(r.status_code, 401)
+
+        # these should be allowed with the web password
+        for path in self._basicAuthPaths:
+            url = "http://127.0.0.1:" + str(self._webServerPort) + path
+            r = requests.get(url, auth=("whatever", self._webServerBasicAuthPassword), timeout=self._webTimeout)
+            self.assertEqual(r.status_code, 200)
+
+        # these should NOT be allowed with the web password
+        for path in self._apiKeyPaths:
+            url = "http://127.0.0.1:" + str(self._webServerPort) + path
+            r = requests.get(url, auth=("whatever", self._webServerBasicAuthPassword), timeout=self._webTimeout)
+            self.assertEqual(r.status_code, 401)
+
+        # these should be allowed with an API key
+        for path in self._apiKeyPaths + self._basicAuthPaths:
+            url = "http://127.0.0.1:" + str(self._webServerPort) + path
+            headers = {"x-api-key": self._webServerAPIKey}
+            r = requests.get(url, headers=headers, timeout=self._webTimeout)
+            self.assertEqual(r.status_code, 200)
 
 class TestCustomLuaEndpoint(APITestsBase):
     __test__ = True

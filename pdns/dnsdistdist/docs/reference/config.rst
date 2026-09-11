@@ -451,7 +451,7 @@ Webserver configuration
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
   * ``allowCrossOriginRequests``: bool - Whether the webserver allows cross-origin HTTP requests. This might allow a malicious website to read metrics provided by the API if a user's browser has valid credentials cached for the webserver while the user visits the malicious website. Default to false.
   * ``apiRequiresAuthentication``: bool - Whether access to the API (/api endpoints) require a valid API key. Defaults to true.
-  * ``dashboardRequiresAuthentication``: bool - Whether access to the internal dashboard requires a valid password. Defaults to true.
+  * ``dashboardRequiresAuthentication``: bool - Whether access to the internal dashboard requires a valid password. Defaults to true. Setting this to false gives access to the /api/v1/servers/localhost and /jsonstat endpoints without authentication to anyone allowed by the ACL, as these endpoints are used by the dashboard to collect metrics.
   * ``statsRequireAuthentication``: bool - Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key. Defaults to true.
   * ``prometheusAddInstanceLabel``: bool - Whether to add an instance label to every metric. The value of this label is set by :func:`setServerID`. Defaults to false.
   * ``maxConcurrentConnections``: int - The maximum number of concurrent web connections, or 0 which means an unlimited number. Defaults to 100.
