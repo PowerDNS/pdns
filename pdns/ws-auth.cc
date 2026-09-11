@@ -1863,28 +1863,34 @@ static bool areUnderscoresAllowed(const ZoneName& zonename, DNSBackend& backend)
 
 // Wrapper around checkRRSet; returns true if all checks successful, false if
 // not, in which case the response body and status have been filled up.
-static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone, Check::RRSetFlags flags)
+static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& records, const ZoneName& zone, DomainInfo::DomainKind kind, Check::RRSetFlags flags, bool isCompleteZone)
 {
-  std::vector<std::tuple<Logr::Priority, DNSResourceRecord, string>> diagnostics;
+  std::vector<Check::diag> diagnostics;
 
   // Do not perform Lua records updates if not allowed to.
   if (!::arg().mustDo("enable-lua-record-updates")) {
     for (const auto& rec : records) {
       if (rec.qtype == QType::LUA) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Error, rec, std::string("update of Lua records is not allowed")));
+        diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string("update of Lua records is not allowed")));
       }
     }
   }
 
-  Check::checkRRSet({}, records, zone, flags, diagnostics);
+  if (isCompleteZone) {
+    flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_IGNORE_MISSING_ENT);
+    Check::checkZone(resp->d_slog, records, zone, kind, flags, diagnostics);
+  }
+  else {
+    Check::checkRRSet({}, records, zone, flags, diagnostics);
+  }
   if (diagnostics.empty()) {
     return true;
   }
 
   Json::array errs;
   for (const auto& error : diagnostics) {
-    const auto& [_, rec, why] = error; // we report everything as errors
-    errs.emplace_back(std::string{"RRset "} + rec.qname.toString() + " IN " + rec.qtype.toString() + ": " + why);
+    const auto& [_, qname, type, why] = error; // we report everything as errors
+    errs.emplace_back(std::string{"RRset "} + qname.toString() + " IN " + type.toString() + ": " + why);
   }
 
   Json::object body;
@@ -2248,7 +2254,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   // Flags = 0, as new zones do not have RFC1123-CONFORMANCE metadata yet, and
   // all records use the same default ttl value.
-  if (!checkNewRecords(resp, new_records, zonename, static_cast<Check::RRSetFlags>(0))) {
+  if (!checkNewRecords(resp, new_records, zonename, zonekind, static_cast<Check::RRSetFlags>(0), true)) {
     return;
   }
 
@@ -2428,7 +2434,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
     if (allowUnderscores) {
       flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
     }
-    if (!checkNewRecords(resp, new_records, zoneData.zoneName, flags)) {
+    if (!checkNewRecords(resp, new_records, zoneData.zoneName, newKind, flags, true)) {
       return;
     }
 
@@ -2759,7 +2765,7 @@ static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zo
       if (allowUnderscores) {
         flags = Check::RRSET_ALLOW_UNDERSCORES;
       }
-      if (!checkNewRecords(resp, new_records, zonename, flags)) {
+      if (!checkNewRecords(resp, new_records, zonename, domainInfo.kind, flags, false)) {
         // Proper error response has been set up, no need to do anything further.
         return ABORT;
       }
@@ -2857,7 +2863,7 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
     if (allowUnderscores) {
       flags = static_cast<Check::RRSetFlags>(flags | Check::RRSET_ALLOW_UNDERSCORES);
     }
-    if (!checkNewRecords(resp, rrset, zonename, flags)) {
+    if (!checkNewRecords(resp, rrset, zonename, domainInfo.kind, flags, false)) {
       // Proper error response has been set up, no need to do anything further.
       return ABORT;
     }

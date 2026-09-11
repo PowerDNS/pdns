@@ -26,8 +26,15 @@
 // (preferably a container if it makes sense to report multiple errors);
 // it's up to each caller to decide how to report such errors.
 
+#include "dnsbackend.hh" // DomainInfo
+
 namespace Check
 {
+
+// Tuple type used for diagnostic reports.
+// The priority is used to tell errors (Logr::Error) from non-fatal
+// diagnostics (Logr::Warning)
+using diag = std::tuple<Logr::Priority, DNSName, QType, std::string>;
 
 // Validate a view name. Although view names never appear on the wire, we
 // restrict them to [a-zA-Z0-9-_. ], with empty names or names with leading
@@ -38,17 +45,34 @@ enum RRSetFlags : unsigned int
 {
   RRSET_ALLOW_UNDERSCORES = 1 << 0, // Allow underscore in names
   RRSET_CHECK_TTL = 1 << 1, // Check the TTL of the RRset
+  RRSET_IGNORE_MISSING_ENT = 1 << 2, // Assume zone rectification follows
 };
 
-// Returns the list of errors found for new records which violate RRset
+// Append a list of (severity, record, message) diagnostic tuples to
+// [diagnostics] for all zone records in [newrrs] which violate RRset
 // constraints.
-// NOTE: sorts records in-place.
+// NOTE: sorts records [newrrs] in in-place.
+//
+// The [oldrrs] list of existing records is only used to compute better error
+// messages, in order to properly refer to an existing record to explain why
+// a given new record is not allowed.
 //
 //  Constraints being checked:
 //   *) no exact duplicates
 //   *) no duplicates for QTypes that can only be present once per RRset
 //   *) hostnames are hostnames
 //   *) no mismatching TTL (if asked in flags)
-void checkRRSet(const vector<DNSResourceRecord>& oldrrs, vector<DNSResourceRecord>& allrrs, const ZoneName& zone, RRSetFlags flags, vector<std::tuple<Logr::Priority, DNSResourceRecord, string>>& diagnostics);
+//
+// This routine never assumes [newrrs] contains the complete zone records, and
+// thus will not perform checks which require the complete zone knowledge.
+void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSResourceRecord>& newrrs, const ZoneName& zone, RRSetFlags flags, std::vector<diag>& diagnostics);
+
+// Check a complete zone contents.
+// NOTE: sorts records [allrrs] in in-place due to the invocation of checkRRSet
+// above.
+void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const ZoneName& zone, DomainInfo::DomainKind kind, RRSetFlags flags, std::vector<diag>& diagnostics);
+
+// Check a zone metadata.
+void checkZoneMetadata(const ZoneName& zone, std::vector<diag>& diagnostics);
 
 } // namespace Check
