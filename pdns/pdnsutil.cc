@@ -83,114 +83,114 @@ namespace {
 
 // Forward declarations of command handlers
 
-static int B2BMigrate(vector<string>& cmds, std::string_view synopsis);
-#ifdef HAVE_P11KIT1 // [
-static int HSMAssign(vector<string>& cmds, std::string_view synopsis);
-static int HSMCreateKey(vector<string>& cmds, std::string_view synopsis);
-#else // ] [
-static int HSM(vector<string>& cmds, std::string_view synopsis);
-#endif // ]
-static int activateTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int activateZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int addAutoprimary(vector<string>& cmds, std::string_view synopsis);
-static int addMeta(vector<string>& cmds, std::string_view synopsis);
-static int addComment(vector<string>& cmds, std::string_view synopsis);
-static int listComments(vector<string>& cmds, std::string_view synopsis);
-static int addRecord(vector<string>& cmds, std::string_view synopsis);
-static int addZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int backendCmd(vector<string>& cmds, std::string_view synopsis);
-static int backendLookup(vector<string>& cmds, std::string_view synopsis);
-static int benchDb(vector<string>& cmds, std::string_view synopsis);
-static int changeSecondaryZonePrimary(vector<string>& cmds, std::string_view synopsis);
-static int checkAllZones(vector<string>& cmds, std::string_view synopsis);
-static int checkZone(vector<string>& cmds, std::string_view synopsis);
-static int clearZone(vector<string>& cmds, std::string_view synopsis);
-static int copyZone(vector<string>& cmds, std::string_view synopsis);
-static int createBindDb(vector<string>& cmds, std::string_view synopsis);
-static int createSecondaryZone(vector<string>& cmds, std::string_view synopsis);
-static int createZone(vector<string>& cmds, std::string_view synopsis);
-static int deactivateTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int deactivateZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int deleteRRSet(vector<string>& cmds, std::string_view synopsis);
-static int deleteTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int deleteZone(vector<string>& cmds, std::string_view synopsis);
-static int disableDNSSEC(vector<string>& cmds, std::string_view synopsis);
-static int editZone(vector<string>& cmds, std::string_view synopsis);
-static int exportZoneDNSKey(vector<string>& cmds, std::string_view synopsis);
-static int exportZoneDS(vector<string>& cmds, std::string_view synopsis);
-static int exportZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int exportZoneKeyPEM(vector<string>& cmds, std::string_view synopsis);
-static int generateTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int generateZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int getMeta(vector<string>& cmds, std::string_view synopsis);
-static int hashPassword(vector<string>& cmds, std::string_view synopsis);
-static int hashZoneRecord(vector<string>& cmds, std::string_view synopsis);
-static int importTSIGKey(vector<string>& cmds, std::string_view synopsis);
-static int importZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int importZoneKeyPEM(vector<string>& cmds, std::string_view synopsis);
-static int increaseSerial(vector<string>& cmds, std::string_view synopsis);
-static int ipDecrypt(vector<string>& cmds, std::string_view synopsis);
-static int ipEncrypt(vector<string>& cmds, std::string_view synopsis);
-static int listAlgorithms(vector<string>& cmds, std::string_view synopsis);
-static int listAllZones(vector<string>& cmds, std::string_view synopsis);
-static int listAutoprimaries(vector<string>& cmds, std::string_view synopsis);
-static int listKeys(vector<string>& cmds, std::string_view synopsis);
-static int listMemberZones(vector<string>& cmds, std::string_view synopsis);
-static int listNetwork(vector<string>& cmds, std::string_view synopsis);
-static int listTSIGKeys(vector<string>& cmds, std::string_view synopsis);
-static int listView(vector<string>& cmds, std::string_view synopsis);
-static int listViews(vector<string>& cmds, std::string_view synopsis);
-static int listZone(vector<string>& cmds, std::string_view synopsis);
-static int lmdbGetBackendVersion(vector<string>& cmds, std::string_view synopsis);
-static int loadZone(vector<string>& cmds, std::string_view synopsis);
-static int publishZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int rawLuaFromContent(vector<string>& cmds, std::string_view synopsis);
-static int rectifyAllZones(vector<string>& cmds, std::string_view synopsis);
-static int rectifyZone(vector<string>& cmds, std::string_view synopsis);
-static int removeAutoprimary(vector<string>& cmds, std::string_view synopsis);
-static int removeZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int replaceRRSet(vector<string>& cmds, std::string_view synopsis);
-static int secureAllZones(vector<string>& cmds, std::string_view synopsis);
-static int secureZone(vector<string>& cmds, std::string_view synopsis);
-static int setAccount(vector<string>& cmds, std::string_view synopsis);
-static int setCatalog(vector<string>& cmds, std::string_view synopsis);
-static int setKind(vector<string>& cmds, std::string_view synopsis);
-static int setMeta(vector<string>& cmds, std::string_view synopsis);
-static int setNetwork(vector<string>& cmds, std::string_view synopsis);
-static int setNsec3(vector<string>& cmds, std::string_view synopsis);
-static int setOption(vector<string>& cmds, std::string_view synopsis);
-static int setOptionsJson(vector<string>& cmds, std::string_view synopsis);
-static int setPresigned(vector<string>& cmds, std::string_view synopsis);
-static int setPublishCDNSKey(vector<string>& cmds, std::string_view synopsis);
-static int setPublishCDs(vector<string>& cmds, std::string_view synopsis);
-static int setSignalingZone(vector<string>& cmds, std::string_view synopsis);
-static int showZone(vector<string>& cmds, std::string_view synopsis);
-static int testAlgorithm(vector<string>& cmds, std::string_view synopsis);
-static int testAlgorithms(vector<string>& cmds, std::string_view synopsis);
-static int testSchema(vector<string>& cmds, std::string_view synopsis);
-static int testSpeed(vector<string>& cmds, std::string_view synopsis);
-static int unpublishZoneKey(vector<string>& cmds, std::string_view synopsis);
-static int unsetNSec3(vector<string>& cmds, std::string_view synopsis);
-static int unsetPresigned(vector<string>& cmds, std::string_view synopsis);
-static int unsetPublishCDNSKey(vector<string>& cmds, std::string_view synopsis);
-static int unsetPublishCDs(vector<string>& cmds, std::string_view synopsis);
-static int verifyCrypto(vector<string>& cmds, std::string_view synopsis);
-static int viewAddZone(vector<string>& cmds, std::string_view synopsis);
-static int viewDelZone(vector<string>& cmds, std::string_view synopsis);
-static int zonemdVerifyFile(vector<string>& cmds, std::string_view synopsis);
-
-// Command dispatchers
-
 // Command handlers are invoked with the non-processed command arguments vector,
 // not containing the command name (as multiple command syntaxes may lead to
 // the same handler); therefore their arguments start at position zero in
 // the vector.
-using commandHandler = int (*)(std::vector<std::string>&, const std::string_view);
+using commandHandler = int(std::vector<std::string>& cmds, std::vector<std::string>& options, std::string_view synopsis);
+
+static commandHandler B2BMigrate;
+#ifdef HAVE_P11KIT1 // [
+static commandHandler HSMAssign;
+static commandHandler HSMCreateKey;
+#else // ] [
+static commandHandler HSM;
+#endif // ]
+static commandHandler activateTSIGKey;
+static commandHandler activateZoneKey;
+static commandHandler addAutoprimary;
+static commandHandler addMeta;
+static commandHandler addComment;
+static commandHandler listComments;
+static commandHandler addRecord;
+static commandHandler addZoneKey;
+static commandHandler backendCmd;
+static commandHandler backendLookup;
+static commandHandler benchDb;
+static commandHandler changeSecondaryZonePrimary;
+static commandHandler checkAllZones;
+static commandHandler checkZone;
+static commandHandler clearZone;
+static commandHandler copyZone;
+static commandHandler createBindDb;
+static commandHandler createSecondaryZone;
+static commandHandler createZone;
+static commandHandler deactivateTSIGKey;
+static commandHandler deactivateZoneKey;
+static commandHandler deleteRRSet;
+static commandHandler deleteTSIGKey;
+static commandHandler deleteZone;
+static commandHandler disableDNSSEC;
+static commandHandler editZone;
+static commandHandler exportZoneDNSKey;
+static commandHandler exportZoneDS;
+static commandHandler exportZoneKey;
+static commandHandler exportZoneKeyPEM;
+static commandHandler generateTSIGKey;
+static commandHandler generateZoneKey;
+static commandHandler getMeta;
+static commandHandler hashPassword;
+static commandHandler hashZoneRecord;
+static commandHandler importTSIGKey;
+static commandHandler importZoneKey;
+static commandHandler importZoneKeyPEM;
+static commandHandler increaseSerial;
+static commandHandler ipDecrypt;
+static commandHandler ipEncrypt;
+static commandHandler listAlgorithms;
+static commandHandler listAllZones;
+static commandHandler listAutoprimaries;
+static commandHandler listKeys;
+static commandHandler listMemberZones;
+static commandHandler listNetwork;
+static commandHandler listTSIGKeys;
+static commandHandler listView;
+static commandHandler listViews;
+static commandHandler listZone;
+static commandHandler lmdbGetBackendVersion;
+static commandHandler loadZone;
+static commandHandler publishZoneKey;
+static commandHandler rawLuaFromContent;
+static commandHandler rectifyAllZones;
+static commandHandler rectifyZone;
+static commandHandler removeAutoprimary;
+static commandHandler removeZoneKey;
+static commandHandler replaceRRSet;
+static commandHandler secureAllZones;
+static commandHandler secureZone;
+static commandHandler setAccount;
+static commandHandler setCatalog;
+static commandHandler setKind;
+static commandHandler setMeta;
+static commandHandler setNetwork;
+static commandHandler setNsec3;
+static commandHandler setOption;
+static commandHandler setOptionsJson;
+static commandHandler setPresigned;
+static commandHandler setPublishCDNSKey;
+static commandHandler setPublishCDs;
+static commandHandler setSignalingZone;
+static commandHandler showZone;
+static commandHandler testAlgorithm;
+static commandHandler testAlgorithms;
+static commandHandler testSchema;
+static commandHandler testSpeed;
+static commandHandler unpublishZoneKey;
+static commandHandler unsetNSec3;
+static commandHandler unsetPresigned;
+static commandHandler unsetPublishCDNSKey;
+static commandHandler unsetPublishCDs;
+static commandHandler verifyCrypto;
+static commandHandler viewAddZone;
+static commandHandler viewDelZone;
+static commandHandler zonemdVerifyFile;
+
+// Command dispatchers
 
 struct commandEntry {
   // set if need to invoke reportAllTypes() before invoking handler
   bool requiresInitialization{false};
-  commandHandler handler{nullptr};
+  commandHandler* handler{nullptr};
   // one-line command synopsis, without command name
   std::string_view synopsis;
   // short description, may span multiple lines, every line starts with a tab
@@ -2812,7 +2812,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
   return EXIT_SUCCESS;
 }
 
-static int copyZone(vector<string>& cmds, const std::string_view synopsis)
+static int copyZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 2) {
     return usage(synopsis);
@@ -3849,7 +3849,7 @@ static int addOrSetMeta(const ZoneName& zone, const string& kind, const vector<s
 
 // Command handlers
 
-static int lmdbGetBackendVersion([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int lmdbGetBackendVersion([[maybe_unused]] std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
 #ifdef HAVE_LMDB
   cout << "6" << endl; // FIXME this should reuse the constant from lmdbbackend but that is currently a #define in a .cc
@@ -3862,7 +3862,7 @@ static int lmdbGetBackendVersion([[maybe_unused]] vector<string>& cmds, [[maybe_
   return 0;
 }
 
-static int testAlgorithm(vector<string>& cmds, const std::string_view synopsis)
+static int testAlgorithm(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -3874,7 +3874,7 @@ static int testAlgorithm(vector<string>& cmds, const std::string_view synopsis)
 }
 
 #ifdef HAVE_IPCIPHER // [
-static int ipDecryptOrEncrypt(vector<string>& cmds, const std::string_view synopsis, bool encrypt)
+static int ipDecryptOrEncrypt(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis, bool encrypt)
 {
   if (cmds.size() < 2 || (cmds.size() == 3 && cmds.at(2) != "key")) {
     return usage(synopsis);
@@ -3893,20 +3893,20 @@ static int ipDecryptOrEncrypt(vector<string>& cmds, const std::string_view synop
 }
 #endif // HAVE_IPCIPHER ]
 
-static int ipDecrypt(vector<string>& cmds, const std::string_view synopsis)
+static int ipDecrypt(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
 #ifdef HAVE_IPCIPHER
-  return ipDecryptOrEncrypt(cmds, synopsis, false);
+  return ipDecryptOrEncrypt(cmds, options, synopsis, false);
 #else
   cerr<<"ipdecrypt requires ipcipher support which is not available"<<endl;
   return 0;
 #endif /* HAVE_IPCIPHER */
 }
 
-static int ipEncrypt(vector<string>& cmds, const std::string_view synopsis)
+static int ipEncrypt(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
 #ifdef HAVE_IPCIPHER
-  return ipDecryptOrEncrypt(cmds, synopsis, true);
+  return ipDecryptOrEncrypt(cmds, options, synopsis, true);
 #else
   cerr<<"ipencrypt requires ipcipher support which is not available"<<endl;
   return 0;
@@ -3914,7 +3914,7 @@ static int ipEncrypt(vector<string>& cmds, const std::string_view synopsis)
 }
 
 
-static int testAlgorithms([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int testAlgorithms([[maybe_unused]] std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   if (testAlgorithms()) {
     return 0;
@@ -3922,7 +3922,7 @@ static int testAlgorithms([[maybe_unused]] vector<string>& cmds, [[maybe_unused]
   return 1;
 }
 
-static int listAlgorithms(vector<string>& cmds, const std::string_view synopsis)
+static int listAlgorithms(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   bool withBackend = cmds.size() == 1 && cmds.at(0) == "with-backend";
   if (cmds.size() > 1 || (cmds.size() == 1 && !withBackend)) {
@@ -3945,7 +3945,7 @@ static int listAlgorithms(vector<string>& cmds, const std::string_view synopsis)
 
 
 // these need reportAllTypes
-static int createBindDb([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int createBindDb([[maybe_unused]] std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
 #ifdef HAVE_SQLITE3
   if(cmds.size() != 1) {
@@ -3969,7 +3969,7 @@ static int createBindDb([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] 
 #endif
 }
 
-static int rawLuaFromContent(vector<string>& cmds, const std::string_view synopsis)
+static int rawLuaFromContent(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -3984,7 +3984,7 @@ static int rawLuaFromContent(vector<string>& cmds, const std::string_view synops
   return 0;
 }
 
-static int hashPassword(vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int hashPassword(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   uint64_t workFactor = CredentialsHolder::s_defaultWorkFactor;
   if (!cmds.empty()) {
@@ -4009,7 +4009,7 @@ static int hashPassword(vector<string>& cmds, [[maybe_unused]] const std::string
   }
 }
 
-static int zonemdVerifyFile(vector<string>& cmds, const std::string_view synopsis)
+static int zonemdVerifyFile(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -4023,7 +4023,7 @@ static int zonemdVerifyFile(vector<string>& cmds, const std::string_view synopsi
 
 
 // these need DNSSECKeeper
-static int testSchema(vector<string>& cmds, const std::string_view synopsis)
+static int testSchema(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4032,7 +4032,7 @@ static int testSchema(vector<string>& cmds, const std::string_view synopsis)
   return testSchema(dk, ZoneName(cmds.at(0)));
 }
 
-static int rectifyZone(vector<string>& cmds, const std::string_view synopsis)
+static int rectifyZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4047,7 +4047,7 @@ static int rectifyZone(vector<string>& cmds, const std::string_view synopsis)
   return exitCode;
 }
 
-static int rectifyAllZones(vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int rectifyAllZones(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   bool quiet = !cmds.empty() && cmds.at(0) == "quiet";
   DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
@@ -4057,7 +4057,7 @@ static int rectifyAllZones(vector<string>& cmds, [[maybe_unused]] const std::str
   return 0;
 }
 
-static int checkZone(vector<string>& cmds, const std::string_view synopsis)
+static int checkZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4067,20 +4067,20 @@ static int checkZone(vector<string>& cmds, const std::string_view synopsis)
   return checkZoneRecords(dk, B, ZoneName(cmds.at(0)));
 }
 
-static int benchDb(vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int benchDb(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   dbBench(cmds.empty() ? "" : cmds.at(0));
   return 0;
 }
 
-static int checkAllZones(vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int checkAllZones(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   bool exitOnError = !cmds.empty() && cmds.at(0) == "exit-on-error";
   DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
   return checkAllZones(dk, exitOnError);
 }
 
-static int listAllZones(vector<string>& cmds, const std::string_view synopsis)
+static int listAllZones(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() > 1) {
     return usage(synopsis);
@@ -4091,7 +4091,7 @@ static int listAllZones(vector<string>& cmds, const std::string_view synopsis)
   return listAllZones(synopsis);
 }
 
-static int listMemberZones(vector<string>& cmds, const std::string_view synopsis)
+static int listMemberZones(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() != 1) {
     return usage(synopsis);
@@ -4099,7 +4099,7 @@ static int listMemberZones(vector<string>& cmds, const std::string_view synopsis
   return listMemberZones(cmds.at(0));
 }
 
-static int testSpeed(vector<string>& cmds, const std::string_view synopsis)
+static int testSpeed(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -4108,7 +4108,7 @@ static int testSpeed(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int verifyCrypto(vector<string>& cmds, const std::string_view synopsis)
+static int verifyCrypto(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4117,7 +4117,7 @@ static int verifyCrypto(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int showZone(vector<string>& cmds, const std::string_view synopsis)
+static int showZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4129,7 +4129,7 @@ static int showZone(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int exportZoneDS(vector<string>& cmds, const std::string_view synopsis)
+static int exportZoneDS(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4141,7 +4141,7 @@ static int exportZoneDS(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int disableDNSSEC(vector<string>& cmds, const std::string_view synopsis)
+static int disableDNSSEC(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4155,7 +4155,7 @@ static int disableDNSSEC(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int activateZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int activateZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 2) {
     return usage(synopsis);
@@ -4182,7 +4182,7 @@ static int activateZoneKey(vector<string>& cmds, const std::string_view synopsis
   return 0;
 }
 
-static int deactivateZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int deactivateZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 2) {
     return usage(synopsis);
@@ -4208,7 +4208,7 @@ static int deactivateZoneKey(vector<string>& cmds, const std::string_view synops
   return 0;
 }
 
-static int publishZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int publishZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 2) {
     return usage(synopsis);
@@ -4235,7 +4235,7 @@ static int publishZoneKey(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int unpublishZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int unpublishZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 2) {
     return usage(synopsis);
@@ -4282,7 +4282,7 @@ static int checkZoneKey(DNSSECKeeper &dsk, ZoneName &zone, int64_t keyId)
   return 0;
 }
 
-static int addZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int addZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2 ) {
     return usage(synopsis);
@@ -4381,7 +4381,7 @@ static int addZoneKey(vector<string>& cmds, const std::string_view synopsis)
   return checkZoneKey(dk, zone, id);
 }
 
-static int removeZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int removeZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -4396,7 +4396,7 @@ static int removeZoneKey(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int deleteZone(vector<string>& cmds, const std::string_view synopsis)
+static int deleteZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4404,7 +4404,7 @@ static int deleteZone(vector<string>& cmds, const std::string_view synopsis)
   return deleteZone(ZoneName(cmds.at(0)));
 }
 
-static int createZone(vector<string>& cmds, const std::string_view synopsis)
+static int createZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1 && cmds.size()!=2 ) {
     return usage(synopsis);
@@ -4412,7 +4412,7 @@ static int createZone(vector<string>& cmds, const std::string_view synopsis)
   return createZone(ZoneName(cmds.at(0)), cmds.size() > 1 ? DNSName(cmds.at(1)) : DNSName());
 }
 
-static int createSecondaryZone(vector<string>& cmds, const std::string_view synopsis)
+static int createSecondaryZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2 ) {
     return usage(synopsis);
@@ -4446,7 +4446,7 @@ static int createSecondaryZone(vector<string>& cmds, const std::string_view syno
   return EXIT_SUCCESS;
 }
 
-static int changeSecondaryZonePrimary(vector<string>& cmds, const std::string_view synopsis)
+static int changeSecondaryZonePrimary(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2 ) {
     return usage(synopsis);
@@ -4473,7 +4473,7 @@ static int changeSecondaryZonePrimary(vector<string>& cmds, const std::string_vi
   }
 }
 
-static int addComment(vector<string>& cmds, const std::string_view synopsis)
+static int addComment(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 4) {
     return usage(synopsis);
@@ -4514,7 +4514,7 @@ static int addComment(vector<string>& cmds, const std::string_view synopsis)
   return EXIT_SUCCESS;
 }
 
-static int listComments(vector<string>& cmds, const std::string_view synopsis)
+static int listComments(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4527,7 +4527,7 @@ static int listComments(vector<string>& cmds, const std::string_view synopsis)
 }
 
 
-static int addRecord(vector<string>& cmds, const std::string_view synopsis)
+static int addRecord(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 4) {
     return usage(synopsis);
@@ -4535,7 +4535,7 @@ static int addRecord(vector<string>& cmds, const std::string_view synopsis)
   return addOrReplaceRecord(true, cmds);
 }
 
-static int addAutoprimary(vector<string>& cmds, const std::string_view synopsis)
+static int addAutoprimary(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -4543,7 +4543,7 @@ static int addAutoprimary(vector<string>& cmds, const std::string_view synopsis)
   return addAutoPrimary(cmds.at(0), cmds.at(1), cmds.size() > 2 ? cmds.at(2) : "");
 }
 
-static int removeAutoprimary(vector<string>& cmds, const std::string_view synopsis)
+static int removeAutoprimary(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -4551,12 +4551,12 @@ static int removeAutoprimary(vector<string>& cmds, const std::string_view synops
   return removeAutoPrimary(cmds.at(0), cmds.at(1));
 }
 
-static int listAutoprimaries([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int listAutoprimaries([[maybe_unused]] std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   return listAutoPrimaries();
 }
 
-static int replaceRRSet(vector<string>& cmds, const std::string_view synopsis)
+static int replaceRRSet(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 4) {
     return usage(synopsis);
@@ -4564,7 +4564,7 @@ static int replaceRRSet(vector<string>& cmds, const std::string_view synopsis)
   return addOrReplaceRecord(false , cmds);
 }
 
-static int deleteRRSet(vector<string>& cmds, const std::string_view synopsis)
+static int deleteRRSet(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 3) {
     return usage(synopsis);
@@ -4572,7 +4572,7 @@ static int deleteRRSet(vector<string>& cmds, const std::string_view synopsis)
   return deleteRRSet(cmds.at(0), cmds.at(1), cmds.at(2));
 }
 
-static int listZone(vector<string>& cmds, const std::string_view synopsis)
+static int listZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4584,7 +4584,7 @@ static int listZone(vector<string>& cmds, const std::string_view synopsis)
   return listZone(ZoneName(cmds.at(0)));
 }
 
-static int editZone(vector<string>& cmds, const std::string_view synopsis)
+static int editZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4597,7 +4597,7 @@ static int editZone(vector<string>& cmds, const std::string_view synopsis)
   return editZone(ZoneName(cmds.at(0)), col);
 }
 
-static int clearZone(vector<string>& cmds, const std::string_view synopsis)
+static int clearZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 1) {
     return usage(synopsis);
@@ -4609,7 +4609,7 @@ static int clearZone(vector<string>& cmds, const std::string_view synopsis)
   return clearZone(ZoneName(cmds.at(0)));
 }
 
-static int listKeys(vector<string>& cmds, const std::string_view synopsis)
+static int listKeys(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() > 1) {
     return usage(synopsis);
@@ -4622,7 +4622,7 @@ static int listKeys(vector<string>& cmds, const std::string_view synopsis)
   return listKeys(zname, dk);
 }
 
-static int loadZone(vector<string>& cmds, const std::string_view synopsis)
+static int loadZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -4640,7 +4640,7 @@ static int loadZone(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int secureZone(vector<string>& cmds, const std::string_view synopsis)
+static int secureZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4669,7 +4669,7 @@ static int secureZone(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int secureAllZones(vector<string>& cmds, const std::string_view synopsis)
+static int secureAllZones(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (!cmds.empty() && !pdns_iequals(cmds.at(0), "increase-serial")) {
     return usage(synopsis);
@@ -4708,7 +4708,7 @@ static int secureAllZones(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int setKind(vector<string>& cmds, const std::string_view synopsis)
+static int setKind(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 2) {
     return usage(synopsis);
@@ -4718,7 +4718,7 @@ static int setKind(vector<string>& cmds, const std::string_view synopsis)
   return setZoneKind(zone, kind);
 }
 
-static int setOptionsJson(vector<string>& cmds, const std::string_view synopsis)
+static int setOptionsJson(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() != 2) {
     return usage(synopsis);
@@ -4739,7 +4739,7 @@ static int setOptionsJson(vector<string>& cmds, const std::string_view synopsis)
   return setZoneOptionsJson(zone, cmds.at(1));
 }
 
-static int setOption(vector<string>& cmds, const std::string_view synopsis)
+static int setOption(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 4 || (cmds.size() > 4 && (cmds.at(2) != "group"))) {
     return usage(synopsis);
@@ -4759,7 +4759,7 @@ static int setOption(vector<string>& cmds, const std::string_view synopsis)
   return setZoneOption(zone, cmds.at(1), cmds.at(2), values);
 }
 
-static int setCatalog(vector<string>& cmds, const std::string_view synopsis)
+static int setCatalog(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.empty()) {
     return usage(synopsis);
@@ -4772,7 +4772,7 @@ static int setCatalog(vector<string>& cmds, const std::string_view synopsis)
   return setZoneCatalog(zone, catalog);
 }
 
-static int setAccount(vector<string>& cmds, const std::string_view synopsis)
+static int setAccount(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() != 2) {
     return usage(synopsis);
@@ -4781,7 +4781,7 @@ static int setAccount(vector<string>& cmds, const std::string_view synopsis)
   return setZoneAccount(zone, cmds.at(1));
 }
 
-static int setNsec3(vector<string>& cmds, const std::string_view synopsis)
+static int setNsec3(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4829,7 +4829,7 @@ static int setNsec3(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int setPresigned(vector<string>& cmds, const std::string_view synopsis)
+static int setPresigned(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4842,7 +4842,7 @@ static int setPresigned(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int setPublishCDNSKey(vector<string>& cmds, const std::string_view synopsis)
+static int setPublishCDNSKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.empty() || (cmds.size() == 2 && cmds.at(1) != "delete")) {
     return usage(synopsis);
@@ -4855,7 +4855,7 @@ static int setPublishCDNSKey(vector<string>& cmds, const std::string_view synops
   return 0;
 }
 
-static int setPublishCDs(vector<string>& cmds, const std::string_view synopsis)
+static int setPublishCDs(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4874,7 +4874,7 @@ static int setPublishCDs(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int setSignalingZone(vector<string>& cmds, const std::string_view synopsis)
+static int setSignalingZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4932,7 +4932,7 @@ static int setSignalingZone(vector<string>& cmds, const std::string_view synopsi
   return 0;
 }
 
-static int unsetPresigned(vector<string>& cmds, const std::string_view synopsis)
+static int unsetPresigned(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4945,7 +4945,7 @@ static int unsetPresigned(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int unsetPublishCDNSKey(vector<string>& cmds, const std::string_view synopsis)
+static int unsetPublishCDNSKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4958,7 +4958,7 @@ static int unsetPublishCDNSKey(vector<string>& cmds, const std::string_view syno
   return 0;
 }
 
-static int unsetPublishCDs(vector<string>& cmds, const std::string_view synopsis)
+static int unsetPublishCDs(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -4971,7 +4971,7 @@ static int unsetPublishCDs(vector<string>& cmds, const std::string_view synopsis
   return 0;
 }
 
-static int hashZoneRecord(vector<string>& cmds, const std::string_view synopsis)
+static int hashZoneRecord(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -4993,7 +4993,7 @@ static int hashZoneRecord(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int unsetNSec3(vector<string>& cmds, const std::string_view synopsis)
+static int unsetNSec3(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -5008,7 +5008,7 @@ static int unsetNSec3(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int exportZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int exportZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5022,7 +5022,7 @@ static int exportZoneKey(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int exportZoneKeyPEM(vector<string>& cmds, const std::string_view synopsis)
+static int exportZoneKeyPEM(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5036,7 +5036,7 @@ static int exportZoneKeyPEM(vector<string>& cmds, const std::string_view synopsi
   return 0;
 }
 
-static int increaseSerial(vector<string>& cmds, const std::string_view synopsis)
+static int increaseSerial(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.empty()) {
     return usage(synopsis);
@@ -5045,7 +5045,7 @@ static int increaseSerial(vector<string>& cmds, const std::string_view synopsis)
   return increaseSerial(ZoneName(cmds.at(0)), dk);
 }
 
-static int importZoneKeyPEM(vector<string>& cmds, const std::string_view synopsis)
+static int importZoneKeyPEM(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 3) {
     return usage(synopsis);
@@ -5106,7 +5106,7 @@ static int importZoneKeyPEM(vector<string>& cmds, const std::string_view synopsi
   return checkZoneKey(dk, zone, id);
 }
 
-static int importZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int importZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -5161,7 +5161,7 @@ static int importZoneKey(vector<string>& cmds, const std::string_view synopsis)
   return checkZoneKey(dk, zone, id);
 }
 
-static int exportZoneDNSKey(vector<string>& cmds, const std::string_view synopsis)
+static int exportZoneDNSKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
     return usage(synopsis);
@@ -5175,7 +5175,7 @@ static int exportZoneDNSKey(vector<string>& cmds, const std::string_view synopsi
   return 0;
 }
 
-static int generateZoneKey(vector<string>& cmds, const std::string_view synopsis)
+static int generateZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.empty()) {
     return usage(synopsis);
@@ -5239,7 +5239,7 @@ static int generateZoneKey(vector<string>& cmds, const std::string_view synopsis
   return 0;
 }
 
-static int generateTSIGKey(vector<string>& cmds, const std::string_view synopsis)
+static int generateTSIGKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5264,7 +5264,7 @@ static int generateTSIGKey(vector<string>& cmds, const std::string_view synopsis
   return 0;
 }
 
-static int importTSIGKey(vector<string>& cmds, const std::string_view synopsis)
+static int importTSIGKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 3) {
     return usage(synopsis);
@@ -5284,7 +5284,7 @@ static int importTSIGKey(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int deleteTSIGKey(vector<string>& cmds, const std::string_view synopsis)
+static int deleteTSIGKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.empty()) {
     return usage(synopsis);
@@ -5302,7 +5302,7 @@ static int deleteTSIGKey(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int listTSIGKeys([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int listTSIGKeys([[maybe_unused]] std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   std::vector<struct TSIGKey> keys;
   UtilBackend B("default"); // NOLINT(readability-identifier-length)
@@ -5314,7 +5314,7 @@ static int listTSIGKeys([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] 
   return 0;
 }
 
-static int activateTSIGKey(vector<string>& cmds, const std::string_view synopsis)
+static int activateTSIGKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   string metaKey;
   if (cmds.size() < 3) {
@@ -5365,7 +5365,7 @@ static int activateTSIGKey(vector<string>& cmds, const std::string_view synopsis
   return 0;
 }
 
-static int deactivateTSIGKey(vector<string>& cmds, const std::string_view synopsis)
+static int deactivateTSIGKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   string metaKey;
   if (cmds.size() < 3) {
@@ -5416,7 +5416,7 @@ static int deactivateTSIGKey(vector<string>& cmds, const std::string_view synops
   return 0;
 }
 
-static int getMeta(vector<string>& cmds, const std::string_view synopsis)
+static int getMeta(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.empty()) {
     return usage(synopsis);
@@ -5452,7 +5452,7 @@ static int getMeta(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int setMetaInternal(vector<string>& cmds, const std::string_view synopsis, bool clobber)
+static int setMetaInternal(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis, bool clobber)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5477,18 +5477,18 @@ static int setMetaInternal(vector<string>& cmds, const std::string_view synopsis
   return addOrSetMeta(zone, kind, meta, clobber);
 }
 
-static int addMeta(vector<string>& cmds, const std::string_view synopsis)
+static int addMeta(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
-  return setMetaInternal(cmds, synopsis, false);
+  return setMetaInternal(cmds, options, synopsis, false);
 }
-static int setMeta(vector<string>& cmds, const std::string_view synopsis)
+static int setMeta(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
-  return setMetaInternal(cmds, synopsis, true);
+  return setMetaInternal(cmds, options, synopsis, true);
 }
 
 #ifdef HAVE_P11KIT1 // [
 
-static int HSMAssign(vector<string>& cmds, const std::string_view synopsis)
+static int HSMAssign(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   DNSCryptoKeyEngine::storvector_t storvect;
   DomainInfo di; // NOLINT(readability-identifier-length)
@@ -5574,7 +5574,7 @@ static int HSMAssign(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int HSMCreateKey(vector<string>& cmds, const std::string_view synopsis)
+static int HSMCreateKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5631,7 +5631,7 @@ static int HSMCreateKey(vector<string>& cmds, const std::string_view synopsis)
 
 #else // ][
 
-static int HSM([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
+static int HSM([[maybe_unused]] std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   cerr<<"PKCS#11 support not enabled"<<endl;
   return 1;
@@ -5639,7 +5639,7 @@ static int HSM([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std
 
 #endif // ]
 
-static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
+static int B2BMigrate(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5732,7 +5732,7 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int backendCmd(vector<string>& cmds, const std::string_view synopsis)
+static int backendCmd(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.empty()) {
     return usage(synopsis);
@@ -5772,7 +5772,7 @@ static int backendCmd(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
+static int backendLookup(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5846,7 +5846,7 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int listView(vector<string>& cmds, const std::string_view synopsis)
+static int listView(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() != 1) {
     return usage(synopsis);
@@ -5868,7 +5868,7 @@ static int listView(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int listViews(vector<string>& cmds, const std::string_view synopsis)
+static int listViews(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (!cmds.empty()) {
     return usage(synopsis);
@@ -5891,7 +5891,7 @@ static int listViews(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int viewAddZone(vector<string>& cmds, const std::string_view synopsis)
+static int viewAddZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5925,7 +5925,7 @@ static int viewAddZone(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int viewDelZone(vector<string>& cmds, const std::string_view synopsis)
+static int viewDelZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     return usage(synopsis);
@@ -5952,7 +5952,7 @@ static int viewDelZone(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int listNetwork(vector<string>& cmds, const std::string_view synopsis)
+static int listNetwork(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (!cmds.empty()) {
     return usage(synopsis);
@@ -5975,7 +5975,7 @@ static int listNetwork(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int setNetwork(vector<string>& cmds, const std::string_view synopsis)
+static int setNetwork(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
 {
   if (cmds.empty()) {
     return usage(synopsis);
@@ -6190,19 +6190,19 @@ static void checkCommandSyntax()
     std::make_pair("backend-lookup", backendLookup),
     std::make_pair("bench-db", benchDb),
     std::make_pair("change-secondary-zone-primary", changeSecondaryZonePrimary),
-    std::make_pair("check-all-zones", (commandHandler)checkAllZones),
-    std::make_pair("check-zone", (commandHandler)checkZone),
-    std::make_pair("clear-zone", (commandHandler)clearZone),
+    std::make_pair("check-all-zones", checkAllZones),
+    std::make_pair("check-zone", checkZone),
+    std::make_pair("clear-zone", clearZone),
     std::make_pair("create-bind-db", createBindDb),
     std::make_pair("create-secondary-zone", createSecondaryZone),
-    std::make_pair("create-zone", (commandHandler)createZone),
+    std::make_pair("create-zone", createZone),
     std::make_pair("deactivate-tsig-key", deactivateTSIGKey),
     std::make_pair("deactivate-zone-key", deactivateZoneKey),
-    std::make_pair("delete-rrset", (commandHandler)deleteRRSet),
+    std::make_pair("delete-rrset", deleteRRSet),
     std::make_pair("delete-tsig-key", deleteTSIGKey),
-    std::make_pair("delete-zone", (commandHandler)deleteZone),
+    std::make_pair("delete-zone", deleteZone),
     std::make_pair("disable-dnssec", disableDNSSEC),
-    std::make_pair("edit-zone", (commandHandler)editZone),
+    std::make_pair("edit-zone", editZone),
     std::make_pair("export-zone-dnskey", exportZoneDNSKey),
     std::make_pair("export-zone-ds", exportZoneDS),
     std::make_pair("export-zone-key", exportZoneKey),
@@ -6210,7 +6210,7 @@ static void checkCommandSyntax()
     std::make_pair("generate-tsig-key", generateTSIGKey),
     std::make_pair("generate-zone-key", generateZoneKey),
     std::make_pair("get-meta", getMeta),
-    std::make_pair("hash-password", (commandHandler)hashPassword),
+    std::make_pair("hash-password", hashPassword),
     std::make_pair("hash-zone-record", hashZoneRecord),
 #ifndef HAVE_P11KIT1 // [
     std::make_pair("hsm", HSM),
@@ -6218,30 +6218,30 @@ static void checkCommandSyntax()
     std::make_pair("import-tsig-key", importTSIGKey),
     std::make_pair("import-zone-key", importZoneKey),
     std::make_pair("import-zone-key-pem", importZoneKeyPEM),
-    std::make_pair("increase-serial", (commandHandler)increaseSerial),
+    std::make_pair("increase-serial", increaseSerial),
     std::make_pair("ipdecrypt", ipDecrypt),
     std::make_pair("ipencrypt", ipEncrypt),
     std::make_pair("list-algorithms", listAlgorithms),
-    std::make_pair("list-all-zones", (commandHandler)listAllZones),
+    std::make_pair("list-all-zones", listAllZones),
     std::make_pair("list-autoprimaries", listAutoprimaries),
-    std::make_pair("list-keys", (commandHandler)listKeys),
-    std::make_pair("list-member-zones", (commandHandler)listMemberZones),
+    std::make_pair("list-keys", listKeys),
+    std::make_pair("list-member-zones", listMemberZones),
     std::make_pair("list-networks", listNetwork),
     std::make_pair("list-tsig-keys", listTSIGKeys),
     std::make_pair("list-view", listView),
     std::make_pair("list-views", listViews),
-    std::make_pair("list-zone", (commandHandler)listZone),
+    std::make_pair("list-zone", listZone),
     std::make_pair("lmdb-get-backend-version", lmdbGetBackendVersion),
-    std::make_pair("load-zone", (commandHandler)loadZone),
+    std::make_pair("load-zone", loadZone),
     std::make_pair("publish-zone-key", publishZoneKey),
     std::make_pair("raw-lua-from-content", rawLuaFromContent),
-    std::make_pair("rectify-all-zones", (commandHandler)rectifyAllZones),
-    std::make_pair("rectify-zone", (commandHandler)rectifyZone),
+    std::make_pair("rectify-all-zones", rectifyAllZones),
+    std::make_pair("rectify-zone", rectifyZone),
     std::make_pair("remove-autoprimary", removeAutoprimary),
     std::make_pair("remove-zone-key", removeZoneKey),
     std::make_pair("replace-rrset", replaceRRSet),
     std::make_pair("secure-all-zones", secureAllZones),
-    std::make_pair("secure-zone", (commandHandler)secureZone),
+    std::make_pair("secure-zone", secureZone),
     std::make_pair("set-account", setAccount),
     std::make_pair("set-catalog", setCatalog),
     std::make_pair("set-kind", setKind),
@@ -6253,23 +6253,23 @@ static void checkCommandSyntax()
     std::make_pair("set-presigned", setPresigned),
     std::make_pair("set-publish-cdnskey", setPublishCDNSKey),
     std::make_pair("set-publish-cds", setPublishCDs),
-    std::make_pair("show-zone", (commandHandler)showZone),
-    std::make_pair("test-algorithm", (commandHandler)testAlgorithm),
-    std::make_pair("test-algorithms", (commandHandler)testAlgorithms),
-    std::make_pair("test-schema", (commandHandler)testSchema),
-    std::make_pair("test-speed", (commandHandler)testSpeed),
+    std::make_pair("show-zone", showZone),
+    std::make_pair("test-algorithm", testAlgorithm),
+    std::make_pair("test-algorithms", testAlgorithms),
+    std::make_pair("test-schema", testSchema),
+    std::make_pair("test-speed", testSpeed),
     std::make_pair("unpublish-zone-key", unpublishZoneKey),
     std::make_pair("unset-nsec3", unsetNSec3),
     std::make_pair("unset-presigned", unsetPresigned),
     std::make_pair("unset-publish-cdnskey", unsetPublishCDNSKey),
     std::make_pair("unset-publish-cds", unsetPublishCDs),
-    std::make_pair("verify-crypto", (commandHandler)verifyCrypto),
+    std::make_pair("verify-crypto", verifyCrypto),
     std::make_pair("view-add-zone", viewAddZone),
     std::make_pair("view-del-zone", viewDelZone),
-    std::make_pair("zonemd-verify-file", (commandHandler)zonemdVerifyFile),
+    std::make_pair("zonemd-verify-file", zonemdVerifyFile),
     // aliases
-    std::make_pair("test-all-zones", (commandHandler)checkAllZones),
-    std::make_pair("test-zone", (commandHandler)checkZone)
+    std::make_pair("test-all-zones", checkAllZones),
+    std::make_pair("test-zone", checkZone)
   };
   for (const auto& pair : tests) {
     std::vector<std::string> cmds{pair.first};
@@ -6300,7 +6300,8 @@ try
 
   po::positional_options_description p; // NOLINT(readability-identifier-length)
   p.add("commands", -1);
-  po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), g_vm);
+  auto parse_result = po::command_line_parser(argc, argv).options(desc).allow_unregistered().positional(p).run();
+  po::store(parse_result, g_vm);
   po::notify(g_vm);
 
 #ifdef UNIT_TEST
@@ -6345,10 +6346,22 @@ try
 
   std::string writtencommand;
   if (commandEntry command; parseCommand(cmds, writtencommand, command)) {
+    // Separate command options, trimming up to two leading dashes
+    auto opts = po::collect_unrecognized(parse_result.options, po::exclude_positional);
+    for (auto &opt : opts) {
+      if (opt.at(0) == '-') {
+        if (opt.length() >= 2 && opt.at(1) == '-') {
+          opt.erase(0, 2);
+        }
+        else {
+          opt.erase(0, 1);
+        }
+      }
+    }
     if (command.requiresInitialization) {
       reportAllTypes();
     }
-    return command.handler(cmds, writtencommand.append(" ").append(command.synopsis));
+    return command.handler(cmds, opts, writtencommand.append(" ").append(command.synopsis));
   }
 
   if (!writtencommand.empty()) { // otherwise, parseCommand() has output a diagnostic already
