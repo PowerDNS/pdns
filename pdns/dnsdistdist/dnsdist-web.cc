@@ -336,35 +336,38 @@ static bool isAnAPIRequest(const YaHTTP::Request& req)
   return req.url.path.find("/api/") == 0;
 }
 
-static bool isAnAPIRequestAllowedWithWebAuth(const YaHTTP::Request& req)
-{
-  return req.url.path == "/api/v1/servers/localhost";
-}
-
-static bool isAStatsRequest(const YaHTTP::Request& req)
+static bool isAMetricsRequest(const YaHTTP::Request& req)
 {
   return req.url.path == "/jsonstat" || req.url.path == "/metrics";
+}
+
+static bool isADashboardMetricsRequest(const YaHTTP::Request& req)
+{
+  return req.url.path == "/jsonstat" || req.url.path == "/api/v1/servers/localhost";
 }
 
 static bool handleAuthorization(const YaHTTP::Request& req)
 {
   const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
 
-  if (isAStatsRequest(req)) {
+  if (isADashboardMetricsRequest(req)) {
+    if (checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication)) {
+      return true;
+    }
+  }
+
+  if (isAMetricsRequest(req)) {
     if (config.d_statsRequireAuthentication) {
       /* Access to the stats is allowed for both API and Web users */
-      return checkAPIKey(req, config.d_webAPIKey) || checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
+      return checkAPIKey(req, config.d_webAPIKey)
+        || checkWebPassword(req, config.d_webPassword, true);
     }
     return true;
   }
 
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
-    if (!config.d_apiRequiresAuthentication || checkAPIKey(req, config.d_webAPIKey)) {
-      return true;
-    }
-
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
+    return !config.d_apiRequiresAuthentication || checkAPIKey(req, config.d_webAPIKey);
   }
 
   return checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
@@ -416,7 +419,7 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
       resp.headers["Access-Control-Allow-Origin"] = origin->second;
       resp.headers["Vary"] = "Origin"; // prevents cached data to be used for a different Origin
 
-      if (isAStatsRequest(req) || isAnAPIRequestAllowedWithWebAuth(req)) {
+      if (isAMetricsRequest(req) || isADashboardMetricsRequest(req)) {
         resp.headers["Access-Control-Allow-Credentials"] = "true";
       }
     }

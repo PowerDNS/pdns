@@ -122,7 +122,7 @@ the auth for the calls altogether by setting them to false; they are true by def
      - allowed
      - not allowed
    * - ``/jsonstat``
-     - ``statsRequireAuthentication``
+     - ``statsRequireAuthentication`` or ``dashboardRequiresAuthentication``
      - allowed
      - allowed
    * - ``/metrics``
