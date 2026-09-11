@@ -766,7 +766,7 @@ private:
   void handlePolicyHit(const std::string& prefix, const DNSName& qname, QType qtype, vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth);
   unsigned int getAdjustedRecursionBound() const;
 
-  vState checkWildcardProof(const DNSName& name, const QType& type, const LWResult& lwr, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount);
+  vState checkWildcardProof(const DNSName& name, const QType& type, const std::vector<DNSRecord>& records, bool isAA, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount);
 
   tcache_t validateSignatures(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwardRecurse, vState& state, unsigned int depth);
   void checkDenialOfExistence(unsigned int depth, const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, tcache_t& tcache, vState& state);

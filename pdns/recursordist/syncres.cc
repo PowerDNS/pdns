@@ -2523,6 +2523,70 @@ static pair<bool, unsigned int> scanForCNAMELoop(const DNSName& name, const vect
   return {false, numCNames};
 }
 
+static bool cachedEntryContainsRecordsExpandedFromAWildcard(const DNSName& name, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& rrsigs, std::optional<unsigned int>& labels)
+{
+  const auto labelCount = name.countLabels();
+  for (const auto& rrsig : rrsigs) {
+    /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
+       count can be lower than the name's label count if it was
+       synthesized from the wildcard. Note that the difference might
+       be > 1. */
+    if (isWildcardExpanded(labelCount, *rrsig)) {
+      /* if we have a wildcard expanded onto itself, we don't need to prove
+         that the exact name doesn't exist because it actually does.
+         We still want to gather the corresponding NSEC/NSEC3 records
+         to pass them to our client in case it wants to validate by itself.
+      */
+      labels = rrsig->d_labels;
+      return true;
+    }
+  }
+  return false;
+}
+
+static void checkIfAnswerContainsRecordsExpandedFromAWildcard(LWResult& lwr, const DNSName& qname, const std::unordered_set<DNSName>& cnames)
+{
+  // names that might be expanded from a wildcard, and thus require denial of existence proof
+  // this is the queried name and any part of the CNAME chain from the queried name (if we are
+  // doing forward recurse, otherwise we discarded the chain except for the first CNAME anyway).
+  // the key is the name itself, the value is initially false and is set to true once we have
+  // confirmed it was actually expanded from a wildcard
+  std::unordered_set<DNSName> wildcardCandidates{{qname}};
+  for (const auto& cname : cnames) {
+    wildcardCandidates.emplace(cname);
+  }
+
+  for (const auto& rec : lwr.d_records) {
+    if (rec.d_type != QType::RRSIG) {
+      continue;
+    }
+
+    auto rrsig = getRR<RRSIGRecordContent>(rec);
+    if (!rrsig) {
+      continue;
+    }
+
+    /* We do that for all the candidates, not just the qname, because we need to store
+       NSEC(3) records with the expanded record in our record cache. If you think "but
+       we will not be caching CNAME records except the one matching the qname, because
+       the remaining ones will not be authoritative", you are right EXCEPT for the
+       forward recurse case where we will cache all of them. */
+    const auto labelCount = rec.d_name.countLabels();
+    /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
+       count can be lower than the name's label count if it was
+       synthesized from the wildcard. Note that the difference might
+       be > 1. */
+    if (auto wcIt = wildcardCandidates.find(rec.d_name); wcIt != wildcardCandidates.end() && isWildcardExpanded(labelCount, *rrsig)) {
+      /* if we have a wildcard expanded onto itself, we don't need to prove
+         that the exact name doesn't exist because it actually does.
+         We still want to gather the corresponding NSEC/NSEC3 records
+         to pass them to our client in case it wants to validate by itself.
+      */
+      lwr.d_synthesizedFromWildcard.emplace(rec.d_name, LWResult::ExpandedWildcardData{rrsig->d_labels, isWildcardExpandedOntoItself(rec.d_name, labelCount, *rrsig)});
+    }
+  }
+}
+
 bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups) // NOLINT(readability-function-cognitive-complexity)
 {
   vector<DNSRecord> cset;
@@ -2586,6 +2650,8 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
     return false;
   }
 
+  bool needWildcardProof = false;
+  std::optional<unsigned int> labelsCount{std::nullopt};
   for (auto const& record : cset) {
     if (record.d_class != QClass::IN) {
       continue;
@@ -2605,6 +2671,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
               capTTL = s_maxbogusttl;
             }
             updateValidationStatusInCache(foundName, foundQT, wasAuth, context.state);
+            needWildcardProof = cachedEntryContainsRecordsExpandedFromAWildcard(foundName, *signatures, labelsCount);
           }
         }
       }
@@ -2646,6 +2713,14 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
           DNSRecord authDR(rec);
           authDR.d_ttl = ttl;
           ret.push_back(std::move(authDR));
+        }
+      }
+
+      if (needWildcardProof) {
+        auto recordState = checkWildcardProof(foundName, foundQT, ret, wasAuth, context.state, depth, prefix, *labelsCount);
+        if (recordState != context.state) {
+          updateValidationStatusInCache(foundName, foundQT, wasAuth, recordState);
+          context.state = recordState;
         }
       }
 
@@ -2971,6 +3046,8 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     flags |= MemRecursorCache::ForcedRefresh;
   }
 
+  bool needWildcardProof = false;
+  std::optional<unsigned int> labelsCount{std::nullopt};
   MemRecursorCache::Extra extra;
   if (g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &extra) > 0) {
     d_fromAuthIP = extra.d_address;
@@ -2980,7 +3057,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     if (!wasAuthZone && shouldValidate() && (wasCachedAuth || wasForwardRecurse) && cachedState == vState::Indeterminate && d_requireAuthData) {
 
       /* This means we couldn't figure out the state when this entry was cached */
-      vState recordState = getValidationStatus(qname, !signatures->empty(), qtype == QType::DS, depth, prefix);
+      auto recordState = getValidationStatus(qname, !signatures->empty(), qtype == QType::DS, depth, prefix);
 
       if (recordState == vState::Secure) {
         LOG(prefix << sqname << ": Got vState::Indeterminate state from the cache, validating.." << endl);
@@ -3007,6 +3084,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
           else {
             cachedState = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, sqname, sqt, cset, *signatures);
           }
+          needWildcardProof = cachedEntryContainsRecordsExpandedFromAWildcard(sqname, *signatures, labelsCount);
         }
       }
       else {
@@ -3068,6 +3146,13 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
 
     LOG(endl);
     if (found && !expired) {
+      if (needWildcardProof) {
+        auto recordState = checkWildcardProof(sqname, sqt, ret, wasCachedAuth, cachedState, depth, prefix, *labelsCount);
+        if (recordState != cachedState) {
+          updateValidationStatusInCache(sqname, sqt, wasCachedAuth, recordState);
+          cachedState = recordState;
+        }
+      }
       if (!giveNegative) {
         res = 0;
       }
@@ -4237,49 +4322,6 @@ static bool isRedirection(QType qtype)
   return qtype == QType::CNAME || qtype == QType::DNAME;
 }
 
-static void checkIfAnswerContainsRecordsExpandedFromAWildcard(LWResult& lwr, const DNSName& qname, const std::unordered_set<DNSName>& cnames)
-{
-  // names that might be expanded from a wildcard, and thus require denial of existence proof
-  // this is the queried name and any part of the CNAME chain from the queried name (if we are
-  // doing forward recurse, otherwise we discarded the chain except for the first CNAME anyway).
-  // the key is the name itself, the value is initially false and is set to true once we have
-  // confirmed it was actually expanded from a wildcard
-  std::unordered_set<DNSName> wildcardCandidates{{qname}};
-  for (const auto& cname : cnames) {
-    wildcardCandidates.emplace(cname);
-  }
-
-  for (const auto& rec : lwr.d_records) {
-    if (rec.d_type != QType::RRSIG) {
-      continue;
-    }
-
-    auto rrsig = getRR<RRSIGRecordContent>(rec);
-    if (!rrsig) {
-      continue;
-    }
-
-    /* We do that for all the candidates, not just the qname, because we need to store
-       NSEC(3) records with the expanded record in our record cache. If you think "but
-       we will not be caching CNAME records except the one matching the qname, because
-       the remaining ones will not be authoritative", you are right EXCEPT for the
-       forward recurse case where we will cache all of them. */
-    const auto labelCount = rec.d_name.countLabels();
-    /* As illustrated in rfc4035's Appendix B.6, the RRSIG label
-       count can be lower than the name's label count if it was
-       synthesized from the wildcard. Note that the difference might
-       be > 1. */
-    if (auto wcIt = wildcardCandidates.find(rec.d_name); wcIt != wildcardCandidates.end() && isWildcardExpanded(labelCount, *rrsig)) {
-      /* if we have a wildcard expanded onto itself, we don't need to prove
-         that the exact name doesn't exist because it actually does.
-         We still want to gather the corresponding NSEC/NSEC3 records
-         to pass them to our client in case it wants to validate by itself.
-      */
-      lwr.d_synthesizedFromWildcard.emplace(rec.d_name, LWResult::ExpandedWildcardData{rrsig->d_labels, isWildcardExpandedOntoItself(rec.d_name, labelCount, *rrsig)});
-    }
-  }
-}
-
 // Walk the chain from qname, only adding names that can be reached
 static std::unordered_set<DNSName> sanitizeCNAMEChain(const DNSName& qname, std::unordered_map<DNSName, DNSName>& cnameChain)
 {
@@ -5181,7 +5223,7 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& negEntry
   return getDenial(csp, negEntry.d_name, negEntry.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE, d_validationContext, LogObject(prefix));
 }
 
-vState SyncRes::checkWildcardProof(const DNSName& name, const QType& type, const LWResult& lwr, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount)
+vState SyncRes::checkWildcardProof(const DNSName& name, const QType& type, const std::vector<DNSRecord>& records, bool isAA, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount)
 {
   if (vStateIsBogus(state)) {
     return state;
@@ -5192,7 +5234,7 @@ vState SyncRes::checkWildcardProof(const DNSName& name, const QType& type, const
   negEntry.d_name = name;
   negEntry.d_qtype = QType::ENT; // this encodes 'whole record'
   uint32_t lowestTTL = std::numeric_limits<uint32_t>::max();
-  harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
+  harvestNXRecords(records, negEntry, d_now.tv_sec, &lowestTTL);
 
   auto recordState = getValidationStatus(name, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
   if (recordState != vState::Secure) {
@@ -5224,7 +5266,7 @@ vState SyncRes::checkWildcardProof(const DNSName& name, const QType& type, const
   updateValidationState(name, state, tmpState, prefix);
 
   /* we already stored the record with a different validation status, let's fix it */
-  updateValidationStatusInCache(name, type, lwr.d_aabit, tmpState);
+  updateValidationStatusInCache(name, type, isAA, tmpState);
   return tmpState;
 }
 
@@ -5871,7 +5913,7 @@ void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& pref
         if (wildcardIt->second.shouldDenialOfExistenceBeValidated()) {
           // the second parameter, qtype, can go once the validation will be done before updating the cache
           auto& recordState = tcache.at(CacheKey{rec.d_name, rec.d_type, rec.d_place}).validationState;
-          recordState = checkWildcardProof(wildcardIt->first, rec.d_type, lwr, state, depth, prefix, wildcardIt->second.d_labelsCount);
+          recordState = checkWildcardProof(wildcardIt->first, rec.d_type, lwr.d_records, lwr.d_aabit, state, depth, prefix, wildcardIt->second.d_labelsCount);
         }
       }
     }
