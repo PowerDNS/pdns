@@ -159,7 +159,7 @@ boilerplate_conv(MR, conv.xfrName(d_alias, true));
 boilerplate_conv(MINFO, conv.xfrName(d_rmailbx, true); conv.xfrName(d_emailbx, true));
 boilerplate_conv(TXT, conv.xfrText(d_text, true));
 #ifdef HAVE_LUA_RECORDS
-boilerplate_conv(LUA, conv.xfrType(d_type); conv.xfrText(d_code, true));
+boilerplate_conv(LUA, conv.xfrType(d_type); conv.xfrLua(d_code));
 #endif
 #if defined(PDNS_AUTH) // [
 /* Move the position to the end of the current DNS record,

@@ -129,6 +129,9 @@ public:
 
   void xfrName(const DNSName& name, bool compress=false);
   void xfrText(const string& text, bool multi=false, bool lenField=true);
+#ifdef HAVE_LUA_RECORDS
+  void xfrLua(const string& text);
+#endif
   void xfrUnquotedText(const string& text, bool lenField);
   void xfrBlob(const string& blob, int len=-1);
   void xfrBlob(const vector<uint8_t>& blob);
@@ -188,3 +191,6 @@ private:
 using DNSPacketWriter = GenericDNSPacketWriter<std::vector<uint8_t>>;
 
 std::vector<string> segmentDNSText(const string& text); // from dnslabeltext.rl
+#ifdef HAVE_LUA_RECORDS
+std::vector<string> segmentLuaText(const string& text); // from dnslabeltext.rl
+#endif
