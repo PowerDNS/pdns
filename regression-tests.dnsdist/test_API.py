@@ -744,7 +744,13 @@ class TestAPIWithoutAuthentication(APITestsBase):
 
 class TestDashboardWithoutAuthentication(APITestsBase):
     __test__ = True
-    _noAuthPaths = ["/", "/index.html", "/jsonstat?command=stats", "/jsonstat?command=dynblocklist", "/api/v1/servers/localhost"]
+    _noAuthPaths = [
+        "/",
+        "/index.html",
+        "/jsonstat?command=stats",
+        "/jsonstat?command=dynblocklist",
+        "/api/v1/servers/localhost",
+    ]
     _apiKeyPaths = [
         "/api/v1/servers/localhost/config",
         "/api/v1/servers/localhost/pool?name=",
@@ -754,7 +760,12 @@ class TestDashboardWithoutAuthentication(APITestsBase):
     _basicAuthPaths = [
         "/metrics",
     ]
-    _config_params = ["_testServerPort", "_webServerPort", "_webServerBasicAuthPasswordHashed", "_webServerAPIKeyHashed"]
+    _config_params = [
+        "_testServerPort",
+        "_webServerPort",
+        "_webServerBasicAuthPasswordHashed",
+        "_webServerAPIKeyHashed",
+    ]
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
     newServer({address="127.0.0.1:%d"})
