@@ -13,16 +13,19 @@
 class AuthLua4 : public BaseLua4
 {
 public:
-  AuthLua4(const std::string& includePath="") : BaseLua4(includePath) {
-    prepareContext();
-  };
-  bool updatePolicy(const DNSName &qname, const QType& qtype, const DNSName &zonename, const DNSPacket& packet);
-  bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
+  AuthLua4(const std::string& includePath="");
+  ~AuthLua4() override = default; // this is so unique_ptr works with an incomplete type
+
   LuaContext* getLua();
 
+  bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
   std::unique_ptr<DNSPacket> prequery(const DNSPacket& p);
+  bool updatePolicy(const DNSName &qname, const QType& qtype, const DNSName &zonename, const DNSPacket& packet);
 
-  ~AuthLua4() override; // this is so unique_ptr works with an incomplete type
+  void setExecLimit();
+
+  static int s_luaRecordExecLimit;
+
 protected:
   void postPrepareContext() override;
   void postLoad() override;
