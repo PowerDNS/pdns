@@ -973,8 +973,15 @@ DNSDIST_CONFIGURE_CXXFLAGS_LEAST = " ".join(
 )
 
 
+DNSDIST_CONFIGURE_CXXFLAGS_MOCK_ASYNC_ENGINE = " ".join(
+    [
+        "-DMOCK_SSL_ASYNC",
+    ]
+)
+
+
 @task
-def ci_dnsdist_configure(c, features, build_dir, benchmark=False):
+def ci_dnsdist_configure(c, features, build_dir, benchmark=False, mockAsyncEngine=False):
     additional_flags = ""
     additional_ld_flags = ""
     if is_compiler_clang():
@@ -982,6 +989,9 @@ def ci_dnsdist_configure(c, features, build_dir, benchmark=False):
 
     if features == "least":
         additional_flags = DNSDIST_CONFIGURE_CXXFLAGS_LEAST
+
+    if mockAsyncEngine:
+        additional_flags += " " + DNSDIST_CONFIGURE_CXXFLAGS_MOCK_ASYNC_ENGINE
 
     cmd = ci_dnsdist_configure_meson(c, features, additional_flags, additional_ld_flags, build_dir, benchmark)
     logfile = "meson-logs/meson-log.txt"

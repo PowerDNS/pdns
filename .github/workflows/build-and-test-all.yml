@@ -264,7 +264,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${REPO_HOME}
         if: ${{ matrix.features != 'least' }}
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} dnsdist-${{ env.BUILDER_VERSION }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} dnsdist-${{ env.BUILDER_VERSION }} --mockAsyncEngine
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-dnsdist-run-ninja dnsdist-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/dnsdistdist/
