@@ -662,8 +662,9 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
   }
 }
 
-static void checkZoneMetadata(UeberBackend& ueber, const ZoneName& zone, std::vector<diag>& diagnostics)
+void checkZoneMetadata(const ZoneName& zone, std::vector<diag>& diagnostics)
 {
+  UeberBackend ueber;
   std::map<std::string, std::vector<std::string>> metadatas;
   if (ueber.getAllDomainMetadata(zone, metadatas)) {
     for (const auto& metadata : metadatas) {
@@ -728,11 +729,6 @@ void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const Z
 
   // Check records
   checkZoneRecords(allrrs, zone, kind, flags, isDomainInfoValid, canDoDNSSEC, presigned, isSecure, isOptOut, diagnostics);
-
-  // Check metadata
-  if (isDomainInfoValid) {
-    checkZoneMetadata(ueber, zone, diagnostics);
-  }
 }
 
 } // namespace Check
