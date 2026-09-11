@@ -578,6 +578,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
 
   keyset_t retkeyset;
   vector<DNSBackend::KeyData> dbkeyset;
+  size_t unusableKeys{0};
 
   d_keymetadb->getDomainKeys(zone, dbkeyset);
 
@@ -586,43 +587,57 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
   vector<uint8_t> algoHasSeparateKSK;
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
     DNSKEYRecordContent dkrc;
-    auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, keydata.content));
     DNSSECPrivateKey dpk;
-    dpk.setKey(key, dkrc.d_flags);
+    try {
+      auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, keydata.content));
+      dpk.setKey(key, dkrc.d_flags);
 
-    if(keydata.active) {
-      if((keydata.flags & DNSKEYFlag::SEP) != 0) {
-        algoSEP.insert(dkrc.d_algorithm);
-      } else {
-        algoNoSEP.insert(dkrc.d_algorithm);
+      if(keydata.active) {
+        if((keydata.flags & DNSKEYFlag::SEP) != 0) {
+          algoSEP.insert(dkrc.d_algorithm);
+        } else {
+          algoNoSEP.insert(dkrc.d_algorithm);
+        }
       }
+    }
+    catch (const std::exception&) {
+      ++unusableKeys;
     }
   }
   set_intersection(algoSEP.begin(), algoSEP.end(), algoNoSEP.begin(), algoNoSEP.end(), std::back_inserter(algoHasSeparateKSK));
-  retkeyset.reserve(dbkeyset.size());
+  retkeyset.reserve(dbkeyset.size() - unusableKeys);
 
   for(DNSBackend::KeyData& kd : dbkeyset)
   {
     DNSKEYRecordContent dkrc;
-    auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, kd.content));
     DNSSECPrivateKey dpk;
-    dpk.setKey(key, kd.flags, dkrc.d_algorithm);
+    try {
+      auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, kd.content));
+      dpk.setKey(key, kd.flags, dkrc.d_algorithm);
 
-    KeyMetaData kmd;
+      KeyMetaData kmd;
 
-    kmd.active = kd.active;
-    kmd.published = kd.published;
-    kmd.hasSEPBit = (kd.flags & DNSKEYFlag::SEP) != 0;
-    kmd.id = kd.id;
+      kmd.active = kd.active;
+      kmd.published = kd.published;
+      kmd.hasSEPBit = (kd.flags & DNSKEYFlag::SEP) != 0;
+      kmd.id = kd.id;
 
-    if (find(algoHasSeparateKSK.begin(), algoHasSeparateKSK.end(), dpk.getAlgorithm()) == algoHasSeparateKSK.end())
-      kmd.keyType = CSK;
-    else if(kmd.hasSEPBit)
-      kmd.keyType = KSK;
-    else
-      kmd.keyType = ZSK;
+      if (find(algoHasSeparateKSK.begin(), algoHasSeparateKSK.end(), dpk.getAlgorithm()) == algoHasSeparateKSK.end()) {
+        kmd.keyType = CSK;
+      }
+      else if(kmd.hasSEPBit) {
+        kmd.keyType = KSK;
+      }
+      else {
+        kmd.keyType = ZSK;
+      }
 
-    retkeyset.emplace_back(dpk, kmd);
+      retkeyset.emplace_back(dpk, kmd);
+    }
+    catch (const std::exception&) {
+      // Nothing. We ignore keys we can't construct here; checkKeys() will
+      // report them.
+    }
   }
   sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
 
@@ -639,6 +654,30 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
   return retkeyset;
 }
 
+unsigned int DNSSECKeeper::getUnusableKeyCount(const ZoneName& zone)
+{
+  unsigned int unusableKeys{0};
+
+  if(((++s_ops) % 100000) == 0) {
+    cleanup();
+  }
+
+  vector<DNSBackend::KeyData> dbkeyset;
+  d_keymetadb->getDomainKeys(zone, dbkeyset);
+
+  for(const DNSBackend::KeyData &keydata : dbkeyset) {
+    DNSKEYRecordContent dkrc;
+    try {
+      auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, keydata.content));
+    }
+    catch (const std::exception&) {
+      ++unusableKeys;
+    }
+  }
+
+  return unusableKeys;
+}
+
 bool DNSSECKeeper::checkKeys(const ZoneName& zone, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages)
 {
   vector<DNSBackend::KeyData> dbkeyset;
@@ -647,8 +686,18 @@ bool DNSSECKeeper::checkKeys(const ZoneName& zone, std::optional<std::reference_
 
   for(const DNSBackend::KeyData &keydata : dbkeyset) {
     DNSKEYRecordContent dkrc;
-    auto dke = DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, keydata.content);
-    retval = dke->checkKey(errorMessages) && retval;
+    try {
+      auto dke = DNSCryptoKeyEngine::makeFromISCString(d_slog, dkrc, keydata.content);
+      retval = dke->checkKey(errorMessages) && retval;
+    }
+    catch (const std::exception& err) {
+      if (errorMessages.has_value()) {
+        const std::string status = keydata.active ? "active" : "inactive";
+        std::string error = "Unable to process " + status + " key id #" + std::to_string(keydata.id) + ": " + err.what();
+        errorMessages->get().emplace_back(error);
+      }
+      retval = false;
+    }
   }
 
   return retval;

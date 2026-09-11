@@ -87,6 +87,7 @@ public:
   bool isSecuredZone(const ZoneName& zone, bool useCache=true);
   keyset_t getEntryPoints(const ZoneName& zname);
   keyset_t getKeys(const ZoneName& zone, bool useCache = true);
+  unsigned int getUnusableKeyCount(const ZoneName& zone);
   DNSSECPrivateKey getKeyById(const ZoneName& zname, unsigned int keyId);
   bool addKey(const ZoneName& zname, bool setSEPBit, int algorithm, int64_t& keyId, int bits=0, bool active=true, bool published=true);
   bool addKey(const ZoneName& zname, const DNSSECPrivateKey& dpk, int64_t& keyId, bool active=true, bool published=true);
