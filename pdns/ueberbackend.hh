@@ -101,7 +101,7 @@ public:
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content);
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys);
-  bool deleteTSIGKey(const DNSName& name);
+  bool deleteTSIGKey(const DNSName& name, const DNSName& algorithm);
 
   void viewList(vector<string>& result);
   void viewListZones(const string& view, vector<ZoneName>& result);

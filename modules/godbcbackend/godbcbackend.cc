@@ -149,6 +149,7 @@ public:
     // "merge" query: https://msdn.microsoft.com/en-us/library/bb510625.aspx
     declare(suffix, "set-tsig-key-query", "", "insert into tsigkeys (name,algorithm,secret) values(?,?,?)");
     declare(suffix, "delete-tsig-key-query", "", "delete from tsigkeys where name=?");
+    declare(suffix, "delete-tsig-key-algorithm-query", "", "delete from tsigkeys where name=? and algorithm=?");
     declare(suffix, "get-tsig-keys-query", "", "select name,algorithm, secret from tsigkeys");
 
     declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account, domains.catalog from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR records.disabled=?");

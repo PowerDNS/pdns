@@ -312,7 +312,7 @@ static const groupCommandDispatcher TSIGKEYCommands{
     "ZONE NAME {primary|secondary|producer|consumer}",
     "\tDisable TSIG authenticated AXFR using the key NAME for ZONE"}},
    {"delete", {true, deleteTSIGKey,
-    "NAME",
+    "NAME [ALGORITHM]",
     "\tDelete TSIG key (warning: will not unmap key!)"}},
    {"generate", {true, generateTSIGKey,
     "NAME ALGORITHM",
@@ -5290,14 +5290,29 @@ static int deleteTSIGKey(vector<string>& cmds, const std::string_view synopsis)
     return usage(synopsis);
   }
   DNSName name(cmds.at(0));
+  DNSName algo;
+  if (cmds.size() >= 2) {
+    algo = DNSName(cmds.at(1));
+  }
 
   UtilBackend B("default"); // NOLINT(readability-identifier-length)
-  if (B.deleteTSIGKey(name)) {
-    cout << "Deleted TSIG key " << name << endl;
+  if (algo.empty()) {
+    if (B.deleteTSIGKey(name, algo)) {
+      cout << "Deleted TSIG key(s) " << name << endl;
+    }
+    else {
+      cerr << "Failure deleting TSIG key(s) " << name << endl;
+      return 1;
+    }
   }
   else {
-    cerr << "Failure deleting TSIG key " << name << endl;
-    return 1;
+    if (B.deleteTSIGKey(name, algo)) {
+      cout << "Deleted TSIG key " << name << " with algorithm " << algo << endl;
+    }
+    else {
+      cerr << "Failure deleting TSIG key " << name << " with algorithm " << algo << endl;
+      return 1;
+    }
   }
   return 0;
 }

@@ -109,7 +109,7 @@ public:
 
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
-  bool deleteTSIGKey(const DNSName& name) override;
+  bool deleteTSIGKey(const DNSName& name, const DNSName& algorithm) override;
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;
 
   bool listComments(const domainid_t domain_id) override;
@@ -225,6 +225,7 @@ private:
   string d_getTSIGKeyQuery;
   string d_setTSIGKeyQuery;
   string d_deleteTSIGKeyQuery;
+  string d_deleteTSIGKeyWithAlgorithmQuery;
   string d_getTSIGKeysQuery;
 
   string d_getAllDomainsQuery;
@@ -298,6 +299,7 @@ private:
   unique_ptr<SSqlStatement> d_getTSIGKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_setTSIGKeyQuery_stmt;
   unique_ptr<SSqlStatement> d_deleteTSIGKeyQuery_stmt;
+  unique_ptr<SSqlStatement> d_deleteTSIGKeyWithAlgorithmQuery_stmt;
   unique_ptr<SSqlStatement> d_getTSIGKeysQuery_stmt;
   unique_ptr<SSqlStatement> d_getAllDomainsQuery_stmt;
   unique_ptr<SSqlStatement> d_ListCommentsQuery_stmt;
