@@ -5908,7 +5908,6 @@ void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& pref
         continue;
       }
 
-#warning this is not right: either we need to check only the qname (what we are doing here) and the loop is useless, or we need to be checking the current record
       if (const auto wildcardIt = lwr.d_synthesizedFromWildcard.find(rec.d_name); wildcardIt != lwr.d_synthesizedFromWildcard.end()) {
         if (wildcardIt->second.shouldDenialOfExistenceBeValidated()) {
           // the second parameter, qtype, can go once the validation will be done before updating the cache
