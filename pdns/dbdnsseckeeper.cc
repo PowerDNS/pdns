@@ -873,7 +873,7 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
   }
 
   if (doTransaction) {
-    sd.db->startTransaction(zone, UnknownDomainID);
+    sd.db->startDomainModificationTransaction(zone);
   }
 
   int updates{0};
