@@ -80,7 +80,7 @@ public:
       return std::nullopt;
     }
 
-    mapIt->second->d_eraseable.clear(std::memory_order_relaxed);
+    mapIt->second->visit();
     return mapIt->second->d_value;
   };
 
@@ -101,7 +101,7 @@ public:
     if (d_map.size() == d_maxSize) {
       state = CacheInsertState::Replaced;
 
-      while (!d_sieveHand->d_eraseable.test_and_set(std::memory_order_relaxed)) {
+      while (d_sieveHand->unvisit()) {
         d_sieveHand++;
         if (d_sieveHand == d_list.end()) {
           d_sieveHand = d_list.begin();
@@ -180,7 +180,7 @@ public:
         ++walked;
       }
       else {
-        if (!expungeHand->d_eraseable.test_and_set(std::memory_order_relaxed)) {
+        if (expungeHand->unvisit()) {
           ++expungeHand;
         }
         else {
@@ -208,7 +208,7 @@ public:
       // should not happen?
       return;
     }
-    mapIt->second->d_eraseable.clear(std::memory_order_relaxed);
+    mapIt->second->visit();
   };
 
 private:
@@ -216,16 +216,27 @@ private:
 
   struct SieveNode
   {
+  public:
     uint32_t d_key;
     V d_value;
-    // inversion of visited in sieve
-    std::atomic_flag d_eraseable;
 
-    SieveNode(uint32_t key, V value) :
-      d_key(key), d_value(std::move(value))
-    {
-      d_eraseable.test_and_set(std::memory_order_relaxed);
+    bool unvisit() {
+      // unvisit returns previous visited state
+      return d_visited.exchange(false, std::memory_order_relaxed);
     }
+
+    void visit() {
+      // this load is here to not do unnecessary atomic write;
+      // it's not necessary for correctness.
+      // That's why it's load+store, not exchange.
+      if (!d_visited.load(std::memory_order_relaxed)) {
+        d_visited.store(true, std::memory_order_relaxed);
+      }
+    }
+
+    SieveNode(uint32_t key, V value) : d_key(key), d_value(std::move(value)) {}
+  private:
+    std::atomic<bool> d_visited{false};
   };
 
   using sieve_list = std::list<SieveNode>;
