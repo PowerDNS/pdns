@@ -1,5 +1,5 @@
 return function(dr)
-  local rd = dr.dh:getRD()
+  local rd = dr:getHeader():getRD()
   if not rd then
     return true
   end
