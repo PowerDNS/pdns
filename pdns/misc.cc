@@ -1297,7 +1297,7 @@ uint64_t udp6ErrorStats([[maybe_unused]] const std::string& str)
   return 0;
 }
 
-uint64_t tcpErrorStats(const std::string& label)
+uint64_t tcpErrorStats([[maybe_unused]] const std::string& label)
 {
 #ifdef __linux__
   ifstream ifs("/proc/net/netstat");
