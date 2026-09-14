@@ -2499,6 +2499,79 @@ DOQFrontend
 
      Reload the current TLS certificate and key pairs.
 
+GenericCache
+~~~~~~~~~~~
+
+.. class:: GenericCache
+
+  Represents a generic object cache which can be used from Lua to store and retrieve any values.
+
+  .. versionadded:: 2.2.0
+
+  .. method:: get(key)
+
+    Returns the value of a key stored in the cache.
+
+    :param str key: Key to look up.
+    :returns: The value of the key.
+
+  .. method:: remove(key)
+
+    Removes a key from the cache.
+
+    :param str key: Key to remove.
+    :returns: true if the key was removed.
+
+  .. method:: contains(key)
+
+    Checks whether a key is contained in the cache.
+
+    :param str key: Key to look up.
+    :returns: true if the key is present.
+
+  .. method:: insert(key, value)
+
+    Inserts a value into the cache.
+
+    :param str key: Key to store value at.
+    :param any value: Value to store.
+
+  .. method:: insertKey(key)
+
+    Inserts a key into the cache. The value assigned to the key will be null. Useful to use the cache as a set of keys.
+
+    :param str key: Key to store.
+
+  .. method:: purgeExpired(upTo)
+
+    Deletes expired items from the cache (if TTL is used). Keeps upTo items stored in the cache.
+
+    :param int upTo: Minimum number of items to leave in the cache.
+
+  .. method:: expunge([upTo])
+
+    Deletes items from the cache. Keeps upTo items stored in the cache. If LRU is used, it will be honored while deleting.
+
+    :param int upTo: Minimum number of items to leave in the cache.
+
+.. function:: newObjectCache(name[, options])
+
+  Creates a new generic object cache.
+
+  :param str name: Unique name for the cache instance.
+  :param table options: A table with key: value pairs with options.
+  :returns: The :class:`GenericCache` object.
+
+  Options:
+
+  * ``ttlEnabled``: bool - If set to true, items will have a time-to-live assigned to them and will be removed after that time (if :meth:`GenericCache.purgeExpired` is called periodically) or when the cache is at full capacity.
+  * ``ttl``: int - Number of seconds to assign as time-to-live to each inserted item.
+  * ``lruEnabled``: bool - If set to true, least recently items will be removed when :meth:`GenericCache.expunge` is called and when the cache is at full capacity.
+  * ``lruDeleteUpTo``: int - Number of items to leave in the cache after LRU purge, which occurs when the cache is at capacity and space needs to be freed for a new entry. If set to 0, a single entry will be removed each time.
+  * ``shardCount``: int - Number of shards to divide the cache in. This is useful if the cache is used from multiple threads.
+  * ``maxEntries``: int - Maximum number of entries to hold in the cache. If this number is reached and no items can be removed, insertion will fail.
+
+
 LuaRingEntry
 ~~~~~~~~~~~~
 
