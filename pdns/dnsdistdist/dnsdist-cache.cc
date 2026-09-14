@@ -467,25 +467,21 @@ size_t DNSDistPacketCache::expungeByName(const std::vector<DNSName>& names, uint
   size_t removed = 0;
 
   for (auto& shard : d_shards) {
-    auto map = shard.d_map.write_lock();
+    auto map = shard.d_container.write_lock();
 
-    for (auto it = map->begin(); it != map->end();) {
-      const CacheValue& value = it->second;
+    auto shardRemoved = (*map)->remove(
+      [names, qtype, suffixMatch](const CacheValue& value) {
+        return std::find_if(names.cbegin(), names.cend(),
+                            [&value, &qtype, &suffixMatch](const DNSName& name) {
+                              return (
+                                (value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || value.qtype == qtype));
+                            })
+          != names.cend();
+      },
+      (*map)->size());
 
-      if (std::find_if(names.cbegin(), names.cend(),
-                       [&value, &qtype, &suffixMatch](const DNSName& name) {
-                         return (
-                           (value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || value.qtype == qtype));
-                       })
-          != names.cend()) {
-        it = map->erase(it);
-        --shard.d_entriesCount;
-        ++removed;
-      }
-      else {
-        ++it;
-      }
-    }
+    shard.d_entriesCount -= shardRemoved;
+    removed += shardRemoved;
   }
 
   return removed;
