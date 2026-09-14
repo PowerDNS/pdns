@@ -3745,9 +3745,11 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsset_t& dsSet, bool onlyTA, u
 
   const bool oldCacheOnly = setCacheOnly(false);
   const bool oldQM = setQNameMinimization(!getQMFallbackMode());
+  const bool oldRPZ = setWantsRPZ(false);
   int rcode = doResolve(zone, QType::DS, dsrecords, depth + 1, beenthere, context);
   setCacheOnly(oldCacheOnly);
   setQNameMinimization(oldQM);
+  setWantsRPZ(oldRPZ);
 
   if (rcode == RCode::ServFail) {
     throw ImmediateServFailException("Server Failure while retrieving DS records for " + zone.toLogString());
@@ -4000,8 +4002,10 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, bool& servFai
   Context context;
 
   const bool oldCacheOnly = setCacheOnly(false);
+  const bool oldRPZ = setWantsRPZ(false);
   int rcode = doResolve(signer, QType::DNSKEY, records, depth + 1, beenthere, context);
   setCacheOnly(oldCacheOnly);
+  setWantsRPZ(oldRPZ);
 
   if (rcode == RCode::ServFail) {
     servFailOccurred = true;
