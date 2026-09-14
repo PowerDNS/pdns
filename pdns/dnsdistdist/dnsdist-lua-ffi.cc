@@ -270,6 +270,9 @@ size_t dnsdist_ffi_dnsquestion_get_size(const dnsdist_ffi_dnsquestion_t* dnsQues
 bool dnsdist_ffi_dnsquestion_set_size(dnsdist_ffi_dnsquestion_t* dnsQuestion, size_t newSize)
 {
   try {
+    if (newSize > std::numeric_limits<uint16_t>::max()) {
+      return false;
+    }
     dnsQuestion->dq->getMutableData().resize(newSize);
     return true;
   }
