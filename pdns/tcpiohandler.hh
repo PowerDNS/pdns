@@ -1,3 +1,24 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
 #pragma once
 #include <memory>
@@ -15,12 +36,22 @@ enum class IOState : uint8_t { Done, NeedRead, NeedWrite, Async };
 class TLSSession
 {
 public:
+  TLSSession() = default;
+  TLSSession(const TLSSession&) = delete;
+  TLSSession(TLSSession&&) = delete;
+  TLSSession& operator=(const TLSSession&) = delete;
+  TLSSession& operator=(TLSSession&&) = delete;
   virtual ~TLSSession() = default;
 };
 
 class TLSConnection
 {
 public:
+  TLSConnection() = default;
+  TLSConnection(const TLSConnection&) = delete;
+  TLSConnection(TLSConnection&&) = delete;
+  TLSConnection& operator=(const TLSConnection&) = delete;
+  TLSConnection& operator=(TLSConnection&&) = delete;
   virtual ~TLSConnection() = default;
   virtual void doHandshake() = 0;
   virtual IOState tryConnect(bool fastOpen, const ComboAddress& remote) = 0;
@@ -30,13 +61,13 @@ public:
   virtual size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) = 0;
   virtual IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false) = 0;
-  virtual std::string getServerNameIndication() const = 0;
-  virtual std::vector<uint8_t> getNextProtocol() const = 0;
-  virtual LibsslTLSVersion getTLSVersion() const = 0;
-  virtual bool hasSessionBeenResumed() const = 0;
+  [[nodiscard]] virtual std::string getServerNameIndication() const = 0;
+  [[nodiscard]] virtual std::vector<uint8_t> getNextProtocol() const = 0;
+  [[nodiscard]] virtual LibsslTLSVersion getTLSVersion() const = 0;
+  [[nodiscard]] virtual bool hasSessionBeenResumed() const = 0;
   virtual std::vector<std::unique_ptr<TLSSession>> getSessions() = 0;
   virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
-  virtual bool isUsable() const = 0;
+  [[nodiscard]] virtual bool isUsable() const = 0;
   virtual std::vector<int> getAsyncFDs() = 0;
   virtual void close() = 0;
   [[nodiscard]] virtual std::pair<long, std::string> getVerifyResult() const = 0;
@@ -46,7 +77,7 @@ public:
     d_unknownTicketKey = true;
   }
 
-  bool getUnknownTicketKey() const
+  [[nodiscard]] bool getUnknownTicketKey() const
   {
     return d_unknownTicketKey;
   }
@@ -56,15 +87,17 @@ public:
     d_resumedFromInactiveTicketKey = true;
   }
 
-  bool getResumedFromInactiveTicketKey() const
+  [[nodiscard]] bool getResumedFromInactiveTicketKey() const
   {
     return d_resumedFromInactiveTicketKey;
   }
 
 protected:
+  // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
   int d_socket{-1};
   bool d_unknownTicketKey{false};
   bool d_resumedFromInactiveTicketKey{false};
+  // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
 };
 
 class TLSCtx
@@ -74,6 +107,10 @@ public:
   {
     d_rotatingTicketsKey.clear();
   }
+  TLSCtx(const TLSCtx&) = delete;
+  TLSCtx(TLSCtx&&) = delete;
+  TLSCtx& operator=(const TLSCtx&) = delete;
+  TLSCtx& operator=(TLSCtx&&) = delete;
   virtual ~TLSCtx() = default;
   virtual std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) = 0;
   virtual std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) = 0;
@@ -131,9 +168,11 @@ public:
     return TLSCtx::s_ticketsKeyAddedHook != nullptr;
   }
 protected:
-  std::atomic_flag d_rotatingTicketsKey;
+  // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
+  std::atomic_flag d_rotatingTicketsKey{};
   std::atomic<time_t> d_ticketsKeyNextRotation{0};
   time_t d_ticketsKeyRotationDelay{0};
+  // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
 
 private:
   static tickets_key_added_hook s_ticketsKeyAddedHook;
@@ -201,13 +240,13 @@ public:
 
   static std::string timeToString(time_t rotationTime)
   {
-    char buf[20];
-    struct tm date_tm;
+    std::array<char, 20> buf{};
+    struct tm date_tm{};
 
     localtime_r(&rotationTime, &date_tm);
-    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &date_tm);
+    strftime(buf.data(), buf.size(), "%Y-%m-%d %H:%M:%S", &date_tm);
 
-    return std::string(buf);
+    return buf.data();
   }
 
   time_t getTicketsKeyRotationDelay() const
@@ -246,14 +285,21 @@ public:
   ALPN d_alpn{ALPN::Unset};
   /* whether the proxy protocol is inside or outside the TLS layer */
   bool d_proxyProtocolOutsideTLS{false};
+
 protected:
+  // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
   std::shared_ptr<TLSCtx> d_ctx{nullptr};
   std::shared_ptr<const TLSFrontend> d_parentFrontend{nullptr};
+  // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
 };
 
 class TCPIOHandler
 {
 public:
+  TCPIOHandler(const TCPIOHandler&) = delete;
+  TCPIOHandler(TCPIOHandler&&) = delete;
+  TCPIOHandler& operator=(const TCPIOHandler&) = delete;
+  TCPIOHandler& operator=(TCPIOHandler&&) = delete;
   TCPIOHandler(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout, const std::shared_ptr<TLSCtx>& ctx) :
     d_socket(socket)
   {
@@ -289,7 +335,7 @@ public:
     }
   }
 
-  int getDescriptor() const
+  [[nodiscard]] int getDescriptor() const
   {
     return d_socket;
   }
@@ -376,9 +422,8 @@ public:
   {
     if (d_conn) {
       return d_conn->read(buffer, bufferSize, readTimeout, totalTimeout, allowIncomplete);
-    } else {
-      return readn2WithTimeout(d_socket, buffer, bufferSize, readTimeout, totalTimeout, allowIncomplete);
     }
+    return readn2WithTimeout(d_socket, buffer, bufferSize, readTimeout, totalTimeout, allowIncomplete);
   }
 
   /* Tries to read exactly toRead - pos bytes into the buffer, starting at position pos.
@@ -398,7 +443,7 @@ public:
     }
 
     do {
-      ssize_t res = ::read(d_socket, reinterpret_cast<char*>(&buffer.at(pos)), toRead - pos);
+      ssize_t res = ::read(d_socket, &buffer.at(pos), toRead - pos);
       if (res == 0) {
         throw runtime_error("EOF while reading message");
       }
@@ -406,9 +451,7 @@ public:
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
           return IOState::NeedRead;
         }
-        else {
-          throw std::runtime_error("Error while reading message: " + stringerror());
-        }
+        throw std::runtime_error("Error while reading message: " + stringerror());
       }
 
       pos += static_cast<size_t>(res);
@@ -457,7 +500,7 @@ public:
 #endif /* MSG_FASTOPEN */
 
     do {
-      ssize_t res = ::write(d_socket, reinterpret_cast<const char*>(&buffer.at(pos)), toWrite - pos);
+      ssize_t res = ::write(d_socket, &buffer.at(pos), toWrite - pos);
 
       if (res == 0) {
         throw runtime_error("EOF while sending message");
@@ -466,9 +509,7 @@ public:
         if (errno == EAGAIN || errno == EWOULDBLOCK || errno == ENOTCONN) {
           return IOState::NeedWrite;
         }
-        else {
-          throw std::runtime_error("Error while writing message: " + stringerror());
-        }
+        throw std::runtime_error("Error while writing message: " + stringerror());
       }
 
       pos += static_cast<size_t>(res);
@@ -502,23 +543,23 @@ public:
     return writen2WithTimeout(d_socket, buffer, bufferSize, writeTimeout);
   }
 
-  std::string getServerNameIndication() const
+  [[nodiscard]] std::string getServerNameIndication() const
   {
     if (d_conn) {
       return d_conn->getServerNameIndication();
     }
-    return std::string();
+    return {};
   }
 
-  std::vector<uint8_t> getNextProtocol() const
+  [[nodiscard]] std::vector<uint8_t> getNextProtocol() const
   {
     if (d_conn) {
       return d_conn->getNextProtocol();
     }
-    return std::vector<uint8_t>();
+    return {};
   }
 
-  LibsslTLSVersion getTLSVersion() const
+  [[nodiscard]] LibsslTLSVersion getTLSVersion() const
   {
     if (d_conn) {
       return d_conn->getTLSVersion();
@@ -526,7 +567,7 @@ public:
     return LibsslTLSVersion::Unknown;
   }
 
-  bool isTLS() const
+  [[nodiscard]] bool isTLS() const
   {
     return d_conn != nullptr;
   }
@@ -539,17 +580,17 @@ public:
     return {0, ""};
   }
 
-  bool hasTLSSessionBeenResumed() const
+  [[nodiscard]] bool hasTLSSessionBeenResumed() const
   {
     return d_conn && d_conn->hasSessionBeenResumed();
   }
 
-  bool getResumedFromInactiveTicketKey() const
+  [[nodiscard]] bool getResumedFromInactiveTicketKey() const
   {
     return d_conn && d_conn->getResumedFromInactiveTicketKey();
   }
 
-  bool getUnknownTicketKey() const
+  [[nodiscard]] bool getUnknownTicketKey() const
   {
     return d_conn && d_conn->getUnknownTicketKey();
   }
@@ -570,7 +611,7 @@ public:
     return d_conn->getSessions();
   }
 
-  bool isUsable() const
+  [[nodiscard]] bool isUsable() const
   {
     if (!d_conn) {
       return isTCPSocketUsable(d_socket);
