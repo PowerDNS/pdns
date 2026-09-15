@@ -190,6 +190,11 @@ BOOST_AUTO_TEST_CASE(test_Query)
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_len(&lightDQ), query.size());
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_size(&lightDQ), query.size());
 
+    /* too large */
+    BOOST_CHECK(!dnsdist_ffi_dnsquestion_set_size(&lightDQ, 65537U));
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_len(&lightDQ), query.size());
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_size(&lightDQ), query.size());
+
     auto oldSize = query.size();
     BOOST_CHECK(dnsdist_ffi_dnsquestion_set_size(&lightDQ, oldSize + 1));
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_size(&lightDQ), oldSize + 1);

@@ -172,7 +172,11 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return std::string(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size());
   });
-  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string&)>("setContent", [](DNSQuestion& dnsQuestion, const std::string& raw) {
+  luaCtx.registerFunction<bool (DNSQuestion::*)(const std::string&)>("setContent", [](DNSQuestion& dnsQuestion, const std::string& raw) -> bool {
+    // we are NOT using getMaximumSize() here to allow the response to be automatically truncated over UDP
+    if (raw.size() > std::numeric_limits<uint16_t>::max()) {
+      return false;
+    }
     uint16_t oldID = dnsQuestion.getHeader()->id;
     auto& buffer = dnsQuestion.getMutableData();
     buffer.clear();
@@ -182,6 +186,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
       header.id = oldID;
       return true;
     });
+    return true;
   });
   luaCtx.registerFunction<LuaArray<EDNSOptionValues> (DNSQuestion::*)() const>("getEDNSOptions", [](const DNSQuestion& dnsQuestion) -> LuaArray<EDNSOptionValues> {
     auto ednsOptions = parseEDNSOptions(dnsQuestion);
@@ -531,7 +536,11 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return std::string(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size());
   });
-  luaCtx.registerFunction<void (DNSResponse::*)(const std::string&)>("setContent", [](DNSResponse& dnsResponse, const std::string& raw) {
+  luaCtx.registerFunction<bool (DNSResponse::*)(const std::string&)>("setContent", [](DNSResponse& dnsResponse, const std::string& raw) -> bool {
+    // we are NOT using getMaximumSize() here to allow the response to be automatically truncated over UDP
+    if (raw.size() > std::numeric_limits<uint16_t>::max()) {
+      return false;
+    }
     uint16_t oldID = dnsResponse.getHeader()->id;
     auto& buffer = dnsResponse.getMutableData();
     buffer.clear();
@@ -540,6 +549,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
       header.id = oldID;
       return true;
     });
+    return true;
   });
 
   luaCtx.registerFunction<LuaArray<EDNSOptionValues> (DNSResponse::*)() const>("getEDNSOptions", [](const DNSResponse& dnsQuestion) -> LuaArray<EDNSOptionValues> {
