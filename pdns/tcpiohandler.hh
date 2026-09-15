@@ -48,13 +48,10 @@ class TLSConnection
 {
 public:
   TLSConnection() = default;
-  TLSConnection(const TLSConnection&) = default;
-  TLSConnection(TLSConnection&&) = delete;
-  TLSConnection& operator=(const TLSConnection&) = default;
-  TLSConnection() = default;
   TLSConnection(const TLSConnection&) = delete;
   TLSConnection(TLSConnection&&) = delete;
   TLSConnection& operator=(const TLSConnection&) = delete;
+  TLSConnection& operator=(TLSConnection&&) = delete;
   virtual ~TLSConnection() = default;
   virtual void doHandshake() = 0;
   virtual IOState tryConnect(bool fastOpen, const ComboAddress& remote) = 0;
