@@ -96,7 +96,8 @@ bool DNSDistPacketCache::insertLocked(SieveCache<CacheValue>& map, uint32_t key,
   // note: newValue is moved out on successful insert, not on existing
   auto result = map.insert(key, newValue);
 
-  if (result.first == CacheInsertState::Full || result.first == CacheInsertState::Replaced) {
+  // FIXME: if (result.first == CacheInsertState::Full || result.first == CacheInsertState::Replaced) {
+  if (result.first == CacheInsertState::Replaced) {
     return false;
   }
 

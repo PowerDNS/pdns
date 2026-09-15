@@ -34,7 +34,7 @@ enum class CacheInsertState : uint8_t
 {
   Inserted,
   Replaced,
-  Full,
+  // Full, // FIXME(kb): add option to NOT evict?
   Existing,
 };
 
