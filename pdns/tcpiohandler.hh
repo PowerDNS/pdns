@@ -30,7 +30,7 @@
 #include "misc.hh"
 #include "noinitvector.hh"
 
-/* Async is only returned for TLS connections, if OpenSSL's async mode has been enabled */
+/* Async is only returned for TLS connections, if OpenSSL's async mode has been enabled (via TLSConfig::d_asyncMode). See TLSConnection::getAsyncFDs() */
 enum class IOState : uint8_t { Done, NeedRead, NeedWrite, Async };
 
 class TLSSession
@@ -68,6 +68,24 @@ public:
   virtual std::vector<std::unique_ptr<TLSSession>> getSessions() = 0;
   virtual void setSession(std::unique_ptr<TLSSession>& session) = 0;
   [[nodiscard]] virtual bool isUsable() const = 0;
+  /* Used for OpenSSL's asynchronous mode. When that mode is enabled
+     (via TLSConfig::d_asyncMode), several operations can return a new
+     result: IOState::Async, that indicates that OpenSSL is doing a
+     compute-heavy operation and does not want to block the current
+     thread during that time. It has two advantages:
+     - lower latency, because we can switch to handling different TCP
+     connections instead of waiting for the operation to complete, if the
+     operation can be offloaded to a different hardware processing unit
+     (like zQAT)
+     - better efficiency by batching similar operations that can be done
+     in parallel by the processing unit.
+     So when we get IOState::Async, we need to call this method, getAsyncFDs()
+     that will return a list of file descriptors. These descriptors can be polled,
+     and will be marked as ready for reading when the asynchronous operation has
+     completed. So we need to get these file descriptors, watch them (for example
+     by registering them in our polling multiplexer, and retry the operation that
+     previously returned IOStte::Async (tryHandshake, tryRead, tryWrite) again.
+  */
   virtual std::vector<int> getAsyncFDs() = 0;
   virtual void close() = 0;
   [[nodiscard]] virtual std::pair<long, std::string> getVerifyResult() const = 0;
