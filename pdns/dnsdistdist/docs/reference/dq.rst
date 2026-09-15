@@ -21,8 +21,11 @@ This state can be modified from the various hooks.
 
   .. attribute:: dh
 
-    .. versionchanged:: 2.1.0
+    .. deprecated:: 2.1.0
       This attribute is now deprecated and will be removed in 2.2.0, :meth:`DNSQuestion.getHeader` and :meth:`DNSQuestion.setHeader` should be used instead.
+
+    .. versionremoved:: 2.2.0
+      This attribute has been removed, :meth:`DNSQuestion.getHeader` and :meth:`DNSQuestion.setHeader` should be used instead.
 
     The :class:`DNSHeader` of this query.
 

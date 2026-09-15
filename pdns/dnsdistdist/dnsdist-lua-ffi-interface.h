@@ -75,8 +75,6 @@ uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dnsQ
 uint16_t dnsdist_ffi_dnsquestion_get_qclass(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnsquestion_get_id(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
 int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
-/* dnsdist_ffi_dnsquestion_get_header has been deprecated since 2.1.0 */
-void* dnsdist_ffi_dnsquestion_get_header(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__((visibility("default")));
 /* buffer MUST be big enough to hold a DNS header (12 bytes) */
 bool dnsdist_ffi_dnsquestion_get_header_copy(const dnsdist_ffi_dnsquestion_t* dnsQuestion, char* buffer, size_t buffer_size) __attribute__((visibility("default")));
 /* buffer MUST hold a DNS header (12 bytes) */

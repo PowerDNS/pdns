@@ -202,18 +202,6 @@ int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dnsQuesti
   }
 }
 
-void* dnsdist_ffi_dnsquestion_get_header(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
-{
-  try {
-    return dnsQuestion->dq->getMutableHeader();
-  }
-  catch (const std::exception& e) {
-    VERBOSESLOG(infolog("Error getting header from packet: %s", e.what()),
-                getLogger(__func__)->error(Logr::Info, e.what(), "Error getting header from packet"));
-    return nullptr;
-  }
-}
-
 const unsigned char* dnsdist_ffi_dnsquestion_get_data(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
   return dnsQuestion->dq->getData().data();

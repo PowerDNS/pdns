@@ -166,11 +166,6 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
-    // dnsdist_ffi_dnsquestion_get_header
-    BOOST_CHECK(memcmp(dnsdist_ffi_dnsquestion_get_header(&lightDQ), pwQ.getHeader(), sizeof(dnsheader)) == 0);
-  }
-
-  {
     // dnsdist_ffi_dnsquestion_get_header_copy
     dnsheader copy{};
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)

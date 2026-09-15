@@ -32,7 +32,7 @@ The following code shows a very simple example that forwards queries and respons
     function passQueryToAsyncFilter(dq)
       local timeout = 500 -- 500 ms
       local buffer = dq:getContent()
-      local id = dq.dh:getID()
+      local id = dq:getHeader():getID()
       dq:suspend(asyncID, id, timeout)
       asyncResponderEndpoint:send(buffer)
       return DNSAction.Allow
@@ -41,7 +41,7 @@ The following code shows a very simple example that forwards queries and respons
   function passResponseToAsyncFilter(dr)
       local timeout = 500 -- 500 ms
       local buffer = dr:getContent()
-      local id = dr.dh:getID()
+      local id = dr:getHeader():getID()
       dr:suspend(asyncID, id, timeout)
       asyncResponderEndpoint:send(buffer)
       return DNSResponseAction.Allow

@@ -100,17 +100,6 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   luaCtx.registerMember<const ComboAddress(DNSQuestion::*)>(
     "remoteaddr", [](const DNSQuestion& dnsQuestion) -> ComboAddress { return dnsQuestion.ids.origRemote; }, [](DNSQuestion& dnsQuestion, const ComboAddress newRemote) { (void)dnsQuestion; (void)newRemote; });
   /* DNSDist DNSQuestion */
-  luaCtx.registerMember<dnsheader*(DNSQuestion::*)>(
-    "dh",
-    [](const DNSQuestion& dnsQuestion) -> dnsheader* {
-      return const_cast<DNSQuestion&>(dnsQuestion).getMutableHeader();
-    },
-    [](DNSQuestion& dnsQuestion, const dnsheader* dnsHeader) {
-      dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [&dnsHeader](dnsheader& header) {
-        header = *dnsHeader;
-        return true;
-      });
-    });
   luaCtx.registerMember<uint16_t(DNSQuestion::*)>(
     "len", [](const DNSQuestion& dnsQuestion) -> uint16_t { return dnsQuestion.getData().size(); }, [](DNSQuestion& dnsQuestion, uint16_t newlen) { dnsQuestion.getMutableData().resize(newlen); });
   luaCtx.registerMember<uint8_t(DNSQuestion::*)>(
@@ -504,17 +493,6 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     });
   luaCtx.registerMember<ComboAddress(DNSResponse::*)>(
     "remoteaddr", [](const DNSResponse& dnsQuestion) -> ComboAddress { return dnsQuestion.ids.origRemote; }, [](DNSResponse& dnsQuestion, const ComboAddress newRemote) { (void)dnsQuestion; (void)newRemote; });
-  luaCtx.registerMember<dnsheader*(DNSResponse::*)>(
-    "dh",
-    [](const DNSResponse& dnsResponse) -> dnsheader* {
-      return const_cast<DNSResponse&>(dnsResponse).getMutableHeader();
-    },
-    [](DNSResponse& dnsResponse, const dnsheader* dnsHeader) {
-      dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [&dnsHeader](dnsheader& header) {
-        header = *dnsHeader;
-        return true;
-      });
-    });
   luaCtx.registerMember<uint16_t(DNSResponse::*)>(
     "len", [](const DNSResponse& dnsQuestion) -> uint16_t { return dnsQuestion.getData().size(); }, [](DNSResponse& dnsQuestion, uint16_t newlen) { dnsQuestion.getMutableData().resize(newlen); });
   luaCtx.registerMember<uint8_t(DNSResponse::*)>(
