@@ -39,26 +39,7 @@ enum class CacheInsertState : uint8_t
 };
 
 template <typename V>
-class CacheContainer
-{
-public:
-  // container should have only one implemented
-  virtual std::optional<std::reference_wrapper<const V>> find(uint32_t key) const = 0;
-  virtual std::optional<std::reference_wrapper<const V>> find(uint32_t key) = 0;
-
-  // note - after successful insertion, V is moved out
-  virtual std::pair<CacheInsertState, std::optional<std::reference_wrapper<V>>> insert(uint32_t key, V& value) = 0;
-  virtual size_t remove(const std::function<bool(const V&)>& pred, size_t toRemove) = 0;
-  virtual void visit(uint32_t key) = 0;
-
-  virtual size_t size() const = 0;
-  virtual void walk(const std::function<void(uint32_t, const V&)>& fun) const = 0;
-
-  virtual ~CacheContainer() = default;
-};
-
-template <typename V>
-class SieveCache : public CacheContainer<V>
+class SieveCache
 {
 public:
   SieveCache(size_t t)
@@ -73,7 +54,7 @@ public:
     d_sieveHand = d_list.end();
   };
 
-  std::optional<std::reference_wrapper<const V>> find(uint32_t key) const override
+  std::optional<std::reference_wrapper<const V>> find(uint32_t key) const
   {
     auto mapIt = d_map.find(key);
     if (mapIt == d_map.end()) {
@@ -84,12 +65,12 @@ public:
     return mapIt->second->d_value;
   };
 
-  [[noreturn]] std::optional<std::reference_wrapper<const V>> find(uint32_t) override
+  [[noreturn]] std::optional<std::reference_wrapper<const V>> find(uint32_t)
   {
     throw std::logic_error("SieveCache does not need lock on reading");
   };
 
-  std::pair<CacheInsertState, std::optional<std::reference_wrapper<V>>> insert(uint32_t key, V& value) override
+  std::pair<CacheInsertState, std::optional<std::reference_wrapper<V>>> insert(uint32_t key, V& value)
   {
     auto mapIt = d_map.find(key);
     if (mapIt != d_map.end()) {
@@ -124,19 +105,19 @@ public:
     return {state, std::nullopt};
   }
 
-  size_t size() const override
+  size_t size() const
   {
     return d_map.size();
   }
 
-  void walk(const std::function<void(uint32_t, const V&)>& fun) const override
+  void walk(const std::function<void(uint32_t, const V&)>& fun) const
   {
     for (auto it = d_list.begin(); it != d_list.end(); ++it) {
       fun(it->d_key, it->d_value);
     }
   }
 
-  size_t remove(const std::function<bool(const V&)>& pred, size_t toRemove) override
+  size_t remove(const std::function<bool(const V&)>& pred, size_t toRemove)
   {
     size_t removed = 0;
 
@@ -201,7 +182,7 @@ public:
     return removed;
   };
 
-  void visit(uint32_t key) override
+  void visit(uint32_t key)
   {
     auto mapIt = d_map.find(key);
     if (mapIt == d_map.end()) {
@@ -249,188 +230,4 @@ private:
   // if std::list is empty - std::list::end; otherwise - always pointing at list item, never at end()
   // hand moves from front to back
   sieve_iter d_sieveHand;
-};
-
-template <typename V>
-class LruCache : public CacheContainer<V>
-{
-public:
-  LruCache(size_t t)
-  {
-    if (t == 0) {
-      throw std::logic_error("try to create 0-sized LruCache");
-    }
-    // we reserve maxEntries + 1 to avoid rehashing from occurring
-    // when we get to maxEntries, as it means a load factor of 1
-    d_maxSize = t;
-    d_map.reserve(t + 1);
-  };
-
-  [[noreturn]] std::optional<std::reference_wrapper<const V>> find(uint32_t) const override
-  {
-    throw std::logic_error("LruCache needs lock on reading");
-  };
-
-  std::optional<std::reference_wrapper<const V>> find(uint32_t key) override
-  {
-    auto mapIt = d_map.find(key);
-    if (mapIt == d_map.end()) {
-      return std::nullopt;
-    }
-
-    d_list.splice(d_list.end(), d_list, mapIt->second);
-    return mapIt->second->second;
-  };
-
-  std::pair<CacheInsertState, std::optional<std::reference_wrapper<V>>> insert(uint32_t key, V& value) override
-  {
-    auto mapIt = d_map.find(key);
-    if (mapIt != d_map.end()) {
-      return {CacheInsertState::Existing, mapIt->second->second};
-    }
-
-    auto state = CacheInsertState::Inserted;
-
-    if (d_map.size() == d_maxSize) {
-      state = CacheInsertState::Replaced;
-      auto& newest = d_list.front();
-      d_map.erase(newest.first);
-      d_list.pop_front();
-    }
-
-    d_list.emplace_back(key, std::move(value));
-    d_map.insert({key, std::prev(d_list.end())});
-    return {state, std::nullopt};
-  }
-
-  size_t size() const override
-  {
-    return d_map.size();
-  }
-
-  void walk(const std::function<void(uint32_t, const V&)>& fun) const override
-  {
-    for (auto it = d_list.begin(); it != d_list.end(); ++it) {
-      fun(it->first, it->second);
-    }
-  }
-
-  size_t remove(const std::function<bool(const V&)>& pred, size_t toRemove) override
-  {
-    size_t removed = 0;
-    for (auto it = d_list.begin(); it != d_list.end();) {
-      if (pred(it->second)) {
-        ++removed;
-        d_map.erase(it->first);
-        it = d_list.erase(it);
-        if (removed >= toRemove) {
-          return removed;
-        }
-      }
-      else {
-        ++it;
-      }
-    }
-    return removed;
-  };
-
-  void visit(uint32_t key) override
-  {
-    auto mapIt = d_map.find(key);
-    if (mapIt == d_map.end()) {
-      // should not happen?
-      return;
-    }
-    d_list.splice(d_list.end(), d_list, mapIt->second);
-  };
-
-private:
-  size_t d_maxSize;
-
-  // front: oldest; back: newest
-  std::list<std::pair<uint32_t, V>> d_list;
-  std::unordered_map<uint32_t, typename std::list<std::pair<uint32_t, V>>::iterator> d_map;
-};
-
-template <typename V>
-class NoEvictionCache : public CacheContainer<V>
-{
-public:
-  NoEvictionCache(size_t t)
-  {
-    if (t == 0) {
-      throw std::logic_error("try to create 0-sized NoEvictionCache");
-    }
-    // we reserve maxEntries + 1 to avoid rehashing from occurring
-    // when we get to maxEntries, as it means a load factor of 1
-    d_maxSize = t;
-    d_map.reserve(t + 1);
-  };
-
-  std::optional<std::reference_wrapper<const V>> find(uint32_t key) const override
-  {
-    auto it = d_map.find(key);
-    if (it == d_map.end()) {
-      return std::nullopt;
-    }
-    return it->second;
-  };
-
-  [[noreturn]] std::optional<std::reference_wrapper<const V>> find(uint32_t) override
-  {
-    throw std::logic_error("NoEvictionCache does not lock on reading");
-  };
-
-  std::pair<CacheInsertState, std::optional<std::reference_wrapper<V>>> insert(uint32_t key, V& value) override
-  {
-    if (d_map.size() == d_maxSize) {
-      return {CacheInsertState::Full, std::nullopt};
-    }
-
-    // value is moved only if emplacing worked
-    auto [it, result] = d_map.try_emplace(key, std::move(value));
-    if (result) {
-      return {CacheInsertState::Inserted, std::nullopt};
-    }
-
-    return {CacheInsertState::Existing, it->second};
-  };
-
-  size_t size() const override
-  {
-    return d_map.size();
-  }
-
-  void walk(const std::function<void(uint32_t, const V&)>& fun) const override
-  {
-    for (auto it = d_map.begin(); it != d_map.end(); ++it) {
-      fun(it->first, it->second);
-    }
-  }
-
-  size_t remove(const std::function<bool(const V&)>& pred, size_t toRemove) override
-  {
-    size_t removed = 0;
-    for (auto it = d_map.begin(); it != d_map.end();) {
-      if (pred(it->second)) {
-        ++removed;
-        it = d_map.erase(it);
-        if (removed >= toRemove) {
-          return removed;
-        }
-      }
-      else {
-        ++it;
-      }
-    }
-    return removed;
-  };
-
-  void visit(uint32_t) override {
-    // noop
-  };
-
-private:
-  size_t d_maxSize;
-  std::unordered_map<uint32_t, V> d_map;
 };

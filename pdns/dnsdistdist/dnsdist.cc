@@ -226,7 +226,8 @@ static void maintThread()
         if (packetCache->keepStaleData() && !iter->second) {
           /* either pool has one server up, or
              cache implementation allows keeping entries */
-          if (packetCache->keepStaleEntriesOnUpServers() || pool.shouldKeepStaleData()) {
+          // FIXME this should be true if we allow it explicitly in cache (keepStaleDataForReal?)
+          if (pool.shouldKeepStaleData()) {
             iter->second = true;
           }
         }

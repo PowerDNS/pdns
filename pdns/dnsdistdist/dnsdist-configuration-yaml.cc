@@ -1126,13 +1126,6 @@ static void handlePacketCacheConfiguration(const Context& context, const ::rust:
       .d_keepStaleData = cache.keep_stale_data,
       .d_shuffle = cache.shuffle,
     };
-    const auto evictionStr = std::string(cache.eviction);
-    if (!evictionStr.empty()) {
-      if (!DNSDistPacketCache::parseEvictionType(evictionStr, settings.d_eviction)) {
-        SLOG(warnlog("Ignoring unknown value '%s' for 'eviction' on 'newPacketCache'", evictionStr),
-             context.logger->info(Logr::Warning, "Ignoring unknown value for 'eviction' on 'newPacketCache'", "value", Logging::Loggable(evictionStr)));
-      }
-    }
 
     if (settings.d_maxEntries < settings.d_shardCount) {
       SLOG(warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", settings.d_maxEntries, settings.d_shardCount, settings.d_maxEntries),

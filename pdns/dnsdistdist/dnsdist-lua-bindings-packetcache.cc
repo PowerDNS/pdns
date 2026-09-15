@@ -57,13 +57,6 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
     getOptionalValue<size_t>(vars, "maximumEntrySize", maximumEntrySize);
 
-    std::string eviction;
-    if (getOptionalValue<std::string>(vars, "eviction", eviction) > 0) {
-      if (!DNSDistPacketCache::parseEvictionType(eviction, settings.d_eviction)) {
-        SLOG(warnlog("Ignoring unknown value '%s' for 'eviction' on 'newPacketCache'", eviction),
-             dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "Ignoring unknown value for 'eviction' on 'newPacketCache'", "value", Logging::Loggable(eviction)));
-      }
-    };
 
     if (maximumEntrySize >= sizeof(dnsheader)) {
       settings.d_maximumEntrySize = maximumEntrySize;
