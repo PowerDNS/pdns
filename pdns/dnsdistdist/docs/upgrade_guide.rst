@@ -8,6 +8,8 @@ Queries received from clients that have the truncated bit (TC) set are now dropp
 
 The internal web server now binds listening sockets with ``IPV6_V6ONLY`` set, which means that ``[::]`` no longer accepts IPv4 connections. If you want to listen on both IPv4 and IPv6, you need to add a second line with ``0.0.0.0`` to your existing configuration.
 
+:attr:`DNSQuestion.dh` has been removed, :meth:`DNSQuestion.getHeader` and :meth:`DNSQuestion.setHeader` should be used instead.
+
 2.1.0-beta2 to 2.1.0
 --------------------
 
