@@ -224,7 +224,9 @@ static void maintThread()
            expired entries when at least one pool using this cache
            has all its backends down) */
         if (packetCache->keepStaleData() && !iter->second) {
-          /* so far all pools had at least one backend up */
+          /* either pool has one server up, or
+             cache implementation allows keeping entries */
+          // FIXME this should be true if we allow it explicitly in cache (keepStaleDataForReal?)
           if (pool.shouldKeepStaleData()) {
             iter->second = true;
           }

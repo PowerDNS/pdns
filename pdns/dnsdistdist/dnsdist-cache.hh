@@ -22,9 +22,9 @@
 #pragma once
 
 #include <atomic>
-#include <unordered_map>
 
 #include "iputils.hh"
+#include "dnsdist-cache-containers.hh"
 #include "lock.hh"
 #include "noinitvector.hh"
 #include "stat_t.hh"
@@ -134,18 +134,24 @@ private:
     }
     ~CacheShard() = default;
 
-    void setSize(size_t maxSize)
+    void init(size_t maxSize)
     {
-      d_map.write_lock()->reserve(maxSize);
+      auto lock = d_container.write_lock();
+      *lock = std::make_unique<SieveCache<CacheValue>>(maxSize);
     }
 
-    SharedLockGuarded<std::unordered_map<uint32_t, CacheValue>> d_map{};
+    SharedLockGuarded<std::unique_ptr<SieveCache<CacheValue>>> d_container{};
+
     std::atomic<uint64_t> d_entriesCount{0};
   };
 
   [[nodiscard]] bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet) const;
   [[nodiscard]] uint32_t getShardIndex(uint32_t key) const;
-  bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
+  bool insertLocked(SieveCache<CacheValue>& map, uint32_t key, CacheValue& newValue);
+
+  // FIXME now we dont need both, remnant
+  [[nodiscard]] std::pair<bool, bool> getReadLocked(const SieveCache<CacheValue>& map, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, uint32_t key, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
+  [[nodiscard]] std::pair<bool, bool> getLocked(const CacheValue& value, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName);
 
   std::vector<CacheShard> d_shards{};
 

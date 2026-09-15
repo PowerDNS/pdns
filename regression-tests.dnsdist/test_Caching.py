@@ -948,68 +948,69 @@ class TestCachingWithExistingEDNS(DNSDistTest):
         self.assertEqual(total, misses)
 
 
-class TestCachingCacheFull(DNSDistTest):
-    _config_template = """
-    pc = newPacketCache(1, {maxTTL=86400, minTTL=1, numberOfShards=1})
-    getPool(""):setCache(pc)
-    newServer{address="127.0.0.1:%d"}
-    """
+# FIXME: do we still want this?
+# class TestCachingCacheFull(DNSDistTest):
+#     _config_template = """
+#     pc = newPacketCache(1, {maxTTL=86400, minTTL=1, numberOfShards=1})
+#     getPool(""):setCache(pc)
+#     newServer{address="127.0.0.1:%d"}
+#     """
 
-    def testCacheFull(self):
-        """
-        Cache: No new entries are cached when the cache is full
+#     def testCacheFull(self):
+#         """
+#         Cache: No new entries are cached when the cache is full
 
-        """
-        misses = 0
-        name = "cachenotfullyet.cache.tests.powerdns.com."
-        query = dns.message.make_query(name, "A", "IN")
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
-        response.answer.append(rrset)
+#         """
+#         misses = 0
+#         name = "cachenotfullyet.cache.tests.powerdns.com."
+#         query = dns.message.make_query(name, "A", "IN")
+#         response = dns.message.make_response(query)
+#         rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+#         response.answer.append(rrset)
 
-        # Miss
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(response, receivedResponse)
-        misses += 1
+#         # Miss
+#         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+#         self.assertTrue(receivedQuery)
+#         self.assertTrue(receivedResponse)
+#         receivedQuery.id = query.id
+#         self.assertEqual(query, receivedQuery)
+#         self.assertEqual(response, receivedResponse)
+#         misses += 1
 
-        # next queries should hit the cache
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEqual(receivedResponse, response)
+#         # next queries should hit the cache
+#         (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+#         self.assertEqual(receivedResponse, response)
 
-        # ok, now the cache is full, send another query
-        name = "cachefull.cache.tests.powerdns.com."
-        query = dns.message.make_query(name, "AAAA", "IN")
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
-        response.answer.append(rrset)
+#         # ok, now the cache is full, send another query
+#         name = "cachefull.cache.tests.powerdns.com."
+#         query = dns.message.make_query(name, "AAAA", "IN")
+#         response = dns.message.make_response(query)
+#         rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.AAAA, "::1")
+#         response.answer.append(rrset)
 
-        # Miss
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(response, receivedResponse)
-        misses += 1
+#         # Miss
+#         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+#         self.assertTrue(receivedQuery)
+#         self.assertTrue(receivedResponse)
+#         receivedQuery.id = query.id
+#         self.assertEqual(query, receivedQuery)
+#         self.assertEqual(response, receivedResponse)
+#         misses += 1
 
-        # next queries should NOT hit the cache
-        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-        self.assertTrue(receivedQuery)
-        self.assertTrue(receivedResponse)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(response, receivedResponse)
-        misses += 1
+#         # next queries should NOT hit the cache
+#         (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+#         self.assertTrue(receivedQuery)
+#         self.assertTrue(receivedResponse)
+#         receivedQuery.id = query.id
+#         self.assertEqual(query, receivedQuery)
+#         self.assertEqual(response, receivedResponse)
+#         misses += 1
 
-        total = 0
-        for key in self._responsesCounter:
-            total += self._responsesCounter[key]
+#         total = 0
+#         for key in self._responsesCounter:
+#             total += self._responsesCounter[key]
 
-        self.assertEqual(total, misses)
+#         self.assertEqual(total, misses)
 
 
 class TestCachingNoStale(DNSDistTest):
