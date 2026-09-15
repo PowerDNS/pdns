@@ -259,7 +259,6 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     }
     std::tie(hit, hitHeader) = getReadLocked(**map, dnsQuestion, stale, response, age, key, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
 
-
     if (!hit) {
       return false;
     }
@@ -305,8 +304,6 @@ std::pair<bool, bool> DNSDistPacketCache::getReadLocked(const SieveCache<CacheVa
 
   return getLocked(*found, dnsQuestion, stale, response, age, recordMiss, now, allowExpired, receivedOverUDP, dnssecOK, subnet, truncatedOK, queryId, dnsQName);
 }
-
-
 
 std::pair<bool, bool> DNSDistPacketCache::getLocked(const CacheValue& value, DNSQuestion& dnsQuestion, bool& stale, PacketBuffer& response, time_t& age, bool recordMiss, time_t now, uint32_t allowExpired, bool receivedOverUDP, bool dnssecOK, const std::optional<Netmask>& subnet, bool truncatedOK, uint16_t queryId, const DNSName::string_t& dnsQName)
 {

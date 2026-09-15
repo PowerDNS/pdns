@@ -201,12 +201,14 @@ private:
     uint32_t d_key;
     V d_value;
 
-    bool unvisit() {
+    bool unvisit()
+    {
       // unvisit returns previous visited state
       return d_visited.exchange(false, std::memory_order_relaxed);
     }
 
-    void visit() {
+    void visit()
+    {
       // this load is here to not do unnecessary atomic write;
       // it's not necessary for correctness.
       // That's why it's load+store, not exchange.
@@ -215,7 +217,9 @@ private:
       }
     }
 
-    SieveNode(uint32_t key, V value) : d_key(key), d_value(std::move(value)) {}
+    SieveNode(uint32_t key, V value) :
+      d_key(key), d_value(std::move(value)) {}
+
   private:
     std::atomic<bool> d_visited{false};
   };

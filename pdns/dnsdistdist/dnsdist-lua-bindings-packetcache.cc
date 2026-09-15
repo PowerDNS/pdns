@@ -57,7 +57,6 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
     getOptionalValue<size_t>(vars, "maximumEntrySize", maximumEntrySize);
 
-
     if (maximumEntrySize >= sizeof(dnsheader)) {
       settings.d_maximumEntrySize = maximumEntrySize;
     }
