@@ -37,9 +37,9 @@ class TLSSession
 {
 public:
   TLSSession() = default;
-  TLSSession(const TLSSession&) = default;
+  TLSSession(const TLSSession&) = delete;
   TLSSession(TLSSession&&) = delete;
-  TLSSession& operator=(const TLSSession&) = default;
+  TLSSession& operator=(const TLSSession&) = delete;
   TLSSession& operator=(TLSSession&&) = delete;
   virtual ~TLSSession() = default;
 };
@@ -51,7 +51,10 @@ public:
   TLSConnection(const TLSConnection&) = default;
   TLSConnection(TLSConnection&&) = delete;
   TLSConnection& operator=(const TLSConnection&) = default;
-  TLSConnection& operator=(TLSConnection&&) = delete;
+  TLSConnection() = default;
+  TLSConnection(const TLSConnection&) = delete;
+  TLSConnection(TLSConnection&&) = delete;
+  TLSConnection& operator=(const TLSConnection&) = delete;
   virtual ~TLSConnection() = default;
   virtual void doHandshake() = 0;
   virtual IOState tryConnect(bool fastOpen, const ComboAddress& remote) = 0;
