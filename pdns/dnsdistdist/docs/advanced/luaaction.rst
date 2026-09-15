@@ -20,7 +20,7 @@ And for a custom action:
 .. code-block:: lua
 
   function lua_route_tc_to_abuse_pool(dq)
-    local tc = dq.dh:getTC()
+    local tc = dq:getHeader():getTC()
     -- The TC (truncated) bit should not be set in a query
     if tc then
       return DNSAction.Pool, "abuse" -- send to abuse pool
@@ -38,7 +38,7 @@ a file named ``/etc/dnsdist/dnsdist.lua`` containing:
 .. code-block:: lua
 
   function lua_route_tc_to_abuse_pool(dq)
-    local tc = dq.dh:getTC()
+    local tc = dq:getHeader():getTC()
     -- The TC (truncated) bit should not be set in a query
     if tc then
       return DNSAction.Pool, "abuse" -- send to abuse pool
@@ -76,7 +76,7 @@ A second option is to declare the Lua code inline in the YAML configuration file
         type: "Lua"
         function_code: |
           return function(dq)
-            local tc = dq.dh:getTC()
+            local tc = dq:getHeader():getTC()
             -- The TC (truncated) bit should not be set in a query
             if tc then
               return DNSAction.Pool, "abuse" -- send to abuse pool
@@ -106,7 +106,7 @@ where the ``/etc/dnsdist/truncated-to-pool-abuse.lua`` file contains:
 .. code-block:: lua
 
   return function(dq)
-    local tc = dq.dh:getTC()
+    local tc = dq:getHeader():getTC()
     -- The TC (truncated) bit should not be set in a query
     if tc then
       return DNSAction.Pool, "abuse" -- send to abuse pool
