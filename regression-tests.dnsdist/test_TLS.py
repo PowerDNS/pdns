@@ -686,3 +686,33 @@ class TestGnuTLSTLSTicketsKeyCallback(DNSDistTest):
         self.assertEqual(int(keyLen), 64)
         lastKey = self.sendConsoleCommand("lastKey")
         self.assertEqual(newKey, lastKey.strip())
+
+
+# Note that this test is only useful when DNSdist is built with -DMOCK_SSL_ASYNC
+class TestDOTOpenSSLAsynchronousEngine(DNSDistTest):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _tlsServerPort = pickAvailablePort()
+
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl", tlsAsyncMode=true })
+    """
+    _config_params = ["_testServerPort", "_tlsServerPort", "_serverCert", "_serverKey"]
+
+    def testSimple(self):
+        """
+        DoT: Test OpenSSL asynchronous engine support
+        """
+        name = "openssl-async-engine.tls.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendDOTQueryWrapper(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
