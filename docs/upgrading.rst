@@ -19,6 +19,13 @@ very old OpenSSL (or compatible) libraries, not providing the OpenSSL 1.1.0
 API, has been removed. No operating system aged less than 10 years should be
 affected by this, but we're mentioning it, just in case.
 
+lua-records-exec-limit feature applies to all scripts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :ref:`setting-lua-records-exec-limit` setting, which will abort Lua records
+taking too much time to complete, is now applied to all Lua scripts, including
+prequery, axfr, and DNS Update policy scripts.
+
 NAPTR additional answers
 ^^^^^^^^^^^^^^^^^^^^^^^^
 

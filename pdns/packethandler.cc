@@ -86,6 +86,7 @@ PacketHandler::PacketHandler(Logr::log_t slog) :
   else
   {
     d_pdl = std::make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
+    d_pdl->setExecLimit();
     d_pdl->loadFile(fname);
   }
 }
