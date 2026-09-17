@@ -42,17 +42,19 @@ on:
       DOWNLOADS_AUTOBUILT_HOSTKEY:
         required: true
       PULP_FILE_REPO_NAME:
-        required: true
+        required: false
       PULP_URL:
-        required: true
+        required: false
       PULP_CONTENT_URL:
-        required: true
+        required: false
       PULP_CI_USERNAME:
-        required: true
+        required: false
       PULP_CI_PASSWORD:
-        required: true
+        required: false
+      PULP_PDNS_GPG_PUBKEY_MASTER:
+        required: false
       PULP_PDNS_GPG_PUBKEY:
-        required: true
+        required: false
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
