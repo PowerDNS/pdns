@@ -51,8 +51,6 @@ on:
         required: true
       PULP_CI_PASSWORD:
         required: true
-      PULP_PDNS_GPG_PUBKEY_MASTER:
-        required: true
       PULP_PDNS_GPG_PUBKEY:
         required: true
 
@@ -543,6 +541,8 @@ jobs:
       VERSION: ${{ needs.build.outputs.version }}
       SHORTVERSION: ${{ needs.build.outputs.shortversion }}
       DEBIAN_FRONTEND: noninteractive
+      CONTENT_URL: ${{ secrets.PULP_CONTENT_URL }}
+      GPG_PUB_KEY_URL: ${{ secrets.PULP_PDNS_GPG_PUBKEY }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -550,14 +550,8 @@ jobs:
           persist-credentials: false
       - run: |
           sudo apt update && sudo apt install -y python3-invoke
-      - id: get-gpg-pubkey-url
-        run: |
-          #TODO: is it better here to add additional intelligence for only rpm different gpg key or
-          # it is just better to use the same key for all cases
-          # Once this is done, then it is ok to switch credentials to the final Pulp repository
-          echo "gpg-pubkey-url=$(echo ${VERSION} | grep -qq "master" && echo ${{ secrets.PULP_PDNS_GPG_PUBKEY_MASTER }} || echo ${{ secrets.PULP_PDNS_GPG_PUBKEY }} )" >> $GITHUB_OUTPUT
       - run: |
-          inv test-install-package ${PRODUCT_REPO_NAME}-${SHORTVERSION} ${{ matrix.os }} ${{ secrets.PULP_CONTENT_URL }} ${{ steps.get-gpg-pubkey-url.outputs.gpg-pubkey-url }} ${PRODUCT} ${VERSION}
+          inv test-install-package ${PRODUCT_REPO_NAME}-${SHORTVERSION} ${{ matrix.os }} ${CONTENT_URL} ${GPG_PUB_KEY_URL} ${PRODUCT} ${VERSION}
       - name: check package version
         run: |
           docker run -t test-build-${PRODUCT_REPO_NAME}-${SHORTVERSION}-${{ matrix.os }}:latest ${BINARY_NAME} --version | grep -qq ${VERSION} && echo "[OK]" || exit 1

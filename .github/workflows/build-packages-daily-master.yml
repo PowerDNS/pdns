@@ -36,7 +36,6 @@ jobs:
       PULP_CONTENT_URL: ${{ secrets.PULP_CONTENT_URL }}
       PULP_CI_USERNAME: ${{ secrets.PULP_CI_USERNAME }}
       PULP_CI_PASSWORD: ${{ secrets.PULP_CI_PASSWORD }}
-      PULP_PDNS_GPG_PUBKEY_MASTER: ${{ secrets.PULP_PDNS_GPG_PUBKEY_MASTER }}
       PULP_PDNS_GPG_PUBKEY: ${{ secrets.PULP_PDNS_GPG_PUBKEY }}
 
   call-build-packages-dnsdist:
@@ -64,7 +63,6 @@ jobs:
       PULP_CONTENT_URL: ${{ secrets.PULP_CONTENT_URL }}
       PULP_CI_USERNAME: ${{ secrets.PULP_CI_USERNAME }}
       PULP_CI_PASSWORD: ${{ secrets.PULP_CI_PASSWORD }}
-      PULP_PDNS_GPG_PUBKEY_MASTER: ${{ secrets.PULP_PDNS_GPG_PUBKEY_MASTER }}
       PULP_PDNS_GPG_PUBKEY: ${{ secrets.PULP_PDNS_GPG_PUBKEY }}
 
   call-build-packages-rec:
@@ -92,5 +90,4 @@ jobs:
       PULP_CONTENT_URL: ${{ secrets.PULP_CONTENT_URL }}
       PULP_CI_USERNAME: ${{ secrets.PULP_CI_USERNAME }}
       PULP_CI_PASSWORD: ${{ secrets.PULP_CI_PASSWORD }}
-      PULP_PDNS_GPG_PUBKEY_MASTER: ${{ secrets.PULP_PDNS_GPG_PUBKEY_MASTER }}
       PULP_PDNS_GPG_PUBKEY: ${{ secrets.PULP_PDNS_GPG_PUBKEY }}
