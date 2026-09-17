@@ -1,2 +1,3 @@
 #!/bin/sh
 cleandig www.dsdelegation.example.com A dnssec
+cleandig www.dsdelegation.example.com A
