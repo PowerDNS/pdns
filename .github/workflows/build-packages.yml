@@ -42,19 +42,19 @@ on:
       DOWNLOADS_AUTOBUILT_HOSTKEY:
         required: true
       PULP_FILE_REPO_NAME:
-        required: true
+        required: false
       PULP_URL:
-        required: true
+        required: false
       PULP_CONTENT_URL:
-        required: true
+        required: false
       PULP_CI_USERNAME:
-        required: true
+        required: false
       PULP_CI_PASSWORD:
-        required: true
+        required: false
       PULP_PDNS_GPG_PUBKEY_MASTER:
-        required: true
+        required: false
       PULP_PDNS_GPG_PUBKEY:
-        required: true
+        required: false
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
@@ -357,7 +357,8 @@ jobs:
 
           if echo ${distro} | egrep -qq "centos|el"; then
             repo_type=rpm
-            repo_name="repo-${distro}-${release}-${ARCH}-${PRODUCT_REPO_NAME}-${SHORTVERSION}"
+            # Upload packages to both centos and el repositories
+            repo_name="repo-centos-${release}-${ARCH}-${PRODUCT_REPO_NAME}-${SHORTVERSION} repo-el-${release}-${ARCH}-${PRODUCT_REPO_NAME}-${SHORTVERSION}"
           elif echo ${distro} | egrep -qq "ubuntu|debian"; then
             repo_type=deb
             repo_name="repo-${distro}"
@@ -542,6 +543,8 @@ jobs:
       VERSION: ${{ needs.build.outputs.version }}
       SHORTVERSION: ${{ needs.build.outputs.shortversion }}
       DEBIAN_FRONTEND: noninteractive
+      CONTENT_URL: ${{ secrets.PULP_CONTENT_URL }}
+      GPG_PUB_KEY_URL: ${{ secrets.PULP_PDNS_GPG_PUBKEY }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -549,11 +552,8 @@ jobs:
           persist-credentials: false
       - run: |
           sudo apt update && sudo apt install -y python3-invoke
-      - id: get-gpg-pubkey-url
-        run: |
-          echo "gpg-pubkey-url=$(echo ${VERSION} | grep -qq "master" && echo ${{ secrets.PULP_PDNS_GPG_PUBKEY_MASTER }} || echo ${{ secrets.PULP_PDNS_GPG_PUBKEY }} )" >> $GITHUB_OUTPUT
       - run: |
-          inv test-install-package ${PRODUCT_REPO_NAME}-${SHORTVERSION} ${{ matrix.os }} ${{ secrets.PULP_CONTENT_URL }} ${{ steps.get-gpg-pubkey-url.outputs.gpg-pubkey-url }} ${PRODUCT} ${VERSION}
+          inv test-install-package ${PRODUCT_REPO_NAME}-${SHORTVERSION} ${{ matrix.os }} ${CONTENT_URL} ${GPG_PUB_KEY_URL} ${PRODUCT} ${VERSION}
       - name: check package version
         run: |
           docker run -t test-build-${PRODUCT_REPO_NAME}-${SHORTVERSION}-${{ matrix.os }}:latest ${BINARY_NAME} --version | grep -qq ${VERSION} && echo "[OK]" || exit 1
