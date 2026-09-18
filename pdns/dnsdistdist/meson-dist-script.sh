@@ -56,3 +56,6 @@ cd "$MESON_PROJECT_BUILD_ROOT"
 # Generate man pages
 meson compile man-pages
 cp -vp *.1 "$MESON_PROJECT_DIST_ROOT"
+
+# Add the OpenWrt UCI integration files to the tarball
+cp -vpR "$MESON_SOURCE_ROOT"/openwrt-integration "$MESON_PROJECT_DIST_ROOT"
