@@ -504,11 +504,13 @@ tools = {
 
 if get_option('fuzz-targets')
   fuzz_extra_sources = [mplexer_sources,
+    # FFI files are directly added to the binary, because otherwise the visibility
+    # is ignored and the functions that are not used in the binary are not exported
+    src_dir / 'dnsdist-lua-ffi.cc',
     src_dir / 'dnsdist-mock-functions.cc',
     # different build options for the unit tests
     src_dir / 'dnsdist-packet-processing.cc',
   ]
-  fuzzer_cpp_args = ['-DDNSDIST_FUZZERS']
   fuzzer_ldflags = []
   # https://github.com/harfbuzz/harfbuzz/pull/2549/files
   if get_option('fuzzer_ldflags') == ''
@@ -522,10 +524,11 @@ if get_option('fuzz-targets')
       'link-args': fuzzer_ldflags,
       'files-extra': fuzz_extra_sources,
       'deps-extra': [
+         dep_ffi_interface,
          dep_libsystemd,
+         dep_lua,
          dep_protozero,
        ],
-      'cpp_args': fuzzer_cpp_args,
       'fuzzing-target': true,
     },
     'fuzz-target-dnsdist-ecs' : {
@@ -533,10 +536,11 @@ if get_option('fuzz-targets')
       'link-args': fuzzer_ldflags,
       'files-extra': fuzz_extra_sources,
       'deps-extra': [
+         dep_ffi_interface,
          dep_libsystemd,
+         dep_lua,
          dep_protozero,
        ],
-      'cpp_args': fuzzer_cpp_args,
       'fuzzing-target': true,
     },
   }
@@ -553,10 +557,11 @@ if get_option('fuzz-targets')
            src_dir / 'xsk.cc'
            ],
          'deps-extra': [
+           dep_ffi_interface,
            dep_libsystemd,
+           dep_lua,
            dep_protozero,
          ],
-         'cpp_args': fuzzer_cpp_args,
          'fuzzing-target': true,
        },
     }

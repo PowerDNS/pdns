@@ -26,6 +26,7 @@
 #include "dnsdist-dnscrypt.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
@@ -34,10 +35,6 @@
 #include "dnsdist-self-answers.hh"
 #include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-udp.hh"
-
-#ifndef DNSDIST_FUZZERS
-#include "dnsdist-lua.hh"
-#endif /* !DNSDIST_FUZZERS */
 
 #ifndef DISABLE_DELAY_PIPE
 namespace dnsdist::delay_pipe
@@ -1006,10 +1003,8 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
       string qname = dnsQuestion.ids.qname.toLogString();
       bool countQuery{true};
       if (runtimeConfig.d_queryCountConfig.d_filter) {
-#ifndef DNSDIST_FUZZERS
         auto lock = g_lua.lock();
         std::tie(countQuery, qname) = runtimeConfig.d_queryCountConfig.d_filter(&dnsQuestion);
-#endif /* DNSDIST_FUZZERS */
       }
 
       if (countQuery) {

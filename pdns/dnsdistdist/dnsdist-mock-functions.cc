@@ -32,25 +32,3 @@ void doExitNicely([[maybe_unused]] int exitCode) {
 void handleServerStateChange([[maybe_unused]] const string& nameWithAddr, [[maybe_unused]] bool newResult)
 {
 }
-
-#ifdef DNSDIST_FUZZERS
-class LuaContext;
-
-void setupLuaLoadBalancingContext(LuaContext&);
-void setupLuaLoadBalancingContext([[maybe_unused]] LuaContext& luaCtx)
-{
-}
-
-void setupLuaFFIPerThreadContext(LuaContext&);
-void setupLuaFFIPerThreadContext([[maybe_unused]] LuaContext& luaCtx)
-{
-}
-
-const char* getLuaFFIWrappers();
-const char* getLuaFFIWrappers()
-{
-  static const std::array<char, 1> s_empty{'\0'};
-  return s_empty.data();
-}
-
-#endif /* DNSDIST_FUZZERS */
