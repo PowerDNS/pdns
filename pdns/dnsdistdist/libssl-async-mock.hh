@@ -29,7 +29,7 @@
 // The gist of it is that the first handshake attempt results in the Async
 // IOState to be returned to the caller. It should then call the correct method
 // to get a file descriptor to poll, expecting the file descriptor to become
-// readable when the asynchronous operation has completed.
+// readable once the asynchronous operation has completed.
 // We emulate that via a notification queue, marking the file descriptor readable
 // as soon as the caller retrieves it.
 //

@@ -83,8 +83,8 @@ public:
      that will return a list of file descriptors. These descriptors can be polled,
      and will be marked as ready for reading when the asynchronous operation has
      completed. So we need to get these file descriptors, watch them (for example
-     by registering them in our polling multiplexer, and retry the operation that
-     previously returned IOStte::Async (tryHandshake, tryRead, tryWrite) again.
+     by registering them in our polling multiplexer), and retry the operation that
+     previously returned IOState::Async (tryHandshake, tryRead, tryWrite) again.
   */
   virtual std::vector<int> getAsyncFDs() = 0;
   virtual void close() = 0;
