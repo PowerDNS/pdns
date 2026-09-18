@@ -99,6 +99,17 @@ class TestConsoleConcurrentConnections(DNSDistTest):
     setConsoleMaximumConcurrentConnections(%d)
     """
 
+    @classmethod
+    def setUpClass(cls):
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+        # startDNSDist now checks if the console socket is up by default,
+        # which might mess up the concurrent connections counter. Let's wait one
+        # second to give more time to the console thread to notice that the
+        # connection has been closed and decrease the connections counter.
+        time.sleep(1)
+
     def testConsoleConnectionsLimit(self):
         """
         Console: Check the maximum number of connections
