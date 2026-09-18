@@ -95,6 +95,10 @@ ZONE RECORD COMMANDS
 
 In these commands, the ``rrset`` object name may also be written as ``record``.
 
+The three commands modifying zone contents (add, delete, replace) will *NOT*
+perform an automatic zone rectification, unless the ``-rectify`` option is
+passed to the command.
+
 rrset add *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
 
     Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT*
