@@ -2446,3 +2446,39 @@ class TestDOHNoIdleTimeoutKeepsConnection(DNSDistDOHTest, DNSDistTest):
         self.assertEqual(expectedQuery, receivedQuery)
 
         self.assertEqual(conn.getinfo(pycurl.NUM_CONNECTS), 0)
+
+
+class TestDOHOpenSSLAsynchronousEngine(DNSDistTest):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = "https://%s:%d/dns-query" % (_serverName, _dohServerPort)
+
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/dns-query" }, {provider="openssl", tlsAsyncMode=true})
+    """
+    _config_params = [
+        "_testServerPort",
+        "_dohServerPort",
+        "_serverCert",
+        "_serverKey",
+    ]
+    _verboseMode = True
+
+    def testSimple(self):
+        """
+        DoH: Test OpenSSL asynchronous engine support
+        """
+        name = "openssl-async-engine.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        response = dns.message.make_response(query)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQueryWrapper(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
