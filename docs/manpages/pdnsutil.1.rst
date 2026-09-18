@@ -330,10 +330,10 @@ zone rectify-all
     Calculates the 'ordername' and 'auth' fields for all zones so they
     comply with DNSSEC settings. Can be used to fix up migrated data.
 
-zone secure *ZONE*
+zone secure *ZONE* [*ZONE*]...
 
-    Configures a zone called *ZONE* with reasonable DNSSEC settings. You
-    should manually run 'pdnsutil zone rectify' afterwards.
+    Configures a zone called *ZONE* with reasonable DNSSEC settings, and
+    performs a zone rectification.
 
 zone secure-all [**increase-serial**]
 
