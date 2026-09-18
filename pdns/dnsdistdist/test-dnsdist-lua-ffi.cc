@@ -37,12 +37,6 @@
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 
-bool dnsdist::webserver::addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
-{
-  (void)def;
-  return true;
-}
-
 BOOST_AUTO_TEST_SUITE(test_dnsdist_lua_ffi)
 
 BOOST_AUTO_TEST_CASE(test_Query)

@@ -40,6 +40,7 @@
 
 #include "dns.hh"
 #include "dnsdist-dnscrypt.hh"
+#include "dnsdist-ebpf.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-opentelemetry.hh"
 #include "dnsdist-systemd.hh"
@@ -109,10 +110,6 @@
 
 using std::thread;
 
-string g_outputBuffer;
-
-shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
-
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.
    We send directly to those sockets.
@@ -127,8 +124,6 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
    IDs are assigned by atomic increments of the socket offset.
  */
-
-Rings g_rings;
 
 void handleServerStateChange(const string& nameWithAddr, bool newResult)
 {

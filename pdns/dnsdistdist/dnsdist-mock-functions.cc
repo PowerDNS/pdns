@@ -20,30 +20,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#define BOOST_TEST_NO_MAIN
+#include "dnsdist.hh"
+#include "dnsdist-udp.hh"
 
-#ifndef BOOST_TEST_DYN_LINK
-#define BOOST_TEST_DYN_LINK
-#endif
+std::shared_ptr<dnsdist::udp::UDPTCPCrossQuerySender> dnsdist::udp::UDPCrossProtocolQuery::s_sender = std::make_shared<UDPTCPCrossQuerySender>();
 
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_MODULE unit
+void doExitNicely(int exitCode);
+void doExitNicely([[maybe_unused]] int exitCode) {
+};
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include <boost/test/unit_test.hpp>
-#include "dnsdist-rings.hh"
-
-// entry point:
-int main(int argc, char* argv[])
+void handleServerStateChange([[maybe_unused]] const string& nameWithAddr, [[maybe_unused]] bool newResult)
 {
-  setenv("BOOST_TEST_RANDOM", "1", 1); // NOLINT(concurrency-mt-unsafe)
-  g_rings.reset();
-  Rings::RingsConfiguration config{
-    .capacity = 10000U,
-    .numberOfShards = 10U,
-  };
-  g_rings.init(config);
-  return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }

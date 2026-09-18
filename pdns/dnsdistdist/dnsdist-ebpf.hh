@@ -19,31 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#pragma once
 
-#define BOOST_TEST_NO_MAIN
+#include <memory>
 
-#ifndef BOOST_TEST_DYN_LINK
-#define BOOST_TEST_DYN_LINK
-#endif
+#include "bpf-filter.hh"
 
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_MODULE unit
-
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include <boost/test/unit_test.hpp>
-#include "dnsdist-rings.hh"
-
-// entry point:
-int main(int argc, char* argv[])
-{
-  setenv("BOOST_TEST_RANDOM", "1", 1); // NOLINT(concurrency-mt-unsafe)
-  g_rings.reset();
-  Rings::RingsConfiguration config{
-    .capacity = 10000U,
-    .numberOfShards = 10U,
-  };
-  g_rings.init(config);
-  return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
-}
+extern std::shared_ptr<BPFFilter> g_defaultBPFFilter;

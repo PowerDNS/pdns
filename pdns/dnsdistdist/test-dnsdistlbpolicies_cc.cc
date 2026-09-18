@@ -14,43 +14,12 @@
 #include "dolog.hh"
 
 #include "ext/luawrapper/include/LuaContext.hpp"
-RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
-
-std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
-
-#if BENCH_POLICIES
-#include "dnsdist-rings.hh"
-Rings g_rings;
-#endif /* BENCH_POLICIES */
-
-/* add stub implementations, we don't want to include the corresponding object files
-   and their dependencies */
-
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
-bool TLSFrontend::setupTLS()
-{
-  return true;
-}
-
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
-bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dnsQuestion, const std::string& reason)
-{
-  (void)dnsQuestion;
-  (void)reason;
-  return false;
-}
-
-void setLuaNoSideEffect()
-{
-}
 
 bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& tlsCtx)
 {
   (void)tlsCtx;
   return true;
 }
-
-string g_outputBuffer;
 
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
