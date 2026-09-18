@@ -173,7 +173,7 @@ TEST_CASE("Cache/Cleanup")
   }
   auto before = cache.getSize();
 
-  const auto now = time(nullptr);
+  const auto now = getmonotonic();
   BENCHMARK("cleanup")
   {
     return cache.purgeExpired(0U, now);
