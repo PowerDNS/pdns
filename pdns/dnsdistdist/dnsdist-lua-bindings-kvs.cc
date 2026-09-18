@@ -52,7 +52,35 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
   });
 #endif // HAVE_MMDB
 
-#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB)
+#ifdef HAVE_REDIS
+  luaCtx.writeFunction("newRedisKVStore", [client](const std::shared_ptr<RedisClient>& redisClient, std::optional<LuaAssociativeTable<boost::variant<std::string, bool, LuaArray<std::string>>>> vars) {
+    if (client) {
+      return std::shared_ptr<KeyValueStore>(nullptr);
+    }
+
+    std::optional<std::string> lookupAction;
+    std::optional<std::string> dataName;
+    getOptionalValue<std::string>(vars, "dataName", dataName);
+    getOptionalValue<std::string>(vars, "lookupAction", lookupAction);
+
+    checkAllParametersConsumed("newRedisKVStore", vars);
+
+    std::string uniqueId = "url=" + redisClient->getUrl().to_string() + ",action=" + lookupAction.value_or("GET") + ",data-name=" + dataName.value_or("") + ",";
+    std::string labels = "redis-server=" + redisClient->getUrl().host + ":" + std::to_string(redisClient->getUrl().port) + ",redis-action=" + lookupAction.value_or("GET") + ",data-name=" + dataName.value_or("");
+    std::shared_ptr<RedisStats> stats = std::make_shared<RedisStats>(labels);
+
+    dnsdist::configuration::updateRuntimeConfiguration([uniqueId, &stats](dnsdist::configuration::RuntimeConfiguration& config) {
+      if (config.d_redisStats.count(uniqueId) > 0) {
+        throw std::runtime_error("Duplicate redis instance. Combination of arguments has to be unique!");
+      }
+      config.d_redisStats.emplace(uniqueId, std::shared_ptr(stats));
+    });
+
+    return std::shared_ptr<KeyValueStore>(new RedisKVStore(redisClient, lookupAction, dataName, stats));
+  });
+#endif /* HAVE_REDIS */
+
+#if defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) || defined(HAVE_REDIS)
   /* Key Value Store objects */
   luaCtx.writeFunction("KeyValueLookupKeySourceIP", [](std::optional<uint8_t> v4Mask, std::optional<uint8_t> v6Mask, std::optional<bool> includePort) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP(v4Mask ? *v4Mask : 32, v6Mask ? *v6Mask : 128, includePort ? *includePort : false));
@@ -122,5 +150,5 @@ void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] b
 
     return kvs->reload();
   });
-#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) || defined(HAVE_MMDB) || defined(HAVE_REDIS) */
 }
