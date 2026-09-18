@@ -207,6 +207,25 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrText(co
   }
 }
 
+#ifdef HAVE_LUA_RECORDS
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrLua(const string& text)
+{
+  // This is similar in spirit to xfrText(text, true), but while xfrText uses
+  // segmentDNSText which attemps to produce the largest possible segments,
+  // we will try to split segmentts on whitespace boundaries.
+  if(text.empty()) {
+    d_content.push_back(0);
+    return;
+  }
+  vector<string> segments = segmentLuaText(text);
+  for(const string& str : segments) {
+    d_content.push_back(str.length());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    d_content.insert(d_content.end(), str.c_str(), str.c_str() + str.length());
+  }
+}
+#endif
+
 template <typename Container> void GenericDNSPacketWriter<Container>::xfrUnquotedText(const string& text, bool lenField)
 {
   if(text.empty()) {
