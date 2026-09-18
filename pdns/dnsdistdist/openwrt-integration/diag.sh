@@ -5,7 +5,7 @@ DIR=$(mktemp -d)
 
 cd $DIR
 
-logread > $DIR/logread.txt
+logread > logread.txt
 wget -q -O dnsdist.statistics.txt http://127.0.0.1:9080/api/v1/servers/localhost
 PIDS=$(pidof dnsdist)
 
@@ -30,9 +30,9 @@ do
 	done
 done
 
-TARF=$DIR/dnsdist.diagnostics.$(date +%s).tar
+TARF=dnsdist.diagnostics.$(date +%s).tar
 
 tar -cf $TARF *.txt
 rm -f *.txt
 
-echo Diagnostics stored as $TARF
+echo Diagnostics stored as $DIR/$TARF
