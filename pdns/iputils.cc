@@ -24,11 +24,14 @@
 #endif
 
 #include "iputils.hh"
+#include "logger.hh"
+#include "logging.hh"
 
 #ifdef __linux__
 #include <fstream>
 #endif
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <boost/format.hpp>
 
 #ifdef HAVE_GETIFADDRS
@@ -749,3 +752,19 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& /* itf
   return result;
 }
 #endif // HAVE_GETIFADDRS
+
+#if !defined(DNSDIST) // [
+void SockaddrWrapper::tightenSocketPermissions(Logr::log_t slog, const std::string& gid) const
+{
+  if (!gid.empty()) {
+    if (chmod(toString().c_str(), 0660) < 0) {
+      SLOG(g_log << Logger::Error << "Unable to change permissions of Unix socket '" << toString() << "': " << stringerror() << endl,
+           slog->error(Logr::Error, errno, "Unable to change permissions of Unix socket", "path", Logging::Loggable(toString())));
+    }
+    if (chown(toString().c_str(), static_cast<uid_t>(-1), strToGID(gid)) < 0) {
+      SLOG(g_log << Logger::Error << "Unable to change group ownership of Unix socket '" << toString() << "': " << stringerror() << endl,
+           slog->error(Logr::Error, errno, "Unable to change group ownership of Unix socket", "path", Logging::Loggable(toString())));
+    }
+  }
+}
+#endif // ] DNSDIST
