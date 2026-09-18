@@ -20,7 +20,7 @@ devonly-regression-test-mode
 
     @pytest.mark.external
     def testTXT(self):
-        query = dns.message.make_query('.', 'DNSKEY', want_dnssec=True)
+        query = dns.message.make_query('org.', 'DNSKEY', want_dnssec=True)
         query.flags |= dns.flags.AD
 
         # As this test uses external servers, be more generous wrt timeouts than the default 2.0s
@@ -34,6 +34,19 @@ devonly-regression-test-mode
         try:
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             tcpcount = ret
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            raise
+
+        rec_controlCmd = [
+            os.environ["RECCONTROL"],
+            "--config-dir=%s" % "configs/" + self._confdir,
+            "get dot-outqueries",
+        ]
+        try:
+            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+            dotcount = ret
 
         except subprocess.CalledProcessError as e:
             print(e.output)
@@ -57,6 +70,7 @@ devonly-regression-test-mode
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             self.assertNotEqual(ret, b'UNKNOWN\n')
             self.assertNotEqual(ret, b'0\n')
+            self.assertGreater(int(ret), int(dotcount))
 
         except subprocess.CalledProcessError as e:
             print(e.output)
