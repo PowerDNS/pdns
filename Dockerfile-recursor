@@ -4,55 +4,62 @@
 #   docker run -p 1053:53 -p 1053:53/udp -ti --rm recursor
 #   dig a www.example.com @0 -p 1053
 
-# Builder
 FROM debian:trixie-slim AS builder
-
-ENV NO_LUA_JIT="s390x"
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Reusable layer for base update
-RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
-
-# Enable backports to get a recent enough version of meson
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/bookworm-backports.list
-# devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y --no-install-recommends devscripts equivs git curl jq && apt-get clean
-
-COPY builder-support /source/builder-support
-
-# TODO: control file is not in tarballs at all right now
-RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/recursor/debian-buster/control && \
-    apt-get install -y -t bookworm-backports meson && \
+RUN apt-get update && \
+    apt-get dist-upgrade -y && \
     apt-get clean
 
-COPY meson /source/meson
-COPY pdns /source/pdns
-COPY build-aux /source/build-aux
-COPY m4 /source/m4
-COPY ext /source/ext
-COPY .git /source/.git
+# devscripts provides mk-build-deps and more
+RUN apt-get install -y --no-install-recommends \
+        devscripts \
+        equivs \
+        git \
+        cmake \
+        curl \
+        jq \
+        libclang-dev \
+        meson \
+        ninja-build
 
-COPY builder-support/helpers/install_rust.sh /source/install_rust.sh
-COPY builder-support/helpers/rust.json /source/rust.json
-RUN cd /source/ && ./install_rust.sh
+# TODO: make sure /source looks roughly the same from git or tar
+WORKDIR /source
+
+# import everything (could be pdns.git or a tarball)
+COPY builder-support/ builder-support/
+
+# TODO: control file is not in tarballs at all right now
+RUN mk-build-deps -i -t 'apt-get -o Debug::pkgProblemResolver=yes -y --no-install-recommends' builder-support/debian/recursor/debian-buster/control && \
+    apt-get clean
+
+# Install Rust
+COPY builder-support/helpers/install_rust.sh install_rust.sh
+COPY builder-support/helpers/rust.json rust.json
+RUN ./builder-support/helpers/install_rust.sh
+
+WORKDIR /source
+COPY meson/ meson/
+COPY pdns/ pdns/
+COPY ext/ ext/
+COPY .git/ .git/
 
 # build and install (TODO: before we hit this line, rearrange /source structure if we are coming from a tarball)
 WORKDIR /source/pdns/recursordist
 
-ARG MAKEFLAGS=
-ENV MAKEFLAGS=${MAKEFLAGS:--j2}
+# avoid installing pandoc
+RUN touch pdns_recursor.1 rec_control.1
 
-ARG DOCKER_FAKE_RELEASE=NO
-ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
+# Install Lua
+ARG NO_LUA_JIT="s390x"
+RUN LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    apt-get install -y --no-install-recommends lib${LUAVER}-*dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Manpage deps
-# RUN apt-get install -y python3-venv && apt-get clean
-
-# Manpage prevent
-RUN touch pdns_recursor.1 rec_control.1 # avoid installing pandoc
-
+ARG DOCKER_FAKE_RELEASE="NO"
+ARG MAKEFLAGS="-j2"
 RUN mkdir /build && \
-    LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y lib${LUAVER}-*dev ninja-build && \
     BUILDDIR=$(mktemp -d) && \
     IS_RELEASE="${DOCKER_FAKE_RELEASE}" \
     LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -ldl" \
@@ -65,7 +72,7 @@ RUN mkdir /build && \
       -Db_pie=true \
       -Dlibcap=enabled \
       -Dsigners-libsodium=enabled \
-      -Dlua=${LUAVER} \
+      -Dlua=auto \
       -Dsnmp=enabled \
       -Ddns-over-tls=enabled \
       -Ddnstap=enabled \
@@ -74,44 +81,50 @@ RUN mkdir /build && \
     meson compile -C ${BUILDDIR} && \
     meson install -C ${BUILDDIR} --destdir /build && \
     strip /build/usr/local/bin/* && \
-    rm -rf /build/lib # remove systemd unit files, we do not need them and copying /lib to the run-time image breaks it
+    # remove systemd unit files, we do not need them and copying /lib to the run-time image breaks it
+    rm -rf /build/lib
 
-RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
+WORKDIR /tmp
+RUN mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/rec_control /build/usr/local/sbin/pdns_recursor && \
     sed 's/^shlibs:Depends=/Depends: /' debian/substvars >> debian/control && \
     equivs-build debian/control && \
+    mkdir /build/tmp/ && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
+
 
 # Runtime
 FROM debian:trixie-slim
 
-# Reusable layer for base update - Should be cached from builder
-RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
+# Reusable layer for base update
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y && \
+    apt-get clean
 
-# Ensure python3 and jinja2 is present (for startup script), and tini for signal management
-RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin adduser && apt-get clean
-
-# Executables from builder
+# Copy build output
 COPY --from=builder /build /
-RUN chmod 1777 /tmp # FIXME: better not use /build/tmp for equivs at all
 
-# Ensure dependencies are present
-RUN apt-get install -y /tmp/equivs-dummy_1.0_all.deb && apt-get clean
+# FIXME: better not use /build/tmp for equivs at all
+RUN chmod 1777 /tmp
 
-# Start script
+# Install dependencies
+# - python3 + jinja2 (for startup script)
+# - tini (for signal management)
+# - adduser (for adding an unprivileged user)
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        python3 python3-jinja2 \
+        tini \
+        adduser libcap2-bin \
+        /tmp/equivs-dummy_1.0_all.deb && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create unprivileged pdns user and directories
+RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953 && \
+    install -d --owner pdns --group pdns /var/run/pdns-recursor /etc/powerdns/recursor.d /etc/powerdns/templates.d
+
 COPY dockerdata/startup.py /usr/local/sbin/pdns_recursor-startup
-
-# Config file(s) from builder
 COPY dockerdata/recursor.conf /etc/powerdns/
-
-# Is recursor.d necessary if we copy the config into recursor.conf? (see above)
-RUN mkdir -p /etc/powerdns/recursor.d /var/run/pdns-recursor /etc/powerdns/templates.d
-
-# Work with pdns user - not root
-RUN adduser --system --disabled-password --disabled-login --no-create-home --group pdns --uid 953
-RUN chown pdns:pdns /var/run/pdns-recursor /etc/powerdns/recursor.d /etc/powerdns/templates.d
-USER pdns
 
 # Default DNS ports
 EXPOSE 53/udp
@@ -120,4 +133,6 @@ EXPOSE 53/tcp
 # Default webserver port
 EXPOSE 8082/tcp
 
+USER pdns
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_recursor-startup"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=1s --start-interval=1s --retries=3 CMD ["rec_control", "pingsilent"]
