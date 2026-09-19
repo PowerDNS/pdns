@@ -26,6 +26,7 @@ launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes
 logging-structured
+pkcs11=yes
 __EOF__
         if [ $context = bind-hybrid-nsec3 ]
         then
