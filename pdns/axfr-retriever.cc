@@ -153,16 +153,12 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
       }
     }
     else {
-      records->clear();
-      records->reserve(mdp.d_answers.size());
-
       for(auto& r: mdp.d_answers) {
         if (r.d_type == QType::SOA) {
           d_soacount++;
         }
-
-        records->push_back(std::move(r));
       }
+      *records = std::move(mdp.d_answers);
     }
   }
   catch(const std::runtime_error& re) {
