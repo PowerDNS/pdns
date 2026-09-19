@@ -118,7 +118,7 @@ public:
 
   void startTransaction(const ZoneName& zone)
   {
-    (*d_keymetadb->backends.begin())->startTransaction(zone);
+    (*d_keymetadb->backends.begin())->startDomainModificationTransaction(zone);
   }
 
   void commitTransaction()
