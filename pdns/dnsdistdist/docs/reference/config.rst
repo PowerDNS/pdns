@@ -626,7 +626,7 @@ Servers
     Removed ``addXPF`` from server_table.
 
   .. versionchanged:: 2.2.0
-    Added ``ecdheCurves`` and ``maxOutstandingQueries`` to server_table.
+    Added ``ecdheCurves`` and ``maxOutstandingQueries`` to server_table. Added redirection feature with ``enableRedirection``, ``redirectionRetryInterval``, ``redirectMaxFollowCount``, ``redirectionPool``, ``redirectionDoHKey`` and ``redirectionKeep`` options in server_table.
 
   :param str server_string: A simple IP:PORT string.
   :param table server_table: A table with at least an ``address`` key
@@ -721,6 +721,12 @@ Servers
     ``keyLogFile``                           ``str``               "Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1."
     ``dscp``                                 ``number``            "The DSCP marking value to be applied. Range 0-63. Default is 0 which means no action for DSCP marking."
     ``maxOutstandingQueries``                ``number``            "Maximum number of outstanding queries assigned to this backend, no matter the protocol used and over all connections (see ``maxInFlight`` for the maximum number of outstanding queries per connection). Default is 0 which means unlimited"
+    ``enableRedirection``                    ``bool``              "Whether to use the 'Encrypted DNS Server Redirection' mechanism to automatically switch out an encrypted backend for a more preferable backend, depending on the priorities present in the SVCB record returned by the backend. Default to false."
+    ``redirectionRetryInterval``             ``number``            "If ``enableRedirection`` is set, how often to check if a redirection is available, in seconds. This only applies if redirection failed. Default is 3600 seconds."
+    ``redirectMaxFollowCount``               ``number``            "If ``enableRedirection`` is set, how many redirections should be followed in a chain before stopping. Default is 10, meaning at most 10 redirections will be followed and that last redirection will be used."
+    ``redirectionPool``                      ``string``            "If ``enableRedirection`` is set, in which pool to place the newly redirected backend. Default is empty which means the backend is placed in the default pool."
+    ``redirectionDoHKey``                    ``number``            "If ``enableRedirection`` is set, the value to use for the SVC key corresponding to the DoH path. Default is 7."
+    ``redirectionKeep``                      ``bool``              "If ``enableRedirection`` is set, whether to keep the pre-redirection backend around after a redirection. Default is false which means the backend will be replaced until the process is repeated."
 
 .. function:: getServer(index) -> Server
 
