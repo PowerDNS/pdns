@@ -522,8 +522,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   std::optional<Netmask> subnet;
   ids.queryRealTime.start();
   DNSQuestion dnsQuestion(ids, query);
-  packetCache->get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
-  packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, std::nullopt);
+  DNSDistPacketCache::Time now;
+  packetCache->get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP, now);
+  packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, std::nullopt, now);
 
   std::string poolName("test-pool");
   auto testPool = ServerPool();

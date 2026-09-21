@@ -226,7 +226,7 @@ static void maintThread()
         }
       }
 
-      const time_t now = time(nullptr);
+      const DNSDistPacketCache::Time now;
       for (const auto& pair : caches) {
         /* shall we keep expired entries ? */
         if (pair.second) {
