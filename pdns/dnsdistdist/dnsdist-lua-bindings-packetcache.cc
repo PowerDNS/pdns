@@ -118,7 +118,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
   });
   luaCtx.registerFunction<size_t (std::shared_ptr<DNSDistPacketCache>::*)(size_t)>("purgeExpired", [](std::shared_ptr<DNSDistPacketCache>& cache, size_t upTo) {
     if (cache) {
-      const time_t now = time(nullptr);
+      const DNSDistPacketCache::Time now;
 
       return cache->purgeExpired(upTo, now);
     }
@@ -234,9 +234,11 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
         return;
       }
 
+      const DNSDistPacketCache::Time now;
+
       uint64_t records = 0;
       try {
-        records = cache->dump(fd, rawResponse ? *rawResponse : false);
+        records = cache->dump(fd, now, rawResponse ? *rawResponse : false);
       }
       catch (const std::exception& e) {
         close(fd);

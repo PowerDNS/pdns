@@ -127,7 +127,7 @@ bool DNSDistPacketCache::insertLocked(std::unordered_map<uint32_t, CacheValue>& 
   return false;
 }
 
-void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL)
+void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL, const Time& now)
 {
   if (response.size() < sizeof(dnsheader) || response.size() > getMaximumEntrySize()) {
     return;
@@ -183,8 +183,7 @@ void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subn
     return;
   }
 
-  const time_t now = time(nullptr);
-  time_t newValidity = now + minTTL;
+  time_t newValidity = now.d_real + minTTL;
   CacheValue newValue;
   newValue.qname = qname;
   newValue.qtype = qtype;
@@ -192,7 +191,7 @@ void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subn
   newValue.queryFlags = queryFlags;
   newValue.len = response.size();
   newValue.validity = newValidity;
-  newValue.added = now;
+  newValue.added = now.d_real;
   newValue.receivedOverUDP = receivedOverUDP;
   newValue.dnssecOK = dnssecOK;
   newValue.value = std::string(response.begin(), response.end());
@@ -220,7 +219,7 @@ void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subn
   }
 }
 
-bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
+bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_t* keyOut, std::optional<Netmask>& subnet, bool dnssecOK, bool receivedOverUDP, const Time& now, uint32_t allowExpired, bool skipAging, bool truncatedOK, bool recordMiss)
 {
   if (dnsQuestion.ids.qtype == QType::AXFR || dnsQuestion.ids.qtype == QType::IXFR) {
     ++d_misses;
@@ -239,7 +238,6 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
   }
 
   uint32_t shardIndex = getShardIndex(key);
-  time_t now = time(nullptr);
   time_t age{0};
   bool stale = false;
   auto& response = dnsQuestion.getMutableData();
@@ -260,8 +258,8 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     }
 
     const CacheValue& value = mapIt->second;
-    if (value.validity <= now) {
-      if ((now - value.validity) >= static_cast<time_t>(allowExpired)) {
+    if (value.validity <= now.d_real) {
+      if ((now.d_real - value.validity) >= static_cast<time_t>(allowExpired)) {
         if (recordMiss) {
           ++d_misses;
         }
@@ -308,7 +306,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     }
 
     if (!stale) {
-      age = now - value.added;
+      age = now.d_real - value.added;
     }
     else {
       age = (value.validity - value.added) - d_settings.d_staleTTL;
@@ -345,7 +343,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
    If the cache has more than one shard, we will try hard
    to make sure that every shard has free space remaining.
 */
-size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
+size_t DNSDistPacketCache::purgeExpired(size_t upTo, const Time& now)
 {
   const size_t maxPerShard = upTo / d_settings.d_shardCount;
 
@@ -363,7 +361,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
     for (auto it = map->begin(); toRemove > 0 && it != map->end();) {
       const CacheValue& value = it->second;
 
-      if (value.validity <= now) {
+      if (value.validity <= now.d_real) {
         it = map->erase(it);
         --toRemove;
         --shard.d_entriesCount;
@@ -535,7 +533,7 @@ uint64_t DNSDistPacketCache::getEntriesCount()
   return getSize();
 }
 
-uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
+uint64_t DNSDistPacketCache::dump(int fileDesc, const Time& now, bool rawResponse)
 {
   auto fileDescDuplicated = dup(fileDesc);
   if (fileDescDuplicated < 0) {
@@ -549,7 +547,6 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
   fprintf(filePtr.get(), "; dnsdist's packet cache dump follows\n;\n");
 
   uint64_t count = 0;
-  time_t now = time(nullptr);
   for (auto& shard : d_shards) {
     auto map = shard.d_map.read_lock();
 
@@ -565,7 +562,7 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
           rcode = dnsHeader.rcode;
         }
 
-        fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.value().toString().c_str() : "empty", rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
+        fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now.d_real), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.value().toString().c_str() : "empty", rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
 
         if (rawResponse) {
           std::string rawDataResponse = Base64Encode(value.value);

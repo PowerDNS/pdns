@@ -59,6 +59,7 @@ TEST_CASE("Cache/Lookup")
   settings.d_maxEntries = 100000U;
   settings.d_shardCount = 10U;
 
+  const DNSDistPacketCache::Time now;
   DNSDistPacketCache cache(settings);
   InternalQueryState ids{};
   const DNSName qname{"dnsdist.org."};
@@ -72,13 +73,14 @@ TEST_CASE("Cache/Lookup")
 
   std::optional<Netmask> subnet{};
   uint32_t cacheKey = 0;
-  cache.get(dnsQuestion, 42U, &cacheKey, subnet, true, true);
-  cache.insert(cacheKey, std::nullopt, 0U, true, qname, ids.qtype, ids.qclass, response, true, RCode::NoError, std::nullopt);
+
+  cache.get(dnsQuestion, 42U, &cacheKey, subnet, true, true, now);
+  cache.insert(cacheKey, std::nullopt, 0U, true, qname, ids.qtype, ids.qclass, response, true, RCode::NoError, std::nullopt, now);
 
   const size_t iterations = 100000U;
   auto testCode = [&](size_t iterationsPerThread) {
     for (size_t idx = 0U; idx < iterationsPerThread; idx++) {
-      cache.get(dnsQuestion, 42U, &cacheKey, subnet, true, true);
+      cache.get(dnsQuestion, 42U, &cacheKey, subnet, true, true, now);
     }
   };
 
@@ -106,6 +108,7 @@ TEST_CASE("Cache/Insertion")
   settings.d_maxEntries = 100000U;
   settings.d_shardCount = 10U;
 
+  const DNSDistPacketCache::Time now;
   DNSDistPacketCache cache(settings);
   InternalQueryState ids{};
   const DNSName qname{"dnsdist.org."};
@@ -119,12 +122,12 @@ TEST_CASE("Cache/Insertion")
 
   std::optional<Netmask> subnet{};
   uint32_t cacheKey = 0;
-  cache.get(dnsQuestion, 42U, &cacheKey, subnet, true, true);
+  cache.get(dnsQuestion, 42U, &cacheKey, subnet, true, true, now);
 
   const size_t iterations = 100000U;
   auto testCode = [&](size_t iterationsPerThread) {
     for (size_t idx = 0U; idx < iterationsPerThread; idx++) {
-      cache.insert(cacheKey, std::nullopt, 0U, true, qname, ids.qtype, ids.qclass, response, true, RCode::NoError, std::nullopt);
+      cache.insert(cacheKey, std::nullopt, 0U, true, qname, ids.qtype, ids.qclass, response, true, RCode::NoError, std::nullopt, now);
     }
   };
 
@@ -152,6 +155,7 @@ TEST_CASE("Cache/Cleanup")
   settings.d_maxEntries = 100000U;
   settings.d_shardCount = 10U;
 
+  const DNSDistPacketCache::Time now;
   DNSDistPacketCache cache(settings);
 
   /* insert entries */
@@ -168,15 +172,16 @@ TEST_CASE("Cache/Cleanup")
 
     std::optional<Netmask> subnet{};
     uint32_t cacheKey = 0;
-    cache.get(dnsQuestion, 42U, &cacheKey, subnet, true, true);
-    cache.insert(cacheKey, std::nullopt, 0U, true, qname, ids.qtype, ids.qclass, response, true, RCode::NoError, std::nullopt);
+    cache.get(dnsQuestion, 42U, &cacheKey, subnet, true, true, now);
+    cache.insert(cacheKey, std::nullopt, 0U, true, qname, ids.qtype, ids.qclass, response, true, RCode::NoError, std::nullopt, now);
   }
   auto before = cache.getSize();
 
-  const auto now = time(nullptr);
+  const DNSDistPacketCache::Time now2;
+
   BENCHMARK("cleanup")
   {
-    return cache.purgeExpired(0U, now);
+    return cache.purgeExpired(0U, now2);
   };
 
   CHECK(cache.getSize() == before);
