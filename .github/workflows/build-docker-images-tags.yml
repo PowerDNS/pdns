@@ -32,6 +32,7 @@ jobs:
       image-name-suffix: ${{ steps.get-image-version.outputs.version }}
       image-tag: ${{ steps.get-image-tag.outputs.tag }}
       image-description-suffix: ${{ steps.get-image-description.outputs.description }}
+      image-timestamp: ${{ steps.get-image-timestamp.outputs.timestamp }}
     steps:
       - run: echo "version=$(echo "${REF_NAME}" | cut -d '-' -f 2 | awk -F'.' '{print $1$2}')" >> $GITHUB_OUTPUT
         id: get-image-version
@@ -39,6 +40,8 @@ jobs:
         id: get-image-tag
       - run: echo "description=$(echo "${REF_NAME}" | cut -d '-' -f 2- | awk -F'.' '{print "v"$1"."$2".x"}')" >> $GITHUB_OUTPUT
         id: get-image-description
+      - run: echo "timestamp=$(date -u +"%Y%m%d%H%M")" >> $GITHUB_OUTPUT
+        id: get-image-timestamp
 
   call-build-image-auth:
     uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@master
@@ -51,6 +54,7 @@ jobs:
       image-tags: |-
         latest
         ${{ needs.prepare.outputs.image-tag }}
+        ${{ needs.prepare.outputs.image-tag }}-${{ needs.prepare.outputs.image-timestamp }}
       image-description: 'PowerDNS Authoritative Server ${{ needs.prepare.outputs.image-description-suffix }}'
       platforms: linux/amd64,linux/arm64/v8
       build-args: |-
@@ -72,6 +76,7 @@ jobs:
       image-tags: |-
         latest
         ${{ needs.prepare.outputs.image-tag }}
+        ${{ needs.prepare.outputs.image-tag }}-${{ needs.prepare.outputs.image-timestamp }}
       image-description: 'PowerDNS Recursor ${{ needs.prepare.outputs.image-description-suffix }}'
       platforms: linux/amd64,linux/arm64/v8
       build-args: |-
@@ -93,6 +98,7 @@ jobs:
       image-tags: |-
         latest
         ${{ needs.prepare.outputs.image-tag }}
+        ${{ needs.prepare.outputs.image-tag }}-${{ needs.prepare.outputs.image-timestamp }}
       image-description: 'PowerDNS DNSdist ${{ needs.prepare.outputs.image-description-suffix }}'
       platforms: linux/amd64,linux/arm64/v8
       build-args: |-
