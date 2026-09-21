@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <memory>
+#include <deque>
 #include <vector>
 #include <thread>
 
@@ -104,6 +106,7 @@ TEST_CASE("Cache/Lookup")
 
 TEST_CASE("Cache/Insertion")
 {
+  // this bench doesn't *really* insert; the insertion fails
   DNSDistPacketCache::CacheSettings settings;
   settings.d_maxEntries = 100000U;
   settings.d_shardCount = 10U;
@@ -145,6 +148,82 @@ TEST_CASE("Cache/Insertion")
         thread.join();
       }
       return threads.size();
+    };
+  }
+}
+
+TEST_CASE("Cache/DisctinctGetAndInsert")
+{
+  // this bench actually inserts several times
+  const size_t entries = 100000U;
+
+  struct Packet
+  {
+    DNSName d_qname;
+    PacketBuffer d_query;
+    PacketBuffer d_response;
+    InternalQueryState d_iqs;
+  };
+  std::vector<Packet> packets;
+  packets.reserve(entries);
+
+  DNSDistPacketCache::CacheSettings settings;
+  settings.d_maxEntries = 2 * entries;
+  settings.d_shardCount = 10U;
+  settings.d_deferrableInsertLock = false; // to actually test contention
+  const DNSDistPacketCache::Time now;
+
+  {
+    for (size_t idx = 0; idx < entries; idx++) {
+      InternalQueryState ids{};
+      ids.qname = DNSName("dnsdist" + std::to_string(idx) + ".org.");
+      ids.qtype = QType::A;
+      ids.qclass = QClass::IN;
+
+      auto q = getQuery(ids);
+      auto r = getResponse(ids);
+
+      packets.push_back(Packet{ids.qname, std::move(q), std::move(r), std::move(ids)});
+    }
+  }
+
+  for (size_t threadsCount : std::vector<size_t>{1, 10, 20}) {
+    BENCHMARK_ADVANCED(std::to_string(threadsCount))(Catch::Benchmark::Chronometer meter)
+    {
+      std::deque<DNSDistPacketCache> caches;
+      for (int i = 0; i < meter.runs(); i++) {
+        caches.emplace_back(settings, now);
+      }
+
+      const size_t perThread = entries / threadsCount;
+
+      auto testCode = [&now, &caches, &packets, perThread](int run, size_t thr) {
+        DNSDistPacketCache& cache = caches[run];
+        size_t start = thr * perThread;
+        size_t end = (thr + 1) * perThread;
+        for (size_t i = start; i < end; i++) {
+          auto& packet = packets[i];
+
+          uint32_t cacheKey = 0;
+          std::optional<Netmask> subnet{};
+          DNSQuestion dnsq(packet.d_iqs, packet.d_query);
+          cache.get(dnsq, 42U, &cacheKey, subnet, true, true, now);
+          cache.insert(cacheKey, std::nullopt, 0U, true, packet.d_qname, QType::A, QClass::IN, packet.d_response, true, RCode::NoError, std::nullopt, now);
+        }
+      };
+
+      meter.measure([&](int run) {
+        DNSDistPacketCache& cache = caches[run];
+        std::vector<std::thread> threads;
+        threads.reserve(threadsCount);
+        for (size_t thr = 0; thr < threadsCount; thr++) {
+          threads.emplace_back(testCode, run, thr);
+        }
+        for (auto& thread : threads) {
+          thread.join();
+        }
+        return cache.getSize();
+      });
     };
   }
 }
