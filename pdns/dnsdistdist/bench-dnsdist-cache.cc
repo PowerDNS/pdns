@@ -41,7 +41,7 @@ static PacketBuffer getQuery(const InternalQueryState& ids)
   return query;
 }
 
-static PacketBuffer getResponse(const InternalQueryState& ids)
+static PacketBuffer getResponse(const InternalQueryState& ids, uint32_t ttl)
 {
   PacketBuffer response;
   GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, ids.qtype, ids.qclass, 0);
@@ -49,7 +49,7 @@ static PacketBuffer getResponse(const InternalQueryState& ids)
   pwR.getHeader()->ra = 1;
   pwR.getHeader()->qr = 1;
   pwR.getHeader()->id = 42U;
-  pwR.startRecord(ids.qname, ids.qtype, 7200, ids.qclass, DNSResourceRecord::ANSWER);
+  pwR.startRecord(ids.qname, ids.qtype, ttl, ids.qclass, DNSResourceRecord::ANSWER);
   pwR.xfr32BitInt(0x01020304);
   pwR.commit();
   return response;
@@ -70,7 +70,7 @@ TEST_CASE("Cache/Lookup")
   ids.qclass = QClass::IN;
 
   auto query = getQuery(ids);
-  auto response = getResponse(ids);
+  auto response = getResponse(ids, 7200);
   auto dnsQuestion = DNSQuestion(ids, query);
 
   std::optional<Netmask> subnet{};
@@ -120,7 +120,7 @@ TEST_CASE("Cache/Insertion")
   ids.qclass = QClass::IN;
 
   auto query = getQuery(ids);
-  auto response = getResponse(ids);
+  auto response = getResponse(ids, 7200);
   auto dnsQuestion = DNSQuestion(ids, query);
 
   std::optional<Netmask> subnet{};
@@ -181,7 +181,7 @@ TEST_CASE("Cache/DisctinctGetAndInsert")
       ids.qclass = QClass::IN;
 
       auto q = getQuery(ids);
-      auto r = getResponse(ids);
+      auto r = getResponse(ids, 7200);
 
       packets.push_back(Packet{ids.qname, std::move(q), std::move(r), std::move(ids)});
     }
@@ -192,7 +192,7 @@ TEST_CASE("Cache/DisctinctGetAndInsert")
     {
       std::deque<DNSDistPacketCache> caches;
       for (int i = 0; i < meter.runs(); i++) {
-        caches.emplace_back(settings, now);
+        caches.emplace_back(settings);
       }
 
       const size_t perThread = entries / threadsCount;
@@ -246,7 +246,7 @@ TEST_CASE("Cache/Cleanup")
     ids.qclass = QClass::IN;
 
     auto query = getQuery(ids);
-    auto response = getResponse(ids);
+    auto response = getResponse(ids, 7200);
     auto dnsQuestion = DNSQuestion(ids, query);
 
     std::optional<Netmask> subnet{};
@@ -264,4 +264,55 @@ TEST_CASE("Cache/Cleanup")
   };
 
   CHECK(cache.getSize() == before);
+}
+
+TEST_CASE("Cache/CleanupRealistic")
+{
+  DNSDistPacketCache::CacheSettings settings;
+  auto entries = 100000U;
+  settings.d_maxEntries = 2 * entries;
+  settings.d_shardCount = 10U;
+
+  DNSDistPacketCache::Time now;
+
+  BENCHMARK_ADVANCED("cleanup")(Catch::Benchmark::Chronometer meter)
+  {
+    std::deque<DNSDistPacketCache> caches;
+    for (int i = 0; i < meter.runs(); i++) {
+      caches.emplace_back(settings);
+      // insert entries with random TTLs
+      for (size_t idx = 0; idx < entries; idx++) {
+        InternalQueryState ids{};
+        const DNSName qname{"dnsdist" + std::to_string(idx) + ".org."};
+        ids.qname = qname;
+        ids.qtype = QType::A;
+        ids.qclass = QClass::IN;
+
+        auto query = getQuery(ids);
+        auto response = getResponse(ids, 1 + (idx * 2654435761U % 7200));
+        auto dnsQuestion = DNSQuestion(ids, query);
+
+        std::optional<Netmask> subnet{};
+        uint32_t cacheKey = 0;
+        caches[i].get(dnsQuestion, 42U, &cacheKey, subnet, true, true, now);
+        caches[i].insert(cacheKey, std::nullopt, 0U, true, qname, ids.qtype, ids.qclass, response, true, RCode::NoError, std::nullopt, now);
+      }
+    }
+    meter.measure([&caches, &now](int run) {
+      size_t expired = 0;
+
+      DNSDistPacketCache::Time now2 = now; // copy time which we will move
+      DNSDistPacketCache& cache = caches[run];
+      auto const before = cache.getSize();
+
+      // 60 is the default delay
+      for (time_t s = 0; s < 7200; s += 60) {
+        now2.d_real += 60;
+        auto add = cache.purgeExpired(0U, now2);
+        expired += add;
+      }
+
+      CHECK(cache.getSize() + expired == before);
+    });
+  };
 }
