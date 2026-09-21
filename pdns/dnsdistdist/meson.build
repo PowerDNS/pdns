@@ -530,6 +530,7 @@ if get_option('fuzz-targets')
       'files-extra': fuzz_extra_sources,
       'deps-extra': [
          dep_ffi_interface,
+         dep_boost,
          dep_libsystemd,
          dep_lua,
          dep_protozero,
@@ -541,6 +542,7 @@ if get_option('fuzz-targets')
       'link-args': fuzzer_ldflags,
       'files-extra': fuzz_extra_sources,
       'deps-extra': [
+         dep_boost,
          dep_ffi_interface,
          dep_libsystemd,
          dep_lua,
@@ -562,6 +564,7 @@ if get_option('fuzz-targets')
            src_dir / 'xsk.cc'
            ],
          'deps-extra': [
+           dep_boost,
            dep_ffi_interface,
            dep_libsystemd,
            dep_lua,
@@ -688,6 +691,7 @@ if get_option('benchmark')
         src_dir / 'dnsdist-packet-processing.cc',
       ],
       'deps-extra': [
+        dep_boost,
         dep_catch2,
         dep_dnstap,
         dep_ffi_interface,
