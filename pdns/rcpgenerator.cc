@@ -398,8 +398,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
     }
 
     switch (key) {
-    case SvcParam::no_default_alpn:
-    case SvcParam::ohttp:
+    case SvcParam::no_default_alpn: [[fallthrough]];
+    case SvcParam::ohttp: [[fallthrough]];
+    case SvcParam::pvd:
       if (d_pos != d_end && d_string.at(d_pos) != ' ') {
         throw RecordTextException(k + " key can not have values");
       }
@@ -1017,13 +1018,14 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
       d_string.append(1, ' ');
 
     d_string.append(SvcParam::keyToString(param.getKey()));
-    if (param.getKey() != SvcParam::no_default_alpn && param.getKey() != SvcParam::ohttp && !(param.getKey() == SvcParam::docpath && param.getALPN().empty())) { // NOLINT(readability-simplify-boolean-expr)
+    if (param.getKey() != SvcParam::no_default_alpn && param.getKey() != SvcParam::ohttp && !(param.getKey() == SvcParam::docpath && param.getALPN().empty()) && param.getKey() != SvcParam::pvd) { // NOLINT(readability-simplify-boolean-expr)
       d_string.append(1, '=');
     }
 
     switch (param.getKey())
     {
-    case SvcParam::no_default_alpn:
+    case SvcParam::no_default_alpn: [[fallthrough]];
+    case SvcParam::pvd:
       break;
     case SvcParam::ipv4hint: /* fall-through */
     case SvcParam::ipv6hint:

@@ -45,6 +45,7 @@ public:
     ohttp = 8,
     tls_supported_groups = 9, /* https://datatracker.ietf.org/doc/draft-ietf-tls-key-share-prediction/ */
     docpath = 10, // https://datatracker.ietf.org/doc/html/rfc9953
+    pvd = 11, // https://datatracker.ietf.org/doc/html/draft-ietf-intarea-proxy-config-13#section-2.1
   };
 
   //! empty Param, unusable

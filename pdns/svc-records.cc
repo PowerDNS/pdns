@@ -35,6 +35,7 @@ const std::map<std::string, SvcParam::SvcParamKey> SvcParam::SvcParams = {
   {"ohttp", SvcParam::SvcParamKey::ohttp},
   {"tls-supported-groups", SvcParam::SvcParamKey::tls_supported_groups},
   {"docpath", SvcParam::SvcParamKey::docpath},
+  {"pvd", SvcParam::SvcParamKey::pvd},
 };
 
 SvcParam::SvcParamKey SvcParam::keyFromString(const std::string& k)
@@ -73,7 +74,7 @@ std::string SvcParam::keyToString(const SvcParam::SvcParamKey& k)
 SvcParam::SvcParam(const SvcParamKey& key)
 {
   d_key = key;
-  if (d_key != SvcParamKey::no_default_alpn && d_key != SvcParamKey::ohttp) {
+  if (d_key != SvcParamKey::no_default_alpn && d_key != SvcParamKey::ohttp && d_key != SvcParamKey::pvd) {
     throw std::invalid_argument("can not create non-empty SvcParam for key '" + keyToString(key) + "'");
   }
 }
@@ -178,6 +179,7 @@ bool SvcParam::operator==(const SvcParam& other) const
     return this->getALPN() == other.getALPN();
   case SvcParamKey::no_default_alpn: /* fallthrough */
   case SvcParamKey::ohttp:
+  case SvcParamKey::pvd:
     return true;
   case SvcParamKey::port:
     return this->getPort() == other.getPort();

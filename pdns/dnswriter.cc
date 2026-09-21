@@ -499,7 +499,8 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrSvcPara
       }
       break;
     }
-    case SvcParam::no_default_alpn:
+    case SvcParam::no_default_alpn: [[fallthrough]];
+    case SvcParam::pvd:
       xfr16BitInt(0); // no size :)
       break;
     case SvcParam::port:

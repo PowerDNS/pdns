@@ -234,6 +234,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. docpath", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x0a\x00\x00"))
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. docpath=one,two", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x0a\x00\x08\x03one\x03two"))
 
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. alpn=h3,h2 pvd", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x01\x00\x06\x02h3\x02h2\x00\x0b\x00\x00"))
+
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. key666=\"hello\"", "\0\x01\3foo\x08powerdns\x03org\x00\x02\x9a\x00\x005hello"))
      (CASE_L(QType::SVCB, "1 foo.powerdns.org. key666=hello\\210qoo", "1 foo.powerdns.org. key666=\"hello\\210qoo\"", "\0\x01\3foo\x08powerdns\x03org\x00\x02\x9a\x00\x009hello\xd2qoo"))
      (CASE_S(QType::SVCB, "1 foo.powerdns.org. key666=\"hello\\210qoo\"", "\0\x01\3foo\x08powerdns\x03org\x00\x02\x9a\x00\x009hello\xd2qoo"))
