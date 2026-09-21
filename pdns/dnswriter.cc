@@ -483,7 +483,8 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrSvcPara
         xfr16BitInt(m);
       }
       break;
-    case SvcParam::alpn:
+    case SvcParam::alpn: [[fallthrough]];
+    case SvcParam::docpath:
     {
       size_t totalSize = param.getALPN().size(); // All 1 octet size headers for each value
       for (auto const &a : param.getALPN()) {

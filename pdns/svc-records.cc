@@ -34,6 +34,7 @@ const std::map<std::string, SvcParam::SvcParamKey> SvcParam::SvcParams = {
   {"dohpath", SvcParam::SvcParamKey::dohpath},
   {"ohttp", SvcParam::SvcParamKey::ohttp},
   {"tls-supported-groups", SvcParam::SvcParamKey::tls_supported_groups},
+  {"docpath", SvcParam::SvcParamKey::docpath},
 };
 
 SvcParam::SvcParamKey SvcParam::keyFromString(const std::string& k)
@@ -80,7 +81,7 @@ SvcParam::SvcParam(const SvcParamKey& key)
 SvcParam::SvcParam(const SvcParamKey& key, const std::string& value)
 {
   d_key = key;
-  if (d_key != SvcParamKey::ech && d_key != SvcParamKey::dohpath && d_key < 10) {
+  if (d_key != SvcParamKey::ech && d_key != SvcParamKey::dohpath && d_key < 11) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string value");
   }
   if (d_key == SvcParamKey::ech) {
@@ -95,12 +96,10 @@ SvcParam::SvcParam(const SvcParamKey& key, const std::string& value)
 SvcParam::SvcParam(const SvcParamKey& key, std::vector<std::string>&& value)
 {
   d_key = key;
-  if (d_key != SvcParamKey::alpn) {
+  if (d_key != SvcParamKey::alpn && d_key != SvcParamKey::docpath) {
     throw std::invalid_argument("can not create SvcParam for " + keyToString(key) + " with a string-set value");
   }
-  if (d_key == SvcParamKey::alpn) {
-    d_alpn = std::move(value);
-  }
+  d_alpn = std::move(value);
 }
 
 SvcParam::SvcParam(const SvcParamKey& key, std::set<std::string>&& value)
@@ -174,7 +173,8 @@ bool SvcParam::operator==(const SvcParam& other) const
   switch (this->d_key) {
   case SvcParamKey::mandatory:
     return this->getMandatory() == other.getMandatory();
-  case SvcParamKey::alpn:
+  case SvcParamKey::alpn: /* fallthrough */
+  case SvcParamKey::docpath:
     return this->getALPN() == other.getALPN();
   case SvcParamKey::no_default_alpn: /* fallthrough */
   case SvcParamKey::ohttp:
@@ -218,8 +218,8 @@ uint16_t SvcParam::getPort() const
 
 const std::vector<std::string>& SvcParam::getALPN() const
 {
-  if (d_key != SvcParam::alpn) {
-    throw std::invalid_argument("getALPN called for non-alpn key '" + keyToString(d_key) + "'");
+  if (d_key != SvcParam::alpn && d_key != SvcParam::docpath) {
+    throw std::invalid_argument("getALPN called for non-alpn-like key '" + keyToString(d_key) + "'");
   }
   return d_alpn;
 }
@@ -242,7 +242,7 @@ const std::string& SvcParam::getECH() const
 
 const std::string& SvcParam::getValue() const
 {
-  if (d_key != SvcParamKey::dohpath && d_key < 10) {
+  if (d_key != SvcParamKey::dohpath && d_key < 11) {
     throw std::invalid_argument("getValue called for non-single value key '" + keyToString(d_key) + "'");
   }
   return d_value;

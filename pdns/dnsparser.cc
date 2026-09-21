@@ -770,7 +770,8 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
       kvs.insert(SvcParam(key, std::move(paramKeys)));
       break;
     }
-    case SvcParam::alpn: {
+    case SvcParam::alpn: [[fallthrough]];
+    case SvcParam::docpath: {
       size_t stop = d_pos + len;
       std::vector<string> alpns;
       while (d_pos < stop) {

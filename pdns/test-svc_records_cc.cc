@@ -58,6 +58,10 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_keyFromString) {
     BOOST_CHECK(k == 9);
     BOOST_CHECK(k == SvcParam::tls_supported_groups);
 
+    k = SvcParam::keyFromString("docpath");
+    BOOST_CHECK(k == 10);
+    BOOST_CHECK(k == SvcParam::docpath);
+
     k = SvcParam::keyFromString("key0");
     BOOST_CHECK(k == 0);
     BOOST_CHECK(k == SvcParam::mandatory);
@@ -82,7 +86,8 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_keyToString) {
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::dohpath), "dohpath");
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::ohttp), "ohttp");
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::tls_supported_groups), "tls-supported-groups");
-    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(10)), "key10");
+    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey::docpath), "docpath");
+    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(99)), "key99");
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(666)), "key666");
 }
 
