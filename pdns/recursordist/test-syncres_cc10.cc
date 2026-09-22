@@ -2312,7 +2312,6 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_oob)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()

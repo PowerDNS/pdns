@@ -2254,7 +2254,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
   setCacheOnly(oldCacheOnly);
   d_followCNAME = oldFollowCNAME;
   setOutOfBand(oldWasOutOfBand);
-  
+
   if (s_max_busy_dot_probes > 0 && s_dot_to_port_853) {
     for (auto& add : ret) {
       if (shouldDoDoT(add, d_now.tv_sec)) {
