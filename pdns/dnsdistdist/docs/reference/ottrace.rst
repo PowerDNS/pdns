@@ -129,6 +129,8 @@ This can be easily achieved by adding the `send_downstream_traceparent` option w
             value: true
             send_downstream_traceparent: true
 
+  .. md-tab-item:: Lua
+
     .. code-block:: lua
 
       addAction(AllRule(), SetTraceAction(true, {sendDownstreamTraceparent=true}), {name="Enable tracing"})
