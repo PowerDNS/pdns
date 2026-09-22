@@ -46,6 +46,7 @@ jobs:
       image-tag: ${{ steps.get-image-tag.outputs.tag }}
       image-name: ${{ steps.get-image-metadata.outputs.name }}
       image-description: ${{ steps.get-image-metadata.outputs.description }}
+      image-timestamp: ${{ steps.get-image-timestamp.outputs.timestamp }}
     env:
       INPUT_REF: ${{ inputs.ref }}
       PRODUCT: ${{ inputs.product }}
@@ -75,6 +76,8 @@ jobs:
           fi
           echo "description=$description" >> $GITHUB_OUTPUT
         id: get-image-metadata
+      - run: echo "timestamp=$(date -u +"%Y%m%d%H%M")" >> $GITHUB_OUTPUT
+        id: get-image-timestamp
 
   call-build-docker-image:
     uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@master
@@ -86,6 +89,7 @@ jobs:
       image-tags: |-
         latest
         ${{ needs.prepare.outputs.image-tag }}
+        ${{ needs.prepare.outputs.image-tag }}-${{ needs.prepare.outputs.image-timestamp }}
       image-description: ${{ needs.prepare.outputs.image-description }}
       platforms: ${{ inputs.platforms }}
       build-args: ${{ inputs.build-args }}
