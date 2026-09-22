@@ -96,7 +96,7 @@ RemoteLoggerInterface::Result OTLPLogger::queueData(const std::string& data)
 
 RemoteLoggerInterface::Result OTLPLogger::queueHttpData(const std::string& data)
 {
-  auto response = d_miniCurl->postURL(d_address, data, d_httpHeaders);
+  auto response = d_miniCurl->postURL(d_address, data, d_httpHeaders, d_http_timeout, d_http_fastopen, d_https_verify);
   protozero::pbf_reader reader(response);
   auto exportTraceServiceResponse = pdns::trace::ExportTraceServiceResponse::decode(reader);
   if (exportTraceServiceResponse.partial_success.rejected_spans == 0) {

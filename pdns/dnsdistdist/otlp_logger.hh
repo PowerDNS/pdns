@@ -74,6 +74,21 @@ public:
                  .d_otherError = d_permanentFailures};
   }
 
+  void setHTTPTimeout(const int timeout)
+  {
+    d_http_timeout = timeout;
+  }
+
+  void setHTTPFastOpen(const bool value)
+  {
+    d_http_fastopen = value;
+  }
+
+  void setSetHTTPSVerify(const bool value)
+  {
+    d_https_verify = value;
+  }
+
 private:
   LoggerType d_type;
   std::string d_address;
@@ -82,6 +97,9 @@ private:
 
   std::unique_ptr<MiniCurl> d_miniCurl{nullptr};
   MiniCurl::MiniCurlHeaders d_httpHeaders{{"Content-Type", "application/x-protobuf"}};
+  int d_http_timeout{2};
+  bool d_http_fastopen{false};
+  bool d_https_verify{true};
 
   [[nodiscard]] RemoteLoggerInterface::Result queueHttpData(const std::string& data);
   void senderThread();
