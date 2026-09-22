@@ -1001,6 +1001,8 @@ oskar
 otherdomain
 otherpool
 othervariant
+otlp
+otlplog
 ottracecondition
 ourname
 ourserial
