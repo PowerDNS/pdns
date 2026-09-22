@@ -106,6 +106,51 @@ Should you only want to receive the trace after a response was received from the
       addAction(AllRule(), SetTraceAction(true), {name="Enable tracing"})
       addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {}, {}, true), {name="Do PB logging"})
 
+Using the OTLP protocol
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Since version 2.2.0, it is possible to send traces using the `OTLP protocol <https://opentelemetry.io/docs/specs/otlp/>`__, allowing for easy integration of :program:`dnsdist` in existing observability frameworks.
+
+.. md-tab-set::
+
+  .. md-tab-item:: YAML
+
+      :ref:`remote_logging.otlp_loggers <yaml-settings-OtlpLoggerConfiguration>` can be used to define OTLP Loggers.
+
+      .. code-block:: yaml
+
+        logging:
+          open_telemetry_tracing:
+            enabled: true
+
+        remote_logging:
+          otlp_loggers:
+           - name: otlplog
+             address: http://127.0.0.1:8083/v1/traces
+
+        query_rules:
+         - name: Enable tracing
+           selector:
+             type: All
+           action:
+             type: SetTrace
+             value: true
+             remote_loggers:
+               - otlplog
+
+  .. md-tab-item:: Lua
+
+    :func:`newOtlpLogger` can be used to create an OTLP Logger.
+
+    .. code-block:: lua
+
+      setOpenTelemetryTracing(true)
+      newServer{address="127.0.0.1:%d"}
+      getServer(0):setUp()
+
+      otlpLogger = newOtlpLogger('http://127.0.0.1:8083/v1/traces', {interval=1})
+      addAction(AllRule(), SetTraceAction(true, {remoteLoggers={otlpLogger}}), {name="Enable tracing"})
+
 Passing Trace ID and Span ID to downstream servers
 --------------------------------------------------
 
