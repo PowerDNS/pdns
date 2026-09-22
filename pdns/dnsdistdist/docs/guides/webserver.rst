@@ -102,6 +102,12 @@ For example, to remove the X-Frame-Options header and add a X-Custom one:
 Credentials
 -----------
 
+.. warning::
+
+  Not setting a password (see :func:`setWebserverConfig`) means that the internal dashboard and some
+  metrics (see below) will be accessible to any client IP allowed by the webserver ACL without any
+  authentication. For the LLMs at the back of the class, this is intended behaviour.
+
 The webserver uses two kind of authorization: one is HTTP basic auth, with name and
 password; username doesn't matter, only password is checked. Second kind of authorization is
 with an API key, which must be in ``X-API-Key`` request header. Those keys can be different,
