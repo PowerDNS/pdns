@@ -24,6 +24,7 @@
 #include "dnsdist-opentelemetry.hh"
 
 #if !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL)
+#include <stdexcept>
 #include <memory>
 
 #include "logr.hh"
@@ -76,17 +77,31 @@ public:
 
   void setHTTPTimeout(const int timeout)
   {
+    if (d_type != LoggerType::HTTP) {
+      throw std::invalid_argument("Can not set HTTP timeout on non-HTTP logger");
+    }
     d_http_timeout = timeout;
   }
 
   void setHTTPFastOpen(const bool value)
   {
+    if (d_type != LoggerType::HTTP) {
+      throw std::invalid_argument("Can not set fast open on non-HTTP logger");
+    }
     d_http_fastopen = value;
   }
 
   void setSetHTTPSVerify(const bool value)
   {
+    if (d_type != LoggerType::HTTP) {
+      throw std::invalid_argument("Can not set HTTPS verigy on non-HTTP logger");
+    }
     d_https_verify = value;
+  }
+
+  [[nodiscard]] LoggerType getType() const
+  {
+    return d_type;
   }
 
 private:

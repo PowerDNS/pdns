@@ -2030,7 +2030,13 @@ void registerOtlpLogger([[maybe_unused]] const OtlpLoggerConfiguration& config)
     dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
     return;
   }
-  std::shared_ptr<RemoteLoggerInterface> object = std::make_shared<OTLPLogger>(std::string(config.address), config.interval, config.queue_size, config.batch_size);
+  auto logger = std::make_shared<OTLPLogger>(std::string(config.address), config.interval, config.queue_size, config.batch_size);
+  if (logger->getType() == OTLPLogger::LoggerType::HTTP) {
+    logger->setHTTPTimeout(static_cast<int>(config.http_options.timeout));
+    logger->setHTTPFastOpen(config.http_options.fastopen);
+    logger->setSetHTTPSVerify(config.http_options.verify);
+  }
+  auto object = std::dynamic_pointer_cast<RemoteLoggerInterface>(logger);
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #else
   throw std::runtime_error("Unable to create OTLP logger: OTLP support is disabled");
