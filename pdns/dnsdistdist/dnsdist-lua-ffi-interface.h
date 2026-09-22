@@ -246,9 +246,21 @@ uint32_t dnsdist_ffi_dnspacket_get_record_ttl(const dnsdist_ffi_dnspacket_t* pac
 uint16_t dnsdist_ffi_dnspacket_get_record_content_length(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnspacket_get_record_content_offset(const dnsdist_ffi_dnspacket_t* packet, size_t idx) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_dnspacket_get_name_at_offset_raw(const char* packet, size_t packetSize, size_t offset, char* name, size_t nameSize) __attribute__ ((visibility ("default")));
+/* we used to require "addr" to be a large enough buffer to hold the 4 bytes of a IPv4 address, and "addrSize" was only an out parameter, but we can no longer have nice things because of AI-assisted reports
+   spamming us to death. So "addrSize" now has to be set to the size of the buffer pointed to by "addr", and the call will fail if the buffer is not large enough. "addrSize" is still
+   updated to the number of bytes actually written to "addr" when the call succeeds. */
 bool dnsdist_ffi_dnspacket_parse_a_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize) __attribute__ ((visibility ("default")));
+/* we used to require "addr" to be a large enough buffer to hold the 16 bytes of a IPv6 address, and "addrSize" was only an out parameter, but we can no longer have nice things because of AI-assisted reports
+   spamming us to death. So "addrSize" now has to be set to the size of the buffer pointed to by "addr", and the call will fail if the buffer is not large enough. "addrSize" is still
+   updated to the number of bytes actually written to "addr" when the call succeeds. */
 bool dnsdist_ffi_dnspacket_parse_aaaa_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize) __attribute__ ((visibility ("default")));
-bool dnsdist_ffi_dnspacket_parse_address_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize) __attribute__ ((visibility ("default")));
+/* we used to require "addr" to be a large enough buffer to hold the 16 bytes of a IPv6 address, and "addrSize" was only an out parameter, but we can no longer have nice things because of AI-assisted reports
+   spamming us to death. So "addrSize" now has to be set to the size of the buffer pointed to by "addr", and the call will fail if the buffer is not large enough. "addrSize" is still
+   updated to the number of bytes actually written to "addr" when the call succeeds. */
+bool dnsdist_ffi_dnspacket_parse_address_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize) __attribute__((visibility("default")));
+/* we used to require "name" to be a large enough buffer to hold a DNS name, and "nameSize" was only an out parameter, but we can no longer have nice things because of AI-assisted reports
+   spamming us to death. So "nameSize" now has to be set to the size of the buffer pointed to by "name", and the call will fail if the buffer is not large enough. "nameSize" is still
+   updated to the number of bytes actually written to "name" when the call succeeds. */
 bool dnsdist_ffi_dnspacket_parse_cname_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* name, size_t* nameSize) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t*) __attribute__ ((visibility ("default")));
 

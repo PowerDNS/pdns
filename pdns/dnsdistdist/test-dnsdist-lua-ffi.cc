@@ -734,17 +734,20 @@ BOOST_AUTO_TEST_CASE(test_ProxyProtocolIncoming)
 BOOST_AUTO_TEST_CASE(test_PacketOverlay)
 {
   const DNSName target("powerdns.com.");
+  const DNSName cnameTarget("target.powerdns.com.");
   PacketBuffer response;
   GenericDNSPacketWriter<PacketBuffer> pwR(response, target, QType::A, QClass::IN, 0);
   pwR.getHeader()->qr = 1;
   pwR.getHeader()->rd = 1;
   pwR.getHeader()->ra = 1;
   pwR.getHeader()->id = htons(42);
-  pwR.startRecord(target, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+  pwR.startRecord(target, QType::CNAME, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+  pwR.xfrName(cnameTarget);
+  pwR.startRecord(cnameTarget, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
   ComboAddress v4Addr("192.0.2.1");
   pwR.xfrCAWithoutPort(4, v4Addr);
   pwR.commit();
-  pwR.startRecord(target, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
+  pwR.startRecord(cnameTarget, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ADDITIONAL);
   ComboAddress v6Addr("2001:db8::1");
   pwR.xfrCAWithoutPort(6, v6Addr);
   pwR.commit();
@@ -754,13 +757,15 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
   /* invalid parameters */
   BOOST_CHECK(!dnsdist_ffi_dnspacket_parse(nullptr, 0, nullptr));
 
-  dnsdist_ffi_dnspacket_t* packet = nullptr;
+  dnsdist_ffi_dnspacket_t* nakedPacket = nullptr;
   // invalid packet
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  BOOST_CHECK(!dnsdist_ffi_dnspacket_parse(reinterpret_cast<const char*>(response.data()), response.size() - 1, &packet));
+  BOOST_CHECK(!dnsdist_ffi_dnspacket_parse(reinterpret_cast<const char*>(response.data()), response.size() - 1, &nakedPacket));
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse(reinterpret_cast<const char*>(response.data()), response.size(), &packet));
-  BOOST_REQUIRE(packet != nullptr);
+  BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse(reinterpret_cast<const char*>(response.data()), response.size(), &nakedPacket));
+  BOOST_REQUIRE(nakedPacket != nullptr);
+  std::unique_ptr<dnsdist_ffi_dnspacket_t, decltype(&dnsdist_ffi_dnspacket_free)> packet(nakedPacket, &dnsdist_ffi_dnspacket_free);
+  nakedPacket = nullptr;
 
   const char* qname = nullptr;
   size_t qnameSize = 0;
@@ -769,17 +774,17 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
   dnsdist_ffi_dnspacket_get_qname_raw(nullptr, nullptr, nullptr);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qtype(nullptr), 0U);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qclass(nullptr), 0U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qtype(packet), QType::A);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qclass(packet), QClass::IN);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qtype(packet.get()), QType::A);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_qclass(packet.get()), QClass::IN);
 
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(nullptr, 0), 0U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet, 0), 0U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet, 1), 1U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet, 2), 0U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet, 3), 2U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet, 4), 0U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet.get(), 0), 0U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet.get(), 1), 2U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet.get(), 2), 0U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet.get(), 3), 2U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_records_count_in_section(packet.get(), 4), 0U);
 
-  dnsdist_ffi_dnspacket_get_qname_raw(packet, &qname, &qnameSize);
+  dnsdist_ffi_dnspacket_get_qname_raw(packet.get(), &qname, &qnameSize);
   BOOST_REQUIRE(qname != nullptr);
   BOOST_REQUIRE_EQUAL(qnameSize, target.wirelength());
   BOOST_CHECK_EQUAL(memcmp(qname, target.getStorage().data(), target.getStorage().size()), 0);
@@ -817,29 +822,96 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_offset(nullptr, 0), 0U);
   BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_name_at_offset_raw(nullptr, 0, 0, nullptr, 0), 0U);
 
-  // first record */
-  dnsdist_ffi_dnspacket_get_record_name_raw(packet, 0, &name, &nameSize);
+  // first record (CNAME)
+  dnsdist_ffi_dnspacket_get_record_name_raw(packet.get(), 0, &name, &nameSize);
   BOOST_REQUIRE(name != nullptr);
   BOOST_REQUIRE_EQUAL(nameSize, target.wirelength());
   BOOST_CHECK_EQUAL(memcmp(name, target.getStorage().data(), target.getStorage().size()), 0);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_type(packet, 0), QType::A);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_class(packet, 0), QClass::IN);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_ttl(packet, 0), 7200U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet, 0), sizeof(v4Addr.sin4.sin_addr.s_addr));
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_offset(packet, 0), 42U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_type(packet.get(), 0), QType::CNAME);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_class(packet.get(), 0), QClass::IN);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_ttl(packet.get(), 0), 7200U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet.get(), 0), cnameTarget.wirelength());
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_offset(packet.get(), 0), 42U);
+  {
+    std::string nameBuffer{};
+    nameBuffer.resize(256);
+    size_t written{0U};
+    // too small
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(!dnsdist_ffi_dnspacket_parse_cname_record(reinterpret_cast<const char*>(response.data()), packet.get(), 0, nameBuffer.data(), &written));
+    written = nameBuffer.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse_cname_record(reinterpret_cast<const char*>(response.data()), packet.get(), 0, nameBuffer.data(), &written));
+    BOOST_CHECK_EQUAL(written, cnameTarget.wirelength());
+    nameBuffer.resize(written);
+    BOOST_CHECK_EQUAL(nameBuffer, cnameTarget.getStorage());
+  }
 
-  // second record
-  dnsdist_ffi_dnspacket_get_record_name_raw(packet, 1, &name, &nameSize);
+  // second record (A)
+  dnsdist_ffi_dnspacket_get_record_name_raw(packet.get(), 1, &name, &nameSize);
   BOOST_REQUIRE(name != nullptr);
-  BOOST_REQUIRE_EQUAL(nameSize, target.wirelength());
-  BOOST_CHECK_EQUAL(memcmp(name, target.getStorage().data(), target.getStorage().size()), 0);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_type(packet, 1), QType::AAAA);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_class(packet, 1), QClass::IN);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_ttl(packet, 1), 7200U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet, 1), sizeof(v6Addr.sin6.sin6_addr.s6_addr));
-  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_offset(packet, 1), 58U);
+  BOOST_REQUIRE_EQUAL(nameSize, cnameTarget.wirelength());
+  BOOST_CHECK_EQUAL(memcmp(name, cnameTarget.getStorage().data(), cnameTarget.getStorage().size()), 0);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_type(packet.get(), 1), QType::A);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_class(packet.get(), 1), QClass::IN);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_ttl(packet.get(), 1), 7200U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet.get(), 1), sizeof(v4Addr.sin4.sin_addr.s_addr));
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_offset(packet.get(), 1), 75U);
+  {
+    std::array<char, 4> addr{};
+    size_t written{0U};
+    // too small
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(!dnsdist_ffi_dnspacket_parse_a_record(reinterpret_cast<const char*>(response.data()), packet.get(), 1, addr.data(), &written));
+    written = addr.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse_a_record(reinterpret_cast<const char*>(response.data()), packet.get(), 1, addr.data(), &written));
+    BOOST_CHECK_EQUAL(written, 4U);
+    BOOST_CHECK_EQUAL(memcmp(addr.data(), &v4Addr.sin4.sin_addr.s_addr, sizeof(v4Addr.sin4.sin_addr.s_addr)), 0);
 
-  dnsdist_ffi_dnspacket_free(packet);
+    // too small
+    written = 0U;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(!dnsdist_ffi_dnspacket_parse_address_record(reinterpret_cast<const char*>(response.data()), packet.get(), 1, addr.data(), &written));
+    written = addr.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse_address_record(reinterpret_cast<const char*>(response.data()), packet.get(), 1, addr.data(), &written));
+    BOOST_CHECK_EQUAL(written, 4U);
+    BOOST_CHECK_EQUAL(memcmp(addr.data(), &v4Addr.sin4.sin_addr.s_addr, sizeof(v4Addr.sin4.sin_addr.s_addr)), 0);
+  }
+
+  // third record (AAAA)
+  dnsdist_ffi_dnspacket_get_record_name_raw(packet.get(), 2, &name, &nameSize);
+  BOOST_REQUIRE(name != nullptr);
+  BOOST_REQUIRE_EQUAL(nameSize, cnameTarget.wirelength());
+  BOOST_CHECK_EQUAL(memcmp(name, cnameTarget.getStorage().data(), cnameTarget.getStorage().size()), 0);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_type(packet.get(), 2), QType::AAAA);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_class(packet.get(), 2), QClass::IN);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_ttl(packet.get(), 2), 7200U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_length(packet.get(), 2), sizeof(v6Addr.sin6.sin6_addr.s6_addr));
+  BOOST_CHECK_EQUAL(dnsdist_ffi_dnspacket_get_record_content_offset(packet.get(), 2), 91U);
+  {
+    std::array<char, 16> addr{};
+    size_t written{0U};
+    // too small
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(!dnsdist_ffi_dnspacket_parse_aaaa_record(reinterpret_cast<const char*>(response.data()), packet.get(), 2, addr.data(), &written));
+    written = addr.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse_aaaa_record(reinterpret_cast<const char*>(response.data()), packet.get(), 2, addr.data(), &written));
+    BOOST_CHECK_EQUAL(written, 16U);
+    BOOST_CHECK_EQUAL(memcmp(addr.data(), &v6Addr.sin6.sin6_addr.s6_addr, sizeof(v6Addr.sin6.sin6_addr.s6_addr)), 0);
+
+    // too small
+    written = 0U;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(!dnsdist_ffi_dnspacket_parse_address_record(reinterpret_cast<const char*>(response.data()), packet.get(), 2, addr.data(), &written));
+    written = addr.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse_address_record(reinterpret_cast<const char*>(response.data()), packet.get(), 2, addr.data(), &written));
+    BOOST_CHECK_EQUAL(written, 16U);
+    BOOST_CHECK_EQUAL(memcmp(addr.data(), &v6Addr.sin6.sin6_addr.s6_addr, sizeof(v6Addr.sin6.sin6_addr.s6_addr)), 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_RingBuffers)
