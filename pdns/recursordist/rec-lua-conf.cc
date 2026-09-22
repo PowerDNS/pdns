@@ -175,6 +175,9 @@ static void parseRPZParameters(const rpzOptions_t& have, RPZTrackerParams& param
   if (have.count("ignoreDuplicates") != 0) {
     params.ignoreDuplicates = boost::get<bool>(have.at("ignoreDuplicates"));
   }
+  if (have.count("wipePacketCache") != 0) {
+    params.wipePacketCache = boost::get<bool>(have.at("wipePacketCache"));
+  }
 }
 
 using protobufOptions_t = std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>>;
@@ -375,10 +378,6 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
 
       if (have.count("dumpFile") != 0) {
         params.dumpZoneFileName = boost::get<std::string>(have.at("dumpFile"));
-      }
-
-      if (have.count("wipePacketCache") != 0) {
-        params.wipePacketCache = boost::get<bool>(have.at("wipePacketCache"));
       }
     }
 
