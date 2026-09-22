@@ -3,6 +3,17 @@ Changelog
 
 .. changelog::
 
+  :version: 2.0.10
+  :released: 22nd of September 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18056
+
+    Fix dynamically blocking a suffix via the FFI interface. This was a regression introduced in 2.0.9.
+
+.. changelog::
+
   :version: 2.1.2
   :released: 8th of September 2026
 
