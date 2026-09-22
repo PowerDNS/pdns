@@ -856,7 +856,9 @@ static void mainthread()
     DNSPacket::s_doEDNSCookieProcessing = true;
     std::vector<std::string> secrets;
     stringtok(secrets, ::arg()["edns-cookie-secret"], ",");
-    DNSPacket::s_OldEDNSCookieKeys.reserve(secrets.size() - 1);
+    auto lockedEDNSCookieKey = DNSPacket::s_EDNSCookieKey.lock();
+    auto lockedOldEDNSCookieKeys = DNSPacket::s_OldEDNSCookieKeys.lock();
+    lockedOldEDNSCookieKeys->reserve(secrets.size() - 1);
 
     bool first{true};
     for (const auto& secret : secrets) {
@@ -868,7 +870,7 @@ static void mainthread()
         }
         std::array<char, EDNSCookiesOpt::EDNSCookieSecretSize / 2> key{};
         dns_random(key.data(), key.size());
-        DNSPacket::s_EDNSCookieKey = std::string(key.data(), key.size());
+        *lockedEDNSCookieKey = std::string(key.data(), key.size());
       }
       else {
         try {
@@ -877,10 +879,10 @@ static void mainthread()
           }
           auto secretBytes = makeBytesFromHex(secret);
           if (first) {
-            DNSPacket::s_EDNSCookieKey = std::move(secretBytes);
+            *lockedEDNSCookieKey = std::move(secretBytes);
           }
           else {
-            DNSPacket::s_OldEDNSCookieKeys.emplace_back(std::move(secretBytes));
+            lockedOldEDNSCookieKeys->emplace_back(std::move(secretBytes));
           }
         }
         catch (const std::range_error& e) {
