@@ -500,8 +500,14 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
         auto newSerial = getSerialFromPrimary(nullptr /* no structured logging */, primary, domain, sr); // TODO TSIG
         if(current_soa != nullptr) {
           g_log << Logger::Info << "Got SOA Serial for " << domain << " from " << primary.toStringWithPort() << ": " << newSerial << ", had Serial: " << current_soa->d_st.serial;
-          if (newSerial == current_soa->d_st.serial) {
-            g_log<<Logger::Info<<", not updating."<<endl;
+          if (rfc1982LessThanOrEqual(newSerial, current_soa->d_st.serial)) {
+            g_log<<Logger::Info<<", not updating"<<endl;
+            if (rfc1982LessThan(newSerial, current_soa->d_st.serial)) {
+              g_log<<Logger::Info<<", new serial is smaller than the existing serial."<<endl;
+            } else {
+              g_log<<Logger::Info<<", new serial is the same as the existing serial."<<endl;
+            }
+            g_log<<Logger::Info<<"."<<endl;
             continue;
           }
           g_log<<Logger::Info<<", will update."<<endl;
