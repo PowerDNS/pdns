@@ -575,16 +575,19 @@ public:
    * The name is not checked for adherence to length restrictions.
    * Compression pointers are not followed.
    */
-  void skipDomainName()
+  bool skipDomainName()
   {
-    uint8_t len;
-    while((len=get8BitInt())) {
-      if(len >= 0xc0) { // extended label
+    uint8_t len{};
+    bool isRoot = true;
+    while ((len = get8BitInt()) != 0) {
+      isRoot = false;
+      if (len >= 0xc0) { // extended label
         get8BitInt();
-        return;
+        return false;
       }
       skipBytes(len);
     }
+    return isRoot;
   }
 
   void skipBytes(uint16_t bytes)

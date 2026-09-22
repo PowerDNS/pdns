@@ -213,4 +213,79 @@ BOOST_AUTO_TEST_CASE(test_makeEDNSExtendedErrorOptString)
   BOOST_CHECK(!getEDNSExtendedErrorOptFromString(empty, parsed));
 }
 
+BOOST_AUTO_TEST_CASE(test_slowParseEDNSOptions_root_opt)
+{
+  const DNSName qname("example.com.");
+  std::vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, qname, QType::A, QClass::IN, 0);
+  pw.commit();
+
+  /* make it look like a response: one answer record */
+  pw.startRecord(qname, QType::A, 60, QClass::IN, DNSResourceRecord::ANSWER, true);
+  pw.xfr32BitInt(0x01020304U);
+  pw.commit();
+
+  EDNSSubnetOpts ecsOpts;
+  ecsOpts.setSource(Netmask("192.0.2.0/24"));
+  const std::string ecsOption = ecsOpts.makeOptString();
+
+  uint32_t ttl{0};
+  EDNS0Record stuff{};
+  stuff.version = 0;
+  stuff.extFlags = htons(0);
+  stuff.extRCode = 0;
+  memcpy(&ttl, &stuff, sizeof(stuff));
+  ttl = ntohl(ttl);
+  /* OPT RR with a non-root owner name */
+  pw.startRecord(DNSName("."), QType::OPT, ttl, 512U, DNSResourceRecord::ADDITIONAL, false);
+  pw.xfr16BitInt(EDNSOptionCode::ECS);
+  pw.xfr16BitInt(ecsOption.length());
+  pw.xfrBlob(ecsOption);
+  pw.commit();
+
+  PacketBuffer pbuf(packet.begin(), packet.end());
+  EDNSOptionViewMap options;
+  const bool parsed = slowParseEDNSOptions(pbuf, options);
+  BOOST_CHECK_EQUAL(parsed, true);
+  BOOST_REQUIRE(options.find(EDNSOptionCode::ECS) != options.end());
+  BOOST_CHECK_EQUAL(options.at(EDNSOptionCode::ECS).values.size(), 1U);
+}
+
+BOOST_AUTO_TEST_CASE(test_slowParseEDNSOptions_non_root_opt)
+{
+  const DNSName qname("example.com.");
+  std::vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, qname, QType::A, QClass::IN, 0);
+  pw.commit();
+
+  /* make it look like a response: one answer record */
+  pw.startRecord(qname, QType::A, 60, QClass::IN, DNSResourceRecord::ANSWER, true);
+  pw.xfr32BitInt(0x01020304U);
+  pw.commit();
+
+  EDNSSubnetOpts ecsOpts;
+  ecsOpts.setSource(Netmask("192.0.2.0/24"));
+  const std::string ecsOption = ecsOpts.makeOptString();
+
+  uint32_t ttl{0};
+  EDNS0Record stuff{};
+  stuff.version = 0;
+  stuff.extFlags = htons(0);
+  stuff.extRCode = 0;
+  memcpy(&ttl, &stuff, sizeof(stuff));
+  ttl = ntohl(ttl);
+  /* OPT RR with a non-root owner name */
+  pw.startRecord(DNSName("evil.example."), QType::OPT, ttl, 512U, DNSResourceRecord::ADDITIONAL, false);
+  pw.xfr16BitInt(EDNSOptionCode::ECS);
+  pw.xfr16BitInt(ecsOption.length());
+  pw.xfrBlob(ecsOption);
+  pw.commit();
+
+  PacketBuffer pbuf(packet.begin(), packet.end());
+  EDNSOptionViewMap options;
+  const bool parsed = slowParseEDNSOptions(pbuf, options);
+  BOOST_CHECK_EQUAL(parsed, false);
+  BOOST_REQUIRE(options.find(EDNSOptionCode::ECS) == options.end());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
