@@ -457,7 +457,7 @@ bool MOADNSParser::hasEDNS() const
   }
 
   for (const auto& record : d_answers) {
-    if (record.d_place == DNSResourceRecord::ADDITIONAL && record.d_type == QType::OPT) {
+    if (record.d_place == DNSResourceRecord::ADDITIONAL && record.d_type == QType::OPT && record.d_name.isRoot()) {
       return true;
     }
   }
@@ -1426,11 +1426,21 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
       dpm.skipBytes(4);
     }
     const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
-    for(size_t n = 0; n < numrecords; ++n) {
-      dpm.skipDomainName();
+    for(size_t index = 0; index < numrecords; ++index) {
+      const auto wasRoot = dpm.skipDomainName();
       const auto dnstype = dpm.get16BitInt();
+      uint8_t section{};
+      if (index < ntohs(dh->ancount)) {
+        section = 1;
+      }
+      else if (index < ntohs(dh->ancount) + ntohs(dh->nscount)) {
+        section = 2;
+      }
+      else {
+        section = 3;
+      }
 
-      if (dnstype == QType::OPT) {
+      if (section == 3 && dnstype == QType::OPT && wasRoot) {
         const auto dnsclass = dpm.get16BitInt();
         /* skip extended rcode and version */
         dpm.skipBytes(2);
