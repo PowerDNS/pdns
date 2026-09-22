@@ -83,7 +83,7 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
 
   :param int v4mask: Mask applied to IPv4 addresses. Default is 32 (the whole address)
   :param int v6mask: Mask applied to IPv6 addresses. Default is 128 (the whole address)
-  :param int includePort: Whether to append the port (in network byte-order) after the address. Default is false
+  :param int includePort: Whether to append the port (in network byte-order) after the address. Default is false. Note that this option is NOT compatible with MMDB databases.
 
 .. function:: KeyValueLookupKeySuffix([minLabels [, wireFormat]]) -> KeyValueLookupKey
 

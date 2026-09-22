@@ -365,11 +365,21 @@ json11::Json MMDBKVStore::parseAny(const LuaAny& any)
 
 bool MMDBKVStore::keyExists(const std::string& key)
 {
+  if (key.size() != sizeof(in_addr) && key.size() != sizeof(in6_addr)) {
+    /* not a valid key */
+    return false;
+  }
+
   auto addr = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
   return d_mmdb->exists(addr);
 }
 bool MMDBKVStore::getValue(const std::string& key, std::string& value)
 {
+  if (key.size() != sizeof(in_addr) && key.size() != sizeof(in6_addr)) {
+    /* not a valid key */
+    return false;
+  }
+
   auto addr = makeComboAddressFromRaw(key.size() == sizeof(in_addr) ? 4 : 6, key);
   LuaAny ret;
   bool result = d_mmdb->query(ret, d_queryParams, addr);
