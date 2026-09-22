@@ -471,7 +471,7 @@ void setupLuaRuleChainsManagement(LuaContext& luaCtx)
 
   for (const auto& chain : dnsdist::rules::getRuleChainDescriptions()) {
     auto fullName = std::string("add") + chain.prefix + std::string("Action");
-    luaCtx.writeFunction(fullName, [&fullName, &chain](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
+    luaCtx.writeFunction(fullName, [fullName, &chain](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
       if (era.type() != typeid(std::shared_ptr<DNSAction>)) {
         throw std::runtime_error(fullName + "() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
       }
@@ -493,7 +493,7 @@ void setupLuaRuleChainsManagement(LuaContext& luaCtx)
 
   for (const auto& chain : dnsdist::rules::getResponseRuleChainDescriptions()) {
     const auto fullName = std::string("add") + chain.prefix + std::string("ResponseAction");
-    luaCtx.writeFunction(fullName, [&fullName, &chain](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
+    luaCtx.writeFunction(fullName, [fullName, &chain](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
       if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
         throw std::runtime_error(fullName + "() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
       }
