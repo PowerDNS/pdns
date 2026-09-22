@@ -148,9 +148,9 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
             blockParameters.d_action = static_cast<DNSAction::Action>(*tmp);
           }
         }
-        if (block) {
-          namesToBlock.insert({DNSName(node_->fullname), std::move(blockParameters)});
-        }
+      }
+      if (block) {
+        namesToBlock.insert({DNSName(node_->fullname), std::move(blockParameters)});
       }
     }
     catch (const std::exception& exp) {
