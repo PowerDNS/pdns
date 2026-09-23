@@ -54,6 +54,12 @@ public:
 protected:
   virtual void allocateStatements();
   virtual void freeStatements();
+  // Engine-specific SQL probing for the existence of the views-related
+  // tables ("views" and "networks"). Returns a query yielding a single row
+  // whose first column is "1" when both tables exist, or an empty string if
+  // this backend does not implement Views support.
+  virtual std::string viewsDetectionQuery() const { return {}; }
+  void detectViews();
 
 public:
   unsigned int getCapabilities() override;
@@ -120,6 +126,14 @@ public:
   bool searchRecords(const string &pattern, size_t maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string &pattern, size_t maxResults, vector<Comment>& result) override;
   bool get_unsafe(DNSResourceRecord& rec, std::vector<std::pair<std::string, std::string>>& invalid) override;
+
+  bool getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaData) override;
+  void viewList(vector<string>& result) override;
+  void viewListZones(const string& view, vector<ZoneName>& result) override;
+  bool viewAddZone(const string& view, const ZoneName& zone) override;
+  bool viewDelZone(const string& view, const ZoneName& zone) override;
+  bool networkSet(const Netmask& net, std::string& tag) override;
+  bool networkList(vector<pair<Netmask, string>>& networks) override;
 
 protected:
   void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
@@ -237,6 +251,13 @@ private:
   string d_SearchRecordsQuery;
   string d_SearchCommentsQuery;
 
+  string d_ViewListQuery;
+  string d_ViewListZonesQuery;
+  string d_ViewAddZoneQuery;
+  string d_ViewDelZoneQuery;
+  string d_NetworkSetQuery;
+  string d_NetworkUnsetQuery;
+  string d_NetworkListQuery;
 
   unique_ptr<SSqlStatement> d_NoIdQuery_stmt;
   unique_ptr<SSqlStatement> d_IdQuery_stmt;
@@ -307,9 +328,18 @@ private:
   unique_ptr<SSqlStatement> d_SearchRecordsQuery_stmt;
   unique_ptr<SSqlStatement> d_SearchCommentsQuery_stmt;
 
+  unique_ptr<SSqlStatement> d_ViewListQuery_stmt;
+  unique_ptr<SSqlStatement> d_ViewListZonesQuery_stmt;
+  unique_ptr<SSqlStatement> d_ViewAddZoneQuery_stmt;
+  unique_ptr<SSqlStatement> d_ViewDelZoneQuery_stmt;
+  unique_ptr<SSqlStatement> d_NetworkSetQuery_stmt;
+  unique_ptr<SSqlStatement> d_NetworkUnsetQuery_stmt;
+  unique_ptr<SSqlStatement> d_NetworkListQuery_stmt;
+
 protected:
   std::unique_ptr<SSql> d_db{nullptr};
   bool d_dnssecQueries;
+  bool d_views{false};
   bool d_inTransaction{false};
   bool d_upgradeContent{false};
 };
