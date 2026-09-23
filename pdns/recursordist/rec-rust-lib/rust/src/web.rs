@@ -810,42 +810,56 @@ async fn serveweb_async(
             // Use an adapter to access something implementing `tokio::io` traits as if they implement
             // `hyper::rt` IO traits.
             let tls_acceptor = tls_acceptor.clone();
-            let tls_stream = match tls_acceptor.accept(stream).await {
-                Ok(tls_stream) => tls_stream,
-                Err(err) => {
-                    rustmisc::error(
-                        &ctx.logger,
-                        rustweb::Priority::Notice,
-                        &err.to_string(),
-                        "Failed to perform TLS handshake",
-                        &vec![],
-                    );
-                    continue;
-                }
-            };
-            let io = TokioIo::new(tls_stream);
-            let my_logger = rustmisc::withValue(&ctx.logger, "tls", "true");
-            let fut = http1::Builder::new().serve_connection(
-                io,
-                service_fn(move |req| {
-                    let ctx = Arc::clone(&ctx);
-                    process_request(req, ctx, address)
-                }),
-            );
-
-            // Spawn a tokio task to serve the request
+            let shaker = tokio::time::timeout(
+                std::time::Duration::from_secs(30),
+                tls_acceptor.accept(stream));
             tokio::task::spawn(async move {
-                // Finally, we bind the incoming connection to our `process_request` service
-                if let Err(err) = fut.await {
-                    rustmisc::error(
-                        &my_logger,
-                        rustweb::Priority::Notice,
-                        &err.to_string(),
-                        "Error serving web connection",
-                        &vec![],
-                    );
-                }
-            });
+                let tls_stream = match shaker.await {
+                    Ok(Ok(tls_stream)) => tls_stream,
+                    Ok(Err(err)) => {
+                        rustmisc::error(
+                            &ctx.logger,
+                            rustweb::Priority::Notice,
+                            &err.to_string(),
+                            "Failed to perform TLS handshake",
+                            &vec![],
+                        );
+                        return;
+                    }
+                    Err(_) => {
+                        rustmisc::log(
+                            &ctx.logger,
+                            rustweb::Priority::Notice,
+                            "TLS handshake timeout",
+                            &vec![],
+                        );
+                        return;
+                    }
+                };
+                let io = TokioIo::new(tls_stream);
+                let my_logger = rustmisc::withValue(&ctx.logger, "tls", "true");
+                let fut = http1::Builder::new().serve_connection(
+                    io,
+                    service_fn(move |req| {
+                        let ctx = Arc::clone(&ctx);
+                        process_request(req, ctx, address)
+                    }),
+                );
+
+                // Spawn a tokio task to serve the request
+                tokio::task::spawn(async move {
+                    // Finally, we bind the incoming connection to our `process_request` service
+                    if let Err(err) = fut.await {
+                        rustmisc::error(
+                            &my_logger,
+                            rustweb::Priority::Notice,
+                            &err.to_string(),
+                            "Error serving web connection",
+                            &vec![],
+                        );
+                    }
+                });
+            }); // TLS handshake
         }
     } else {
         // We start a loop to continuously accept incoming connections
@@ -933,6 +947,7 @@ pub fn serveweb(
         .worker_threads(1)
         .thread_name("rec/web")
         .enable_io()
+        .enable_time()
         .build()?;
 
     // For each listening address we spawn a tokio handler an then a single Posix thread is created that
