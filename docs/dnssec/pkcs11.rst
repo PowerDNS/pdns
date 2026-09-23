@@ -4,8 +4,10 @@ PKCS#11 support
 .. note::
   This is an experimental feature, use at your own risk!
 
-To enable it, compile PowerDNS Authoritative Server using ``--enable-experimental-pkcs11`` flag on configure.
+To enable it, compile PowerDNS Authoritative Server using ``--enable-experimental-pkcs11`` flag on configure or ``-Dexperimental-pkcs11=enabled`` when using Meson.
 This requires you to have the p11-kit libraries and headers.
+
+Since version 5.2.0, the :ref:`pkcs11 <setting-pkcs11>` setting should be set to ``yes`` to enable PKCS#11 at runtime.
 
 You can also log on to the tokens after starting the server, in this case you need to edit your PKCS#11 cryptokey record and remove PIN or set it empty.
 Do this after assigning/creating a key, as the PIN is required for assigning keys to zone.

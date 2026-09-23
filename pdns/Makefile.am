@@ -689,6 +689,7 @@ stubquery_LDADD = $(LIBCRYPTO_LIBS)
 stubquery_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 
 saxfr_SOURCES = \
+	arguments.cc arguments.hh \
 	base32.cc \
 	base64.cc base64.hh \
 	dns_random.hh \
@@ -888,6 +889,7 @@ dnstcpbench_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS)
 
 nsec3dig_SOURCES = \
+	arguments.cc arguments.hh \
 	base32.cc \
 	base64.cc base64.hh \
 	dnslabeltext.cc \
