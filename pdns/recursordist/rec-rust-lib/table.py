@@ -3314,7 +3314,7 @@ When set to ``detailed``, all available information about the request and respon
         "default": "",
         "help": "Password required for accessing the webserver",
         "doc": """
-Password required to access the webserver. Since 4.6.0 the password can be hashed and salted using ``rec_control hash-password`` instead of being present in the configuration in plaintext, but the plaintext version is still supported.
+Password required to access the webserver. Since 4.6.0 the password can be hashed and salted using ``rec_control hash-password`` instead of being present in the configuration in plaintext, but the plaintext version is still supported. Not setting a password means that the internal dashboard and some metrics will be accessible to any client IP allowed by :ref:`setting-webserver-allow-from` without any authentication.
  """,
         "versionchanged": ("4.6.0", "This setting now accepts a hashed and salted version."),
     },

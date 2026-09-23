@@ -218,6 +218,8 @@ wipePacketCache
 .. versionadded:: 5.5.0
 
 When set, relevant names from qname triggers are cleared from the packet cache on (re)load of the RPZ. Defaults to ``true``.
+On a large zone this can slow down the (re)loading of the RPZ.
+In that case consider depending on the regular packet cache eviction by setting this flag to ``false``.
 
 Extra settings for rpzPrimary
 -----------------------------
