@@ -92,8 +92,8 @@ BOOST_AUTO_TEST_CASE(test_SvcParam_keyToString) {
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::tls_supported_groups), "tls-supported-groups");
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey::docpath), "docpath");
     BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey::pvd), "pvd");
-    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(99)), "key99");
-    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(666)), "key666");
+    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(99)), "key99"); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+    BOOST_CHECK_EQUAL(SvcParam::keyToString(SvcParam::SvcParamKey(666)), "key666"); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 BOOST_AUTO_TEST_CASE(test_SvcParam_ctor_no_value) {
