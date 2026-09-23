@@ -324,21 +324,28 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
 
   vector<pair<vector<DNSRecord>, vector<DNSRecord>>> deltas;
   for (const auto& nameOrIp : d_params.primaries) {
-    auto primary = pdns::fromNameOrIP(nameOrIp, 53, logger);
-    auto soa = getRR<SOARecordContent>(soaRecord);
-    auto serial = soa ? soa->d_st.serial : 0;
-    logger->info(Logr::Info, "Getting IXFR deltas", "address", Logging::Loggable(primary), "ourserial", Logging::Loggable(serial));
-
-    ComboAddress local(d_params.localAddress);
-    if (local == ComboAddress()) {
-      local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
-    }
-
     try {
+      auto primary = pdns::fromNameOrIP(nameOrIp, 53, logger);
+      auto soa = getRR<SOARecordContent>(soaRecord);
+      auto serial = soa ? soa->d_st.serial : 0;
+      logger->info(Logr::Info, "Getting IXFR deltas", "address", Logging::Loggable(primary), "ourserial", Logging::Loggable(serial));
+
+      ComboAddress local(d_params.localAddress);
+      if (local == ComboAddress()) {
+        local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
+      }
+
       deltas = getIXFRDeltas(logger, primary, zoneName, soaRecord, d_params.xfrTimeout, true, d_params.tsigtriplet, &local, d_params.maxReceivedMBytes);
 
       /* no need to try another primary */
       break;
+    }
+    catch (const PDNSException& e) {
+      logger->error(Logr::Warning, e.reason, "Exception during retrieval of delta", "exception", Logging::Loggable("PDNSException"));
+      if (oldZone) {
+        // XXX Stats
+      }
+      continue;
     }
     catch (const std::runtime_error& e) {
       logger->error(Logr::Warning, e.what(), "Exception during retrieval of delta", "exception", Logging::Loggable("std::runtime_error"));

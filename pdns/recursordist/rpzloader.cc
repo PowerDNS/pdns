@@ -561,21 +561,26 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
 
   vector<pair<vector<DNSRecord>, vector<DNSRecord>>> deltas;
   for (const auto& ipOrName : params.zoneXFRParams.primaries) {
-    auto primary = pdns::fromNameOrIP(ipOrName, 53, logger);
-    auto soa = getRR<SOARecordContent>(dnsRecord);
-    auto serial = soa ? soa->d_st.serial : 0;
-    logger->info(Logr::Info, "Getting IXFR deltas", "address", Logging::Loggable(primary), "ourserial", Logging::Loggable(serial));
-
-    ComboAddress local(params.zoneXFRParams.localAddress);
-    if (local == ComboAddress()) {
-      local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
-    }
-
     try {
+      auto primary = pdns::fromNameOrIP(ipOrName, 53, logger);
+      auto soa = getRR<SOARecordContent>(dnsRecord);
+      auto serial = soa ? soa->d_st.serial : 0;
+      logger->info(Logr::Info, "Getting IXFR deltas", "address", Logging::Loggable(primary), "ourserial", Logging::Loggable(serial));
+
+      ComboAddress local(params.zoneXFRParams.localAddress);
+      if (local == ComboAddress()) {
+        local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
+      }
+
       deltas = getIXFRDeltas(logger, primary, zoneName, dnsRecord, params.zoneXFRParams.xfrTimeout, true, params.zoneXFRParams.tsigtriplet, &local, params.zoneXFRParams.maxReceivedMBytes);
 
       /* no need to try another primary */
       break;
+    }
+    catch (const PDNSException& e) {
+      logger->error(Logr::Warning, e.reason, "Exception during retrieval of delta", "exception", Logging::Loggable("PDNSException"));
+      incRPZFailedTransfers(polName);
+      continue;
     }
     catch (const std::runtime_error& e) {
       logger->error(Logr::Warning, e.what(), "Exception during retrieval of delta", "exception", Logging::Loggable("std::runtime_error"));
