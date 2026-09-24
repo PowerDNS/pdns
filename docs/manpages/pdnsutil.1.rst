@@ -95,6 +95,10 @@ ZONE RECORD COMMANDS
 
 In these commands, the ``rrset`` object name may also be written as ``record``.
 
+The three commands modifying zone contents (add, delete, replace) will *NOT*
+perform an automatic zone rectification, unless the ``--rectify`` option is
+passed to the command.
+
 rrset add *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
 
     Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT*
@@ -326,10 +330,10 @@ zone rectify-all
     Calculates the 'ordername' and 'auth' fields for all zones so they
     comply with DNSSEC settings. Can be used to fix up migrated data.
 
-zone secure *ZONE*
+zone secure *ZONE* [*ZONE*]...
 
-    Configures a zone called *ZONE* with reasonable DNSSEC settings. You
-    should manually run 'pdnsutil zone rectify' afterwards.
+    Configures a zone called *ZONE* with reasonable DNSSEC settings, and
+    performs a zone rectification.
 
 zone secure-all [**increase-serial**]
 

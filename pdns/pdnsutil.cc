@@ -618,6 +618,11 @@ ArgvMap &arg()
   return arg;
 }
 
+static bool hasOption(const std::vector<std::string>& options, const std::string& name)
+{
+  return std::any_of(options.begin(), options.end(), [name](const auto& option) { return toLower(option) == name; });
+}
+
 static std::string comboAddressVecToString(const std::vector<ComboAddress>& vec) {
   vector<string> strs;
   strs.reserve(vec.size());
@@ -2855,8 +2860,9 @@ static int copyZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector
 }
 
 // add-record ZONE name type [ttl] "content" ["content"]
-static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
+static int addOrReplaceRecord(bool isAdd, const std::vector<std::string>& cmds, const std::vector<std::string>& options)
 {
+  bool performRectify = hasOption(options, "rectify");
   DNSResourceRecord rr;
   vector<DNSResourceRecord> newrrs;
   ZoneName zone(cmds.at(0));
@@ -2984,6 +2990,12 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
     std::cout << formatRecord(rec, " ") << std::endl;
   }
   di.backend->commitTransaction();
+
+  if (performRectify) {
+    DNSSECKeeper dsk(nullptr /* no structured logging */, &B);
+    rectifyZone(dsk, zone);
+  }
+
   return EXIT_SUCCESS;
 }
 
@@ -3027,7 +3039,7 @@ static int listAutoPrimaries()
 }
 
 // delete-rrset zone name type
-static int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_)
+static int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_, bool performRectify)
 {
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
@@ -3049,6 +3061,12 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
   di.backend->startTransaction(zone, UnknownDomainID);
   di.backend->replaceRRSet(di.id, name, qt, vector<DNSResourceRecord>());
   di.backend->commitTransaction();
+
+  if (performRectify) {
+    DNSSECKeeper dsk(nullptr /* no structured logging */, &B);
+    rectifyZone(dsk, zone);
+  }
+
   return EXIT_SUCCESS;
 }
 
@@ -4531,12 +4549,12 @@ static int listComments(std::vector<std::string>& cmds, [[maybe_unused]] std::ve
 }
 
 
-static int addRecord(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
+static int addRecord(std::vector<std::string>& cmds, std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 4) {
     return usage(synopsis);
   }
-  return addOrReplaceRecord(true, cmds);
+  return addOrReplaceRecord(true, cmds, options);
 }
 
 static int addAutoprimary(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
@@ -4560,12 +4578,12 @@ static int listAutoprimaries([[maybe_unused]] std::vector<std::string>& cmds, [[
   return listAutoPrimaries();
 }
 
-static int replaceRRSet(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
+static int replaceRRSet(std::vector<std::string>& cmds, std::vector<std::string>& options, const std::string_view synopsis)
 {
   if(cmds.size() < 4) {
     return usage(synopsis);
   }
-  return addOrReplaceRecord(false , cmds);
+  return addOrReplaceRecord(false , cmds, options);
 }
 
 static int deleteRRSet(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
@@ -4573,7 +4591,8 @@ static int deleteRRSet(std::vector<std::string>& cmds, [[maybe_unused]] std::vec
   if(cmds.size() != 3) {
     return usage(synopsis);
   }
-  return deleteRRSet(cmds.at(0), cmds.at(1), cmds.at(2));
+  bool performRectify = hasOption(options, "rectify");
+  return deleteRRSet(cmds.at(0), cmds.at(1), cmds.at(2), performRectify);
 }
 
 static int listZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, const std::string_view synopsis)
