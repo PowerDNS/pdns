@@ -1827,7 +1827,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
       throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
     }
 
-    if (checkACL && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
+    if (checkACL && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote) && !(clientState.d_enableProxyProtocol && expectProxyProtocolFrom(remote))) {
       ++dnsdist::metrics::g_stats.aclDrops;
       VERBOSESLOG(infolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort()),
                   dnsdist::logging::getTopLogger("incoming-tcp-worker")->info(Logr::Info, "Dropped TCP connection because of ACL", "frontend.address", Logging::Loggable(param.local), "client.address", Logging::Loggable(remote)));
