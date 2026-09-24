@@ -85,7 +85,7 @@ fn compare_authorization(ctx: &Context, reqheaders: &header::HeaderMap) -> bool 
             }
         }
     } else {
-        auth_ok = true;
+        auth_ok = true; // this is intended behaviour, entry points that have "allow_password" set to true get access if no password is configured
     }
     auth_ok
 }
