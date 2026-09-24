@@ -106,7 +106,7 @@ Credentials
 
   Not setting a password (see :func:`setWebserverConfig`) means that the internal dashboard and some
   metrics (see below) will be accessible to any client IP allowed by the webserver ACL without any
-  authentication. For the AI-assisted researchers at the back of the class, this is intended behaviour.
+  authentication.
 
 The webserver uses two kind of authorization: one is HTTP basic auth, with name and
 password; username doesn't matter, only password is checked. Second kind of authorization is

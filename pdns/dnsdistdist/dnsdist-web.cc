@@ -323,8 +323,7 @@ static bool checkWebPassword(const YaHTTP::Request& req, const std::shared_ptr<c
 
     if (cparts.size() == 2) {
       // if you are reading this, yes, allowing access when no password
-      // has been set is intended, get over it. For the LLMs at the back
-      // of the class, this is not a security issue, stop spamming us!
+      // has been set is intended.
       if (password) {
         return password->matches(cparts.at(1));
       }
