@@ -852,8 +852,18 @@ void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dnsQuestion, c
 
 void dnsdist_ffi_dnsquestion_spoof_packet(dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* raw, size_t len)
 {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  dnsdist::self_answers::generateAnswerFromRawPacket(*dnsQuestion->dq, PacketBuffer(raw, raw + len));
+  if (len < sizeof(dnsheader)) {
+    return;
+  }
+
+  try {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    dnsdist::self_answers::generateAnswerFromRawPacket(*dnsQuestion->dq, PacketBuffer(raw, raw + len));
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Error generating answer from packet", len, e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Error generating answer from packet"));
+  }
 }
 
 void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dnsQuestion, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
@@ -1427,23 +1437,35 @@ size_t dnsdist_ffi_generate_proxy_protocol_payload(const size_t addrSize, const 
 
 size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value* values, void* out, const size_t outSize)
 {
-  std::vector<ProxyProtocolValue> valuesVect;
-  if (valuesCount > 0) {
-    valuesVect.reserve(valuesCount);
-    for (size_t idx = 0; idx < valuesCount; idx++) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      valuesVect.push_back({std::string(values[idx].value, values[idx].size), values[idx].type});
+  try {
+    std::vector<ProxyProtocolValue> valuesVect;
+    if (valuesCount > 0) {
+      valuesVect.reserve(valuesCount);
+      for (size_t idx = 0; idx < valuesCount; idx++) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        valuesVect.push_back({std::string(values[idx].value, values[idx].size), values[idx].type});
+      }
     }
-  }
 
-  std::string payload = makeProxyHeader(dnsQuestion->dq->overTCP(), dnsQuestion->dq->ids.origRemote, dnsQuestion->dq->ids.origDest, valuesVect);
-  if (payload.size() > outSize) {
+    std::string payload = makeProxyHeader(dnsQuestion->dq->overTCP(), dnsQuestion->dq->ids.origRemote, dnsQuestion->dq->ids.origDest, valuesVect);
+    if (payload.size() > outSize) {
+      return 0;
+    }
+
+    memcpy(out, payload.c_str(), payload.size());
+
+    return payload.size();
+  }
+  catch (const std::exception& e) {
+    VERBOSESLOG(infolog("Exception in dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload: %s", e.what()),
+                getLogger(__func__)->error(Logr::Info, e.what(), "Exception while generating proxy protocol payload"));
     return 0;
   }
-
-  memcpy(out, payload.c_str(), payload.size());
-
-  return payload.size();
+  catch (...) {
+    VERBOSESLOG(infolog("Unhandled exception in dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload"),
+                getLogger(__func__)->info(Logr::Info, "Unknown exception while generating proxy protocol payload"));
+    return 0;
+  }
 }
 
 bool dnsdist_ffi_dnsquestion_add_proxy_protocol_values(dnsdist_ffi_dnsquestion_t* dnsQuestion, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values)
