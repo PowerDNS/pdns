@@ -108,6 +108,9 @@ DNSName::DNSName(const std::string_view sw)
 
         d_storage[lenpos]=labellen;
       }
+      if (d_storage.size() > s_maxDNSNameLength - 1) {
+        throwSafeRangeError("name too long: ", p, length);
+      }
       d_storage.append(1, '\0');
     }
     else {
