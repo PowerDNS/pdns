@@ -222,7 +222,7 @@ RPZ.
 Defaults to ``true``.
 On a large zone this can slow down the (re)loading of the RPZ.
 The actual time depends on the load of the recursor, the size of the RPZ and size of the packet cache and
-the capacity of the machine.
+the performance of the machine.
 If the automatic cache flushing takes too long it is possible to revert
 to the pre-5.5.0 behaviour (where only regular eviction of the packet cache entries is done) by setting this flag to ``false``.
 
