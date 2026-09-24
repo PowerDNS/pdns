@@ -1,4 +1,7 @@
-import dns
+import dns.flags
+import dns.message
+import dns.rcode
+import dns.rdatatype
 from recursortests import RecursorTest
 
 
@@ -44,3 +47,46 @@ addTA('secure.optout.example', '64215 13 1 b88284d7a8d8605c398e8942262f97b9a5a31
 
         self.assertMessageHasFlags(res, ["QR", "RA", "RD"], ["DO"])
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+
+class NTAControlTest(RecursorTest):
+    _confdir = "NTAControl"
+    _auth_zones = RecursorTest._default_auth_zones
+
+    _config_template = """dnssec=validate"""
+    _lua_config_file = """addNTA("bogus.example")
+addNTA('secure.optout.example', 'Should be Insecure, even with DS configured')
+addTA('secure.optout.example', '64215 13 1 b88284d7a8d8605c398e8942262f97b9a5a31787')"""
+
+    def testNTAControl(self):
+        # Bogus result with NTA should be insecure
+        msg = dns.message.make_query("ted.bogus.example.", dns.rdatatype.A)
+        msg.flags = dns.flags.from_text("AD RD")
+        msg.use_edns(edns=0, ednsflags=dns.flags.edns_from_text("DO"))
+        res = self.sendUDPQuery(msg)
+        self.assertMessageHasFlags(res, ["QR", "RA", "RD"], ["DO"])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+        # remove the NTA and re-query to get a BOGUS result
+        result = self.recControl(f"configs/{self._confdir}", "clear-nta", "bogus.example")
+        self.assertEqual(result, "Removed Negative Trust Anchors for  bogus.example\n")
+        res = self.sendUDPQuery(msg)
+        self.assertMessageHasFlags(res, ["QR", "RA", "RD"], ["DO"])
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+        # Re-add the NTA
+        result = self.recControl(f"configs/{self._confdir}", "add-nta", "bogus.example")
+        self.assertEqual(result, "Added Negative Trust Anchor for bogus.example with reason ''\n")
+        res = self.sendUDPQuery(msg)
+        self.assertMessageHasFlags(res, ["QR", "RA", "RD"], ["DO"])
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+        # Clear all NTA's
+        result = self.recControl(f"configs/{self._confdir}", "clear-nta", "*")
+        self.assertEqual(result, "Cleared all Negative Trust Anchors.\n")
+        res = self.sendUDPQuery(msg)
+        self.assertMessageHasFlags(res, ["QR", "RA", "RD"], ["DO"])
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+        result = self.recControl(f"configs/{self._confdir}", "get-ntas")
+        self.assertEqual(result, "Configured Negative Trust Anchors:\n")
