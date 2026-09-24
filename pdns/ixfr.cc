@@ -314,6 +314,11 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(Logr::log_t slo
         throw std::runtime_error("Unexpected record (" +QType(r.d_type).toString()+") in non-answer section ("+std::to_string(r.d_place)+") in IXFR response for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort());
       }
 
+      if (!r.d_name.isPartOf(zone)) {
+        // Primary tried to sneak in out-of-zone data
+        continue;
+      }
+
       r.d_name.makeUsRelative(zone);
       records.push_back(r);
     }
