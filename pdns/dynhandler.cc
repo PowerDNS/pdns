@@ -129,33 +129,36 @@ string DLManageCookieSecret(const vector<string>& parts, [[maybe_unused]] pid_t 
     return cookieUsage;
   }
 
+  auto lockedEDNSCookieKey = DNSPacket::s_EDNSCookieKey.lock();
+  auto lockedOldEDNSCookieKeys = DNSPacket::s_OldEDNSCookieKeys.lock();
+
   const auto &command = parts.at(1);
   if (command == "add") {
     if (parts.size() != 3) {
       return "Usage: cookie-secret add <SECRET|random>";
     }
-    auto oldSecret = DNSPacket::s_EDNSCookieKey;
+    auto oldSecret = *lockedEDNSCookieKey;
     std::array<char, EDNSCookiesOpt::EDNSCookieSecretSize / 2> key{};
     const auto &newSecret = parts.at(2);
     if (newSecret == "random") {
       dns_random(key.data(), key.size());
-      DNSPacket::s_EDNSCookieKey = std::string(key.data(), key.size());
+      *lockedEDNSCookieKey = std::string(key.data(), key.size());
     } else {
       if (newSecret.size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
         return "wrong size for new secret (" + std::to_string(newSecret.size()) + "), must be " + std::to_string(EDNSCookiesOpt::EDNSCookieSecretSize);
       }
       try {
         auto secretBytes = makeBytesFromHex(newSecret);
-        DNSPacket::s_EDNSCookieKey = std::move(secretBytes);
+        *lockedEDNSCookieKey = std::move(secretBytes);
       } catch (const std::exception& exc) {
         return "Can not convert " + newSecret + " to bytes: " + exc.what();
       }
     }
     if (!oldSecret.empty()) {
-      DNSPacket::s_OldEDNSCookieKeys.insert(DNSPacket::s_OldEDNSCookieKeys.begin(), oldSecret);
+      lockedOldEDNSCookieKeys->insert(lockedOldEDNSCookieKeys->begin(), oldSecret);
     }
     DNSPacket::s_doEDNSCookieProcessing = true;
-    return "COOKIE secret set to " + makeHexDump(DNSPacket::s_EDNSCookieKey, "");
+    return "COOKIE secret set to " + makeHexDump(*lockedEDNSCookieKey, "");
   }
 
   if (command == "delete") {
@@ -164,11 +167,11 @@ string DLManageCookieSecret(const vector<string>& parts, [[maybe_unused]] pid_t 
     }
     const auto &secret = parts.at(2);
     if (secret == "last") {
-      if (DNSPacket::s_OldEDNSCookieKeys.empty()) {
+      if (lockedOldEDNSCookieKeys->empty()) {
         return "No inactive keys, nothing removed";
       }
-      auto removedSecret = DNSPacket::s_OldEDNSCookieKeys.back();
-      DNSPacket::s_OldEDNSCookieKeys.pop_back();
+      auto removedSecret = lockedOldEDNSCookieKeys->back();
+      lockedOldEDNSCookieKeys->pop_back();
       return "COOKIE secret " + makeHexDump(removedSecret, "") +" removed";
     }
     if (secret.size() != EDNSCookiesOpt::EDNSCookieSecretSize) {
@@ -176,12 +179,12 @@ string DLManageCookieSecret(const vector<string>& parts, [[maybe_unused]] pid_t 
     }
     try {
       auto secretBytes = makeBytesFromHex(secret);
-      if (secretBytes == DNSPacket::s_EDNSCookieKey) {
+      if (secretBytes == *lockedEDNSCookieKey) {
         return "COOKIE secret " + makeHexDump(secretBytes, "") +" is the active secret, refusing to remove";
       }
-      auto it = std::find(DNSPacket::s_OldEDNSCookieKeys.begin(), DNSPacket::s_OldEDNSCookieKeys.end(), secretBytes); // NOLINT(readability-identifier-length)
-      if (it != DNSPacket::s_OldEDNSCookieKeys.end()) {
-        DNSPacket::s_OldEDNSCookieKeys.erase(it);
+      auto it = std::find(lockedOldEDNSCookieKeys->begin(), lockedOldEDNSCookieKeys->end(), secretBytes); // NOLINT(readability-identifier-length)
+      if (it != lockedOldEDNSCookieKeys->end()) {
+        lockedOldEDNSCookieKeys->erase(it);
         return "COOKIE secret " + secret +" removed";
       }
     } catch (const std::exception& exc) {
@@ -190,11 +193,11 @@ string DLManageCookieSecret(const vector<string>& parts, [[maybe_unused]] pid_t 
     return "COOKIE secret " + secret +" not found";
   }
   if (command == "list") {
-    if (DNSPacket::s_EDNSCookieKey.empty()) {
+    if (lockedEDNSCookieKey->empty()) {
       return "No EDNS Cookie secrets";
     }
-    oss << makeHexDump(DNSPacket::s_EDNSCookieKey, "") << " *";
-    for (const auto& secret : DNSPacket::s_OldEDNSCookieKeys) {
+    oss << makeHexDump(*lockedEDNSCookieKey, "") << " *";
+    for (const auto& secret : *lockedOldEDNSCookieKeys) {
       oss << std::endl << makeHexDump(secret, "");
     }
     return oss.str();
