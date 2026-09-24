@@ -394,7 +394,7 @@ kvs_lookup_key_source_ip:
     - name: "include_port"
       type: "bool"
       default: "false"
-      description: "Whether to append the port (in network byte-order) after the address"
+      description: "Whether to append the port (in network byte-order) after the address. Note that this option is NOT compatible with MMDB databases"
 
 kvs_lookup_key_qname:
   description: "Lookup key that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`, will return the qname of the query in DNS wire format"

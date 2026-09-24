@@ -1159,7 +1159,7 @@ IOState IncomingTCPConnectionState::handleIncomingQueryReceived(const struct tim
   return IOState::Done;
 };
 
-void IncomingTCPConnectionState::handleExceptionDuringIO(const std::exception& exp)
+void IncomingTCPConnectionState::handleExceptionDuringIO(const std::string& reason)
 {
   if (d_state == State::idle || d_state == State::waitingForQuery) {
     /* no need to increase any counters in that case, the client is simply done with us */
@@ -1173,12 +1173,12 @@ void IncomingTCPConnectionState::handleExceptionDuringIO(const std::exception& e
   }
 
   if (d_ioState->isWaitingForWrite() || d_queriesCount == 0) {
-    VERBOSESLOG(infolog("Got an exception while handling (%s) TCP query from %s: %s", (d_ioState->isWaitingForRead() ? "reading" : "writing"), d_ci.remote.toStringWithPort(), exp.what()),
-                getLogger()->error(Logr::Info, exp.what(), "Got an exception while handling TCP query", "io", Logging::Loggable(d_ioState->isWaitingForRead() ? "reading" : "writing")));
+    VERBOSESLOG(infolog("Got an exception while handling (%s) TCP query from %s: %s", (d_ioState->isWaitingForRead() ? "reading" : "writing"), d_ci.remote.toStringWithPort(), reason),
+                getLogger()->error(Logr::Info, reason, "Got an exception while handling TCP query", "io", Logging::Loggable(d_ioState->isWaitingForRead() ? "reading" : "writing")));
   }
   else {
-    VERBOSESLOG(infolog("Closing TCP client connection with %s: %s", d_ci.remote.toStringWithPort(), exp.what()),
-                getLogger()->error(Logr::Info, exp.what(), "Closing TCP client connection"));
+    VERBOSESLOG(infolog("Closing TCP client connection with %s: %s", d_ci.remote.toStringWithPort(), reason),
+                getLogger()->error(Logr::Info, reason, "Closing TCP client connection"));
   }
   /* remove this FD from the IO multiplexer */
   terminateClientConnection();
@@ -1360,7 +1360,14 @@ void IncomingTCPConnectionState::handleIO()
          but it might also be a real IO error or something else.
          Let's just drop the connection
       */
-      handleExceptionDuringIO(exp);
+      handleExceptionDuringIO(exp.what());
+    }
+    catch (const PDNSException& exp) {
+      /* most likely an EOF because the other end closed the connection,
+         but it might also be a real IO error or something else.
+         Let's just drop the connection
+      */
+      handleExceptionDuringIO(exp.reason);
     }
 
     if (!active()) {
@@ -1777,11 +1784,19 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
         SLOG(warnlog("Error in TCP worker thread: %s", e.what()),
              logger->error(Logr::Warning, e.what(), "Error in incoming TCP worker thread"));
       }
+      catch (const PDNSException& exp) {
+        SLOG(warnlog("Error in TCP worker thread: %s", exp.reason),
+             logger->error(Logr::Warning, exp.reason, "Error in incoming TCP worker thread"));
+      }
     }
   }
   catch (const std::exception& e) {
     SLOG(errlog("Fatal error in TCP worker thread: %s", e.what()),
          logger->error(Logr::Error, e.what(), "Fatal error in incoming TCP worker thread"));
+  }
+  catch (const PDNSException& exp) {
+    SLOG(errlog("Fatal error in TCP worker thread: %s", exp.reason),
+         logger->error(Logr::Error, exp.reason, "Fatal error in incoming TCP worker thread"));
   }
 }
 

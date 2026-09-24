@@ -140,7 +140,7 @@ public:
 
   dnsdist::Protocol getProtocol() const;
   IOState handleIncomingQueryReceived(const struct timeval& now);
-  void handleExceptionDuringIO(const std::exception& exp);
+  void handleExceptionDuringIO(const std::string& reason);
   bool readIncomingQuery(const timeval& now, IOState& iostate);
   bool isNearTCPLimits() const;
 
