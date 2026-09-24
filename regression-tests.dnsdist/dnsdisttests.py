@@ -18,6 +18,7 @@ import clientsubnetoption
 import dns
 import dns.message
 
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 import libnacl
 import libnacl.utils
 
@@ -85,6 +86,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     that the queries sent from dnsdist were as expected.
     """
 
+    NONCE_SIZE_12 = 12
+    NONCE_SIZE_24 = 24
+
     _dnsDistListeningAddr = "127.0.0.1"
     _toResponderQueue = Queue()
     _fromResponderQueue = Queue()
@@ -98,6 +102,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _yaml_config_params = []
     _acl = ["127.0.0.1/32"]
     _consoleKey = None
+    _nonceSize = None
     _healthCheckName = "a.root-servers.net."
     _healthCheckCounter = 0
     _answerUnexpected = True
@@ -324,8 +329,14 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 raise
 
     @classmethod
-    def setUpClass(cls):
+    def _detectNonceSize(cls):
+        output = subprocess.check_output([os.environ["DNSDISTBIN"], "-V"], stderr=subprocess.STDOUT).decode()
+        if "libsodium" in output:
+            return cls.NONCE_SIZE_24
+        return cls.NONCE_SIZE_12
 
+    @classmethod
+    def setUpClass(cls):
         cls.startResponders()
         cls.startDNSDist()
         cls.setUpSockets()
@@ -1004,19 +1015,34 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         command = command.encode("UTF-8")
         if cls._consoleKey is None:
             return command
+        if cls._nonceSize == cls.NONCE_SIZE_12:
+            cipher = ChaCha20Poly1305(cls._consoleKey)
+            ciphertext_with_tag = cipher.encrypt(nonce, command, None)
+            # cryptography puts tag at the end, dnsdist expects it at the beginning
+            tag = ciphertext_with_tag[-16:]
+            ciphertext = ciphertext_with_tag[:-16]
+            return tag + ciphertext
         return libnacl.crypto_secretbox(command, nonce, cls._consoleKey)
 
     @classmethod
     def _decryptConsole(cls, command, nonce):
         if cls._consoleKey is None:
             result = command
+        elif cls._nonceSize == cls.NONCE_SIZE_12:
+            # dnsdist puts tag at the beginning, cryptography expects it at the end
+            tag = command[:16]
+            ciphertext = command[16:]
+            cipher = ChaCha20Poly1305(cls._consoleKey)
+            result = cipher.decrypt(nonce, ciphertext + tag, None)
         else:
             result = libnacl.crypto_secretbox_open(command, nonce, cls._consoleKey)
         return result.decode("UTF-8")
 
     @classmethod
     def sendConsoleCommand(cls, command, timeout=5.0, IPv6=False):
-        ourNonce = libnacl.utils.rand_nonce()
+        if cls._nonceSize is None:
+            cls._nonceSize = cls._detectNonceSize()
+        ourNonce = os.urandom(cls._nonceSize)
         theirNonce = None
         sock = socket.socket(socket.AF_INET if not IPv6 else socket.AF_INET6, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
