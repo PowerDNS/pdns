@@ -22,6 +22,7 @@ These chapters contain extensive information on all functions and object availab
   protobuf
   ottrace
   dnstap
+  otlp
   carbon
   snmp
   tuning

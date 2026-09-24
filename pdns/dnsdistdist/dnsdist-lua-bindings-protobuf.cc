@@ -23,6 +23,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
+#include <memory>
 
 #ifndef DISABLE_PROTOBUF
 #include "dnsdist-protobuf.hh"
@@ -197,7 +198,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_FSTRM */
   });
 
-  luaCtx.writeFunction("newOtlpLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] std::optional<LuaAssociativeTable<unsigned int>> params) {
+  luaCtx.writeFunction("newOtlpLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] std::optional<LuaAssociativeTable<boost::variant<size_t, int, bool>>> params) {
 #if !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL)
     if (client || configCheck) {
       return std::shared_ptr<RemoteLoggerInterface>(nullptr);
@@ -206,12 +207,27 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     size_t batchSize{100};
     size_t queueSize{500};
 
+    int httpTimeout{2};
+    bool httpFastOpen{false};
+    bool httpsVerify{true};
+
     getOptionalValue<size_t>(params, "interval", interval);
     getOptionalValue<size_t>(params, "batchSize", batchSize);
     getOptionalValue<size_t>(params, "queueSize", queueSize);
+    getOptionalValue<int>(params, "httpTimeout", httpTimeout);
+    getOptionalValue<bool>(params, "httpFastOpen", httpFastOpen);
+    getOptionalValue<bool>(params, "httpsVerify", httpsVerify);
     checkAllParametersConsumed("newOtlpLogger", params);
 
-    return std::shared_ptr<RemoteLoggerInterface>(new OTLPLogger(address, interval, queueSize, batchSize));
+    auto logger = std::make_shared<OTLPLogger>(address, interval, queueSize, batchSize);
+    if (logger->getType() == OTLPLogger::LoggerType::HTTP) {
+      logger->setHTTPTimeout(httpTimeout);
+      logger->setHTTPFastOpen(httpFastOpen);
+      logger->setSetHTTPSVerify(httpsVerify);
+    }
+
+    auto ret = std::dynamic_pointer_cast<RemoteLoggerInterface>(logger);
+    return ret;
 #else
     throw std::runtime_error("Protobuf and CURL are required for OTLP remote loggers");
 #endif /* !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL) */

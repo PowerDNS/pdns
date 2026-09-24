@@ -24,6 +24,7 @@
 #include "dnsdist-opentelemetry.hh"
 
 #if !defined(DISABLE_PROTOBUF) && defined(HAVE_LIBCURL)
+#include <stdexcept>
 #include <memory>
 
 #include "logr.hh"
@@ -74,6 +75,35 @@ public:
                  .d_otherError = d_permanentFailures};
   }
 
+  void setHTTPTimeout(const int timeout)
+  {
+    if (d_type != LoggerType::HTTP) {
+      throw std::invalid_argument("Can not set HTTP timeout on non-HTTP logger");
+    }
+    d_http_timeout = timeout;
+  }
+
+  void setHTTPFastOpen(const bool value)
+  {
+    if (d_type != LoggerType::HTTP) {
+      throw std::invalid_argument("Can not set fast open on non-HTTP logger");
+    }
+    d_http_fastopen = value;
+  }
+
+  void setSetHTTPSVerify(const bool value)
+  {
+    if (d_type != LoggerType::HTTP) {
+      throw std::invalid_argument("Can not set HTTPS verigy on non-HTTP logger");
+    }
+    d_https_verify = value;
+  }
+
+  [[nodiscard]] LoggerType getType() const
+  {
+    return d_type;
+  }
+
 private:
   LoggerType d_type;
   std::string d_address;
@@ -82,6 +112,9 @@ private:
 
   std::unique_ptr<MiniCurl> d_miniCurl{nullptr};
   MiniCurl::MiniCurlHeaders d_httpHeaders{{"Content-Type", "application/x-protobuf"}};
+  int d_http_timeout{2};
+  bool d_http_fastopen{false};
+  bool d_https_verify{true};
 
   [[nodiscard]] RemoteLoggerInterface::Result queueHttpData(const std::string& data);
   void senderThread();

@@ -283,6 +283,22 @@ dnstap_logger:
       default: 1
       description: "Number of connections to open to the endpoint"
 
+http_out_options:
+  description: "Options for the HTTP client for outgoing HTTP connection"
+  parameters:
+    - name: "timeout"
+      type: "u32"
+      default: 2
+      description: "Timeout in seconds for the connection to establish"
+    - name: "fastopen"
+      type: "bool"
+      default: "false"
+      description: "Whether or not to use TCP fast-open"
+    - name: "verify"
+      type: "bool"
+      default: "true"
+      description: "Verify SSL/TLS certificate when connecting"
+
 otlp_logger:
   description: "List of endpoints to send OpenTelemetry Traces to, using OTLP."
   parameters:
@@ -304,6 +320,10 @@ otlp_logger:
       type: "u32"
       description: "Maximum number of traces to send to the endpoint"
       default: 100
+    - name: "http_options"
+      type: HttpOutOptionsConfiguration
+      default: true
+      description: "Options for the HTTP endpoint"
 
 proto_buf_meta:
   description: "Meta-data entry to be added to a Protocol Buffer message"
