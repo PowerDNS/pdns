@@ -4716,7 +4716,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
 
   determineAnswerType(lwr, haveAnswers);
   if (lwr.d_answerType == LWResult::AnswerType::Unknown) {
-    LOG(prefix << qname << ": Unable to determine the type of the answer received from " << auth << "!"<<endl);
+    LOG(prefix << qname << ": Unable to determine the type of the answer received from " << auth << "!" << endl);
   }
 
   sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, acceptDelegation && !soaInAuth, skipvec, skipCount);
