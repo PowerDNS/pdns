@@ -215,18 +215,17 @@ static void maintThread()
 
         auto pair = caches.insert({packetCache, false});
         auto& iter = pair.first;
-        /* if we need to keep stale data for this cache (ie, not clear
-           expired entries when at least one pool using this cache
-           has all its backends down) */
-        if (packetCache->keepStaleData() && !iter->second) {
-          /* so far all pools had at least one backend up */
-          if (pool.shouldKeepStaleData()) {
+        // these are confusingly named (backwards compat)
+        // keepStaleData keeps stale only when pool is offline, while dontExpire always
+        if ((packetCache->dontExpire() || packetCache->keepStaleData()) && !iter->second) {
+          // we want to check shouldKeepStaleData only if we really need to
+          if (packetCache->dontExpire() || pool.shouldKeepStaleData()) {
             iter->second = true;
           }
         }
       }
 
-      const time_t now = time(nullptr);
+      const DNSDistPacketCache::Time now;
       for (const auto& pair : caches) {
         /* shall we keep expired entries ? */
         if (pair.second) {
