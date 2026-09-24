@@ -1457,12 +1457,12 @@ size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi
     return payload.size();
   }
   catch (const std::exception& e) {
-    VERBOSESLOG(infolog("Exception in dnsdist_ffi_generate_proxy_protocol_payload: %s", e.what()),
+    VERBOSESLOG(infolog("Exception in dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload: %s", e.what()),
                 getLogger(__func__)->error(Logr::Info, e.what(), "Exception while generating proxy protocol payload"));
     return 0;
   }
   catch (...) {
-    VERBOSESLOG(infolog("Unhandled exception in dnsdist_ffi_generate_proxy_protocol_payload"),
+    VERBOSESLOG(infolog("Unhandled exception in dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload"),
                 getLogger(__func__)->info(Logr::Info, "Unknown exception while generating proxy protocol payload"));
     return 0;
   }
