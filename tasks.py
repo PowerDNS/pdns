@@ -24,6 +24,7 @@ all_build_deps = [
     "pkg-config",
     "python3-venv",
     "systemd",
+    "systemd-dev",
 ]
 git_build_deps = ["autoconf", "automake", "bison", "bzip2", "curl", "flex", "git", "ragel"]
 auth_build_deps = [  # FIXME: perhaps we should be stealing these from the debian (Ubuntu) control file

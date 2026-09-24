@@ -770,7 +770,8 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
       kvs.insert(SvcParam(key, std::move(paramKeys)));
       break;
     }
-    case SvcParam::alpn: {
+    case SvcParam::alpn: [[fallthrough]];
+    case SvcParam::docpath: {
       size_t stop = d_pos + len;
       std::vector<string> alpns;
       while (d_pos < stop) {
@@ -789,8 +790,9 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
       kvs.insert(SvcParam(key, std::move(alpns)));
       break;
     }
-    case SvcParam::ohttp:
-    case SvcParam::no_default_alpn: {
+    case SvcParam::no_default_alpn: [[fallthrough]];
+    case SvcParam::ohttp: [[fallthrough]];
+    case SvcParam::pvd: {
       if (len != 0) {
         throw std::out_of_range("invalid length for " + SvcParam::keyToString(key));
       }

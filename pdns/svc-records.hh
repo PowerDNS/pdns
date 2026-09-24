@@ -28,7 +28,7 @@
 class SvcParam
 {
 public:
-  enum SvcParamKey : uint16_t
+  enum SvcParamKey : uint16_t // NOLINT(performance-enum-size)
   {
     // https://www.iana.org/assignments/dns-svcb/dns-svcb.xhtml#dns-svcparamkeys
     /* When adding new values, you *must* update SvcParam::SvcParam(const std::string &key, const std::string &value)
@@ -44,6 +44,8 @@ public:
     dohpath = 7,
     ohttp = 8,
     tls_supported_groups = 9, /* https://datatracker.ietf.org/doc/draft-ietf-tls-key-share-prediction/ */
+    docpath = 10, // https://datatracker.ietf.org/doc/html/rfc9953
+    pvd = 11, // https://datatracker.ietf.org/doc/html/draft-ietf-intarea-proxy-config-13#section-2.1
   };
 
   //! empty Param, unusable
@@ -58,7 +60,7 @@ public:
   //! To create a multi-value SvcParam (like mandatory)
   SvcParam(const SvcParamKey& key, std::set<std::string>&& value);
 
-  //! To create a multi-value SvcParam (like alpn)
+  //! To create a multi-value SvcParam (like alpn and docpath)
   SvcParam(const SvcParamKey& key, std::vector<std::string>&& value);
 
   //! To create a multi-value SvcParam with key values (like mandatory)
@@ -113,7 +115,7 @@ private:
   SvcParamKey d_key;
   std::string d_value; // For keyNNNNN vals
 
-  std::vector<std::string> d_alpn; // For ALPN
+  std::vector<std::string> d_alpn; // For ALPN and docpath
   std::set<SvcParamKey> d_mandatory; // For mandatory
   std::vector<ComboAddress> d_ipHints; // For ipv{6,4}hints
   std::string d_ech; // For Encrypted Client Hello
