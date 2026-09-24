@@ -993,15 +993,18 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
     }
   }
 
-  if (query.d_buffer.empty() && query.d_method == PendingQuery::Method::Get && !query.d_queryString.empty()) {
-    auto payload = dnsdist::doh::getPayloadFromPath(query.d_queryString);
-    if (payload) {
-      query.d_buffer = std::move(*payload);
-    }
-    else {
-      ++d_ci.cs->dohFrontend->d_badrequests;
-      handleImmediateResponse(400, "DoH unable to decode BASE64-URL");
-      return;
+  if (query.d_method == PendingQuery::Method::Get) {
+    query.d_buffer.clear();
+    if (!query.d_queryString.empty()) {
+      auto payload = dnsdist::doh::getPayloadFromPath(query.d_queryString);
+      if (payload) {
+        query.d_buffer = std::move(*payload);
+      }
+      else {
+        ++d_ci.cs->dohFrontend->d_badrequests;
+        handleImmediateResponse(400, "DoH unable to decode BASE64-URL");
+        return;
+      }
     }
   }
 
