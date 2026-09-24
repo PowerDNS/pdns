@@ -60,66 +60,69 @@ std::ostream & operator<<(std::ostream &os, const DNSName& d)
   return os <<d.toLogString();
 }
 
-void DNSName::throwSafeRangeError(const std::string& msg, const char* buf, size_t length)
+void DNSName::throwSafeRangeError(const std::string& msg, const std::string_view& content)
 {
   std::string dots;
+  auto length = content.size();
   if (length > s_maxDNSNameLength) {
     length = s_maxDNSNameLength;
     dots = "...";
   }
   std::string label;
-  DNSName::appendEscapedLabel(label, buf, length);
+  DNSName::appendEscapedLabel(label, content.begin(), length);
   throw std::range_error(msg + label + dots);
 }
 
-DNSName::DNSName(const std::string_view sw)
+DNSName::DNSName(const std::string_view content)
 {
-  const char* p = sw.data();
-  size_t length = sw.length();
-
-  if(length == 0 || (length == 1 && p[0]=='.')) {
-    d_storage.assign(1, '\0');
-  } else {
-    if(!std::memchr(p, '\\', length)) {
-      unsigned char lenpos=0;
-      unsigned char labellen=0;
-      const char* const pbegin=p, *pend=p+length;
-
-      d_storage.reserve(length+1);
-      for(auto iter = pbegin; iter != pend; ) {
-        lenpos = d_storage.size();
-        if(*iter=='.')
-          throwSafeRangeError("Found . in wrong position in DNSName: ", p, length);
-        d_storage.append(1, '\0');
-        labellen=0;
-        auto begiter=iter;
-        for(; iter != pend && *iter!='.'; ++iter) {
-          labellen++;
-        }
-        d_storage.append(begiter,iter);
-        if(iter != pend)
-          ++iter;
-        if(labellen > s_maxDNSLabelLength) {
-          throwSafeRangeError("label too long to append: ", p, length);
-        }
-
-        if(iter-pbegin > static_cast<ptrdiff_t>(s_maxDNSNameLength - 1)) // reserve two bytes, one for length and one for the root label
-          throwSafeRangeError("name too long to append: ", p, length);
-
-        d_storage[lenpos]=labellen;
-      }
-      if (d_storage.size() > s_maxDNSNameLength - 1) {
-        throwSafeRangeError("name too long: ", p, length);
-      }
-      d_storage.append(1, '\0');
-    }
-    else {
-      d_storage=segmentDNSNameRaw(p, length);
-      if(d_storage.size() > s_maxDNSNameLength) {
-        throwSafeRangeError("name too long: ", p, length);
-      }
-    }
+  if (content.size() == 0 || (content.size() == 1 && content.at(0) == '.')) {
+    d_storage.assign(1U, '\0');
+    return;
   }
+
+  if (std::memchr(content.data(), '\\', content.size()) != nullptr) {
+    d_storage = segmentDNSNameRaw(content.data(), content.size());
+    if (d_storage.size() > s_maxDNSNameLength) {
+      throwSafeRangeError("name too long: ", content);
+    }
+    return;
+  }
+
+  unsigned char lenpos = 0;
+  unsigned char labellen = 0;
+
+  d_storage.reserve(content.size() + 1U);
+  for (size_t position = 0; position < content.size(); ) {
+    lenpos = d_storage.size();
+    if (content[position] == '.') {
+      throwSafeRangeError("Found . in wrong position in DNSName: ", content);
+    }
+    d_storage.append(1U, '\0');
+    labellen = 0;
+    size_t begPosition = position;
+    for(; position < content.size() && content[position] != '.'; ++position) {
+      labellen++;
+    }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    d_storage.append(content.begin() + begPosition, content.begin() + position);
+    if (position < content.size()) {
+      ++position;
+    }
+    if (labellen > s_maxDNSLabelLength) {
+      throwSafeRangeError("label too long to append: ", content);
+    }
+
+    if (position > static_cast<ptrdiff_t>(s_maxDNSNameLength - 1U)) {
+      // reserve two bytes, one for length and one for the root label
+      throwSafeRangeError("name too long to append: ", content);
+    }
+
+    d_storage[lenpos] = static_cast<char>(labellen);
+  }
+  if (d_storage.size() > s_maxDNSNameLength - 1U) {
+    throwSafeRangeError("name too long: ", content);
+  }
+  d_storage.append(1U, '\0');
 }
 
 DNSName::DNSName(const char* pos, size_t len, size_t offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, uint16_t minOffset, size_t* pointerBudget)
