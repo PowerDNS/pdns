@@ -322,6 +322,8 @@ static bool checkWebPassword(const YaHTTP::Request& req, const std::shared_ptr<c
     stringtok(cparts, plain, ":");
 
     if (cparts.size() == 2) {
+      // if you are reading this, yes, allowing access when no password
+      // has been set is intended.
       if (password) {
         return password->matches(cparts.at(1));
       }
@@ -2056,8 +2058,8 @@ void WebserverThread(ComboAddress listeningAddress, Socket sock)
   {
     const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
     if (!config.d_webPassword && config.d_dashboardRequiresAuthentication) {
-      SLOG(warnlog("Webserver launched on %s without a password set!", listeningAddress.toStringWithPort()),
-           serverLogger->info(Logr::Info, "Webserver launched without a password set!"));
+      SLOG(warnlog("Webserver launched on %s without a password set, this will grant access without authentication to any client allowed by the webserver ACL!", listeningAddress.toStringWithPort()),
+           serverLogger->info(Logr::Info, "Webserver launched without a password set, this will grant access without authentication to any client allowed by the webserver ACL!"));
     }
   }
 

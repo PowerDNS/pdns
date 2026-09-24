@@ -492,7 +492,7 @@ webserver:
     - name: "password"
       type: "String"
       default: ""
-      description: "The password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the ``hashPassword()`` command"
+      description: "The password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the ``hashPassword()`` command. Not setting a password means that the internal dashboard and some metrics will be accessible to any client IP allowed by the webserver ACL without any authentication"
     - name: "api_key"
       type: "String"
       default: ""

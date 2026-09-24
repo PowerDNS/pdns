@@ -411,10 +411,6 @@ Webserver configuration
   Launch the :doc:`../guides/webserver` with statistics and the API. Use :func:`setWebserverConfig` to configure the webserver
 
   :param str listen_address: The IP address and Port to listen on
-  :param str password: The password required to access the webserver
-  :param str apikey: The key required to access the API
-  :param {[str]=str,...} customHeaders: Allows setting custom headers and removing the defaults
-  :param str acl: List of netmasks, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1". It accepts the same syntax that :func:`NetmaskGroup:addMask` does
 
 .. function:: setAPIWritable(allow [,dir])
 
@@ -445,7 +441,7 @@ Webserver configuration
 
   Options:
 
-  * ``password=newPassword``: string - Set the password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the :func:`hashPassword` command.
+  * ``password=newPassword``: string - Set the password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the :func:`hashPassword` command. Not setting a password means that the internal dashboard and some metrics will be accessible to any client IP allowed by the webserver ACL without any authentication.
   * ``apiKey=newKey``: string - Changes the API Key (set to an empty string do disable it). Since 1.7.0 the key should be hashed and salted via the :func:`hashPassword` command.
   * ``customHeaders={[str]=str,...}``: map of string - Allows setting custom headers and removing the defaults.
   * ``acl=newACL``: string - List of IP addresses, as a string, that are allowed to open a connection to the web server. Defaults to "127.0.0.1, ::1".
