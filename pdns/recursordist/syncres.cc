@@ -4359,16 +4359,29 @@ static void processCNAMEChain(LWResult& lwr, const DNSName& qname, std::unordere
 
 static void determineAnswerType(LWResult& lwr, bool haveAnswers)
 {
-  if ((haveAnswers && lwr.d_rcode == RCode::NoError) || (haveAnswers && (lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) && lwr.d_rcode == RCode::NXDomain)) {
-    lwr.d_answerType = LWResult::AnswerType::PositiveAnswer;
+  if (haveAnswers) {
+    if (lwr.d_rcode == RCode::NoError) {
+      lwr.d_answerType = LWResult::AnswerType::PositiveAnswer;
+      return;
+    }
+    if ((lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) && lwr.d_rcode == RCode::NXDomain) {
+      /* this may feel wrong, but this is a positive answer as far as this step is concerned:
+         we got a CNAME for the name we were looking for. The response code refers to the
+         target of the CNAME, which we will handle in the next step. */
+      lwr.d_answerType = LWResult::AnswerType::PositiveAnswer;
+      return;
+    }
+    lwr.d_answerType = LWResult::AnswerType::Unknown;
+    return;
   }
-  else if (!haveAnswers && !lwr.d_aabit && lwr.d_rcode == RCode::NoError && lwr.d_newAuth) {
+
+  if (!lwr.d_aabit && lwr.d_rcode == RCode::NoError && lwr.d_newAuth) {
     lwr.d_answerType = LWResult::AnswerType::Referral;
   }
-  else if (!haveAnswers && lwr.d_rcode == RCode::NoError && lwr.d_seenSOA) {
+  else if (lwr.d_rcode == RCode::NoError && lwr.d_seenSOA) {
     lwr.d_answerType = LWResult::AnswerType::NoData;
   }
-  else if (!haveAnswers && lwr.d_rcode == RCode::NXDomain && lwr.d_seenSOA) {
+  else if (lwr.d_rcode == RCode::NXDomain && lwr.d_seenSOA) {
     lwr.d_answerType = LWResult::AnswerType::NXDomain;
   }
   else {
@@ -4702,6 +4715,9 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   processCNAMEChain(lwr, qname, cnameChain, allowedAnswerNames, cnameSeen, rdQuery);
 
   determineAnswerType(lwr, haveAnswers);
+  if (lwr.d_answerType == LWResult::AnswerType::Unknown) {
+    LOG(prefix << qname << ": Unable to determine the type of the answer received from " << auth << "!"<<endl);
+  }
 
   sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, acceptDelegation && !soaInAuth, skipvec, skipCount);
 }
@@ -5236,7 +5252,7 @@ vState SyncRes::checkWildcardProof(const DNSName& name, const QType& type, const
   uint32_t lowestTTL = std::numeric_limits<uint32_t>::max();
   harvestNXRecords(records, negEntry, d_now.tv_sec, &lowestTTL);
 
-  auto recordState = getValidationStatus(name, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), false, depth, prefix);
+  auto recordState = getValidationStatus(name, !(negEntry.authoritySOA.signatures.empty() && negEntry.DNSSECRecords.signatures.empty()), false, depth, prefix);
   if (recordState != vState::Secure) {
     return recordState;
   }
@@ -5861,7 +5877,7 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
   updateValidationState(qname, state, cnameContext.state, prefix);
 }
 
-static void normalizeTTLs(LWResult::AnswerType answerType, std::vector<DNSRecord>& records, bool updatingRootNS, bool ecsSpecific, unsigned int minimumTTL, unsigned int minimumECSTTL, unsigned int maxNegativeAnswerTTL)
+static void normalizeTTLs(const LWResult::AnswerType answerType, std::vector<DNSRecord>& records, bool updatingRootNS, bool ecsSpecific, unsigned int minimumTTL, unsigned int minimumECSTTL, unsigned int maxNegativeAnswerTTL)
 {
   if (minimumTTL != 0) {
     for (auto& rec : records) {
@@ -5929,7 +5945,7 @@ void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& pref
       uint32_t lowestTTL = std::numeric_limits<uint32_t>::max();
       harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
 
-      auto recordState = getValidationStatus(*lwr.d_newAuth, !negEntry.authoritySOA.signatures.empty() || !negEntry.DNSSECRecords.signatures.empty(), true, depth, prefix);
+      auto recordState = getValidationStatus(*lwr.d_newAuth, !(negEntry.authoritySOA.signatures.empty() && negEntry.DNSSECRecords.signatures.empty()), true, depth, prefix);
 
       if (recordState == vState::Secure) {
         negEntry.d_auth = auth;
