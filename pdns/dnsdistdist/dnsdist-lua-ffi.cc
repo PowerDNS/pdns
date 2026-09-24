@@ -2155,7 +2155,7 @@ size_t dnsdist_ffi_dnspacket_get_name_at_offset_raw(const char* packet, size_t p
 
 bool dnsdist_ffi_dnspacket_parse_a_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize)
 {
-  if (raw == nullptr || packet == nullptr || addr == nullptr || addrSize == nullptr || idx >= packet->overlay.d_records.size()) {
+  if (raw == nullptr || packet == nullptr || addr == nullptr || addrSize == nullptr || *addrSize < 4 || idx >= packet->overlay.d_records.size()) {
     return false;
   }
 
@@ -2173,7 +2173,7 @@ bool dnsdist_ffi_dnspacket_parse_a_record(const char* raw, const dnsdist_ffi_dns
 
 bool dnsdist_ffi_dnspacket_parse_aaaa_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* addr, size_t* addrSize)
 {
-  if (raw == nullptr || packet == nullptr || addr == nullptr || addrSize == nullptr || idx >= packet->overlay.d_records.size()) {
+  if (raw == nullptr || packet == nullptr || addr == nullptr || addrSize == nullptr || *addrSize < 16 || idx >= packet->overlay.d_records.size()) {
     return false;
   }
 
@@ -2197,6 +2197,9 @@ bool dnsdist_ffi_dnspacket_parse_address_record(const char* raw, const dnsdist_f
 
   const auto& record = packet->overlay.d_records.at(idx);
   if (record.d_type == QType::A && record.d_contentLength == 4) {
+    if (*addrSize < 4) {
+      return false;
+    }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): this is a C API
     memcpy(addr, &raw[record.d_contentOffset], 4);
     *addrSize = record.d_contentLength;
@@ -2205,6 +2208,9 @@ bool dnsdist_ffi_dnspacket_parse_address_record(const char* raw, const dnsdist_f
   }
 
   if (record.d_type == QType::AAAA && record.d_contentLength == 16) {
+    if (*addrSize < 16) {
+      return false;
+    }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): this is a C API
     memcpy(addr, &raw[record.d_contentOffset], 16);
     *addrSize = record.d_contentLength;
@@ -2217,7 +2223,7 @@ bool dnsdist_ffi_dnspacket_parse_address_record(const char* raw, const dnsdist_f
 
 bool dnsdist_ffi_dnspacket_parse_cname_record(const char* raw, const dnsdist_ffi_dnspacket_t* packet, size_t idx, char* name, size_t* nameSize)
 {
-  if (raw == nullptr || packet == nullptr || name == nullptr || nameSize == nullptr || idx >= packet->overlay.d_records.size()) {
+  if (raw == nullptr || packet == nullptr || name == nullptr || nameSize == nullptr || *nameSize == 0 || idx >= packet->overlay.d_records.size()) {
     return false;
   }
 
@@ -2229,6 +2235,10 @@ bool dnsdist_ffi_dnspacket_parse_cname_record(const char* raw, const dnsdist_ffi
   try {
     DNSName parsed(raw, record.d_contentOffset + record.d_contentLength, record.d_contentOffset, true);
     const auto& storage = parsed.getStorage();
+    if (*nameSize < storage.size()) {
+      return false;
+    }
+
     memcpy(name, storage.data(), storage.size());
     *nameSize = storage.size();
 
