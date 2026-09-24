@@ -56,6 +56,7 @@ ComboAddress resolve(const std::string& name)
       vec.emplace_back(address);
     }
     catch (...) {
+      ;
     }
     res = res->ai_next;
   }
@@ -88,20 +89,25 @@ std::string serverID()
     return {};
   }
 
-  MOADNSParser parser(false, static_cast<const char*>(static_cast<void*>(buffer.data())), buffer.size());
-  if (parser.d_header.rcode != RCode::NoError || parser.d_answers.size() != 1) {
-    return {};
-  }
-  const auto& dnsrecord = parser.d_answers.at(0);
-  if (dnsrecord.d_type == QType::TXT) {
-    if (auto txt = getRR<TXTRecordContent>(dnsrecord); txt != nullptr) {
-      const auto& text = txt->d_text;
-      if (text.size() >= 2 && text.at(0) == '"' && text.at(text.size() - 1) == '"') {
-        // remove quotes around text
-        return txt->d_text.substr(1, txt->d_text.size() - 2);
-      }
-      return txt->d_text;
+  try {
+    MOADNSParser parser(false, static_cast<const char*>(static_cast<void*>(buffer.data())), buffer.size());
+    if (parser.d_header.rcode != RCode::NoError || parser.d_answers.size() != 1) {
+      return {};
     }
+    const auto& dnsrecord = parser.d_answers.at(0);
+    if (dnsrecord.d_type == QType::TXT) {
+      if (auto txt = getRR<TXTRecordContent>(dnsrecord); txt != nullptr) {
+        const auto& text = txt->d_text;
+        if (text.size() >= 2 && text.at(0) == '"' && text.at(text.size() - 1) == '"') {
+          // remove quotes around text
+          return txt->d_text.substr(1, txt->d_text.size() - 2);
+        }
+        return txt->d_text;
+      }
+    }
+  }
+  catch (const MOADNSException&) {
+    ;
   }
   return {};
 }
