@@ -1214,7 +1214,10 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
         return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
-      query.d_headers->insert({std::string(reinterpret_cast<const char*>(name), nameLen), std::string(valueView)});
+      auto headerName = std::string(reinterpret_cast<const char*>(name), nameLen);
+      // keep the last version in case of duplicated headers (allowed by the RFCs, at least for some headers)
+      // which mostly matters for the Forwarded-For header
+      query.d_headers->insert_or_assign(std::move(headerName), std::string(valueView));
     }
   }
   return 0;
