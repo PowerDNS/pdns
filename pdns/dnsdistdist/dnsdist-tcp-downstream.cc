@@ -859,7 +859,7 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         if (query.d_xfrPrimarySerial == 0) {
           // store the first SOA in our client's connection metadata
           query.d_xfrPrimarySerial = serial;
-          if (query.d_idstate.qtype == QType::IXFR && (query.d_xfrPrimarySerial == query.d_ixfrQuerySerial || rfc1982LessThan(query.d_xfrPrimarySerial, query.d_ixfrQuerySerial))) {
+          if (query.d_idstate.qtype == QType::IXFR && (query.d_xfrPrimarySerial == query.d_ixfrQuerySerial || rfc1982LessThanOrEqual(query.d_xfrPrimarySerial, query.d_ixfrQuerySerial))) {
             /* This is the first message with a primary SOA:
                RFC 1995 Section 2:
                  If an IXFR query with the same or newer version number
