@@ -3391,6 +3391,7 @@ void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   setupLuaBindings(luaCtx, client, configCheck);
+  setupLuaBindingsCache(luaCtx);
   setupLuaBindingsDNSCrypt(luaCtx, client);
   setupLuaBindingsDNSParser(luaCtx);
   setupLuaBindingsDNSQuestion(luaCtx);
