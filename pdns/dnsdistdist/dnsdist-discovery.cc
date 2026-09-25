@@ -310,6 +310,14 @@ bool ServiceDiscovery::getDiscoveredConfig(const Logr::Logger& topLogger, const 
 
     struct dnsheader d;
     memcpy(&d, packet.data(), sizeof(d));
+    if (d.qr != 1) {
+      if (verbose) {
+        SLOG(warnlog("Invalid QR=0 response received from the backend %s", d.id, id, addr.toStringWithPort()),
+             logger->info(Logr::Warning, "Invalid QR=0 response received from the backend", "dns.response.id", Logging::Loggable(d.id)));
+      }
+      return false;
+    }
+
     if (d.id != id) {
       if (verbose) {
         SLOG(warnlog("Invalid ID (%d / %d) received from the backend %s", d.id, id, addr.toStringWithPort()),
