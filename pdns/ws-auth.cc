@@ -1127,7 +1127,13 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
     }
     else {
       // Set the NSEC3PARAMs
-      NSEC3PARAMRecordContent ns3pr(nsec3paramDocVal);
+      NSEC3PARAMRecordContent ns3pr;
+      try {
+        ns3pr = NSEC3PARAMRecordContent(nsec3paramDocVal);
+      }
+      catch (std::runtime_error& exc) {
+        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() + "' are invalid. " + exc.what());
+      }
       string error_msg;
       if (!dnssecKeeper.checkNSEC3PARAM(ns3pr, error_msg)) {
         throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() + "' are invalid. " + error_msg);
@@ -2256,7 +2262,13 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
     checkDefaultDNSSECAlgos();
 
     if (document["nsec3param"].string_value().length() > 0) {
-      NSEC3PARAMRecordContent ns3pr(document["nsec3param"].string_value());
+      NSEC3PARAMRecordContent ns3pr;
+      try {
+        ns3pr = NSEC3PARAMRecordContent(document["nsec3param"].string_value());
+      }
+      catch (std::runtime_error& exc) {
+        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() + "' are invalid. " + exc.what());
+      }
       string error_msg;
       if (!dnssecKeeper.checkNSEC3PARAM(ns3pr, error_msg)) {
         throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() + "' are invalid. " + error_msg);

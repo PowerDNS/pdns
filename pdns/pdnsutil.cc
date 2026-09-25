@@ -4811,7 +4811,15 @@ static int setNsec3(std::vector<std::string>& cmds, [[maybe_unused]] std::vector
   }
   string nsec3params = cmds.size() > 1 ? cmds.at(1) : "1 0 0 -";
   bool narrow = cmds.size() > 2 && cmds.at(2) == "narrow";
-  NSEC3PARAMRecordContent ns3pr(nsec3params);
+  NSEC3PARAMRecordContent ns3pr;
+  
+  try {
+    ns3pr = NSEC3PARAMRecordContent(nsec3params);
+  }
+  catch (const std::runtime_error& err) {
+    cerr << "Invalid NSEC3 specification: " << err.what() << endl;
+    return 1;
+  }
 
   DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));

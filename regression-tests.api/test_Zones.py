@@ -842,6 +842,13 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         name, payload, data = self.create_zone(dnssec=False)
         self.put_zone(name, {"nsec3param": "1 0 1 ab"}, expect_error=True)
 
+    def test_create_zone_with_bogus_nsec3param(self):
+        """
+        Create a zone with invalid "nsec3param" set, which should fail.
+        """
+        nsec3param = "1 0 100 ccddeeffgghh"
+        self.create_zone(expect_error=True, dnssec=True, nsec3param=nsec3param)
+
     def test_create_zone_dnssec_serial(self):
         """
         Create a zone, then set and unset "dnssec", then check if the serial was increased

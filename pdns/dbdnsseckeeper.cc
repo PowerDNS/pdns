@@ -341,6 +341,7 @@ uint64_t DNSSECKeeper::dbdnssecCacheSizes(const std::string& str)
 bool DNSSECKeeper::getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow, bool useCache)
 {
   string value;
+  NSEC3PARAMRecordContent tmpns3p;
   if(useCache) {
     getFromMeta(zname, "NSEC3PARAM", value);
   }
@@ -350,10 +351,19 @@ bool DNSSECKeeper::getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent*
   if(value.empty()) { // "no NSEC3"
     return false;
   }
+  try {
+    tmpns3p = NSEC3PARAMRecordContent(value);
+  }
+  catch (std::runtime_error& exc) {
+    // Invalid metadata value.
+    SLOG(g_log<<Logger::Error<<"NSEC3PARAM metadata for zone '"<<zname<<"' is ill-formed: "<<exc.what()<<endl,
+         d_slog->error(Logr::Error, exc.what(), "NSEC3PARAM metadata is ill-formed", "zone", Logging::Loggable(zname)));
+    return false;
+  }
 
   static auto maxNSEC3Iterations=::arg().asNum<uint16_t>("max-nsec3-iterations");
   if(ns3p != nullptr) {
-    *ns3p = NSEC3PARAMRecordContent(value);
+    *ns3p = tmpns3p;
     if (ns3p->d_iterations > maxNSEC3Iterations && !isPresigned(zname, useCache)) {
       ns3p->d_iterations = maxNSEC3Iterations;
       SLOG(g_log<<Logger::Error<<"Number of NSEC3 iterations for zone '"<<zname<<"' is above 'max-nsec3-iterations'. Value adjusted to: "<<maxNSEC3Iterations<<endl,

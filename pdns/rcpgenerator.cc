@@ -618,18 +618,22 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
   }
 }
 
-static inline uint8_t hextodec(uint8_t val)
+static uint8_t hextodec(uint8_t val)
 {
-  if(val >= '0' && val<='9')
+  if (val >= '0' && val<='9') {
     return val-'0';
-  else if(val >= 'A' && val<='F')
+  }
+  if (val >= 'A' && val<='F') {
     return 10+(val-'A');
-  else if(val >= 'a' && val<='f')
+  }
+  if (val >= 'a' && val<='f') {
     return 10+(val-'a');
-  else
-    throw RecordTextException("Unknown hexadecimal character '"+std::to_string(val)+"'");
+  }
+  // We do not perform an isprint() check before printing the offending
+  // character, as we are relying upon our only caller to only pass
+  // values which satisfy isalnum().
+  throw RecordTextException("Invalid hexadecimal character '"+std::string(1, static_cast<char>(val))+"'");
 }
-
 
 static void HEXDecode(std::string_view chunk, string& out)
 {
