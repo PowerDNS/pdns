@@ -26,6 +26,7 @@
 #include <sys/stat.h>
 
 #include "ixfrutils.hh"
+#include "misc.hh"
 #include "sstuff.hh"
 #include "dnssecinfra.hh"
 #include "zoneparser-tng.hh"
@@ -82,7 +83,7 @@ uint32_t getSerialFromDir(const std::string& dir)
     try {
       auto version = pdns::checked_stoi<uint32_t>(std::string(name));
       if (std::to_string(version) == name) {
-        ret = std::max(version, ret);
+        ret = std::max(version, ret, rfc1982LessThan<uint32_t>);
       }
     }
     catch (...) {
