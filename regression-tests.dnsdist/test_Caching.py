@@ -254,7 +254,7 @@ class TestCaching(DNSDistTest):
         numberOfQueries = 5
 
         for _ in range(numberOfQueries):
-            method ="sendTCPQuery"
+            method = "sendTCPQuery"
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
             self.assertTrue(receivedQuery)
