@@ -46,18 +46,18 @@ fn get_response_rules_from_serde(
 }
 
 fn register_remote_loggers(
-  config: &dnsdistsettings::RemoteLoggingConfiguration,
+    config: &dnsdistsettings::RemoteLoggingConfiguration,
 ) -> Result<(), cxx::Exception> {
-  for logger in &config.protobuf_loggers {
-    dnsdistsettings::registerProtobufLogger(logger)?;
-  }
-  for logger in &config.dnstap_loggers {
-    dnsdistsettings::registerDnstapLogger(logger)?;
-  }
-  for logger in &config.otlp_loggers {
-    dnsdistsettings::registerOtlpLogger(logger)?;
-  }
-  Ok(())
+    for logger in &config.protobuf_loggers {
+        dnsdistsettings::registerProtobufLogger(logger)?;
+    }
+    for logger in &config.dnstap_loggers {
+        dnsdistsettings::registerDnstapLogger(logger)?;
+    }
+    for logger in &config.otlp_loggers {
+        dnsdistsettings::registerOtlpLogger(logger)?;
+    }
+    Ok(())
 }
 
 fn get_global_configuration_from_serde(
@@ -84,6 +84,7 @@ fn get_global_configuration_from_serde(
         pools: serde.pools,
         proxy_protocol: serde.proxy_protocol,
         query_count: serde.query_count,
+        redis_clients: serde.redis_clients,
         remote_logging: serde.remote_logging,
         ring_buffers: serde.ring_buffers,
         security_polling: serde.security_polling,
@@ -98,6 +99,8 @@ fn get_global_configuration_from_serde(
     register_remote_loggers(&config.remote_logging)?;
     // this needs to be done before the KVS so they can refer to the DBs
     dnsdistsettings::registerMMDBObjects(&config.mmdbs)?;
+    // this needs to be done before the KVS so they can refer to the redis clients
+    dnsdistsettings::registerRedisClientObjects(&config.redis_clients)?;
     // this needs to be done before the rules so that they can refer to the KVS objects
     dnsdistsettings::registerKVSObjects(&config.key_value_stores)?;
     // this needs to be done before the rules so that they can refer to the NMG objects
@@ -107,33 +110,34 @@ fn get_global_configuration_from_serde(
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors)?;
-    config.cache_hit_response_rules = get_response_rules_from_serde(&serde.cache_hit_response_rules)?;
-    config.cache_inserted_response_rules = get_response_rules_from_serde(&serde.cache_inserted_response_rules)?;
+    config.cache_hit_response_rules =
+        get_response_rules_from_serde(&serde.cache_hit_response_rules)?;
+    config.cache_inserted_response_rules =
+        get_response_rules_from_serde(&serde.cache_inserted_response_rules)?;
     config.cache_miss_rules = get_query_rules_from_serde(&serde.cache_miss_rules)?;
     config.query_rules = get_query_rules_from_serde(&serde.query_rules)?;
     config.response_rules = get_response_rules_from_serde(&serde.response_rules)?;
-    config.self_answered_response_rules = get_response_rules_from_serde(&serde.self_answered_response_rules)?;
+    config.self_answered_response_rules =
+        get_response_rules_from_serde(&serde.self_answered_response_rules)?;
     config.timeout_response_rules = get_response_rules_from_serde(&serde.timeout_response_rules)?;
     config.xfr_response_rules = get_response_rules_from_serde(&serde.xfr_response_rules)?;
     Ok(config)
 }
 
-pub fn from_yaml_string(
-    str: &str,
-) -> Result<dnsdistsettings::GlobalConfiguration, String> {
+pub fn from_yaml_string(str: &str) -> Result<dnsdistsettings::GlobalConfiguration, String> {
     let serde_config: Result<GlobalConfigurationSerde, serde_yaml::Error> =
         serde_yaml::from_str(str);
 
     if let Err(e) = serde_config {
-      return Err(e.to_string());
+        return Err(e.to_string());
     }
     let serde_config = serde_config.unwrap();
     let validation_result = serde_config.validate();
     if let Err(e) = validation_result {
-      return Err(e.to_string())
+        return Err(e.to_string());
     }
     match get_global_configuration_from_serde(serde_config) {
-      Ok(config) => Ok(config),
-      Err(e) => Err(e.to_string()),
+        Ok(config) => Ok(config),
+        Err(e) => Err(e.to_string()),
     }
 }
