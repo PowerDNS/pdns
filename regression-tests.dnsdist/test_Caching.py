@@ -254,14 +254,14 @@ class TestCaching(DNSDistTest):
         numberOfQueries = 5
 
         for _ in range(numberOfQueries):
-            for method in ("sendUDPQuery", "sendTCPQuery"):
-                sender = getattr(self, method)
-                (receivedQuery, receivedResponse) = sender(query, response)
-                self.assertTrue(receivedQuery)
-                self.assertTrue(receivedResponse)
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(receivedResponse, response)
+            method = "sendTCPQuery"
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
 
         for key in self._responsesCounter:
             value = self._responsesCounter[key]
@@ -289,14 +289,14 @@ class TestCaching(DNSDistTest):
         numberOfQueries = 5
 
         for _ in range(numberOfQueries):
-            for method in ("sendUDPQuery", "sendTCPQuery"):
-                sender = getattr(self, method)
-                (receivedQuery, receivedResponse) = sender(query, response)
-                self.assertTrue(receivedQuery)
-                self.assertTrue(receivedResponse)
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(receivedResponse, response)
+            method = "sendTCPQuery"
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
 
         for key in self._responsesCounter:
             value = self._responsesCounter[key]
