@@ -1835,6 +1835,13 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
       dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, RCode::NotImp);
       return processQueryAfterRules(dnsQuestion, selectedBackend);
     }
+    if (dnsQuestion.ids.qtype == QType::IXFR) {
+      auto header = dnsQuestion.getHeader();
+      if (ntohs(header->nscount) != 1) {
+        dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, RCode::Refused);
+        return processQueryAfterRules(dnsQuestion, selectedBackend);
+      }
+    }
 
     if (!applyRulesToQuery(dnsQuestion, now)) {
       return ProcessQueryResult::Drop;
