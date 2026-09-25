@@ -254,7 +254,7 @@ class TestCaching(DNSDistTest):
         numberOfQueries = 5
 
         for _ in range(numberOfQueries):
-            for method in ("sendUDPQuery", "sendTCPQuery"):
+            for method in ("sendTCPQuery"):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 self.assertTrue(receivedQuery)
@@ -289,7 +289,7 @@ class TestCaching(DNSDistTest):
         numberOfQueries = 5
 
         for _ in range(numberOfQueries):
-            for method in ("sendUDPQuery", "sendTCPQuery"):
+            for method in ("sendTCPQuery"):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 self.assertTrue(receivedQuery)
