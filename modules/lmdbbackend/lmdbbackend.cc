@@ -1714,20 +1714,21 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     d_rwtxn->txn->put_header_in_place(d_rwtxn->db->rdbi, match, ser);
   }
 
+  // Delete comments if the complete RRset gets removed
+  if (rrset.empty()) {
+    deleteComments(domain_id, relative, qt);
+  }
+
   return true;
 }
 
-bool LMDBBackend::replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qtype, const vector<Comment>& comments)
+void LMDBBackend::deleteComments(const domainid_t domain_id, const DNSName& relqname, const QType& qtype)
 {
-  // delete all existing comments for the RRset
-  // this could be smarter and not del+replace unchanged comments
   auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->cdbi);
   MDBOutVal key{};
   MDBOutVal val{};
 
   compoundOrdername co;
-
-  auto relqname = qname.makeRelative(d_transactiondomain);
 
   string match = co(domain_id, relqname, qtype);
 
@@ -1736,6 +1737,14 @@ bool LMDBBackend::replaceComments(const domainid_t domain_id, const DNSName& qna
       cursor.del(key);
     } while (cursor.next(key, val) == 0);
   }
+}
+
+bool LMDBBackend::replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qtype, const vector<Comment>& comments)
+{
+  // delete all existing comments for the RRset
+  // this could be smarter and not del+replace unchanged comments
+  auto relqname = qname.makeRelative(d_transactiondomain);
+  deleteComments(domain_id, relqname, qtype);
 
   for (const auto& comment : comments) {
     feedComment(comment);
@@ -2023,7 +2032,20 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
       txn.commit();
     }
 
-    // Remove records
+    { // Remove comments
+      auto cursor = d_rwtxn->txn->getCursor(d_rwtxn->db->cdbi);
+      MDBOutVal key{};
+      MDBOutVal val{};
+      compoundOrdername co; // NOLINT(readability-identifier-length)
+      string match = co(id, domain.operator const DNSName&());
+      if (cursor.prefix(match, key, val) == 0) {
+        do {
+          cursor.del(key);
+        } while (cursor.next(key, val) == 0);
+      }
+    }
+
+    // Remove records (actually done by startTransaction)
     commitTransaction();
 
     // Remove zone
