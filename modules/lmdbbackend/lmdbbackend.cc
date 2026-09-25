@@ -3397,6 +3397,8 @@ bool LMDBBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& co
   TSIGKey key;
   for (auto id : ids) {
     if (txn.get(id, key)) {
+      // Note that this will return the last key found matching name and
+      // optional algorithm.
       if (algorithm.empty() || algorithm == DNSName(key.algorithm)) {
         algorithm = DNSName(key.algorithm);
         content = key.key;
@@ -3434,7 +3436,7 @@ bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
 
   return true;
 }
-bool LMDBBackend::deleteTSIGKey(const DNSName& name)
+bool LMDBBackend::deleteTSIGKey(const DNSName& name, const DNSName& algorithm)
 {
   auto txn = d_ttsig->getRWTransaction();
 
@@ -3445,6 +3447,9 @@ bool LMDBBackend::deleteTSIGKey(const DNSName& name)
 
   for (auto id : ids) {
     if (txn.get(id, key)) {
+      if (!algorithm.empty() && key.algorithm != algorithm) {
+        continue;
+      }
       txn.del(id);
     }
   }
