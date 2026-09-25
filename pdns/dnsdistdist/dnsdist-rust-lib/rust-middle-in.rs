@@ -15,6 +15,7 @@
         fn registerProtobufLogger(config: &ProtobufLoggerConfiguration) -> Result<()>;
         fn registerDnstapLogger(config: &DnstapLoggerConfiguration) -> Result<()>;
         fn registerOtlpLogger(config: &OtlpLoggerConfiguration) -> Result<()>;
+        fn registerGenericCacheObjects(config: &GenericCachesConfiguration) -> Result<()>;
         fn registerKVSObjects(config: &KeyValueStoresConfiguration) -> Result<()>;
         fn registerMMDBObjects(config: &Vec<MmdbConfiguration>) -> Result<()>;
         fn registerNMGObjects(nmgs: &Vec<NetmaskGroupConfiguration>) -> Result<()>;
