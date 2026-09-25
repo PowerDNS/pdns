@@ -1036,7 +1036,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   std::unique_ptr<AuthLua4> update_policy_lua;
   if (!fname.empty()) {
     try {
-      update_policy_lua = std::make_unique<AuthLua4>();
+      update_policy_lua = std::make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
       update_policy_lua->loadFile(fname);
     }
     catch (const std::runtime_error& e) {
