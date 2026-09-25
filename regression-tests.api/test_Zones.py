@@ -399,7 +399,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
             "type": "A",
             "ttl": 3600,
             "records": [
-                # The contents are not lexographically ordered when creating
+                # The contents are not lexicographically ordered when creating
                 {
                     "content": "4.3.2.1",
                     "disabled": False,
@@ -416,7 +416,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
             "type": "NS",
             "ttl": 3600,
             "records": [
-                # The contents are not lexographically ordered when creating
+                # The contents are not lexicographically ordered when creating
                 {
                     "content": "ns2.example.com.",
                     "disabled": False,
@@ -433,7 +433,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(
             get_rrset(data, name, "A")["records"],
             [
-                # The content should be lexographically ordered when retrieving
+                # The content should be lexicographically ordered when retrieving
                 {
                     "content": "127.0.0.1",
                     "disabled": False,
@@ -598,7 +598,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone_with_custom_soa(self):
         name = unique_zone_name()
-        content = "ns1.example.net. testmaster@example.net. 10 10800 3600 604800 3600"
+        content = "ns1.example.net. testmaster.example.net. 10 10800 3600 604800 3600"
         rrset = {
             "name": name,
             "type": "soa",  # test uppercasing of type, too.
@@ -3366,10 +3366,10 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ZonesApiTestCase, AuthZonesHelperMixin):
-    def setUp(self):
-        super(AuthRootZone, self).setUp()
-        # zone name is not unique, so delete the zone before each individual test.
+    def tearDown(self):
+        # zone name is not unique, so delete the zone after each individual test.
         self.session.delete(self.url("/api/v1/servers/localhost/zones/=2E"))
+        super(AuthRootZone, self).tearDown()
 
     def test_create_zone(self):
         name, payload, data = self.create_zone(name=".", serial=22, soa_edit_api="")
