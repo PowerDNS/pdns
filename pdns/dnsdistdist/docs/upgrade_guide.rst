@@ -12,6 +12,8 @@ The internal web server now binds listening sockets with ``IPV6_V6ONLY`` set, wh
 
 Lua FFI API's ``dnsdist_ffi_dnspacket_parse_a_record``, ``dnsdist_ffi_dnspacket_parse_aaaa_record``, ``dnsdist_ffi_dnspacket_parse_address_record`` and ``dnsdist_ffi_dnspacket_parse_cname_record`` used to rely on the caller providing a large enough buffer, but this was the source of many AI-assisted bogus reports, so their ``addrSize`` and ``cnameSize`` parameters are no longer "out" parameters but "in and out" parameters, meaning they have to be set to the size of the buffer before calling these methods or the call will fail. They will still be updated to hold the number of bytes actually written on success.
 
+AXFR and IXFR queries received over UDP are immediately discarded with a "Not Implemented" response instead of being forwarded to the backend, as it could have introduced issues for TCP-only and DoT backends.
+
 2.1.0-beta2 to 2.1.0
 --------------------
 
