@@ -123,12 +123,14 @@ private:
     std::atomic<time_t> lastStatusUpdate{0};
   };
 
+  bool d_stop{false};
+
 public:
   IsUpOracle()
   {
     d_checkerThreadStarted.clear();
   }
-  ~IsUpOracle() = default;
+  ~IsUpOracle();
   int isUp(Logr::log_t slog, const ComboAddress& remote, const opts_t& opts);
   int isUp(Logr::log_t slog, const ComboAddress& remote, const std::string& url, const opts_t& opts);
   //NOLINTNEXTLINE(readability-identifier-length)
@@ -244,8 +246,7 @@ private:
   void checkThread()
   {
     setThreadName("pdns/luaupcheck");
-    while (true)
-    {
+    while (!d_stop) {
       std::chrono::system_clock::time_point checkStart = std::chrono::system_clock::now();
       std::forward_list<std::future<void>> results;
       std::forward_list<CheckDesc> toDelete;
@@ -435,6 +436,16 @@ int IsUpOracle::isUp(Logr::log_t slog, const ComboAddress& remote, const std::st
 {
   CheckDesc cd{remote, url, opts, slog};
   return isUp(cd);
+}
+
+IsUpOracle::~IsUpOracle()
+{
+  d_stop = true;
+  // If the checker thread has been started, tell it to stop now.
+  if (d_checkerThreadStarted.test_and_set()) {
+    d_condvar.notify_all();
+    d_checkerThread->join();
+  }
 }
 
 IsUpOracle g_up;
