@@ -206,3 +206,8 @@ bool Rings::Response::isACacheHit() const
   }
   return hit;
 }
+
+bool Rings::Response::isADrop() const
+{
+  return dh.rcode == 0 && usec == std::numeric_limits<uint32_t>::max();
+}

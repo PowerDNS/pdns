@@ -515,15 +515,21 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       }
 
       bool suffixMatchRuleMatches = d_suffixMatchRule.matches(ringEntry.when);
+      const bool isDrop = ringEntry.isADrop();
       if (suffixMatchRuleMatches) {
         const bool hit = ringEntry.isACacheHit();
         try {
-          root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<uint32_t>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt, g_rings.getSamplingRate());
+          root.submit(ringEntry.name, (isDrop ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt, g_rings.getSamplingRate());
         }
         catch (const std::exception& exp) {
           SLOG(warnlog("Error submitting name %s to Dynamic Block Suffix Match Rule policy: %s", ringEntry.name, exp.what()),
                dnsdist::logging::getTopLogger("dynamic-rules")->error(Logr::Warning, exp.what(), "Error submitting name to Dynamic Block Suffix Match Rule policy", "name", Logging::Loggable(ringEntry.name)));
         }
+      }
+
+      if (isDrop) {
+        /* drops are only useful for SMT rules at the moment */
+        continue;
       }
 
       if (d_excludedSubnets.match(ringEntry.requestor)) {

@@ -65,6 +65,7 @@ struct Rings
     dnsdist::Protocol protocol;
 
     [[nodiscard]] bool isACacheHit() const;
+    [[nodiscard]] bool isADrop() const;
   };
 
   struct Shard
