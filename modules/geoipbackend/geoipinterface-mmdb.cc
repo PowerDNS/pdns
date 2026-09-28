@@ -50,9 +50,8 @@ public:
   GeoIPInterfaceMMDB(Logr::log_t slog, const string& fname, const string& modeStr, GeoIPMMDBQueries& queries) :
     d_slog(slog), d_queries(std::move(queries))
   {
-    int ec;
     int flags = 0;
-    if (modeStr == "") {
+    if (modeStr.empty()) {
       /* for the benefit of ifdef */
       ;
     }
@@ -65,8 +64,8 @@ public:
       throw PDNSException(string("Unsupported mode ") + modeStr + ("for geoipbackend-mmdb"));
     }
     memset(&d_s, 0, sizeof(d_s));
-    if ((ec = MMDB_open(fname.c_str(), flags, &d_s)) != MMDB_SUCCESS) {
-      throw PDNSException(string("Cannot open ") + fname + string(": ") + string(MMDB_strerror(ec)));
+    if (int res = MMDB_open(fname.c_str(), flags, &d_s); res != MMDB_SUCCESS) {
+      throw PDNSException(string("Cannot open ") + fname + string(": ") + string(MMDB_strerror(res)));
     }
     SLOG(g_log << Logger::Debug << "Opened MMDB database " << fname << "(type: " << d_s.metadata.database_type << " version: " << d_s.metadata.binary_format_major_version << "." << d_s.metadata.binary_format_minor_version << ")" << endl,
          d_slog->info(Logr::Debug, "Opened MMDB database", "file", Logging::Loggable(fname), "type", Logging::Loggable(d_s.metadata.database_type), "major_version", Logging::Loggable(d_s.metadata.binary_format_major_version), "minor_version", Logging::Loggable(d_s.metadata.binary_format_minor_version)));
@@ -301,12 +300,12 @@ public:
   ~GeoIPInterfaceMMDB() override { MMDB_close(&d_s); };
 
 private:
-  MMDB_s d_s;
+  MMDB_s d_s{};
   Logr::log_t d_slog;
   GeoIPMMDBQueries d_queries;
 
   // This is a wrapper around MMDB_aget_value.
-  bool mmdbGetValue(MMDB_lookup_result_s& res, MMDB_entry_data_s& data, const std::vector<std::string>& path)
+  static bool mmdbGetValue(MMDB_lookup_result_s& res, MMDB_entry_data_s& data, const std::vector<std::string>& path)
   {
     // We unfortunately can not instantiate std::array with a non-compile-time
     // known size (here path.size() + 1), so pick some constant which ought
