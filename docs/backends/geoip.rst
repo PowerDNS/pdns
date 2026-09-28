@@ -89,6 +89,10 @@ Drivers and options
   :query-region: The mmdb path for region code, defaults to ``subdivisions/0/iso_code``.
   :language: The language to use for ``query-city-alt`` above if not specified, instead of ``en`` (this parameter is kept for backwards compatibility with older versions which do not allow queries to be specified in the options).
 
+  If you want to use `IPinfo Lite <https://ipinfo.io/lite>`__ instead of MaxMind, the queries need to be configured as::
+
+  query-city=city,query-continent=continent_code,query-country=country_code,query-latitude=latitude,query-longitude=longitude,query-precision=radius,query-region=region_code
+
 .. _setting-geoip-zones-file:
 
 ``geoip-zones-file``
