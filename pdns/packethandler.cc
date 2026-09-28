@@ -1808,6 +1808,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   }
 
   // Reset possibly dangling data associated to d_sd.
+  d_doLua.reset();
   d_ispresigned.reset();
   d_issecuredzone.reset();
 
