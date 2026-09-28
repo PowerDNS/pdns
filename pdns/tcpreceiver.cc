@@ -902,6 +902,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
         if(!::arg().mustDo("direct-dnskey")) {
           continue;
         } else {
+          // Override TTL
           zrr.dr.d_ttl = sd.minimum;
         }
       }
@@ -933,6 +934,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
         }
         for (auto& ip: ips) {
           zrr.dr.d_type = ip.dr.d_type;
+          zrr.dr.d_ttl = ip.dr.d_ttl;
           zrr.dr.setContent(ip.dr.getContent());
           zrrs.push_back(zrr);
         }
