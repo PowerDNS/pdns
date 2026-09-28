@@ -243,7 +243,7 @@ void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, const std::shared_pt
     for (const auto& nameOrIp : d_params.primaries) {
       try {
         auto primary = pdns::fromNameOrIP(nameOrIp, 53, logger);
-        d_params.soaRecordContent = loadZoneFromServer(logger, primary, zoneName, newZone, d_params.tsigtriplet, d_params.maxReceivedMBytes, d_params.localAddress, d_params.xfrTimeout);
+        d_params.soaRecordContent = loadZoneFromServer(logger, primary, zoneName, newZone, d_params.tsigtriplet, d_params.maxReceivedMBytes * 1024U * 1024U, d_params.localAddress, d_params.xfrTimeout);
         newZone->setSerial(d_params.soaRecordContent->d_st.serial);
         newZone->setRefresh(d_params.soaRecordContent->d_st.refresh);
         refresh = std::max(d_params.refreshFromConf != 0 ? d_params.refreshFromConf : newZone->getRefresh(), 1U);
@@ -335,7 +335,7 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
         local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
       }
 
-      deltas = getIXFRDeltas(logger, primary, zoneName, soaRecord, d_params.xfrTimeout, true, d_params.tsigtriplet, &local, d_params.maxReceivedMBytes);
+      deltas = getIXFRDeltas(logger, primary, zoneName, soaRecord, d_params.xfrTimeout, true, d_params.tsigtriplet, &local, d_params.maxReceivedMBytes * 1024U * 1024U);
 
       /* no need to try another primary */
       break;
