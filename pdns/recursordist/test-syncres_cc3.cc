@@ -765,6 +765,72 @@ BOOST_AUTO_TEST_CASE(test_nameserver_name_rpz_disabled)
   BOOST_CHECK_EQUAL(ret.size(), 1U);
 }
 
+BOOST_AUTO_TEST_CASE(test_nameserver_rpz_nodata_vs_dnssec)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver, true);
+  setDNSSECValidation(resolver, DNSSECMode::ValidateAll);
+
+  primeHints();
+
+  const DNSName apex("powerdns.com.");
+  const DNSName target("cname.powerdns.com.");
+
+  testkeysset_t keys;
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+  // zone itself is not signed
+  g_luaconfs.setState(luaconfsCopy);
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+    }
+
+    if (isRootServer(address)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (address == ComboAddress("192.0.2.1:53")) {
+
+      if (domain == target) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, apex.toString());
+        return LWResult::Result::Success;
+      }
+      if (domain == apex) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+        return LWResult::Result::Success;
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  DNSFilterEngine::Policy pol;
+  pol.d_kind = DNSFilterEngine::PolicyKind::NODATA;
+  std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
+  zone->setName("Unit test policy 0");
+  zone->addQNameTrigger(apex, std::move(pol));
+  zone->setExtendedErrorCode(99);
+  luaconfsCopy.dfe.clearZones();
+  luaconfsCopy.dfe.addZone(zone);
+  g_luaconfs.setState(luaconfsCopy);
+
+  vector<DNSRecord> ret;
+  auto res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 0U);
+  BOOST_REQUIRE(resolver->d_appliedPolicy.d_zoneData->d_extendedErrorCode);
+  BOOST_CHECK_EQUAL(*resolver->d_appliedPolicy.d_zoneData->d_extendedErrorCode, 99U);
+}
+
 BOOST_AUTO_TEST_CASE(test_forward_zone_nord)
 {
   std::unique_ptr<SyncRes> sr;
