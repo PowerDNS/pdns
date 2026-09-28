@@ -25,7 +25,7 @@ devonly-regression-test-mode
 
     @pytest.mark.external
     def testTXT(self):
-        query = dns.message.make_query('.', 'DNSKEY', want_dnssec=True)
+        query = dns.message.make_query("org.", "DNSKEY", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         # As this test uses external servers, be more generous wrt timeouts than the default 2.0s
@@ -44,8 +44,23 @@ devonly-regression-test-mode
             print(e.output)
             raise
 
-        expected = dns.rrset.from_text('dot-test-target.powerdns.org.', 0, dns.rdataclass.IN, 'TXT', 'https://github.com/PowerDNS/pdns/pull/12825')
-        query = dns.message.make_query('dot-test-target.powerdns.org', 'TXT', want_dnssec=True)
+        rec_controlCmd = [
+            os.environ["RECCONTROL"],
+            "--config-dir=%s" % "configs/" + self._confdir,
+            "get dot-outqueries",
+        ]
+        try:
+            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+            dotcount = ret
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            raise
+
+        expected = dns.rrset.from_text(
+            "dot-test-target.powerdns.org.", 0, dns.rdataclass.IN, "TXT", "https://github.com/PowerDNS/pdns/pull/12825"
+        )
+        query = dns.message.make_query("dot-test-target.powerdns.org", "TXT", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         # As this test uses external servers, be a more generous wrt timeouts than the default 2.0s
@@ -60,8 +75,9 @@ devonly-regression-test-mode
                           'get dot-outqueries']
         try:
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
-            self.assertNotEqual(ret, b'UNKNOWN\n')
-            self.assertNotEqual(ret, b'0\n')
+            self.assertNotEqual(ret, b"UNKNOWN\n")
+            self.assertNotEqual(ret, b"0\n")
+            self.assertGreater(int(ret), int(dotcount))
 
         except subprocess.CalledProcessError as e:
             print(e.output)
@@ -106,7 +122,7 @@ recursor:
 
     @pytest.mark.external
     def testTXT(self):
-        query = dns.message.make_query('.', 'DNSKEY', want_dnssec=True)
+        query = dns.message.make_query("org.", "DNSKEY", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         # As this test uses external servers, be more generous wrt timeouts than the default 2.0s
@@ -125,8 +141,23 @@ recursor:
             print(e.output)
             raise
 
-        expected = dns.rrset.from_text('dot-test-target.powerdns.org.', 0, dns.rdataclass.IN, 'TXT', 'https://github.com/PowerDNS/pdns/pull/12825')
-        query = dns.message.make_query('dot-test-target.powerdns.org', 'TXT', want_dnssec=True)
+        rec_controlCmd = [
+            os.environ["RECCONTROL"],
+            "--config-dir=%s" % "configs/" + self._confdir,
+            "get dot-outqueries",
+        ]
+        try:
+            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+            dotcount = ret
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            raise
+
+        expected = dns.rrset.from_text(
+            "dot-test-target.powerdns.org.", 0, dns.rdataclass.IN, "TXT", "https://github.com/PowerDNS/pdns/pull/12825"
+        )
+        query = dns.message.make_query("dot-test-target.powerdns.org", "TXT", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         # As this test uses external servers, be a more generous wrt timeouts than the default 2.0s
@@ -141,8 +172,9 @@ recursor:
                           'get dot-outqueries']
         try:
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
-            self.assertNotEqual(ret, b'UNKNOWN\n')
-            self.assertNotEqual(ret, b'0\n')
+            self.assertNotEqual(ret, b"UNKNOWN\n")
+            self.assertNotEqual(ret, b"0\n")
+            self.assertGreater(int(ret), int(dotcount))
 
         except subprocess.CalledProcessError as e:
             print(e.output)
@@ -188,7 +220,7 @@ recursor:
 
     @pytest.mark.external
     def testTXT(self):
-        query = dns.message.make_query('.', 'DNSKEY', want_dnssec=True)
+        query = dns.message.make_query("org.", "DNSKEY", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         # As this test uses external servers, be more generous wrt timeouts than the default 2.0s
@@ -207,8 +239,23 @@ recursor:
             print(e.output)
             raise
 
-        expected = dns.rrset.from_text('dot-test-target.powerdns.org.', 0, dns.rdataclass.IN, 'TXT', 'https://github.com/PowerDNS/pdns/pull/12825')
-        query = dns.message.make_query('dot-test-target.powerdns.org', 'TXT', want_dnssec=True)
+        rec_controlCmd = [
+            os.environ["RECCONTROL"],
+            "--config-dir=%s" % "configs/" + self._confdir,
+            "get dot-outqueries",
+        ]
+        try:
+            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+            dotcount = ret
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            raise
+
+        expected = dns.rrset.from_text(
+            "dot-test-target.powerdns.org.", 0, dns.rdataclass.IN, "TXT", "https://github.com/PowerDNS/pdns/pull/12825"
+        )
+        query = dns.message.make_query("dot-test-target.powerdns.org", "TXT", want_dnssec=True)
         query.flags |= dns.flags.AD
 
         # As this test uses external servers, be a more generous wrt timeouts than the default 2.0s
@@ -223,8 +270,9 @@ recursor:
                           'get dot-outqueries']
         try:
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
-            self.assertNotEqual(ret, b'UNKNOWN\n')
-            self.assertNotEqual(ret, b'0\n')
+            self.assertNotEqual(ret, b"UNKNOWN\n")
+            self.assertNotEqual(ret, b"0\n")
+            self.assertGreater(int(ret), int(dotcount))
 
         except subprocess.CalledProcessError as e:
             print(e.output)

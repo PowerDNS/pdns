@@ -791,9 +791,17 @@ static Answer doClearNTA(ArgIterator begin, ArgIterator end)
   }
   if (begin + 1 == end && *begin == "*") {
     g_log << Logger::Warning << "Clearing all Negative Trust Anchors, requested via control channel" << endl;
-    g_luaconfs.modify([](LuaConfigItems& lci) {
+    std::vector<DNSName> names;
+    g_luaconfs.modify([&names](LuaConfigItems& lci) {
+      names.reserve(lci.negAnchors.size());
+      for (const auto& negAnchor : lci.negAnchors) {
+        names.emplace_back(negAnchor.first);
+      }
       lci.negAnchors.clear();
     });
+    for (const auto& name : names) {
+      wipeCaches(name, true, 0xffff);
+    }
     return {0, "Cleared all Negative Trust Anchors.\n"};
   }
 
