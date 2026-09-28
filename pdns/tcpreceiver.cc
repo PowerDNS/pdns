@@ -1178,7 +1178,7 @@ bool TCPNameserver::axfrRectify(XFRContext& ctx, vector<DNSZoneRecord> &zrrs, co
         if (shorter==target) { // apex is always auth
           break;
         }
-        if(nsset.count(shorter) != 0 && !(loopZRR.dr.d_name==shorter && loopZRR.dr.d_type == QType::DS)) {
+        if(nsset.count(shorter) != 0 && !(loopZRR.dr.d_name==shorter && loopZRR.dr.d_type == QType::DS)) { // NOLINT(readability-simplify-boolean-expr)
           loopZRR.auth=false;
           break;
         }
