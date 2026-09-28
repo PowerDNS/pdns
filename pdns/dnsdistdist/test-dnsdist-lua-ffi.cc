@@ -844,7 +844,7 @@ BOOST_AUTO_TEST_CASE(test_PacketOverlay)
     BOOST_REQUIRE(dnsdist_ffi_dnspacket_parse_cname_record(reinterpret_cast<const char*>(response.data()), packet.get(), 0, nameBuffer.data(), &written));
     BOOST_CHECK_EQUAL(written, cnameTarget.wirelength());
     nameBuffer.resize(written);
-    BOOST_CHECK_EQUAL(nameBuffer, cnameTarget.getStorage());
+    BOOST_CHECK_EQUAL(nameBuffer, std::string(cnameTarget.getStorage()));
   }
 
   // second record (A)
