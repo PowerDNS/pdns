@@ -2611,7 +2611,6 @@ PICOTLS
 pident
 pidfname
 pieterlexis
-Pinfo
 pipeconnector
 pipefail
 pipefd
