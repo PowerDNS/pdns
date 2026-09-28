@@ -73,9 +73,6 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     catch (const std::exception& e) {
       return {e.what()};
     }
-    catch (const PDNSException& e) {
-      return e.reason;
-    }
     catch (...) {
       return {"Unknown exception"};
     }

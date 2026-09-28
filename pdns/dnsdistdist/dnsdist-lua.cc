@@ -611,12 +611,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          try {
                            config.remote = ComboAddress(serverAddressStr, serverPort);
                          }
-                         catch (const PDNSException& e) {
-                           g_outputBuffer = "Error creating new server: " + string(e.reason);
-                           SLOG(errlog("Error creating new server with address %s: %s", serverAddressStr, e.reason),
-                                getLogger("newServer")->error(Logr::Error, e.reason, "Error creating new backend server", "backend.address", Logging::Loggable(serverAddressStr)));
-                           return std::shared_ptr<DownstreamState>();
-                         }
                          catch (const std::exception& e) {
                            g_outputBuffer = "Error creating new server: " + string(e.what());
                            SLOG(errlog("Error creating new server with address %s: %s", serverAddressStr, e.what()),
@@ -1130,8 +1124,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     try {
       local = ComboAddress(address);
     }
-    catch (const PDNSException& e) {
-      throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
+    catch (const std::runtime_error& exp) {
+      throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + exp.what());
     }
 
     if (client || configCheck) {
@@ -2389,9 +2383,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
             ComboAddress address(add);
             additionalAddresses.emplace_back(address, -1);
           }
-          catch (const PDNSException& e) {
-            SLOG(errlog("Unable to parse additional address %s for DOH bind: %s", add, e.reason),
-                 getLogger("addDOHLocal")->error(Logr::Error, e.reason, "Unable to parse additional address for DOH bind", "frontend.address", Logging::Loggable(addr), "address", Logging::Loggable(add)));
+          catch (const std::runtime_error& exp) {
+            SLOG(errlog("Unable to parse additional address %s for DOH bind: %s", add, exp.what()),
+                 getLogger("addDOHLocal")->error(Logr::Error, exp.what(), "Unable to parse additional address for DOH bind", "frontend.address", Logging::Loggable(addr), "address", Logging::Loggable(add)));
             return;
           }
         }
@@ -2944,9 +2938,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
             ComboAddress address(add);
             additionalAddresses.emplace_back(address, -1);
           }
-          catch (const PDNSException& e) {
-            SLOG(errlog("Unable to parse additional address %s for DoT bind: %s", add, e.reason),
-                 getLogger("addTLSLocal")->error(Logr::Error, e.reason, "Unable to parse additional address for DoT bind", "frontend.address", Logging::Loggable(addr), "address", Logging::Loggable(add)));
+          catch (const std::runtime_error& exp) {
+            SLOG(errlog("Unable to parse additional address %s for DoT bind: %s", add, exp.what()),
+                 getLogger("addTLSLocal")->error(Logr::Error, exp.what(), "Unable to parse additional address for DoT bind", "frontend.address", Logging::Loggable(addr), "address", Logging::Loggable(add)));
             return;
           }
         }

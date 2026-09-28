@@ -584,7 +584,6 @@ DNSName PacketReader::getName()
   catch(...) {
     throw std::out_of_range("dnsname issue");
   }
-  throw PDNSException("PacketReader::getName(): name is empty");
 }
 
 // FIXME see #6010 and #3503 if you want a proper solution

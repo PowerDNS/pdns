@@ -20,10 +20,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <stdexcept>
 #include <string>
 #include <utility>
 
+#ifdef DNSDIST
 //! Generic Exception thrown
+class PDNSException : public std::runtime_error
+{
+public:
+  PDNSException() : std::runtime_error("Unspecified"), reason("Unspecified")
+  {
+  }
+  PDNSException(std::string why) : std::runtime_error(why), reason(std::move(why))
+  {
+  }
+
+  std::string reason; //! Print this to tell the user what went wrong
+};
+#else /* DNSDIST */
 class PDNSException
 {
 public:
@@ -33,6 +48,7 @@ public:
 
   std::string reason; //! Print this to tell the user what went wrong
 };
+#endif /* DNSDIST */
 
 class TimeoutException : public PDNSException
 {

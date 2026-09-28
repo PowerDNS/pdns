@@ -1362,13 +1362,6 @@ void IncomingTCPConnectionState::handleIO()
       */
       handleExceptionDuringIO(exp.what());
     }
-    catch (const PDNSException& exp) {
-      /* most likely an EOF because the other end closed the connection,
-         but it might also be a real IO error or something else.
-         Let's just drop the connection
-      */
-      handleExceptionDuringIO(exp.reason);
-    }
 
     if (!active()) {
       DEBUGLOG("state is no longer active");
@@ -1784,19 +1777,11 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
         SLOG(warnlog("Error in TCP worker thread: %s", e.what()),
              logger->error(Logr::Warning, e.what(), "Error in incoming TCP worker thread"));
       }
-      catch (const PDNSException& exp) {
-        SLOG(warnlog("Error in TCP worker thread: %s", exp.reason),
-             logger->error(Logr::Warning, exp.reason, "Error in incoming TCP worker thread"));
-      }
     }
   }
   catch (const std::exception& e) {
     SLOG(errlog("Fatal error in TCP worker thread: %s", e.what()),
          logger->error(Logr::Error, e.what(), "Fatal error in incoming TCP worker thread"));
-  }
-  catch (const PDNSException& exp) {
-    SLOG(errlog("Fatal error in TCP worker thread: %s", exp.reason),
-         logger->error(Logr::Error, exp.reason, "Fatal error in incoming TCP worker thread"));
   }
 }
 

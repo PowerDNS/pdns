@@ -892,10 +892,6 @@ static std::optional<ComboAddress> processForwardedForHeader(std::shared_ptr<con
     VERBOSESLOG(infolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what()),
                 logger->error(Logr::Info, e.what(), "Invalid X-Forwarded-For header received", "http.request.header.x-forwarded-for", Logging::Loggable(value)));
   }
-  catch (const PDNSException& e) {
-    VERBOSESLOG(infolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason),
-                logger->error(Logr::Info, e.reason, "Invalid X-Forwarded-For header received", "http.request.header.x-forwarded-for", Logging::Loggable(value)));
-  }
   return result;
 }
 

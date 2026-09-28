@@ -1686,20 +1686,11 @@ int main(int argc, char** argv)
       SLOG(errlog("Details: %s", ne.what()),
            dnsdist::logging::getTopLogger("main")->error(Logr::Error, ne.what(), "Additional details for fatal Lua error"));
     }
-    catch (const PDNSException& ae) {
-      SLOG(errlog("Fatal pdns error: %s", ae.reason),
-           dnsdist::logging::getTopLogger("main")->error(Logr::Error, ae.reason, "Additional PowerDNS details for fatal Lua error"));
-    }
     doExitNicely(EXIT_FAILURE);
   }
   catch (const std::exception& e) {
     SLOG(errlog("Fatal error: %s", e.what()),
          dnsdist::logging::getTopLogger("main")->error(Logr::Error, e.what(), "Fatal error"));
-    doExitNicely(EXIT_FAILURE);
-  }
-  catch (const PDNSException& ae) {
-    SLOG(errlog("Fatal pdns error: %s", ae.reason),
-         dnsdist::logging::getTopLogger("main")->error(Logr::Error, ae.reason, "Fatal PowerDNS error"));
     doExitNicely(EXIT_FAILURE);
   }
 }

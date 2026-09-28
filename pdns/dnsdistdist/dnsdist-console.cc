@@ -468,10 +468,6 @@ void doConsole()
         // ne is the exception that was thrown from inside the lambda
         std::cerr << ": " << ne.what() << std::endl;
       }
-      catch (const PDNSException& ne) {
-        // ne is the exception that was thrown from inside the lambda
-        std::cerr << ": " << ne.reason << std::endl;
-      }
     }
     catch (const std::exception& e) {
       std::cerr << e.what() << std::endl;
@@ -612,10 +608,6 @@ static void controlClientThread(ConsoleConnection&& conn, std::shared_ptr<Logr::
         catch (const std::exception& ne) {
           // ne is the exception that was thrown from inside the lambda
           response += ": " + string(ne.what());
-        }
-        catch (const PDNSException& ne) {
-          // ne is the exception that was thrown from inside the lambda
-          response += ": " + string(ne.reason);
         }
       }
       catch (const LuaContext::SyntaxErrorException& e) {

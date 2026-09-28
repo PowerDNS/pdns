@@ -506,8 +506,8 @@ public:
     try {
       d_regex = Regex(regex);
     }
-    catch (const PDNSException& exp) {
-      throw std::runtime_error("Error compiling expression in RegexRule: " + exp.reason);
+    catch (const std::runtime_error& exp) {
+      throw std::runtime_error("Error compiling expression in RegexRule: " + std::string(exp.what()));
     }
   }
   bool matches(const DNSQuestion* dq) const override

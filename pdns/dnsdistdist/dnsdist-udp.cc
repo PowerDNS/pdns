@@ -755,10 +755,6 @@ static void MultipleMessagesUDPResponseFromBackendThread(std::shared_ptr<Downstr
     SLOG(errlog("UDP responder thread died because of exception: %s", e.what()),
          responderLogger->error(Logr::Error, e.what(), "UDP responder thread died because of an exception"));
   }
-  catch (const PDNSException& e) {
-    SLOG(errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason),
-         responderLogger->error(Logr::Error, e.reason, "UDP responder thread died because of a PowerDNS exception"));
-  }
   catch (...) {
     SLOG(errlog("UDP responder thread died because of an exception: %s", "unknown"),
          responderLogger->info(Logr::Error, "UDP responder thread died because of an unknown exception"));
@@ -880,10 +876,6 @@ void udpClientThread(std::vector<ClientState*> states)
     SLOG(errlog("UDP client thread died because of exception: %s", e.what()),
          dnsdist::logging::getTopLogger("udp-frontend")->error(Logr::Error, e.what(), "UDP client thread died because of exception"));
   }
-  catch (const PDNSException& e) {
-    SLOG(errlog("UDP client thread died because of PowerDNS exception: %s", e.reason),
-         dnsdist::logging::getTopLogger("udp-frontend")->error(Logr::Error, e.reason, "UDP client thread died because of PowerDNS exception"));
-  }
   catch (...) {
     SLOG(errlog("UDP client thread died because of an exception: unknown"),
          dnsdist::logging::getTopLogger("udp-frontend")->info(Logr::Error, "UDP client thread died because of an unknown exception"));
@@ -963,10 +955,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   catch (const std::exception& e) {
     SLOG(errlog("UDP responder thread died because of exception: %s", e.what()),
          responderLogger->error(Logr::Error, e.what(), "UDP responder thread died because of an exception"));
-  }
-  catch (const PDNSException& e) {
-    SLOG(errlog("UDP responder thread died because of PowerDNS exception: %s", e.reason),
-         responderLogger->error(Logr::Error, e.reason, "UDP responder thread died because of a PowerDNS exception"));
   }
   catch (...) {
     SLOG(errlog("UDP responder thread died because of an exception: %s", "unknown"),
