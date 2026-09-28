@@ -61,7 +61,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "country", "iso_code", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"country", "iso_code"}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -73,7 +73,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "country", "iso_code", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"country", "iso_code"}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -95,7 +95,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "continent", "code", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"continent", "code"}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -107,7 +107,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "continent", "code", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"continent", "code"}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -119,7 +119,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "autonomous_system_organization", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"autonomous_system_organization"}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -131,7 +131,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "autonomous_system_organization", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"autonomous_system_organization"}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -143,7 +143,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "autonomous_system_number", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"autonomous_system_number"}))
       return false;
     ret = std::to_string(data.uint32);
     return true;
@@ -155,7 +155,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "autonomous_system_number", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"autonomous_system_number"}))
       return false;
     ret = std::to_string(data.uint32);
     return true;
@@ -167,7 +167,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "subdivisions", "0", "iso_code", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"subdivisions", "0", "iso_code"}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -179,7 +179,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "subdivisions", "0", "iso_code", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"subdivisions", "0", "iso_code"}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -191,7 +191,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
       return false;
-    if ((MMDB_get_value(&res.entry, &data, "cities", "0", NULL) != MMDB_SUCCESS || !data.has_data) && (MMDB_get_value(&res.entry, &data, "city", "names", d_lang.c_str(), NULL) != MMDB_SUCCESS || !data.has_data))
+    if (!mmdbGetValue(res, data, {"cities", "0"}) && !mmdbGetValue(res, data, {"city", "names", d_lang}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -203,7 +203,7 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
       return false;
-    if ((MMDB_get_value(&res.entry, &data, "cities", "0", NULL) != MMDB_SUCCESS || !data.has_data) && (MMDB_get_value(&res.entry, &data, "city", "names", d_lang.c_str(), NULL) != MMDB_SUCCESS || !data.has_data))
+    if (!mmdbGetValue(res, data, {"cities", "0"}) && !mmdbGetValue(res, data, {"city", "names", d_lang}))
       return false;
     ret = string(data.utf8_string, data.data_size);
     return true;
@@ -217,13 +217,13 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, false, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "location", "latitude", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"location", "latitude"}))
       return false;
     latitude = data.double_value;
-    if (MMDB_get_value(&res.entry, &data, "location", "longitude", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"location", "longitude"}))
       return false;
     longitude = data.double_value;
-    if (MMDB_get_value(&res.entry, &data, "location", "accuracy_radius", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"location", "accuracy_radius"}))
       return false;
     prec = data.uint16;
     return true;
@@ -237,13 +237,13 @@ public:
     MMDB_lookup_result_s res;
     if (!mmdbLookup(ip, true, gl, res))
       return false;
-    if (MMDB_get_value(&res.entry, &data, "location", "latitude", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"location", "latitude"}))
       return false;
     latitude = data.double_value;
-    if (MMDB_get_value(&res.entry, &data, "location", "longitude", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"location", "longitude"}))
       return false;
     longitude = data.double_value;
-    if (MMDB_get_value(&res.entry, &data, "location", "accuracy_radius", NULL) != MMDB_SUCCESS || !data.has_data)
+    if (!mmdbGetValue(res, data, {"location", "accuracy_radius"}))
       return false;
     prec = data.uint16;
     return true;
@@ -255,6 +255,23 @@ private:
   MMDB_s d_s;
   string d_lang;
   Logr::log_t d_slog;
+
+  // This is a wrapper around MMDB_aget_value.
+  bool mmdbGetValue(MMDB_lookup_result_s& res, MMDB_entry_data_s& data, const std::vector<std::string>& path)
+  {
+    // We unfortunately can not instantiate std::array with a non-compile-time
+    // known size (here path.size() + 1), so pick some constant which ought
+    // to be large enough for our use cases.
+    std::array<const char*, 8 + 1> arr;
+    if (path.size() + 1 > arr.size()) {
+      throw PDNSException("MMDB path contains too many components");
+    }
+    for (size_t itemno = 0; itemno < path.size(); ++itemno) {
+      arr.at(itemno) = path.at(itemno).c_str();
+    }
+    arr.at(path.size()) = nullptr;
+    return MMDB_aget_value(&res.entry, &data, arr.data()) == MMDB_SUCCESS && data.has_data;
+  }
 
   bool mmdbLookup(const string& ip, bool v6, GeoIPNetmask& gl, MMDB_lookup_result_s& res)
   {
