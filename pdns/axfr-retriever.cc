@@ -106,7 +106,9 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
 
 AXFRRetriever::~AXFRRetriever()
 {
-  close(d_sock);
+  if (d_sock != -1) {
+    close(d_sock);
+  }
 }
 
 
@@ -217,6 +219,7 @@ void AXFRRetriever::connect(uint16_t timeout)
       throw ResolverException("Error closing AXFR socket after connect() failed: "+e.reason);
     }
 
+    d_sock = -1;
     throw ResolverException("connect: "+stringerror());
   }
 
