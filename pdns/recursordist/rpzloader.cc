@@ -478,7 +478,7 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
     for (const auto& primary : params.zoneXFRParams.primaries) {
       try {
         auto combo = pdns::fromNameOrIP(primary, 53, logger);
-        params.zoneXFRParams.soaRecordContent = loadRPZFromServer(logger, combo, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.zoneXFRParams.tsigtriplet, params.zoneXFRParams.maxReceivedMBytes, params.zoneXFRParams.localAddress, params.zoneXFRParams.xfrTimeout, namesAffected, params.wipePacketCache);
+        params.zoneXFRParams.soaRecordContent = loadRPZFromServer(logger, combo, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.zoneXFRParams.tsigtriplet, params.zoneXFRParams.maxReceivedMBytes * 1024U * 1024U, params.zoneXFRParams.localAddress, params.zoneXFRParams.xfrTimeout, namesAffected, params.wipePacketCache);
         newZone->setSerial(params.zoneXFRParams.soaRecordContent->d_st.serial);
         newZone->setRefresh(params.zoneXFRParams.soaRecordContent->d_st.refresh);
         refresh = std::max(params.zoneXFRParams.refreshFromConf != 0 ? params.zoneXFRParams.refreshFromConf : newZone->getRefresh(), 1U);
@@ -572,7 +572,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
         local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0).d_address;
       }
 
-      deltas = getIXFRDeltas(logger, primary, zoneName, dnsRecord, params.zoneXFRParams.xfrTimeout, true, params.zoneXFRParams.tsigtriplet, &local, params.zoneXFRParams.maxReceivedMBytes);
+      deltas = getIXFRDeltas(logger, primary, zoneName, dnsRecord, params.zoneXFRParams.xfrTimeout, true, params.zoneXFRParams.tsigtriplet, &local, params.zoneXFRParams.maxReceivedMBytes * 1024U * 1024U);
 
       /* no need to try another primary */
       break;
