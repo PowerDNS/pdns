@@ -1554,6 +1554,7 @@ IPDNS
 ipfromstr
 iphdr
 ipi
+IPinfo
 ipinfo
 iplist
 ipmap
@@ -2610,6 +2611,7 @@ PICOTLS
 pident
 pidfname
 pieterlexis
+Pinfo
 pipeconnector
 pipefail
 pipefd
