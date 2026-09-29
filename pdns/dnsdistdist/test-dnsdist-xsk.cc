@@ -27,8 +27,10 @@
 #include <boost/test/unit_test.hpp>
 
 #include "config.h"
+#include "dnsdist.hh"
 #include "dnsdist-mac-address.hh"
 #include "iputils.hh"
+#include "dnsdist-xsk.hh"
 #include "xsk.hh"
 
 BOOST_AUTO_TEST_SUITE(test_dnsdist_xsk)
@@ -80,6 +82,10 @@ BOOST_AUTO_TEST_CASE(test_XskPacket)
     const ComboAddress fromAddr("192.0.2.1:42");
     const ComboAddress toAddr("192.0.2.2:53");
 
+    dnsdist::configuration::updateRuntimeConfiguration([fromAddr](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_ACL.addMask(fromAddr);
+    });
+
     /* empty packet but with decent room to grow */
     PacketBuffer payload(XskSocket::getFrameSize());
     auto packet = XskPacket(payload.data(), 0U, payload.size());
@@ -102,6 +108,12 @@ BOOST_AUTO_TEST_CASE(test_XskPacket)
     BOOST_CHECK_EQUAL(packet.getFrameLen(), 42U);
     BOOST_CHECK_EQUAL(packet.getCapacity(), (XskSocket::getFrameSize() - XDP_PACKET_HEADROOM - packet.getFrameLen()));
     BOOST_CHECK_EQUAL(packet.getDataLen(), 0U);
+
+    // Ensure we reject empty packets
+    ClientState clientState(toAddr, false, false, false, "lo", std::set<int>{}, false);
+    bool isFalse{false};
+    BOOST_CHECK(!dnsdist::xsk::XskIsQueryAcceptable(packet, clientState, isFalse));
+
     BOOST_CHECK(packet.getPayloadData() == payload.data() + packet.getFrameLen());
     {
       auto cloned = packet.clonePacketBuffer();
