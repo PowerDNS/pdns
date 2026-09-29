@@ -4856,14 +4856,6 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
   bool isCNAMEAnswer = lwr.d_isCNAMEAnswer;
   bool isDNAMEAnswer = lwr.d_isDNAMEAnswer;
 
-  for (auto& rec : lwr.d_records) {
-    if (rec.d_type == QType::OPT || rec.d_class != QClass::IN) {
-      continue;
-    }
-
-    rec.d_ttl = min(s_maxcachettl, rec.d_ttl);
-  }
-
   /* if we have a positive answer synthesized from a wildcard,
      we need to store the corresponding NSEC/NSEC3 records proving
      that the exact name did not exist in the negative cache */
@@ -5877,8 +5869,16 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
   updateValidationState(qname, state, cnameContext.state, prefix);
 }
 
-static void normalizeTTLs(const LWResult::AnswerType answerType, std::vector<DNSRecord>& records, bool updatingRootNS, bool ecsSpecific, unsigned int minimumTTL, unsigned int minimumECSTTL, unsigned int maxNegativeAnswerTTL)
+static void normalizeTTLs(const LWResult::AnswerType answerType, std::vector<DNSRecord>& records, bool updatingRootNS, bool ecsSpecific, unsigned int maximumTTL, unsigned int minimumTTL, unsigned int minimumECSTTL, unsigned int maxNegativeAnswerTTL)
 {
+  for (auto& rec : records) {
+    if (rec.d_type == QType::OPT || rec.d_class != QClass::IN) {
+      continue;
+    }
+
+    rec.d_ttl = std::min(rec.d_ttl, maximumTTL);
+  }
+
   if (minimumTTL != 0) {
     for (auto& rec : records) {
       rec.d_ttl = std::max(rec.d_ttl, minimumTTL);
@@ -6056,7 +6056,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
   fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
   sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, sendRDQuery);
 
-  normalizeTTLs(lwr.d_answerType, lwr.d_records, d_updatingRootNS, ednsmask.has_value(), s_minimumTTL, s_minimumECSTTL, s_maxnegttl);
+  normalizeTTLs(lwr.d_answerType, lwr.d_records, d_updatingRootNS, ednsmask.has_value(), s_maxcachettl, s_minimumTTL, s_minimumECSTTL, s_maxnegttl);
 
   auto tcache = validateSignatures(prefix, lwr, qname, qtype, auth, wasForwarded && sendRDQuery, state, depth);
   // will also update the negative cache
