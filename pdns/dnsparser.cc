@@ -227,7 +227,7 @@ DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& wire)
   return resourceRecord;
 }
 
-void MOADNSParser::init(bool query, const std::string_view& packet)
+void MOADNSParser::init(bool query, const std::string_view& packet, size_t pointerBudget)
 {
   if (packet.size() < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -248,6 +248,9 @@ void MOADNSParser::init(bool query, const std::string_view& packet)
   unsigned int n=0;
 
   PacketReader pr(packet);
+  if (pointerBudget != 0) {
+    pr.setPointerBudget(pointerBudget);
+  }
   bool validPacket=false;
   try {
     d_qtype = d_qclass = 0; // sometimes replies come in with no question, don't present garbage then
@@ -353,6 +356,8 @@ bool MOADNSParser::hasEDNS() const
   return false;
 }
 
+size_t PacketReader::s_MaxPointersPerByte = 4;
+
 void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 {
   unsigned char *p = reinterpret_cast<unsigned char*>(&ah);
@@ -454,9 +459,9 @@ uint8_t PacketReader::get8BitInt()
 
 DNSName PacketReader::getName()
 {
-  unsigned int consumed;
+  unsigned int consumed{};
   try {
-    DNSName dn((const char*) d_content.data(), d_content.size(), d_pos, true /* uncompress */, nullptr /* qtype */, nullptr /* qclass */, &consumed, sizeof(dnsheader));
+    DNSName dn((const char*) d_content.data(), d_content.size(), d_pos, true /* uncompress */, nullptr /* qtype */, nullptr /* qclass */, &consumed, sizeof(dnsheader), &d_pointerBudget);
 
     d_pos+=consumed;
     return dn;

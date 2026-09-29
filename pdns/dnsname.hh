@@ -89,6 +89,8 @@ class DNSName
 {
 public:
   static const size_t s_maxDNSNameLength = 255;
+  static uint16_t s_maxPointersToPointers;
+  static uint16_t s_maxPointersPerName;
 
   DNSName() = default; //!< Constructs an *empty* DNSName, NOT the root!
   // Work around assertion in some boost versions that do not like self-assignment of boost::container::string
@@ -110,7 +112,7 @@ public:
   DNSName(DNSName&& a) = default;
 
   explicit DNSName(std::string_view sw); //!< Constructs from a human formatted, escaped presentation
-  DNSName(const char* p, size_t len, size_t offset, bool uncompress, uint16_t* qtype = nullptr, uint16_t* qclass = nullptr, unsigned int* consumed = nullptr, uint16_t minOffset = 0); //!< Construct from a DNS Packet, taking the first question if offset=12. If supplied, consumed is set to the number of bytes consumed from the packet, which will not be equal to the wire length of the resulting name in case of compression.
+  DNSName(const char* pos, size_t len, size_t offset, bool uncompress, uint16_t* qtype = nullptr, uint16_t* qclass = nullptr, unsigned int* consumed = nullptr, uint16_t minOffset = 0, size_t* pointerBudget = nullptr); //!< Construct from a DNS Packet, taking the first question if offset=12. If supplied, consumed is set to the number of bytes consumed from the packet, which will not be equal to the wire length of the resulting name in case of compression.
 
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name? Note that name.isPartOf(name).
   inline bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive) - empty compares to empty
@@ -244,7 +246,7 @@ public:
 private:
   string_t d_storage;
 
-  void packetParser(const char* qpos, size_t len, size_t offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset);
+  void packetParser(const char* qpos, size_t len, size_t offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset, uint16_t pointerChainLength, size_t* pointerBudget);
   size_t parsePacketUncompressed(const pdns::views::UnsignedCharView& view, size_t position, bool uncompress);
   static void appendEscapedLabel(std::string& appendTo, const char* orig, size_t len);
   static std::string unescapeLabel(const std::string& orig);

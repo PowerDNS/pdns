@@ -643,7 +643,9 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     if (::arg().mustDo("log-common-errors")) {
       SLOG(g_log << Logger::Notice << "Unable to parse packet from remote server " << address.toString() << ": " << mde.what() << endl,
            g_slogout->error(Logr::Notice, mde.what(), "Unable to parse packet from remote server", "server", Logging::Loggable(address),
-                            "exception", Logging::Loggable("std::exception")));
+                            "exception", Logging::Loggable("std::exception"),
+                            "qname", Logging::Loggable(domain),
+                            "qtype", Logging::Loggable(QType(type))));
     }
 
     lwr->d_rcode = RCode::FormErr;
