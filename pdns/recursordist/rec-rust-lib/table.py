@@ -1951,7 +1951,8 @@ Usually this comes down to ``/var/lib/pdns-recursor/nod`` or ``/usr/local/var/li
 
 The newly observed domain feature uses a stable bloom filter to store
 a history of previously observed domains. The data structure is
-synchronized to disk every 10 minutes, and is also initialized from
+synchronized to disk at the interval specified by
+:ref:`setting-yaml-nod.db_snapshot_interval`, and is also initialized from
 disk on startup. This ensures that previously observed domains are
 preserved across recursor restarts.
 If you change the new-domain-db-size setting, you must remove any files
@@ -3142,7 +3143,8 @@ Usually this comes down to ``/var/lib/pdns-recursor/udr`` or ``/usr/local/var/li
 
 The newly observed domain feature uses a stable bloom filter to store
 a history of previously observed responses. The data structure is
-synchronized to disk every 10 minutes, and is also initialized from
+synchronized to disk at the interval specified by
+:ref:`setting-yaml-nod.db_snapshot_interval`, and is also initialized from
 disk on startup. This ensures that previously observed responses are
 preserved across recursor restarts. If you change the
 unique-response-db-size, you must remove any files from this directory.
