@@ -3635,4 +3635,44 @@ A DoT connection is matched against the subnets lists (using the remote IP) and 
         'versionadded': '5.4.0',
         'runtime': ['reload-lua-config', 'reload-yaml'],
     },
+    {
+        "name": "max_pointers_per_name",
+        "section": "recursor",
+        "type": LType.Uint64,
+        "default": "10",
+        "help": "Maximum number of name pointers followed per name.",
+        "doc": """
+Maximum number of name pointers followed per name.
+DNS packets needing more than the limit will fail to parse and be rejected.
+See :ref:`pointers`.        
+""",
+        "versionadded": ["5.5.0", "5.4.x", "5.3.x"]
+    },
+    {
+        "name": "max_pointers_per_packet_byte",
+        "section": "recursor",
+        "type": LType.Uint64,
+        "default": "4",
+        "help": "Maximum number of name pointers per DNS packet byte followed.",
+        "doc": """
+Maximum number of name pointers per DNS packet byte followed.
+DNS packets needing more than the limit will fail to parse and be rejected.
+See :ref:`pointers`.        
+""",
+        "versionadded": ["5.5.0", "5.4.x", "5.3.x"]
+    },
+    {
+        "name": "max_pointers_to_pointers",
+        "section": "recursor",
+        "type": LType.Uint64,
+        "default": "4",
+        "help": "Maximum number of name pointers pointing directly to another pointer per name.",
+        "doc": """
+Maximum number of name pointers pointing to directly another pointer per name.
+DNS packets needing more than the limit will fail to parse and be rejected.
+See :ref:`pointers`.        
+""",
+        "versionadded": ["5.5.0", "5.4.x", "5.3.x"]
+    },
+
 ]

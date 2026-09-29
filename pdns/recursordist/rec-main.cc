@@ -2290,6 +2290,10 @@ static int serviceMain(Logr::log_t log)
   g_useKernelTimestamp = ::arg().mustDo("protobuf-use-kernel-timestamp");
   g_maxChainLength = ::arg().asNum("max-chain-length");
 
+  PacketReader::s_MaxPointersPerByte = ::arg().asNum("max-pointers-per-packet-byte");
+  DNSName::s_maxPointersToPointers = ::arg().asNum("max-pointers-to-pointers");
+  DNSName::s_maxPointersPerName = ::arg().asNum("max-pointers-per-name");
+
   checkOrFixFDS(listeningSockets, log);
   checkOrFixLinuxMapCountLimits(log);
 

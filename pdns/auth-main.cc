@@ -345,6 +345,17 @@ static void declareArguments()
 
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
 
+<<<<<<< HEAD
+=======
+  // explicitly declared outside of HAVE_LUA_RECORDS guard to prevent writes
+  // even when LUA is not currently used
+  ::arg().setSwitch("enable-lua-record-updates", "Allow updates to Lua records") = "no";
+
+  ::arg().set("max-pointers-per-packet-byte", "Maximum number of name pointers per DNS packet byte followed") = "4";
+  ::arg().set("max-pointers-to-pointers", "Maximum number of name pointers pointing directly to another pointer per name") = "4";
+  ::arg().set("max-pointers-per-name", "Maximum number of name pointers followed per name") = "10";
+
+>>>>>>> 8e18826f5 (Limit pointer to pointer chains in DNS names)
   // FIXME520: remove when branching 5.2
   ::arg().set("entropy-source", "") = "";
   ::arg().set("rng", "") = "";
@@ -753,6 +764,9 @@ static void mainthread()
 
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+  PacketReader::s_MaxPointersPerByte = ::arg().asNum("max-pointers-per-packet-byte");
+  DNSName::s_maxPointersToPointers = ::arg().asNum("max-pointers-to-pointers");
+  DNSName::s_maxPointersPerName = ::arg().asNum("max-pointers-per-name");
 
   if (::arg()["edns-cookie-secret"].size() != 0) {
     // User wants cookie processing
