@@ -5877,10 +5877,8 @@ static void normalizeTTLs(const LWResult::AnswerType answerType, std::vector<DNS
     }
 
     rec.d_ttl = std::min(rec.d_ttl, maximumTTL);
-  }
 
-  if (minimumTTL != 0) {
-    for (auto& rec : records) {
+    if (minimumTTL != 0) {
       rec.d_ttl = std::max(rec.d_ttl, minimumTTL);
       if (updatingRootNS && rec.d_type == QType::NS && rec.d_name.isRoot()) {
         // Enforce a higher minimum for root records with a silly TTL (only relevant in setups with
@@ -5888,20 +5886,16 @@ static void normalizeTTLs(const LWResult::AnswerType answerType, std::vector<DNS
         rec.d_ttl = std::max(rec.d_ttl, 3600U);
       }
     }
-  }
 
-  /* if the answer is ECS-specific, a minimum TTL is set for this kind of answers
-     and it's higher than the global minimum TTL */
-  if (ecsSpecific && minimumECSTTL > 0 && (minimumTTL == 0 || minimumECSTTL > minimumTTL)) {
-    for (auto& rec : records) {
+    /* if the answer is ECS-specific, a minimum TTL is set for this kind of answers
+       and it's higher than the global minimum TTL */
+    if (ecsSpecific && minimumECSTTL > 0 && (minimumTTL == 0 || minimumECSTTL > minimumTTL)) {
       if (rec.d_place == DNSResourceRecord::ANSWER) {
         rec.d_ttl = std::max(rec.d_ttl, minimumECSTTL);
       }
     }
-  }
 
-  if (maxNegativeAnswerTTL != 0 && (answerType == LWResult::AnswerType::NXDomain || answerType == LWResult::AnswerType::NoData)) {
-    for (auto& rec : records) {
+    if (maxNegativeAnswerTTL != 0 && (answerType == LWResult::AnswerType::NXDomain || answerType == LWResult::AnswerType::NoData)) {
       rec.d_ttl = std::min(rec.d_ttl, maxNegativeAnswerTTL);
     }
   }
