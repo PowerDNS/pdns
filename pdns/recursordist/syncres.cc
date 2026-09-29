@@ -2147,6 +2147,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
   bool oldRequireAuthData = d_requireAuthData;
   bool oldValidationRequested = d_DNSSECValidationRequested;
   bool oldFollowCNAME = d_followCNAME;
+  bool oldWasOutOfBand = wasOutOfBand();
   bool seenV6 = false;
   const unsigned int startqueries = d_outqueries;
   d_requireAuthData = false;
@@ -2216,6 +2217,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
   d_DNSSECValidationRequested = oldValidationRequested;
   setCacheOnly(oldCacheOnly);
   d_followCNAME = oldFollowCNAME;
+  setOutOfBand(oldWasOutOfBand);
 
   if (s_max_busy_dot_probes > 0 && s_dot_to_port_853) {
     for (auto& add : ret) {
