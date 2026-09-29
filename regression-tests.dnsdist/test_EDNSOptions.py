@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-import dns
+import dns.message
+import dns.rrset
+import dns.rdataclass
+import dns.rdatatype
+import dns.edns
 import clientsubnetoption
 import cookiesoption
 from dnsdisttests import DNSDistTest
@@ -624,6 +628,42 @@ class TestEDNSOptionsLuaFFI(DNSDistTest):
         ecso = clientsubnetoption.ClientSubnetOption("2001:DB8::1", 128)
         eco2 = cookiesoption.CookiesOption(b"deadc0de", b"deadc0de")
         query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[eco1, ecso, eco2])
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
+
+
+class TestWeirdEDNSOptions(EDNSOptionsBase):
+    _name_zero_sized_opt = "zero-sized-option.ednsoptions.test.powerdns.com."
+
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    setOpenTelemetryTracing(true)
+
+    addAction(QNameRule("%s"), SetTraceAction(true, {sendDownstreamTraceparent=true}))
+    """
+
+    _config_params = ["_testServerPort", "_name_zero_sized_opt"]
+
+    def testZeroSizeOptionWithProcessing(self):
+        """
+        EDNS Options: zero-length option in query, combined with
+        a re-write would lead to an out-of-range error.
+        YWH-400.
+        """
+        name = self._name_zero_sized_opt
+        opt = dns.edns.GenericOption(dns.edns.OptionType(0), "")
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[opt])
         response = dns.message.make_response(query)
         rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
         response.answer.append(rrset)
