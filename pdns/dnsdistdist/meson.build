@@ -519,6 +519,18 @@ if get_option('fuzz-targets')
     fuzzer_ldflags += get_option('fuzzer_ldflags')
   endif
   tools += {
+    'fuzz-target-dnsdist-dnsparser' : {
+      'main': src_dir / 'fuzz_dnsdist_dnsparser.cc',
+      'link-args': fuzzer_ldflags,
+      'files-extra': fuzz_extra_sources,
+      'deps-extra': [
+         dep_ffi_interface,
+         dep_libsystemd,
+         dep_lua,
+         dep_protozero,
+       ],
+      'fuzzing-target': true,
+    },
     'fuzz-target-dnsdistcache' : {
       'main': src_dir / 'fuzz_dnsdistcache.cc',
       'link-args': fuzzer_ldflags,
