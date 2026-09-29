@@ -445,6 +445,13 @@ public:
     return d_wasOutOfBand;
   }
 
+  bool setOutOfBand(bool flag)
+  {
+    bool old = d_wasOutOfBand;
+    d_wasOutOfBand = flag;
+    return old;
+  }
+
   struct timeval getNow() const
   {
     return d_now;
