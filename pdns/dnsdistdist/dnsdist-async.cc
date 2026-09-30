@@ -232,10 +232,9 @@ bool AsynchronousHolder::empty()
 static bool resumeResponse(std::unique_ptr<CrossProtocolQuery>&& response)
 {
   try {
-    auto& ids = response->query.d_idstate;
     DNSResponse dnsResponse = response->getDR();
 
-    auto result = processResponseAfterRules(response->query.d_buffer, dnsResponse, ids.cs->muted);
+    auto result = processResponseAfterRules(response->query.d_buffer, dnsResponse);
     if (!result) {
       /* easy */
       return true;

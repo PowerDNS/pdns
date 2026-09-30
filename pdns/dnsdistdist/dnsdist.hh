@@ -380,7 +380,6 @@ struct ClientState
   int tcpFD{-1};
   int tcpListenQueueSize{SOMAXCONN};
   int fastOpenQueueSize{0};
-  bool muted{false};
   bool tcp;
   bool reuseport;
   bool d_enableProxyProtocol{true}; // the global proxy protocol ACL still applies
@@ -1009,7 +1008,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 /* Process a response received from a backend. The return value indicates whether
    the response processing should continue (true) or if it should be dropped right away (false).
 */
-bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse);
 /* Apply the decision (result) of a single rule to this query. If the decision implies to drop the query
    `drop` will be set to `true`. The return value indicates whether subsequent rules should be evaluated (true)
    or not (false).
@@ -1018,7 +1017,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestio
 /* Handle the processing of a response once the rules have been applied. The return value indicates whether
    the response processing should continue (true) or if it should be dropped right away (false).
 */
-bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse);
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids);
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse);
 

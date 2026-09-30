@@ -143,7 +143,7 @@ public:
 
       dnsResponse.ids.doh3u = std::move(unit);
 
-      if (!processResponse(dnsResponse.ids.doh3u->response, dnsResponse, false)) {
+      if (!processResponse(dnsResponse.ids.doh3u->response, dnsResponse)) {
         if (dnsResponse.ids.doh3u) {
           /* this will signal an error */
           dnsResponse.ids.doh3u->response.clear();

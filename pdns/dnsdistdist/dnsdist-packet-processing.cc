@@ -272,7 +272,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
   return true;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse)
 {
   auto closer = dnsResponse.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   bool zeroScope = false;
@@ -330,17 +330,15 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
     dnsdist::edns::addEDNSPadding(dnsResponse.getMutableData(), dnsResponse.getMaximumSize());
   }
 
-  if (!muted) {
-    if (!dnsdist::dnscrypt::encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
-      return false;
-    }
+  if (!dnsdist::dnscrypt::encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
+    return false;
   }
 
   return true;
 }
 
 #ifndef DNSDIST_UNIT_TESTS
-bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse)
 {
   // This is a new root span
   auto closer = dnsResponse.ids.getCloser(__func__); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
@@ -356,7 +354,7 @@ bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool mute
     return true;
   }
 
-  return processResponseAfterRules(response, dnsResponse, muted);
+  return processResponseAfterRules(response, dnsResponse);
 }
 
 bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
@@ -711,10 +709,8 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
     return false;
   }
 
-  if (!clientState.muted) {
-    if (!dnsdist::dnscrypt::encryptResponse(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.overTCP(), dnsQuestion.ids.dnsCryptQuery)) {
-      return false;
-    }
+  if (!dnsdist::dnscrypt::encryptResponse(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.overTCP(), dnsQuestion.ids.dnsCryptQuery)) {
+    return false;
   }
 
   return true;

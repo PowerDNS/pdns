@@ -722,7 +722,6 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return std::string();
   });
-  luaCtx.registerMember("muted", &ClientState::muted);
 #ifdef HAVE_EBPF
   luaCtx.registerFunction<void (ClientState::*)(std::shared_ptr<BPFFilter>)>("attachFilter", [](ClientState& frontend, std::shared_ptr<BPFFilter> bpf) {
     if (bpf) {

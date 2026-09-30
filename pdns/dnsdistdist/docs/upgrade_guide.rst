@@ -14,6 +14,8 @@ Lua FFI API's ``dnsdist_ffi_dnspacket_parse_a_record``, ``dnsdist_ffi_dnspacket_
 
 AXFR and IXFR queries received over UDP are immediately discarded with a "Not Implemented" response instead of being forwarded to the backend, as it could have introduced issues for TCP-only and DoT backends.
 
+The :attr:`ClientState.muted` attribute has been removed. To drop responses to clients, use a :func:`DropResponseAction` rule.
+
 2.1.0-beta2 to 2.1.0
 --------------------
 
