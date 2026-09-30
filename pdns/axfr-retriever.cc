@@ -21,9 +21,7 @@
  */
 
 #include "axfr-retriever.hh"
-#include "arguments.hh"
 #include "dns_random.hh"
-#include "utility.hh"
 #include "resolver.hh"
 #include "query-local-address.hh"
 
@@ -31,7 +29,7 @@ using pdns::resolver::parseResult;
 
 AXFRRetriever::AXFRRetriever(Logr::log_t slog,
                              const ComboAddress& remote,
-                             const ZoneName& domain,
+                             const ZoneName& zone,
                              const TSIGTriplet& tsigConf,
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes,
@@ -44,22 +42,22 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
   }
   else {
     if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
-      throw ResolverException("Unable to determine source address for AXFR request to " + remote.toStringWithPort() + " for " + domain.toLogString() + ". Address family is not configured for outgoing queries");
+      throw ResolverException("Unable to determine source address for AXFR request to " + remote.toStringWithPort() + " for " + zone.toLogString() + ". Address family is not configured for outgoing queries");
     }
     local = pdns::getQueryLocalAddress(remote.sin4.sin_family, 0).d_address;
   }
   d_sock = -1;
   try {
     d_sock = makeQuerySocket(local, false); // make a TCP socket
-    if (d_sock < 0)
+    if (d_sock < 0) {
       throw ResolverException("Error creating socket for AXFR request to " + d_remote.toStringWithPort());
-
+    }
     d_remote = remote; // mostly for error reporting
     this->connect(timeout);
     d_soacount = 0;
 
     vector<uint8_t> packet;
-    DNSPacketWriter pwriter(packet, DNSName(domain), QType::AXFR);
+    DNSPacketWriter pwriter(packet, DNSName(zone), QType::AXFR);
     pwriter.getHeader()->id = dns_random_uint16();
 
     if (!tsigConf.name.empty()) {
@@ -84,22 +82,26 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
     iov[1].iov_len = packet.size();
 
     auto ret = writev(d_sock, iov.data(), iov.size());
-    if (ret < 0)
+    if (ret < 0) {
       throw ResolverException("Error sending question to " + d_remote.toStringWithPort() + ": " + stringerror());
+    }
     if (ret != (int)(2 + packet.size())) {
       throw ResolverException("Partial write on AXFR request to " + d_remote.toStringWithPort());
     }
 
     int res = waitForData(d_sock, timeout, 0);
 
-    if (!res)
+    if (res == 0) {
       throw ResolverException("Timeout waiting for answer from " + d_remote.toStringWithPort() + " during AXFR");
-    if (res < 0)
+    }
+    if (res < 0) {
       throw ResolverException("Error waiting for answer from " + d_remote.toStringWithPort() + ": " + stringerror());
+    }
   }
   catch (...) {
-    if (d_sock >= 0)
+    if (d_sock >= 0) {
       close(d_sock);
+    }
     d_sock = -1;
     throw;
   }
@@ -112,18 +114,21 @@ AXFRRetriever::~AXFRRetriever()
   }
 }
 
-int AXFRRetriever::getChunk(Resolver::res_t& res, vector<DNSRecord>* records, uint16_t timeout) // Implementation is making sure RFC2845 4.4 is followed.
+bool AXFRRetriever::getChunk(Resolver::res_t& res, vector<DNSRecord>* records, uint16_t timeout) // Implementation is making sure RFC2845 4.4 is followed.
 {
-  if (d_soacount > 1)
+  if (d_soacount > 1) {
     return false;
+  }
 
   // d_sock is connected and is about to spit out a packet
   int len = getLength(timeout);
-  if (len < 0)
+  if (len < 0) {
     throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
+  }
 
-  if (d_maxReceivedBytes > 0 && (d_maxReceivedBytes - d_receivedBytes) < (size_t)len)
+  if (d_maxReceivedBytes > 0 && (d_maxReceivedBytes - d_receivedBytes) < (size_t)len) {
     throw ResolverException("Reached the maximum number of received bytes during AXFR");
+  }
 
   timeoutReadn(len, timeout);
 
@@ -157,12 +162,12 @@ int AXFRRetriever::getChunk(Resolver::res_t& res, vector<DNSRecord>* records, ui
       records->clear();
       records->reserve(mdp.d_answers.size());
 
-      for (auto& r : mdp.d_answers) {
-        if (r.d_type == QType::SOA) {
+      for (auto& answer : mdp.d_answers) {
+        if (answer.d_type == QType::SOA) {
           d_soacount++;
         }
 
-        records->push_back(std::move(r));
+        records->push_back(std::move(answer));
       }
     }
   }
@@ -207,9 +212,10 @@ void AXFRRetriever::connect(uint16_t timeout)
 {
   setNonBlocking(d_sock);
 
-  int err;
+  int ret = ::connect(d_sock, reinterpret_cast<struct sockaddr*>(&d_remote), d_remote.getSocklen()); //NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) it's the API
 
-  if ((err = ::connect(d_sock, (struct sockaddr*)&d_remote, d_remote.getSocklen())) < 0 && errno != EINPROGRESS) {
+  if (ret < 0 && errno != EINPROGRESS) {
+    int err = errno;
     try {
       closesocket(d_sock);
     }
@@ -219,41 +225,42 @@ void AXFRRetriever::connect(uint16_t timeout)
     }
 
     d_sock = -1;
-    throw ResolverException("connect: " + stringerror());
+    throw ResolverException("connect: " + stringerror(err));
   }
 
-  if (!err)
-    goto done;
+  if (ret != 0) {
 
-  err = waitForRWData(d_sock, false, timeout, 0); // wait for writeability
+    ret = waitForRWData(d_sock, false, timeout, 0); // wait for writeability
 
-  if (!err) {
-    try {
-      closesocket(d_sock); // timeout
-    }
-    catch (const PDNSException& e) {
+    if (ret == 0) {
+      try {
+        closesocket(d_sock); // timeout
+      }
+      catch (const PDNSException& e) {
+        d_sock = -1;
+        throw ResolverException("Error closing AXFR socket after timeout: " + e.reason);
+      }
+
       d_sock = -1;
-      throw ResolverException("Error closing AXFR socket after timeout: " + e.reason);
+      errno = ETIMEDOUT;
+
+      throw ResolverException("Timeout connecting to server");
+    }
+    if (ret < 0) {
+      int err = errno;
+      throw ResolverException("Error connecting: " + stringerror(err));
+    }
+    socklen_t len = sizeof(ret);
+    if (getsockopt(d_sock, SOL_SOCKET, SO_ERROR, &ret, &len) < 0) {
+      int err = errno;
+      throw ResolverException("Error connecting: " + stringerror(err)); // Solaris
     }
 
-    d_sock = -1;
-    errno = ETIMEDOUT;
-
-    throw ResolverException("Timeout connecting to server");
-  }
-  else if (err < 0) {
-    throw ResolverException("Error connecting: " + stringerror());
-  }
-  else {
-    socklen_t len = sizeof(err);
-    if (getsockopt(d_sock, SOL_SOCKET, SO_ERROR, (char*)&err, &len) < 0)
-      throw ResolverException("Error connecting: " + stringerror()); // Solaris
-
-    if (err)
-      throw ResolverException("Error connecting: " + string(strerror(err)));
+    if (ret != 0) {
+      throw ResolverException("Error connecting: " + string(stringerror(ret)));
+    }
   }
 
-done:
   setBlocking(d_sock);
   // d_sock now connected
 }
@@ -261,5 +268,5 @@ done:
 int AXFRRetriever::getLength(uint16_t timeout)
 {
   timeoutReadn(2, timeout);
-  return (unsigned char)d_buf.at(0) * 256 + (unsigned char)d_buf.at(1);
+  return (static_cast<unsigned char>(d_buf.at(0)) * 256) + static_cast<unsigned char>(d_buf.at(1));
 }

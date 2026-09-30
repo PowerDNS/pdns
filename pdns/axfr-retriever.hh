@@ -20,25 +20,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <boost/utility.hpp>
 
 #include "iputils.hh"
 #include "dnsname.hh"
 #include "logr.hh"
 #include "resolver.hh"
 
-class AXFRRetriever : public boost::noncopyable
+class AXFRRetriever
 {
 public:
   AXFRRetriever(Logr::log_t slog,
                 const ComboAddress& remote,
                 const ZoneName& zone,
-                const TSIGTriplet& tt = TSIGTriplet(),
-                const ComboAddress* laddr = NULL,
+                const TSIGTriplet& tsigConf = TSIGTriplet(),
+                const ComboAddress* laddr = nullptr,
                 size_t maxReceivedBytes = 0,
                 uint16_t timeout = 10);
   ~AXFRRetriever();
-  int getChunk(Resolver::res_t& res, vector<DNSRecord>* records = 0, uint16_t timeout = 10);
+  AXFRRetriever(const AXFRRetriever&) = delete;
+  AXFRRetriever(AXFRRetriever&&) = delete;
+  AXFRRetriever& operator=(const AXFRRetriever&) = delete;
+  AXFRRetriever& operator=(AXFRRetriever&&) = delete;
+  bool getChunk(Resolver::res_t& res, vector<DNSRecord>* records = nullptr, uint16_t timeout = 10);
 
 private:
   void connect(uint16_t timeout);
