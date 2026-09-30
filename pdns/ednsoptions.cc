@@ -208,7 +208,7 @@ bool getEDNSOptionsFromContent(const std::string& content, std::vector<std::pair
       return false;
     }
 
-    options.emplace_back(code, std::string(&content.at(pos), len));
+    options.emplace_back(code, content.substr(pos, len));
     pos += len;
   }
 

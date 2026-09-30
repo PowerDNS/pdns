@@ -24,6 +24,7 @@
 #include "dolog.hh"
 #include "mplexer.hh"
 #include "threadname.hh"
+#include <exception>
 
 namespace dnsdist
 {
@@ -321,7 +322,14 @@ bool resumeQuery(std::unique_ptr<CrossProtocolQuery>&& query)
     /* at this point 'du', if it is not nullptr, is owned by the DoHCrossProtocolQuery
        which will stop existing when we return, so we need to increment the reference count
     */
-    return assignOutgoingUDPQueryToBackend(query->downstream, queryID, dnsQuestion, query->query.d_buffer);
+    try {
+      return assignOutgoingUDPQueryToBackend(query->downstream, queryID, dnsQuestion, query->query.d_buffer);
+    }
+    catch (const std::exception& e) {
+      VERBOSESLOG(infolog("Got exception sending resumed UDP from %s, id %d, to backend: %s", dnsQuestion.ids.origRemote.toStringWithPort(), queryID, e.what()),
+                  dnsdist::logging::getTopLogger("async-holder")->error(Logr::Info, e.what(), "Got exception sending resumed UDP to bakend", "source.address", Logging::Loggable(dnsQuestion.ids.origRemote), "dns.question.id", Logging::Loggable(queryID)));
+      return false;
+    }
   }
   if (result == ProcessQueryResult::SendAnswer) {
     auto sender = query->getTCPQuerySender();

@@ -42,6 +42,7 @@
 #include "dolog.hh"
 #include "gettime.hh"
 #include "lock.hh"
+#include "logging.hh"
 #include "sstuff.hh"
 #include "tcpiohandler.hh"
 #include "tcpiohandler-mplexer.hh"
@@ -978,9 +979,18 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
         dnsQuestion.ids.du = std::move(unit);
       }
     }
-    if (assignOutgoingUDPQueryToBackend(backend, queryID, dnsQuestion, query)) {
-      return QueryProcessingResult::Forwarded;
+
+    try {
+      if (assignOutgoingUDPQueryToBackend(backend, queryID, dnsQuestion, query)) {
+        return QueryProcessingResult::Forwarded;
+      }
     }
+    catch (const std::exception& e) {
+      VERBOSESLOG(infolog("Got exception trying to forward query (%s|%s, from %s) over UDP first to %s, dropping the query", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), d_proxiedRemote.toStringWithPort(), backend->getNameWithAddr()),
+                  dnsQuestion.ids.getLogger(getLogger())->error(Logr::Info, e.what(), "Got exception trying to forward query over UDP first, dropping the query", "backend.name", Logging::Loggable(backend->getName()), "backend.address", Logging::Loggable(backend->d_config.remote), "client.address", Logging::Loggable(d_proxiedRemote), "query.name", Logging::Loggable(dnsQuestion.ids.qname), "query.type", Logging::Loggable(dnsQuestion.ids.qtype)));
+      return QueryProcessingResult::Dropped;
+    }
+
     restoreDOHUnit(std::move(dnsQuestion.ids.du));
     // fallback to the normal flow
   }
