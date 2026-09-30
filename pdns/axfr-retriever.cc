@@ -41,7 +41,8 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
   ComboAddress local;
   if (laddr != nullptr) {
     local = ComboAddress(*laddr);
-  } else {
+  }
+  else {
     if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
       throw ResolverException("Unable to determine source address for AXFR request to " + remote.toStringWithPort() + " for " + domain.toLogString() + ". Address family is not configured for outgoing queries");
     }
@@ -51,12 +52,12 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
   try {
     d_sock = makeQuerySocket(local, false); // make a TCP socket
     if (d_sock < 0)
-      throw ResolverException("Error creating socket for AXFR request to "+d_remote.toStringWithPort());
+      throw ResolverException("Error creating socket for AXFR request to " + d_remote.toStringWithPort());
 
     d_remote = remote; // mostly for error reporting
     this->connect(timeout);
     d_soacount = 0;
-  
+
     vector<uint8_t> packet;
     DNSPacketWriter pwriter(packet, DNSName(domain), QType::AXFR);
     pwriter.getHeader()->id = dns_random_uint16();
@@ -70,34 +71,34 @@ AXFRRetriever::AXFRRetriever(Logr::log_t slog,
       }
       d_trc.d_time = time(nullptr);
       d_trc.d_fudge = 300;
-      d_trc.d_origID=ntohs(pwriter.getHeader()->id);
-      d_trc.d_eRcode=0;
+      d_trc.d_origID = ntohs(pwriter.getHeader()->id);
+      d_trc.d_eRcode = 0;
       addTSIG(d_slog, pwriter, d_trc, tsigConf.name, tsigConf.secret, "", false);
     }
-  
-    uint16_t replen=htons(packet.size());
+
+    uint16_t replen = htons(packet.size());
     std::array<iovec, 2> iov{};
     iov[0].iov_base = &replen;
     iov[0].iov_len = iov.size();
     iov[1].iov_base = packet.data();
     iov[1].iov_len = packet.size();
-  
+
     auto ret = writev(d_sock, iov.data(), iov.size());
-    if(ret < 0)
-      throw ResolverException("Error sending question to "+d_remote.toStringWithPort()+": "+stringerror());
-    if(ret != (int)(2+packet.size())) {
-      throw ResolverException("Partial write on AXFR request to "+d_remote.toStringWithPort());
+    if (ret < 0)
+      throw ResolverException("Error sending question to " + d_remote.toStringWithPort() + ": " + stringerror());
+    if (ret != (int)(2 + packet.size())) {
+      throw ResolverException("Partial write on AXFR request to " + d_remote.toStringWithPort());
     }
-  
+
     int res = waitForData(d_sock, timeout, 0);
-    
-    if(!res)
-      throw ResolverException("Timeout waiting for answer from "+d_remote.toStringWithPort()+" during AXFR");
-    if(res<0)
-      throw ResolverException("Error waiting for answer from "+d_remote.toStringWithPort()+": "+stringerror());
+
+    if (!res)
+      throw ResolverException("Timeout waiting for answer from " + d_remote.toStringWithPort() + " during AXFR");
+    if (res < 0)
+      throw ResolverException("Error waiting for answer from " + d_remote.toStringWithPort() + ": " + stringerror());
   }
-  catch(...) {
-    if(d_sock >= 0)
+  catch (...) {
+    if (d_sock >= 0)
       close(d_sock);
     d_sock = -1;
     throw;
@@ -111,24 +112,22 @@ AXFRRetriever::~AXFRRetriever()
   }
 }
 
-
-
-int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, uint16_t timeout) // Implementation is making sure RFC2845 4.4 is followed.
+int AXFRRetriever::getChunk(Resolver::res_t& res, vector<DNSRecord>* records, uint16_t timeout) // Implementation is making sure RFC2845 4.4 is followed.
 {
-  if(d_soacount > 1)
+  if (d_soacount > 1)
     return false;
 
   // d_sock is connected and is about to spit out a packet
-  int len=getLength(timeout);
-  if(len<0)
+  int len = getLength(timeout);
+  if (len < 0)
     throw ResolverException("EOF trying to read axfr chunk from remote TCP client");
 
-  if (d_maxReceivedBytes > 0 && (d_maxReceivedBytes - d_receivedBytes) < (size_t) len)
+  if (d_maxReceivedBytes > 0 && (d_maxReceivedBytes - d_receivedBytes) < (size_t)len)
     throw ResolverException("Reached the maximum number of received bytes during AXFR");
 
   timeoutReadn(len, timeout);
 
-  d_receivedBytes += (uint16_t) len;
+  d_receivedBytes += (uint16_t)len;
 
   try {
     MOADNSParser mdp(false, d_buf.data(), len);
@@ -138,7 +137,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
       throw ResolverException("AXFR chunk error: " + RCode::to_s(err));
     }
 
-    if(mdp.d_header.tc) {
+    if (mdp.d_header.tc) {
       throw ResolverException("AXFR chunk had TC bit set");
     }
 
@@ -147,7 +146,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
     if (records == nullptr) {
       err = parseResult(mdp, DNSName(), 0, 0, &res);
       if (err == 0) {
-        for(const auto& answer : mdp.d_answers) {
+        for (const auto& answer : mdp.d_answers) {
           if (answer.d_type == QType::SOA) {
             d_soacount++;
           }
@@ -158,7 +157,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
       records->clear();
       records->reserve(mdp.d_answers.size());
 
-      for(auto& r: mdp.d_answers) {
+      for (auto& r : mdp.d_answers) {
         if (r.d_type == QType::SOA) {
           d_soacount++;
         }
@@ -167,7 +166,7 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
       }
     }
   }
-  catch(const std::runtime_error& re) {
+  catch (const std::runtime_error& re) {
     throw ResolverException(re.what());
   }
 
@@ -206,62 +205,61 @@ void AXFRRetriever::timeoutReadn(uint16_t bytes, uint16_t timeoutsec)
 
 void AXFRRetriever::connect(uint16_t timeout)
 {
-  setNonBlocking( d_sock );
+  setNonBlocking(d_sock);
 
   int err;
 
-  if((err=::connect(d_sock,(struct sockaddr*)&d_remote, d_remote.getSocklen()))<0 && errno!=EINPROGRESS) {
+  if ((err = ::connect(d_sock, (struct sockaddr*)&d_remote, d_remote.getSocklen())) < 0 && errno != EINPROGRESS) {
     try {
       closesocket(d_sock);
     }
-    catch(const PDNSException& e) {
-      d_sock=-1;
-      throw ResolverException("Error closing AXFR socket after connect() failed: "+e.reason);
+    catch (const PDNSException& e) {
+      d_sock = -1;
+      throw ResolverException("Error closing AXFR socket after connect() failed: " + e.reason);
     }
 
     d_sock = -1;
-    throw ResolverException("connect: "+stringerror());
+    throw ResolverException("connect: " + stringerror());
   }
 
-  if(!err)
+  if (!err)
     goto done;
 
-  err=waitForRWData(d_sock, false, timeout, 0); // wait for writeability
-  
-  if(!err) {
+  err = waitForRWData(d_sock, false, timeout, 0); // wait for writeability
+
+  if (!err) {
     try {
       closesocket(d_sock); // timeout
     }
-    catch(const PDNSException& e) {
-      d_sock=-1;
-      throw ResolverException("Error closing AXFR socket after timeout: "+e.reason);
+    catch (const PDNSException& e) {
+      d_sock = -1;
+      throw ResolverException("Error closing AXFR socket after timeout: " + e.reason);
     }
 
-    d_sock=-1;
-    errno=ETIMEDOUT;
-    
+    d_sock = -1;
+    errno = ETIMEDOUT;
+
     throw ResolverException("Timeout connecting to server");
   }
-  else if(err < 0) {
-    throw ResolverException("Error connecting: "+stringerror());
+  else if (err < 0) {
+    throw ResolverException("Error connecting: " + stringerror());
   }
   else {
-    socklen_t len=sizeof(err);
-    if(getsockopt(d_sock, SOL_SOCKET,SO_ERROR,(char *)&err,&len)<0)
-      throw ResolverException("Error connecting: "+stringerror()); // Solaris
+    socklen_t len = sizeof(err);
+    if (getsockopt(d_sock, SOL_SOCKET, SO_ERROR, (char*)&err, &len) < 0)
+      throw ResolverException("Error connecting: " + stringerror()); // Solaris
 
-    if(err)
-      throw ResolverException("Error connecting: "+string(strerror(err)));
+    if (err)
+      throw ResolverException("Error connecting: " + string(strerror(err)));
   }
-  
- done:
-  setBlocking( d_sock );
+
+done:
+  setBlocking(d_sock);
   // d_sock now connected
 }
 
 int AXFRRetriever::getLength(uint16_t timeout)
 {
   timeoutReadn(2, timeout);
-  return (unsigned char)d_buf.at(0)*256+(unsigned char)d_buf.at(1);
+  return (unsigned char)d_buf.at(0) * 256 + (unsigned char)d_buf.at(1);
 }
-

@@ -12,8 +12,6 @@
 ./pdns/auth-primarycommunicator.cc
 ./pdns/auth-querycache.cc
 ./pdns/auth-querycache.hh
-./pdns/axfr-retriever.cc
-./pdns/axfr-retriever.hh
 ./pdns/backends/gsql/gsqlbackend.cc
 ./pdns/backends/gsql/gsqlbackend.hh
 ./pdns/base32.cc

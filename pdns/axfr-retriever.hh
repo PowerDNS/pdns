@@ -29,31 +29,31 @@
 
 class AXFRRetriever : public boost::noncopyable
 {
-  public:
-    AXFRRetriever(Logr::log_t slog,
-                  const ComboAddress& remote,
-                  const ZoneName& zone,
-                  const TSIGTriplet& tt = TSIGTriplet(),
-                  const ComboAddress* laddr = NULL,
-                  size_t maxReceivedBytes=0,
-                  uint16_t timeout=10);
-    ~AXFRRetriever();
-    int getChunk(Resolver::res_t &res, vector<DNSRecord>* records=0, uint16_t timeout=10);
+public:
+  AXFRRetriever(Logr::log_t slog,
+                const ComboAddress& remote,
+                const ZoneName& zone,
+                const TSIGTriplet& tt = TSIGTriplet(),
+                const ComboAddress* laddr = NULL,
+                size_t maxReceivedBytes = 0,
+                uint16_t timeout = 10);
+  ~AXFRRetriever();
+  int getChunk(Resolver::res_t& res, vector<DNSRecord>* records = 0, uint16_t timeout = 10);
 
-  private:
-    void connect(uint16_t timeout);
-    int getLength(uint16_t timeout);
-    void timeoutReadn(uint16_t bytes, uint16_t timeoutsec=10);
+private:
+  void connect(uint16_t timeout);
+  int getLength(uint16_t timeout);
+  void timeoutReadn(uint16_t bytes, uint16_t timeoutsec = 10);
 
-    Logr::log_t d_slog;
-    TSIGTCPVerifier d_tsigVerifier;
-    std::vector<char> d_buf;
-    string d_domain;
-    int d_sock;
-    int d_soacount;
-    ComboAddress d_remote;
-    TSIGRecordContent d_trc;
+  Logr::log_t d_slog;
+  TSIGTCPVerifier d_tsigVerifier;
+  std::vector<char> d_buf;
+  string d_domain;
+  int d_sock;
+  int d_soacount;
+  ComboAddress d_remote;
+  TSIGRecordContent d_trc;
 
-    size_t d_receivedBytes{0};
-    size_t d_maxReceivedBytes;
+  size_t d_receivedBytes{0};
+  size_t d_maxReceivedBytes;
 };
