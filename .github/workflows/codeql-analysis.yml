@@ -113,6 +113,11 @@ jobs:
       run: |
         inv install-clang-tidy-tools
 
+    - name: set up build
+      uses: ./.github/actions/cache
+      with:
+        cache-key-base: ${{ matrix.product }}-ccache-codeql
+
     - name: Install dependencies for auth
       if: matrix.product == 'auth'
       run: |
@@ -129,6 +134,9 @@ jobs:
       if: matrix.product == 'auth'
       run: |
         inv ci-auth-make-bear
+    - name: Print ccache stats
+      if: matrix.product == 'auth'
+      run: ccache -s
     - run: ln -s .clang-tidy.full .clang-tidy
       if: matrix.product == 'auth'
     - name: Run clang-tidy for auth
@@ -182,6 +190,9 @@ jobs:
       working-directory: ./pdns/dnsdistdist/
       run: |
         inv ci-dnsdist-run-ninja build
+    - name: Print ccache stats
+      if: matrix.product == 'dnsdist'
+      run: ccache -s
     - run: ln -s ../../.clang-tidy.full .clang-tidy
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
@@ -232,6 +243,9 @@ jobs:
       working-directory: ./pdns/recursordist/
       run: |
         CONCURRENCY=4 inv ci-rec-run-ninja build
+    - name: Print ccache stats
+      if: matrix.product == 'rec'
+      run: ccache -s
     - run: ln -s ../../.clang-tidy.full .clang-tidy
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
