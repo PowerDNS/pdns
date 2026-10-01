@@ -206,7 +206,7 @@ private:
 
   set<string> d_alsoNotify;
   NetmaskGroup d_onlyNotify;
-  NotificationQueue d_nq;
+  LockGuarded<NotificationQueue> d_nq;
 
   time_t d_tickinterval;
   bool d_secondarieschanged;

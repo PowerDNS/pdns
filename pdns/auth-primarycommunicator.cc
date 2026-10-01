@@ -82,7 +82,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
       for (const auto& ip : ips) {
         SLOG(g_log << Logger::Notice << "Queued notification of domain '" << di.zone << "' to " << ip << endl,
              d_slog->info(Logr::Notice, "Queued notification", "domain", Logging::Loggable(di.zone), "address", Logging::Loggable(ip)));
-        d_nq.add(di.zone, ip, d_delayNotifications);
+        d_nq.lock()->add(di.zone, ip, d_delayNotifications);
         hasQueuedItem = true;
       }
     }
@@ -108,7 +108,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
            d_slog->info(Logr::Notice, "Queued also-notification", "domain", Logging::Loggable(di.zone), "target", Logging::Loggable(caIp.toStringWithPort())));
       if (!ips.count(caIp.toStringWithPort())) {
         ips.insert(caIp.toStringWithPort());
-        d_nq.add(di.zone, caIp.toStringWithPort(), d_delayNotifications);
+        d_nq.lock()->add(di.zone, caIp.toStringWithPort(), d_delayNotifications);
       }
       hasQueuedItem = true;
     }
@@ -266,7 +266,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
            d_slog->error(Logr::Warning, RCode::to_s(p.d.rcode), "Received unsucessful notification report", "domain", Logging::Loggable(p.qdomain), "remote", Logging::Loggable(from.toStringWithPort())));
     }
 
-    if (d_nq.removeIf(from, p.d.id, ZoneName(p.qdomain))) {
+    if (d_nq.lock()->removeIf(from, p.d.id, ZoneName(p.qdomain))) {
       SLOG(g_log << Logger::Notice << "Removed from notification list: '" << p.qdomain << "' to " << from.toStringWithPort() << " " << (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)") << endl,
            d_slog->info(Logr::Notice, "Removed from notification list", "domain", Logging::Loggable(p.qdomain), "remote", Logging::Loggable(from.toStringWithPort()), "result", Logging::Loggable(p.d.rcode != RCode::NoError ? RCode::to_s(p.d.rcode) : "acknowledged")));
     }
@@ -274,7 +274,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
       SLOG(g_log << Logger::Warning << "Received spurious notify answer for '" << p.qdomain << "' from " << from.toStringWithPort() << endl,
            d_slog->info(Logr::Warning, "Received spurious notify answer", "domain", Logging::Loggable(p.qdomain), "remote", Logging::Loggable(from.toStringWithPort())));
 #if 0
-      d_nq.dump();
+      d_nq.read_only_lock()->dump();
 #endif
     }
   }
@@ -285,14 +285,16 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
   uint16_t id = 0;
 
   bool purged;
-  while (d_nq.getOne(domain, ip, &id, purged)) {
+
+  auto locked_nq = d_nq.lock();
+  while (locked_nq->getOne(domain, ip, &id, purged)) {
     if (!purged) {
       try {
         ComboAddress remote(ip, 53); // default to 53
         if ((d_nsock6 < 0 && remote.sin4.sin_family == AF_INET6) || (d_nsock4 < 0 && remote.sin4.sin_family == AF_INET)) {
           SLOG(g_log << Logger::Warning << "Unable to notify " << remote.toStringWithPort() << " for domain '" << domain << "', address family is disabled. Is an IPv" << (remote.sin4.sin_family == AF_INET ? "4" : "6") << " address set in query-local-address?" << endl,
                d_slog->info(Logr::Warning, "Unable to notify due to address family being disabled. Check query-local-address for an address of the proper family", "domain", Logging::Loggable(domain), "remote", Logging::Loggable(remote.toStringWithPort()), "address family", Logging::Loggable(remote.sin4.sin_family == AF_INET ? 4 : 6)));
-          d_nq.removeIf(remote, id, domain); // Remove, we'll never be able to notify
+          locked_nq->removeIf(remote, id, domain); // Remove, we'll never be able to notify
           continue; // don't try to notify what we can't!
         }
         if (d_preventSelfNotification && AddressIsUs(remote)) {
@@ -313,7 +315,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
     }
   }
 
-  return d_nq.earliest();
+  return locked_nq->earliest();
 }
 
 void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t notificationId, UeberBackend* ueber)
@@ -404,5 +406,5 @@ void CommunicatorClass::makeNotifySockets()
 
 void CommunicatorClass::notify(const ZoneName& domain, const string& ipAddress)
 {
-  d_nq.add(domain, ipAddress);
+  d_nq.lock()->add(domain, ipAddress);
 }
