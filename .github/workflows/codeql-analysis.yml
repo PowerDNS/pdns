@@ -176,7 +176,7 @@ jobs:
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
       run: |
-        inv ci-dnsdist-configure full build
+        inv ci-dnsdist-configure full build --skipDist
     - name: Build dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
@@ -226,7 +226,7 @@ jobs:
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
       run: |
-        inv ci-rec-configure full build
+        inv ci-rec-configure full build --skipDist
     - name: Build rec
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
