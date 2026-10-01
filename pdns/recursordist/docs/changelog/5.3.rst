@@ -4,6 +4,22 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+   :version: 5.3.11
+   :released: 1st of October 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18035
+
+    Rec: retrieve DNSSEC data with RPZ processing disabled
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18084
+
+    Rec and auth: fix axfr failure to invalidate fd on close in all cases.
+
+.. changelog::
   :version: 5.3.10
   :released: 6th of August 2026
 

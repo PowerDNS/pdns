@@ -14,9 +14,7 @@ The currently supported release train of the PowerDNS Recursor is 5.4.
 
 PowerDNS Recursor 5.3 will only receive critical updates and will be End of Life one year after PowerDNS Recursor 5.4 was released.
 
-PowerDNS Recursor 5.2 will only receive critical updates and will be End of Life one year after PowerDNS Recursor 5.3 was released.
-
-PowerDNS Recursor 5.1, 5.0, 4.x, 3.x, and 2.x are End of Life.
+PowerDNS Recursor 5.2, 5.1, 5.0, 4.x, 3.x, and 2.x are End of Life.
 
 Please refer to the support `commitment <https://www.powerdns.com/support-commitment>`_ for details on which versions are supported.
 

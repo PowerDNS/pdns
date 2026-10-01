@@ -4,6 +4,46 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+   :version: 5.4.7
+   :released: 1st of October 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18029
+
+    Rec: Fix Lua to YAML conversion of custom RPZ policies
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18035
+
+    Rec: retrieve DNSSEC data with RPZ processing disabled
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18068
+
+    Rec: Catch exception thrown by parsing system resolver result
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18070
+
+    Fix(rec): Wipe caches when wiping all NTA's
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18084
+
+    Rec and auth: fix axfr failure to invalidate fd on close in all cases.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18085
+
+    Rec: rpz transfer limits are megabytes, not bytes
+
+.. changelog::
   :version: 5.4.6
   :released: 3rd of September 2026
 
