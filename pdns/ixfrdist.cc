@@ -21,6 +21,7 @@
  */
 #include "dns.hh"
 #include "dnsparser.hh"
+#include <exception>
 #include <stdexcept>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -603,7 +604,7 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
       } catch (PDNSException &e) {
         g_stats.incrementAXFRFailures(domain);
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.reason<<endl;
-      } catch (runtime_error &e) {
+      } catch (std::exception &e) {
         g_stats.incrementAXFRFailures(domain);
         g_log<<Logger::Warning<<"Could not save zone '"<<domain<<"' to disk: "<<e.what()<<endl;
       }
