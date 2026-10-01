@@ -32,11 +32,6 @@ def main():
     args = create_argument_parser()
 
     repo_root_dir = Path(helpers.get_repo_root())
-    fixes_path = Path(args.fixes_file)
-    compdb_filename = os.path.join(fixes_path.parent, "compile_commands.json")
-    compdb = helpers.load_compdb(compdb_filename)
-    compdb = helpers.index_compdb(compdb)
-
     fixes = helpers.load_fixes_file(args.fixes_file)
 
     if not fixes:
