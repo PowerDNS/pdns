@@ -21,12 +21,6 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
 
   .. change::
     :tags: Bug Fixes
-    :pullreq: 18046
-
-    Rec: Properly handle TCP being required to validate org's DNSKEY
-
-  .. change::
-    :tags: Bug Fixes
     :pullreq: 18068
 
     Rec: Catch exception thrown by parsing system resolver result
