@@ -543,7 +543,7 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
             dr.d_name.makeUsRelative(domain);
             records.insert(dr);
             nrecords++;
-            if (dr.d_type == QType::SOA) {
+            if (dr.d_type == QType::SOA && dr.d_name.isRoot()) {
               soa = getRR<SOARecordContent>(dr);
               soaTTL = dr.d_ttl;
             }
