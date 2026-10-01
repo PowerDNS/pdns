@@ -59,6 +59,7 @@ struct DNSResponseActionWrapper
 struct ProtobufLoggerConfiguration;
 struct DnstapLoggerConfiguration;
 struct OtlpLoggerConfiguration;
+struct GenericCachesConfiguration;
 struct KeyValueStoresConfiguration;
 struct MmdbConfiguration;
 struct NetmaskGroupConfiguration;
@@ -67,6 +68,7 @@ struct TimedIpSetConfiguration;
 void registerProtobufLogger(const ProtobufLoggerConfiguration& config);
 void registerDnstapLogger(const DnstapLoggerConfiguration& config);
 void registerOtlpLogger(const OtlpLoggerConfiguration& config);
+void registerGenericCacheObjects(const GenericCachesConfiguration& config);
 void registerKVSObjects(const KeyValueStoresConfiguration& config);
 void registerMMDBObjects(const ::rust::Vec<MmdbConfiguration>& config);
 void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs);
