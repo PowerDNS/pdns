@@ -20,17 +20,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "namespaces.hh"
+
 #include "iputils.hh"
 #include "logr.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 
 vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(Logr::log_t slog, const ComboAddress& primary, const DNSName& zone,
-                                                                 const DNSRecord& sr,
+                                                                 const DNSRecord& oursr,
                                                                  uint16_t xfrTimeout = 0, bool totalTime = false,
-                                                                 const TSIGTriplet& tt = TSIGTriplet(),
-                                                                 const ComboAddress* laddr = 0, size_t maxReceivedBytes = 0);
+                                                                 const TSIGTriplet& tsigConf = TSIGTriplet(),
+                                                                 const ComboAddress* laddr = nullptr, size_t maxReceivedBytes = 0);
 
 vector<pair<vector<DNSRecord>, vector<DNSRecord>>> processIXFRRecords(const ComboAddress& primary, const DNSName& zone,
                                                                       const vector<DNSRecord>& records, const std::shared_ptr<const SOARecordContent>& primarySOA);
