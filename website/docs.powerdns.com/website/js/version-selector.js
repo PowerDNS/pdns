@@ -1,4 +1,4 @@
-async function loadVersionSelector(baseUrl, targetElementId, legacyVersion = null, additionalVersions = []) {
+async function loadVersionSelector(baseUrl, targetElementId, legacyVersion = null, additionalVersions = [], versionPrefix="") {
     const targetElement = document.getElementById(targetElementId);
     if (!targetElement) return;
 
@@ -127,8 +127,10 @@ async function loadVersionSelector(baseUrl, targetElementId, legacyVersion = nul
         if (versions.length > 0) {
             // Sort versions using semver
             versions.sort((a, b) => {
-                const [aMajor, aMinor, aPatch] = a.version.split('.').map(Number);
-                const [bMajor, bMinor, bPatch] = b.version.split('.').map(Number);
+                a_version = a.version.replace(versionPrefix, "")
+                b_version = b.version.replace(versionPrefix, "")
+                const [aMajor, aMinor, aPatch] = a_version.split('.').map(Number);
+                const [bMajor, bMinor, bPatch] = b_version.split('.').map(Number);
                 
                 if (aMajor !== bMajor) return bMajor - aMajor;
                 if (aMinor !== bMinor) return bMinor - aMinor;
@@ -143,7 +145,7 @@ async function loadVersionSelector(baseUrl, targetElementId, legacyVersion = nul
                 if (index < 3) {
                     const link = document.createElement('a');
                     link.href = `${baseUrl}/${version.version}/`;
-                    link.textContent = version.version;
+                    link.textContent = version.version.replace(versionPrefix, "");
                     // If no version is marked as latest, mark the newest version (index 0) as latest
                     const isLatest = version.aliases?.includes('latest') || (!hasLatestVersion && index === 0);
                     link.className = `version-link ${isLatest ? 'latest' : 'regular'}`;
@@ -166,7 +168,7 @@ async function loadVersionSelector(baseUrl, targetElementId, legacyVersion = nul
                 versions.slice(3).forEach(version => {
                     const link = document.createElement('a');
                     link.href = `${baseUrl}/${version.version}/`;
-                    link.textContent = version.version;
+                    link.textContent = version.version.replace(versionPrefix, "");
                     dropdownContent.appendChild(link);
                 });
 
