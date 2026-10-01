@@ -150,13 +150,13 @@ pyzmq==25.1.2 \
     --hash=sha256:faf79a302f834d9e8304fafdc11d0d042266667ac45209afa57e5efc998e3872 \
     --hash=sha256:fc31baa0c32a2ca660784d5af3b9487e13b61b3032cb01a115fce6588e1bed30
     # via -r requirements.in
-setuptools-scm==10.2.3 \
-    --hash=sha256:7fcf8ff55c95eb8b572a23c81495e5559b9b90f3e82fcf0952bb76c37de27a81 \
-    --hash=sha256:f179ed3e2a63cf5823e5ee9aa9ca08386219400443a0553224d72dde3f206b44
+setuptools-scm==10.3.4 \
+    --hash=sha256:82f34c3e3084fc2b57d397200637cc13f2338004052d2fee47baa5f0e902464e \
+    --hash=sha256:a69f28bfc245608781205e912faae437c2b2165773afa4e7b979d77447a69dd2
     # via -r requirements.in
-vcs-versioning==2.3.4 \
-    --hash=sha256:076afa0e12a42a23faba92bcb62cb016c1ce38051ceee1f302de1e2676a68bbc \
-    --hash=sha256:f3443da15a34a32755b04324e33c6166add300c7661f45902225190c9337f711
+vcs-versioning==2.5.0 \
+    --hash=sha256:956a796e31f80fe714d219d6d1df15a6bf247d10f6d851bf4b98279d0a42da55 \
+    --hash=sha256:dbf44f6303dc817e5792cb7d0e9cc90e3046ee1e32eaa357b20ad368811313d0
     # via setuptools-scm
 wheel==0.48.0 \
     --hash=sha256:3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab \
