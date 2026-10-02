@@ -1332,6 +1332,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   */
   lua.writeFunction("view", [](const vector<pair<int, vector<pair<int, iplist_t> > > >& in) {
       for(const auto& rule : in) {
+        if (rule.second.size() < 2) {
+          throw std::invalid_argument("Invalid view data");
+        }
         const auto& netmasks=rule.second[0].second;
         const auto& destinations=rule.second[1].second;
         for(const auto& nmpair : netmasks) {
