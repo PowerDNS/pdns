@@ -208,6 +208,152 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SearchCommentsQuery_stmt = nullptr;
 }
 
+void GSQLBackend::allocateStatements()
+{
+  if (d_db) {
+    d_NoIdQuery_stmt = d_db->prepare(d_NoIdQuery, 2);
+    d_IdQuery_stmt = d_db->prepare(d_IdQuery, 3);
+    d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 1);
+    d_ANYIdQuery_stmt = d_db->prepare(d_ANYIdQuery, 2);
+    d_APIIdQuery_stmt = d_db->prepare(d_APIIdQuery, 4);
+    d_APIANYIdQuery_stmt = d_db->prepare(d_APIANYIdQuery, 3);
+    d_listQuery_stmt = d_db->prepare(d_listQuery, 2);
+    d_listSubZoneQuery_stmt = d_db->prepare(d_listSubZoneQuery, 3);
+    d_PrimaryOfDomainsZoneQuery_stmt = d_db->prepare(d_PrimaryOfDomainsZoneQuery, 1);
+    d_InfoOfDomainsZoneQuery_stmt = d_db->prepare(d_InfoOfDomainsZoneQuery, 1);
+    d_InfoOfAllSecondaryDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSecondaryDomainsQuery, 0);
+    d_AutoPrimaryInfoQuery_stmt = d_db->prepare(d_AutoPrimaryInfoQuery, 2);
+    d_GetAutoPrimaryIPs_stmt = d_db->prepare(d_GetAutoPrimaryIPs, 2);
+    d_AddAutoPrimary_stmt = d_db->prepare(d_AddAutoPrimary, 3);
+    d_RemoveAutoPrimary_stmt = d_db->prepare(d_RemoveAutoPrimaryQuery, 2);
+    d_ListAutoPrimaries_stmt = d_db->prepare(d_ListAutoPrimariesQuery, 0);
+    d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 4);
+    d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 9);
+    d_InsertEmptyNonTerminalOrderQuery_stmt = d_db->prepare(d_InsertEmptyNonTerminalOrderQuery, 4);
+    d_UpdatePrimaryOfZoneQuery_stmt = d_db->prepare(d_UpdatePrimaryOfZoneQuery, 2);
+    d_UpdateKindOfZoneQuery_stmt = d_db->prepare(d_UpdateKindOfZoneQuery, 2);
+    d_UpdateOptionsOfZoneQuery_stmt = d_db->prepare(d_UpdateOptionsOfZoneQuery, 2);
+    d_UpdateCatalogOfZoneQuery_stmt = d_db->prepare(d_UpdateCatalogOfZoneQuery, 2);
+    d_UpdateAccountOfZoneQuery_stmt = d_db->prepare(d_UpdateAccountOfZoneQuery, 2);
+    d_UpdateSerialOfZoneQuery_stmt = d_db->prepare(d_UpdateSerialOfZoneQuery, 2);
+    d_UpdateLastCheckOfZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckOfZoneQuery, 2);
+    d_InfoOfAllPrimaryDomainsQuery_stmt = d_db->prepare(d_InfoOfAllPrimaryDomainsQuery, 0);
+    d_InfoProducerMembersQuery_stmt = d_db->prepare(d_InfoProducerMembersQuery, 1);
+    d_InfoConsumerMembersQuery_stmt = d_db->prepare(d_InfoConsumerMembersQuery, 1);
+    d_DeleteDomainQuery_stmt = d_db->prepare(d_DeleteDomainQuery, 1);
+    d_DeleteZoneQuery_stmt = d_db->prepare(d_DeleteZoneQuery, 1);
+    d_DeleteRRSetQuery_stmt = d_db->prepare(d_DeleteRRSetQuery, 3);
+    d_DeleteNamesQuery_stmt = d_db->prepare(d_DeleteNamesQuery, 2);
+    d_firstOrderQuery_stmt = d_db->prepare(d_firstOrderQuery, 1);
+    d_beforeOrderQuery_stmt = d_db->prepare(d_beforeOrderQuery, 2);
+    d_afterOrderQuery_stmt = d_db->prepare(d_afterOrderQuery, 2);
+    d_lastOrderQuery_stmt = d_db->prepare(d_lastOrderQuery, 1);
+    d_updateOrderNameAndAuthQuery_stmt = d_db->prepare(d_updateOrderNameAndAuthQuery, 4);
+    d_updateOrderNameAndAuthTypeQuery_stmt = d_db->prepare(d_updateOrderNameAndAuthTypeQuery, 5);
+    d_nullifyOrderNameAndUpdateAuthQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthQuery, 3);
+    d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt = d_db->prepare(d_nullifyOrderNameAndUpdateAuthTypeQuery, 4);
+    d_RemoveEmptyNonTerminalsFromZoneQuery_stmt = d_db->prepare(d_RemoveEmptyNonTerminalsFromZoneQuery, 1);
+    d_DeleteEmptyNonTerminalQuery_stmt = d_db->prepare(d_DeleteEmptyNonTerminalQuery, 2);
+    d_AddDomainKeyQuery_stmt = d_db->prepare(d_AddDomainKeyQuery, 5);
+    d_GetLastInsertedKeyIdQuery_stmt = d_db->prepare(d_GetLastInsertedKeyIdQuery, 0);
+    d_ListDomainKeysQuery_stmt = d_db->prepare(d_ListDomainKeysQuery, 1);
+    d_GetAllDomainMetadataQuery_stmt = d_db->prepare(d_GetAllDomainMetadataQuery, 1);
+    d_GetDomainMetadataQuery_stmt = d_db->prepare(d_GetDomainMetadataQuery, 2);
+    d_ClearDomainMetadataQuery_stmt = d_db->prepare(d_ClearDomainMetadataQuery, 2);
+    d_ClearDomainAllMetadataQuery_stmt = d_db->prepare(d_ClearDomainAllMetadataQuery, 1);
+    d_SetDomainMetadataQuery_stmt = d_db->prepare(d_SetDomainMetadataQuery, 3);
+    d_RemoveDomainKeyQuery_stmt = d_db->prepare(d_RemoveDomainKeyQuery, 2);
+    d_ActivateDomainKeyQuery_stmt = d_db->prepare(d_ActivateDomainKeyQuery, 2);
+    d_DeactivateDomainKeyQuery_stmt = d_db->prepare(d_DeactivateDomainKeyQuery, 2);
+    d_PublishDomainKeyQuery_stmt = d_db->prepare(d_PublishDomainKeyQuery, 2);
+    d_UnpublishDomainKeyQuery_stmt = d_db->prepare(d_UnpublishDomainKeyQuery, 2);
+    d_ClearDomainAllKeysQuery_stmt = d_db->prepare(d_ClearDomainAllKeysQuery, 1);
+    d_getTSIGKeyQuery_stmt = d_db->prepare(d_getTSIGKeyQuery, 1);
+    d_setTSIGKeyQuery_stmt = d_db->prepare(d_setTSIGKeyQuery, 3);
+    d_deleteTSIGKeyQuery_stmt = d_db->prepare(d_deleteTSIGKeyQuery, 1);
+    d_getTSIGKeysQuery_stmt = d_db->prepare(d_getTSIGKeysQuery, 0);
+    d_getAllDomainsQuery_stmt = d_db->prepare(d_getAllDomainsQuery, 1);
+    d_ListCommentsQuery_stmt = d_db->prepare(d_ListCommentsQuery, 1);
+    d_InsertCommentQuery_stmt = d_db->prepare(d_InsertCommentQuery, 6);
+    d_DeleteCommentRRsetQuery_stmt = d_db->prepare(d_DeleteCommentRRsetQuery, 3);
+    d_DeleteCommentsQuery_stmt = d_db->prepare(d_DeleteCommentsQuery, 1);
+    d_SearchRecordsQuery_stmt = d_db->prepare(d_SearchRecordsQuery, 3);
+    d_SearchCommentsQuery_stmt = d_db->prepare(d_SearchCommentsQuery, 3);
+  }
+}
+
+void GSQLBackend::freeStatements()
+{
+  d_NoIdQuery_stmt.reset();
+  d_IdQuery_stmt.reset();
+  d_ANYNoIdQuery_stmt.reset();
+  d_ANYIdQuery_stmt.reset();
+  d_APIIdQuery_stmt.reset();
+  d_APIANYIdQuery_stmt.reset();
+  d_listQuery_stmt.reset();
+  d_listSubZoneQuery_stmt.reset();
+  d_PrimaryOfDomainsZoneQuery_stmt.reset();
+  d_InfoOfDomainsZoneQuery_stmt.reset();
+  d_InfoOfAllSecondaryDomainsQuery_stmt.reset();
+  d_AutoPrimaryInfoQuery_stmt.reset();
+  d_GetAutoPrimaryIPs_stmt.reset();
+  d_AddAutoPrimary_stmt.reset();
+  d_RemoveAutoPrimary_stmt.reset();
+  d_ListAutoPrimaries_stmt.reset();
+  d_InsertZoneQuery_stmt.reset();
+  d_InsertRecordQuery_stmt.reset();
+  d_InsertEmptyNonTerminalOrderQuery_stmt.reset();
+  d_UpdatePrimaryOfZoneQuery_stmt.reset();
+  d_UpdateKindOfZoneQuery_stmt.reset();
+  d_UpdateOptionsOfZoneQuery_stmt.reset();
+  d_UpdateCatalogOfZoneQuery_stmt.reset();
+  d_UpdateAccountOfZoneQuery_stmt.reset();
+  d_UpdateSerialOfZoneQuery_stmt.reset();
+  d_UpdateLastCheckOfZoneQuery_stmt.reset();
+  d_InfoOfAllPrimaryDomainsQuery_stmt.reset();
+  d_InfoProducerMembersQuery_stmt.reset();
+  d_InfoConsumerMembersQuery_stmt.reset();
+  d_DeleteDomainQuery_stmt.reset();
+  d_DeleteZoneQuery_stmt.reset();
+  d_DeleteRRSetQuery_stmt.reset();
+  d_DeleteNamesQuery_stmt.reset();
+  d_firstOrderQuery_stmt.reset();
+  d_beforeOrderQuery_stmt.reset();
+  d_afterOrderQuery_stmt.reset();
+  d_lastOrderQuery_stmt.reset();
+  d_updateOrderNameAndAuthQuery_stmt.reset();
+  d_updateOrderNameAndAuthTypeQuery_stmt.reset();
+  d_nullifyOrderNameAndUpdateAuthQuery_stmt.reset();
+  d_nullifyOrderNameAndUpdateAuthTypeQuery_stmt.reset();
+  d_RemoveEmptyNonTerminalsFromZoneQuery_stmt.reset();
+  d_DeleteEmptyNonTerminalQuery_stmt.reset();
+  d_AddDomainKeyQuery_stmt.reset();
+  d_GetLastInsertedKeyIdQuery_stmt.reset();
+  d_ListDomainKeysQuery_stmt.reset();
+  d_GetAllDomainMetadataQuery_stmt.reset();
+  d_GetDomainMetadataQuery_stmt.reset();
+  d_ClearDomainMetadataQuery_stmt.reset();
+  d_ClearDomainAllMetadataQuery_stmt.reset();
+  d_SetDomainMetadataQuery_stmt.reset();
+  d_RemoveDomainKeyQuery_stmt.reset();
+  d_ActivateDomainKeyQuery_stmt.reset();
+  d_DeactivateDomainKeyQuery_stmt.reset();
+  d_PublishDomainKeyQuery_stmt.reset();
+  d_UnpublishDomainKeyQuery_stmt.reset();
+  d_ClearDomainAllKeysQuery_stmt.reset();
+  d_getTSIGKeyQuery_stmt.reset();
+  d_setTSIGKeyQuery_stmt.reset();
+  d_deleteTSIGKeyQuery_stmt.reset();
+  d_getTSIGKeysQuery_stmt.reset();
+  d_getAllDomainsQuery_stmt.reset();
+  d_ListCommentsQuery_stmt.reset();
+  d_InsertCommentQuery_stmt.reset();
+  d_DeleteCommentRRsetQuery_stmt.reset();
+  d_DeleteCommentsQuery_stmt.reset();
+  d_SearchRecordsQuery_stmt.reset();
+  d_SearchCommentsQuery_stmt.reset();
+}
+
 void GSQLBackend::setNotified(domainid_t domain_id, uint32_t serial)
 {
   try {
@@ -1505,7 +1651,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t do
     throw PDNSException("GSQLBackend unable to lookup '" + qname.toLogString() + "|" + qtype.toString() + "':"+e.txtReason());
   }
 
-  d_list=false;
+  d_currentQueryType = OTHER;
   d_qname=qname;
 }
 
@@ -1543,7 +1689,7 @@ void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, domainid_t
     throw PDNSException("GSQLBackend unable to APILookup '" + qname.toLogString() + "(" + std::to_string(domain_id) + ")|" + qtype.toString() + "':"+e.txtReason());
   }
 
-  d_list=false;
+  d_currentQueryType = OTHER;
   d_qname=qname;
 }
 
@@ -1568,7 +1714,7 @@ bool GSQLBackend::list(const ZoneName &target, domainid_t domain_id, bool includ
     throw PDNSException("GSQLBackend unable to list domain '" + target.toLogString() + "': "+e.txtReason());
   }
 
-  d_list=true;
+  d_currentQueryType = LIST;
   d_qname.clear();
 
   return true;
@@ -1595,8 +1741,8 @@ bool GSQLBackend::listSubZone(const ZoneName &zone, domainid_t domain_id) {
     throw PDNSException("GSQLBackend unable to list SubZones for domain '" + zone.toLogString() + "': "+e.txtReason());
   }
 
-  d_list=false;
-  d_qname.clear();
+  d_currentQueryType = LISTSUBZONE;
+  d_qname = zone.operator const DNSName&();
 
   return true;
 }
@@ -1609,11 +1755,10 @@ bool GSQLBackend::get(DNSResourceRecord &r)
 #endif
   SSqlStatement::row_t row;
 
-skiprow:
-  if((*d_query_stmt)->hasNextRow()) {
+  while ((*d_query_stmt)->hasNextRow()) {
     try {
       (*d_query_stmt)->nextRow(row);
-      if (!d_list) {
+      if (d_currentQueryType != LIST) {
         ASSERT_ROW_COLUMNS(d_query_name, row, 8); // lookup(), listSubZone()
       }
       else {
@@ -1625,11 +1770,22 @@ skiprow:
     try {
       extractRecord(row, r);
     } catch (...) {
-      goto skiprow;
+      continue; // skip this row
+    }
+    // Because not all backends allow for escaping in LIKE constructs (I'm
+    // looking at you, ODBC), the listSubZone query may return results which
+    // are not relevant to our needs, due to possible % or _ characters
+    // occurring in domain names and interpreted as wildcards by LIKE.
+    // We add a layer of filtering here.
+    if (d_currentQueryType == LISTSUBZONE) {
+      if (!r.qname.isPartOf(d_qname)) {
+        continue; // wrong result, skip this row
+      }
     }
     return true;
   }
 
+  // No more results
   try {
     (*d_query_stmt)->reset();
   } catch (SSqlException &e) {
@@ -1643,10 +1799,10 @@ bool GSQLBackend::get_unsafe(DNSResourceRecord& rec, std::vector<std::pair<std::
 {
   SSqlStatement::row_t row;
 
-  if ((*d_query_stmt)->hasNextRow()) {
+  while ((*d_query_stmt)->hasNextRow()) {
     try {
       (*d_query_stmt)->nextRow(row);
-      if (!d_list) {
+      if (d_currentQueryType != LIST) {
         ASSERT_ROW_COLUMNS(d_query_name, row, 8); // lookup(), listSubZone()
       }
       else {
@@ -1656,9 +1812,16 @@ bool GSQLBackend::get_unsafe(DNSResourceRecord& rec, std::vector<std::pair<std::
       throw PDNSException("GSQLBackend get: "+e.txtReason());
     }
     extractRecord_unsafe(row, rec, invalid);
+    // See explanation for this in get() above.
+    if (d_currentQueryType == LISTSUBZONE) {
+      if (!rec.qname.isPartOf(d_qname)) {
+        continue; // wrong result, skip this row
+      }
+    }
     return true;
   }
 
+  // No more results
   try {
     (*d_query_stmt)->reset();
   } catch (SSqlException &e) {
@@ -2327,7 +2490,7 @@ string GSQLBackend::directBackendCmd(const string &query)
   }
 }
 
-string GSQLBackend::pattern2SQLPattern(const string &pattern)
+static string pattern2SQLPattern(const string &pattern)
 {
   string escaped_pattern = boost::replace_all_copy(pattern,"\\","\\\\");
   boost::replace_all(escaped_pattern,"_","\\_");
@@ -2417,10 +2580,13 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
   else
       pdns::checked_stoi_into(r.ttl, row[1]);
 
-  if(!d_qname.empty())
+  // d_qname is set for LISTSUBZONE queries for filtering, ignore it here
+  if (d_currentQueryType == OTHER && !d_qname.empty()) {
     r.qname=d_qname;
-  else
+  }
+  else {
     r.qname=DNSName(row[6]);
+  }
 
   r.qtype=row[3];
 
@@ -2481,7 +2647,8 @@ void GSQLBackend::extractRecord_unsafe(SSqlStatement::row_t& row, DNSResourceRec
   }
 
   try {
-    if (!d_qname.empty()) {
+    // d_qname is set for LISTSUBZONE queries for filtering, ignore it here
+    if (d_currentQueryType == OTHER && !d_qname.empty()) {
       rec.qname = d_qname;
     }
     else {
