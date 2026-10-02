@@ -1930,6 +1930,7 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
 
   DNSName relqname = qdomain.makeRelative(info.zone);
   if (relqname.empty()) {
+    d_getcursor.reset();
     return;
   }
   // cout<<"get will look for "<<relqname<< " in zone "<<info.zone<<" with id "<<info.id<<" and type "<<type.toString()<<endl;
