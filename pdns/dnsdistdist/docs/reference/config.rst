@@ -1054,13 +1054,12 @@ See :doc:`../guides/cache` for a how to.
 
   Creates a new :class:`PacketCache` with the settings specified.
 
-  :param int maxEntries: The maximum number of entries in this cache
+  :param int maxEntries: The maximum number of entries in this cache. If new items are inserted over this size, unused entries are evicted. This can be disabled by dontEvict; with dontEvict=true, new entries are not inserted.
 
   Options:
 
   * ``deferrableInsertLock=true``: bool - Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock.
   * ``dontAge=false``: bool - Don't reduce TTLs when serving from the cache. Use this when :program:`dnsdist` fronts a cluster of authoritative servers.
-  * ``keepStaleData=false``: bool - Whether to suspend the removal of expired entries from the cache when there is no backend available in at least one of the pools using this cache.
   * ``maxNegativeTTL=3600``: int - Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher.
   * ``maxTTL=86400``: int - Cap the TTL for records to his number.
   * ``minTTL=0``: int - Don't cache entries with a TTL lower than this.
@@ -1074,6 +1073,10 @@ See :doc:`../guides/cache` for a how to.
   * ``maximumEntrySize=4096``: int - The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache. Default is 4096 bytes, which was the fixed size before 1.9.0, and is also a hard limit for UDP responses.
   * ``payloadRanks={}``: List of payload size used when hashing the packet. The list will be sorted in ascending order and searched to find a lower bound value for the payload size in the packet. If found then it will be used for packet hashing. Values less than 512 or greater than ``maximumEntrySize`` above will be discarded. This option is to enable cache entry sharing between clients using different payload sizes when needed.
   * ``shuffle=false``: bool - Whether A and AAAA records should be shuffled when serving from cache, for load-balancing. The cache might not be shuffled if the cached packet is too complex for the simple parser used for this feature.
+  * ``keepStaleData=false``: bool - Whether to suspend the removal of expired entries from the cache when there is no backend available in at least one of the pools using this cache. This is similar but slightly different from dontExpire; dontExpire always keeps entries in the cache
+  * ``dontExpire=false``: bool - Whether the cache should evict when shard is full or give up. The default is false - evict (using SIEVE algorithm). Note - if both dontExpire and dontEvict are true, nothing from cache will ever be removed (only by manual purgeExpired from lua); you probably don't want both set to true.
+  * ``dontEvict=false``: bool - Whether cache should remove expired entries or keep them in perpetuity. The default is false (expire). This option differs from keep_stale_data that only keeps stale data when backend is down; with this option, data are always kept until they are evicted. Note - if both dontExpire and dontEvict are true, nothing from cache will be automatically removed (only by manual purgeExpired from lua); you probably don't want both set to true.
+
 
 .. class:: PacketCache
 
@@ -1132,7 +1135,7 @@ See :doc:`../guides/cache` for a how to.
 
   .. method:: purgeExpired(n)
 
-    Remove expired entries from the cache until there is at most ``n`` entries remaining in the cache.
+    Remove expired entries from the cache until there is at most ``n`` entries remaining in the cache. This ignores dontExpire option.
 
     :param int n: Number of entries to keep
 

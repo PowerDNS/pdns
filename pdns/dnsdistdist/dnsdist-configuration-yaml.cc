@@ -1110,7 +1110,7 @@ static void handleConsoleConfiguration(const dnsdist::rust::settings::ConsoleCon
   }
 }
 
-static void handlePacketCacheConfiguration(const ::rust::Vec<dnsdist::rust::settings::PacketCacheConfiguration>& caches)
+static void handlePacketCacheConfiguration(const Context& context, const ::rust::Vec<dnsdist::rust::settings::PacketCacheConfiguration>& caches)
 {
   for (const auto& cache : caches) {
     DNSDistPacketCache::CacheSettings settings{
@@ -1126,7 +1126,21 @@ static void handlePacketCacheConfiguration(const ::rust::Vec<dnsdist::rust::sett
       .d_parseECS = cache.parse_ecs,
       .d_keepStaleData = cache.keep_stale_data,
       .d_shuffle = cache.shuffle,
+      .d_dontEvict = cache.dont_evict,
+      .d_dontExpire = cache.dont_expire,
     };
+
+    if (settings.d_maxEntries < settings.d_shardCount) {
+      SLOG(warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", settings.d_maxEntries, settings.d_shardCount, settings.d_maxEntries),
+           context.logger->info(Logr::Warning, "The number of entries in the packet cache is smaller than the number of shards, decreasing the number of shards to the number of entries", "number_of_entries", Logging::Loggable(settings.d_maxEntries), "number_of_shards", Logging::Loggable(settings.d_shardCount)));
+      settings.d_shardCount = settings.d_maxEntries;
+    }
+
+    if (settings.d_dontEvict && settings.d_dontExpire) {
+      SLOG(warnlog("dont_evict and dont_expire are both set to true; the packet cache will never remove anything"),
+           context.logger->info(Logr::Warning, "dont_evict and dont_expire are both set to true; the packet cache will never remove anything"));
+    }
+
     std::unordered_set<uint16_t> ranks;
     if (!cache.options_to_skip.empty()) {
       settings.d_optionsToSkip.clear();
@@ -1151,7 +1165,8 @@ static void handlePacketCacheConfiguration(const ::rust::Vec<dnsdist::rust::sett
       settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
       std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
     }
-    auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
+    const DNSDistPacketCache::Time now;
+    auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings, now);
 
     registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
   }
@@ -1342,7 +1357,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       });
     }
 
-    handlePacketCacheConfiguration(globalConfig.packet_caches);
+    handlePacketCacheConfiguration(context, globalConfig.packet_caches);
 
     loadCustomPolicies(globalConfig.load_balancing_policies.custom_policies);
 
