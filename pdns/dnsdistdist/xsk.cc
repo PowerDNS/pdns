@@ -670,9 +670,14 @@ bool XskPacket::parse(bool fromSetHeader)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     to = makeComboAddressFromRaw(4, reinterpret_cast<const char*>(&ipHeader.daddr), sizeof(ipHeader.daddr));
     l4Protocol = ipHeader.protocol;
-    if (!fromSetHeader && (frameLength - sizeof(ethhdr)) != ntohs(ipHeader.tot_len)) {
-      // too small, or too large (trailing data), go away
-      return false;
+    const size_t sizeWithoutEthernetHeader = frameLength - sizeof(ethhdr);
+    if (!fromSetHeader && sizeWithoutEthernetHeader != ntohs(ipHeader.tot_len)) {
+      if (sizeWithoutEthernetHeader < ntohs(ipHeader.tot_len)) {
+        // too small
+        return false;
+      }
+      // trailing data, likely ethernet padding to reach 64 bytes (60 bytes without FCS)
+      frameLength = ntohs(ipHeader.tot_len) + sizeof(ethhdr);
     }
   }
   else if (ethHeader.h_proto == htons(ETH_P_IPV6)) {
@@ -686,8 +691,14 @@ bool XskPacket::parse(bool fromSetHeader)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     to = makeComboAddressFromRaw(6, reinterpret_cast<const char*>(&ipHeader.daddr), sizeof(ipHeader.daddr));
     l4Protocol = ipHeader.nexthdr;
-    if (!fromSetHeader && (frameLength - (sizeof(ethhdr) + sizeof(ipv6hdr))) != ntohs(ipHeader.payload_len)) {
-      return false;
+    const size_t sizeWithoutEtherneAndIPv6tHeaders = frameLength - (sizeof(ethhdr) + sizeof(ipv6hdr));
+    if (!fromSetHeader && sizeWithoutEtherneAndIPv6tHeaders != ntohs(ipHeader.payload_len)) {
+      if (sizeWithoutEtherneAndIPv6tHeaders < ntohs(ipHeader.payload_len)) {
+        // too small
+        return false;
+      }
+      // trailing data, likely ethernet padding to reach 64 bytes (60 bytes without FCS)
+      frameLength = ntohs(ipHeader.payload_len) + sizeof(ethhdr) + sizeof(ipv6hdr);
     }
   }
   else {
