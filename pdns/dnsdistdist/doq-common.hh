@@ -122,4 +122,29 @@ std::string getSNIFromQuicheConnection(const QuicheConnection& conn);
 void configureQLog(const QuicheConnection& conn, const std::string& qLogDir, const ComboAddress& peer);
 };
 
+template <class QUICConnection>
+void flushStalledResponses(QUICConnection& conn)
+{
+  for (auto streamIt = conn.d_streamOutBuffers.begin(); streamIt != conn.d_streamOutBuffers.end();) {
+    const auto& streamID = streamIt->first;
+    auto& response = streamIt->second;
+    auto streamWritable = quiche_conn_stream_writable(conn.d_conn.get(), streamID, response.size());
+    if (streamWritable == 1) {
+      if (tryWriteResponse(conn, streamID, response)) {
+        streamIt = conn.d_streamOutBuffers.erase(streamIt);
+        continue;
+      }
+      ++streamIt;
+      continue;
+    }
+    if (streamWritable == 0) {
+      // still active but not writable yet
+      ++streamIt;
+      continue;
+    }
+    // the stream is dead, remove it
+    streamIt = conn.d_streamOutBuffers.erase(streamIt);
+  }
+}
+
 #endif

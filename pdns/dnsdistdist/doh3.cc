@@ -730,21 +730,6 @@ static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver, const Lo
   }
 }
 
-static void flushStalledResponses(H3Connection& conn)
-{
-  for (auto streamIt = conn.d_streamOutBuffers.begin(); streamIt != conn.d_streamOutBuffers.end();) {
-    const auto streamID = streamIt->first;
-    auto& response = streamIt->second;
-    if (quiche_conn_stream_writable(conn.d_conn.get(), streamID, response.size()) == 1) {
-      if (tryWriteResponse(conn, streamID, response)) {
-        streamIt = conn.d_streamOutBuffers.erase(streamIt);
-        continue;
-      }
-    }
-    ++streamIt;
-  }
-}
-
 static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, const uint64_t streamID, quiche_h3_event* event)
 {
   auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
