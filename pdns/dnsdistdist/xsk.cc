@@ -771,9 +771,8 @@ void XskPacket::changeDirectAndUpdateChecksum() noexcept
     /* needed to get the correct checksum */
     setIPv6Header(ipv6);
     setUDPHeader(udp);
-    // do not bother setting the UDP checksum: 0 is a valid value and most AF_XDP
-    // implementations do the same
-    // udp.check = tcp_udp_v6_checksum(&ipv6);
+    // we NEED the UDP checksum over IPv6
+    udp.check = tcp_udp_v6_checksum(&ipv6);
     rewriteIpv6Header(&ipv6, getFrameLen());
     setIPv6Header(ipv6);
     setUDPHeader(udp);
