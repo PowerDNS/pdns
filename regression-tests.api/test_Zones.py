@@ -538,12 +538,12 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
                 ],
             },
             {
-                "name": name,
+                "name": "band." + name,
                 "type": "TXT",
                 "ttl": 3600,
                 "records": [
                     {
-                        "content": '"test TXT"',
+                        "content": '"Blue \\195\\150yster Cult"',
                         "disabled": False,
                     }
                 ],
@@ -567,7 +567,7 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         # check our comment has appeared
         self.assertEqual(get_rrset(data, name, "SOA")["comments"], rrsets[0]["comments"])
         self.assertEqual(get_rrset(data, name, "A")["comments"], [])
-        self.assertEqual(get_rrset(data, name, "TXT")["comments"], [])
+        self.assertEqual(get_rrset(data, "band." + name, "TXT")["comments"], [])
         self.assertEqual(get_rrset(data, name, "AAAA")["comments"], rrsets[1]["comments"])
 
     def test_create_zone_uncanonical_nameservers(self):
