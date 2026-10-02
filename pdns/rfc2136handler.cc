@@ -1107,7 +1107,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   auto lock = std::scoped_lock(s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
   SLOG(g_log << Logger::Info << ctx.msgPrefix << "starting transaction." << endl,
        ctx.slog->info(Logr::Info, "Update: starting transaction"));
-  if (!ctx.di.backend->startTransaction(packet.qdomainzone, UnknownDomainID)) { // Not giving the domain_id means that we do not delete the existing records.
+  if (!ctx.di.backend->startDomainModificationTransaction(packet.qdomainzone)) { // Not giving the domain_id means that we do not delete the existing records.
     SLOG(g_log << Logger::Error << ctx.msgPrefix << "Backend does not support transaction. Can't do Update packet." << endl,
          ctx.slog->info(Logr::Error, "Update: backend does not support transaction. Can't process Update packet."));
     return RCode::NotImp;

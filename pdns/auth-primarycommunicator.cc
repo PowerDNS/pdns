@@ -192,7 +192,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
 
         DNSResourceRecord rr;
         makeIncreasedSOARecord(sd, "EPOCH", "", rr, d_slog);
-        di.backend->startTransaction(sd.zonename, UnknownDomainID);
+        di.backend->startDomainModificationTransaction(sd.zonename);
         if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, {rr})) {
           di.backend->abortTransaction();
           throw PDNSException("backend hosting producer zone '" + sd.zonename.toLogString() + "' does not support editing records");
