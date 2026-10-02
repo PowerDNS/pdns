@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dns.hh"
 #include "dnsdist.hh"
 #include "dnsdist-xsk.hh"
 
@@ -120,6 +121,11 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
 
 bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, bool& expectProxyProtocol)
 {
+  if (packet.getDataLen() < sizeof(dnsheader)) {
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    return false;
+  }
+
   const auto& from = packet.getFromAddr();
   expectProxyProtocol = expectProxyProtocolFrom(from);
   if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(from) && !expectProxyProtocol) {
