@@ -600,11 +600,18 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const DNSRecord &dr, Pa
   auto ret=std::make_shared<APLRecordContent>();
 
   while (processed<dr.d_clen) {
+    if (dr.d_clen - processed < 4) {
+      throw MOADNSException("Malformed APL record, element header extends beyond record length");
+    }
     pr.xfr16BitInt(ard.d_family);
     pr.xfr8BitInt(ard.d_prefix);
     pr.xfr8BitInt(temp);
     ard.d_n = (temp & 128) >> 7;
     ard.d_afdlength = temp & 127;
+
+    if (ard.d_afdlength > dr.d_clen - processed - 4) {
+      throw MOADNSException("Malformed APL record, address data extends beyond record length");
+    }
 
     if (ard.d_family == APL_FAMILY_IPV4) {
       if (ard.d_afdlength > 4) {
