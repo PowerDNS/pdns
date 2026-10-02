@@ -234,7 +234,9 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
       packetReader.xfrBlob(blob);
 
       std::vector<std::pair<uint16_t, std::string>> options;
-      getEDNSOptionsFromContent(blob, options);
+      if (!getEDNSOptionsFromContent(blob, options)) {
+        return false;
+      }
 
       /* getDnsrecordheader() has helpfully converted the TTL for us, which we do not want in that case */
       uint32_t ttl = htonl(recordHeader.d_ttl);
@@ -399,7 +401,6 @@ void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPref
 
 static void removeTrailingDataFromPacketIfAny(PacketBuffer& packet)
 {
-  /* we are supposed to be the last record, do we have some trailing data to remove? */
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   uint32_t realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(packet.data()), packet.size());
   packet.resize(realPacketLen);
