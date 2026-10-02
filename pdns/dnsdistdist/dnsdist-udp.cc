@@ -184,7 +184,7 @@ void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response,
   memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
   if (!isAsync) {
-    if (!processResponse(response, dnsResponse, ids.cs != nullptr && ids.cs->muted)) {
+    if (!processResponse(response, dnsResponse)) {
       return;
     }
 
@@ -198,35 +198,20 @@ void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response,
     ++ids.cs->responses;
   }
 
-  bool muted = true;
-  if (ids.cs != nullptr && !ids.cs->muted && !ids.isXSK()) {
+  if (!ids.isXSK()) {
     sendUDPResponse(ids.cs->udpFD, response, dnsResponse.ids.delayMsec, ids.hopLocal, ids.hopRemote);
-    muted = false;
   }
 
   if (!selfGenerated) {
     auto latencyUs = ids.queryRealTime.udiff();
-    if (!muted) {
-      if (!ids.isXSK()) {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
-                    dnsResponse.getLogger()->withName("udp-response")->info(Logr::Info, "Got answer from backend, relayed to client"));
-      }
-      else {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
-                    dnsResponse.getLogger()->withName("udp-xsk-response")->info(Logr::Info, "Got answer from backend, relayed to client"));
-      }
+    if (!ids.isXSK()) {
+      VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
+                  dnsResponse.getLogger()->withName("udp-response")->info(Logr::Info, "Got answer from backend, relayed to client"));
     }
     else {
-      if (!ids.isXSK()) {
-        VERBOSESLOG(infolog("Got answer from %s, NOT relayed to %s (UDP) since that frontend is muted, took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
-                    dnsResponse.getLogger()->withName("udp-response")->info(Logr::Info, "Got answer from backend, NOT relayed to client since that frontend is muted"));
-      }
-      else {
-        VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
-                    dnsResponse.getLogger()->withName("udp-xsk-response")->info(Logr::Info, "Got answer from backend, NOT relayed to client since that frontend is muted"));
-      }
+      VERBOSESLOG(infolog("Got answer from %s, relayed to %s (UDP via XSK), took %d us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), latencyUs),
+                  dnsResponse.getLogger()->withName("udp-xsk-response")->info(Logr::Info, "Got answer from backend, relayed to client"));
     }
-
     handleResponseSent(ids, latencyUs, dnsResponse.ids.origRemote, backend->d_config.remote, response.size(), cleartextDH, backend->getProtocol(), true);
   }
   else {
@@ -339,9 +324,7 @@ void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const 
 
     auto dnsCryptResponse = dnsdist::dnscrypt::checkDNSCryptQuery(clientState, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, false);
     if (dnsCryptResponse) {
-      if (!clientState.muted) {
-        sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
-      }
+      sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
       return;
     }
 
@@ -361,9 +344,7 @@ void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const 
           return true;
         });
 
-        if (!clientState.muted) {
-          sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
-        }
+        sendUDPResponse(clientState.udpFD, query, 0, dest, remote);
         return;
       }
     }
@@ -416,10 +397,7 @@ void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const 
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 #endif /* DISABLE_RECVMMSG */
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
-      if (!clientState.muted) {
-        sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
-      }
-
+      sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
       handleResponseSent(std::move(dnsQuestion.ids.qname), dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
       return;
     }

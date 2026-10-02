@@ -667,7 +667,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
 
       memcpy(&response.d_cleartextDH, dnsResponse.getHeader().get(), sizeof(response.d_cleartextDH));
 
-      if (!processResponse(response.d_buffer, dnsResponse, false)) {
+      if (!processResponse(response.d_buffer, dnsResponse)) {
         state->terminateClientConnection();
         return;
       }

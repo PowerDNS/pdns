@@ -120,7 +120,7 @@ public:
 
       dnsResponse.ids.doqu = std::move(unit);
 
-      if (!processResponse(dnsResponse.ids.doqu->response, dnsResponse, false)) {
+      if (!processResponse(dnsResponse.ids.doqu->response, dnsResponse)) {
         if (dnsResponse.ids.doqu) {
           /* this will signal an error */
           dnsResponse.ids.doqu->response.clear();

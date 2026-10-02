@@ -47,12 +47,12 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
   return ProcessQueryResult::Drop;
 }
 
-static std::function<bool(PacketBuffer& response, DNSResponse& dr, bool muted)> s_processResponse;
+static std::function<bool(PacketBuffer& response, DNSResponse& dr)> s_processResponse;
 
-bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse)
 {
   if (s_processResponse) {
-    return s_processResponse(response, dnsResponse, muted);
+    return s_processResponse(response, dnsResponse);
   }
 
   return false;
@@ -1004,10 +1004,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1048,10 +1047,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       throw std::runtime_error("Unexpected error while processing the response");
     };
 
@@ -1091,10 +1089,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return false;
     };
 
@@ -1140,10 +1137,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1172,10 +1168,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       (void)selectedBackend;
       return ProcessQueryResult::SendAnswer;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1214,10 +1209,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1285,10 +1279,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1351,10 +1344,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1390,10 +1382,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1440,10 +1431,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1501,10 +1491,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1561,10 +1550,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1624,10 +1612,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1680,10 +1667,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1744,10 +1730,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1789,10 +1774,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1855,10 +1839,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -1901,10 +1884,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       /* note that we do nothing with the query, we just tell the frontend it was dealt with */
       return ProcessQueryResult::Asynchronous;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -2091,10 +2073,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -2228,10 +2209,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -2416,10 +2396,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -2497,10 +2476,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       }
       return ProcessQueryResult::Drop;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -2585,10 +2563,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       }
       return ProcessQueryResult::Drop;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -2707,10 +2684,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -2869,10 +2845,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -3082,10 +3057,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -3261,10 +3235,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = proxyEnabledBackend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -3531,10 +3504,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -3661,10 +3633,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = proxyEnabledBackend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -3750,10 +3721,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = proxyEnabledBackend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -3822,10 +3792,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -4033,10 +4002,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend1;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -4123,10 +4091,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -4366,10 +4333,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -4421,10 +4387,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       /* note that we do nothing with the query, we just tell the frontend it was dealt with */
       return ProcessQueryResult::Asynchronous;
     };
-    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr, bool muted) -> bool {
+    s_processResponse = [](PacketBuffer& responsePacket, DNSResponse& dr) -> bool {
       (void)responsePacket;
       (void)dr;
-      (void)muted;
       return true;
     };
 
@@ -4530,7 +4495,7 @@ BOOST_FIXTURE_TEST_CASE(test_Pipelined_Queries_Immediate_Responses, TestFixture)
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
-    s_processResponse = [](PacketBuffer&, DNSResponse&, bool) -> bool {
+    s_processResponse = [](PacketBuffer&, DNSResponse&) -> bool {
       return true;
     };
 

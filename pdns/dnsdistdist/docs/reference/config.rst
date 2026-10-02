@@ -1192,6 +1192,8 @@ ClientState functions
 
   .. attribute:: muted
 
+    .. versionremoved:: 2.2.0
+
     If set to true, queries received on this frontend will be normally processed and sent to a backend if needed, but no response will be ever be sent to the client over UDP. TCP queries are processed normally and responses sent to the client.
 
 Status, Statistics and More
