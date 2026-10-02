@@ -274,6 +274,9 @@ static void prependSizeToTCPQuery(PacketBuffer& buffer, size_t proxyProtocolPayl
   if (buffer.size() <= proxyProtocolPayloadSize) {
     throw std::runtime_error("The payload size is smaller or equal to the buffer size");
   }
+  if ((buffer.size() - proxyProtocolPayloadSize) > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("Payload too large (" + std::to_string(buffer.size() - proxyProtocolPayloadSize) + ") for DNS-over-TCP framing");
+  }
 
   uint16_t queryLen = proxyProtocolPayloadSize > 0 ? (buffer.size() - proxyProtocolPayloadSize) : buffer.size();
   const std::array<uint8_t, 2> sizeBytes{static_cast<uint8_t>(queryLen / 256), static_cast<uint8_t>(queryLen % 256)};
