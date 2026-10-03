@@ -459,7 +459,7 @@ static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoo
         ComboAddress spoofAddr(spoofContent);
         dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, {spoofAddr}, config);
       }
-      catch (const PDNSException& e) {
+      catch (const std::exception& exp) {
         DNSName cname(spoofContent);
         dnsdist::self_answers::generateAnswerFromCNAME(dnsQuestion, cname, config);
       }

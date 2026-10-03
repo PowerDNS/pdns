@@ -33,8 +33,8 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
   try {
     d_regex = Regex(regex);
   }
-  catch (const PDNSException& exp) {
-    throw std::runtime_error("Error compiling expression in HTTPHeaderRule: " + exp.reason);
+  catch (const std::runtime_error& exp) {
+    throw std::runtime_error("Error compiling expression in HTTPHeaderRule: " + std::string(exp.what()));
   }
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
@@ -109,8 +109,8 @@ HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex) :
   try {
     d_regex = Regex(regex);
   }
-  catch (const PDNSException& exp) {
-    throw std::runtime_error("Error compiling expression in HTTPPathRegexRule: " + exp.reason);
+  catch (const std::runtime_error& exp) {
+    throw std::runtime_error("Error compiling expression in HTTPPathRegexRule: " + std::string(exp.what()));
   }
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }

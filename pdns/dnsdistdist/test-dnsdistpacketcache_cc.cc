@@ -129,8 +129,8 @@ static void test_packetcache_simple(bool shuffle)
     /* nothing to remove */
     BOOST_CHECK_EQUAL(localCache.purgeExpired(0, now), 0U);
   }
-  catch (const PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error: " << exp.what() << endl;
     throw;
   }
 }
@@ -246,8 +246,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
     /* nothing to remove */
     BOOST_CHECK_EQUAL(localCache.purgeExpired(0, now), 0U);
   }
-  catch (const PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error: " << exp.what() << endl;
     throw;
   }
 }
@@ -316,8 +316,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP)
       BOOST_CHECK(!subnet);
     }
   }
-  catch (PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error: " << exp.what() << endl;
     throw;
   }
 }
@@ -372,8 +372,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL)
     BOOST_CHECK_EQUAL(found, true);
     BOOST_CHECK(!subnet);
   }
-  catch (PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error: " << exp.what() << endl;
     throw;
   }
 }
@@ -434,8 +434,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL)
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
-  catch (const PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error: " << exp.what() << endl;
     throw;
   }
 }
@@ -496,8 +496,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL)
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
-  catch (const PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error: " << exp.what() << endl;
     throw;
   }
 }
@@ -795,8 +795,8 @@ static void threadMangler(unsigned int offset)
       s_localCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, std::nullopt);
     }
   }
-  catch (PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error: " << exp.what() << endl;
     throw;
   }
 }
@@ -828,8 +828,8 @@ static void threadReader(unsigned int offset)
       }
     }
   }
-  catch (PDNSException& e) {
-    cerr << "Had error in threadReader: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error in threadReader: " << exp.what() << endl;
     throw;
   }
 }
@@ -862,8 +862,8 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded)
 
     BOOST_CHECK((s_localCache.getDeferredInserts() + s_localCache.getDeferredLookups() + s_localCache.getInsertCollisions()) >= s_missing.load());
   }
-  catch (const PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
+  catch (const std::runtime_error& exp) {
+    cerr << "Had error: " << exp.what() << endl;
     throw;
   }
 }
