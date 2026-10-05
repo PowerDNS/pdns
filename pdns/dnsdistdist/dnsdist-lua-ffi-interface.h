@@ -23,8 +23,8 @@
 /* we don't use a guard (C++ pragma once or even #ifndef because this file (the .inc version)
    is passed to the Lua FFI wrapper which doesn't support it */
 
-/* This FFI API has been designed for speed, and is not forgiving. Passing null to pointers
-   will likely trigger a crash, holding onto a pointer after its intended lifetime will cause
+/* This FFI API has been designed for speed, and is not forgiving. Passing null pointers
+   is likely to trigger a crash, holding onto a pointer after its intended lifetime will cause
    memory corruption, etc.
    If you are looking for an easy to use and safe API, please use the regular Lua API.
    Misuse of this API is not a security vulnerability, do not report it as such.
@@ -353,7 +353,7 @@ void dnsdist_ffi_dnsquestion_meta_end_key(dnsdist_ffi_dnsquestion_t* dnsQuestion
 
 /* addr will point to a buffer holding an IPv4 (4 bytes) or IPv6 address (16 bytes). addrSize will be updated to the amount of bytes contained into addr */
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dnsQuestion, const void** addr, size_t* addrSize, uint8_t bits) __attribute__((visibility("default")));
-/* The pointers in the dnsdist_ffi_ednsoption_t will be invalidated as soon as the query in altered in any way, so don't hold onto it */
+/* The pointers in the dnsdist_ffi_ednsoption_t will be invalidated as soon as the query in altered in any way, so don't hold onto them */
 size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dnsQuestion, const dnsdist_ffi_ednsoption_t** out) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* str, size_t strSize) __attribute__ ((visibility ("default")));
 // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
