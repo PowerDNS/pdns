@@ -1052,10 +1052,11 @@ struct SecondarySenderReceiver
   Identifier send(DomainNotificationInfo& dni)
   {
     shuffle(dni.di.primaries.begin(), dni.di.primaries.end(), pdns::dns_random_engine());
+    const ComboAddress& remote = *dni.di.primaries.begin();
     try {
       return {dni.di.zone,
-              *dni.di.primaries.begin(),
-              d_resolver.sendResolve(*dni.di.primaries.begin(),
+              remote,
+              d_resolver.sendResolve(remote,
                                      dni.localaddr,
                                      dni.di.zone,
                                      QType::SOA,
@@ -1069,7 +1070,8 @@ struct SecondarySenderReceiver
 
   bool receive(Identifier& id, Answer& a)
   {
-    return d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)));
+    auto& [zonename, remote, requestid] = id;
+    return d_resolver.tryGetSOASerial(&zonename, &remote, &a.theirSerial, &a.theirInception, &a.theirExpire, &requestid);
   }
 
   void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */)
@@ -1281,6 +1283,7 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
       di.backend = tempdi.backend;
     }
 
+    const ComboAddress remote = *di.primaries.begin();
     if (!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
       uint64_t newCount = 1;
       auto data = d_data.lock();
@@ -1290,10 +1293,10 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
       time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
       data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
       if (newCount == 1) {
-        g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << nextCheck << endl;
+        g_log << Logger::Warning << "Unable to retrieve SOA for " << di.zone << " from " << remote.toStringWithPortExcept(53) << ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x " << d_tickinterval << " seconds', with a maximum of " << (uint64_t)::arg().asNum("default-ttl") << " seconds. Skipping SOA checks until " << nextCheck << endl;
       }
       else if (newCount % 10 == 0) {
-        g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << nextCheck << endl;
+        g_log << Logger::Notice << "Unable to retrieve SOA for " << di.zone << " from " << remote.toStringWithPortExcept(53) << ", this was the " << std::to_string(newCount) << "th time. Skipping SOA checks until " << nextCheck << endl;
       }
       // Make sure we recheck SOA for notifies
       if (di.receivedNotify) {
@@ -1325,9 +1328,9 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
     catch (...) {
     }
 
-    uint32_t theirserial = ssr.d_freshness[di.id].theirSerial;
+    const auto& answer = ssr.d_freshness[di.id];
+    uint32_t theirserial = answer.theirSerial;
     uint32_t ourserial = sd.serial;
-    const ComboAddress remote = *di.primaries.begin();
 
     if (hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial")) {
       g_log << Logger::Warning << "Domain '" << di.zone << "' more recent than primary " << remote.toStringWithPortExcept(53) << ", our serial " << ourserial << " > their serial " << theirserial << endl;
@@ -1352,23 +1355,23 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
         prio = SuckRequest::Notify;
       }
 
-      if (!maxInception && !ssr.d_freshness[di.id].theirInception) {
+      if (maxInception == 0 && answer.theirInception == 0) {
         g_log << Logger::Info << "Domain '" << di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
       }
-      else if (maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
+      else if (maxInception == answer.theirInception && maxExpire == answer.theirExpire) {
         g_log << Logger::Info << "Domain '" << di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
       }
-      else if (maxExpire >= now && !ssr.d_freshness[di.id].theirInception) {
+      else if (maxExpire >= now && answer.theirInception == 0) {
         g_log << Logger::Info << "Domain '" << di.zone << "' is fresh, primary " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
         di.backend->setFresh(di.id);
       }
-      else if (maxInception && !ssr.d_freshness[di.id].theirInception) {
+      else if (maxInception != 0 && answer.theirInception == 0) {
         g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
         addSuckRequest(di.zone, remote, prio);
       }
-      else if (dk.doesDNSSEC() && !maxInception && ssr.d_freshness[di.id].theirInception) {
+      else if (dk.doesDNSSEC() && maxInception == 0 && answer.theirInception != 0) {
         g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
         addSuckRequest(di.zone, remote, prio);
       }
