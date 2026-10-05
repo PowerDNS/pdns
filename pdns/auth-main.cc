@@ -345,8 +345,6 @@ static void declareArguments()
 
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
 
-<<<<<<< HEAD
-=======
   // explicitly declared outside of HAVE_LUA_RECORDS guard to prevent writes
   // even when LUA is not currently used
   ::arg().setSwitch("enable-lua-record-updates", "Allow updates to Lua records") = "no";
@@ -355,7 +353,6 @@ static void declareArguments()
   ::arg().set("max-pointers-to-pointers", "Maximum number of name pointers pointing directly to another pointer per name") = "4";
   ::arg().set("max-pointers-per-name", "Maximum number of name pointers followed per name") = "10";
 
->>>>>>> 8e18826f5 (Limit pointer to pointer chains in DNS names)
   // FIXME520: remove when branching 5.2
   ::arg().set("entropy-source", "") = "";
   ::arg().set("rng", "") = "";
