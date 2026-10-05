@@ -347,8 +347,6 @@ static void declareArguments()
 
   ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
 
-<<<<<<< HEAD
-=======
   // explicitly declared outside of HAVE_LUA_RECORDS guard to prevent writes
   // even when LUA is not currently used
   ::arg().setSwitch("enable-lua-record-updates", "Allow updates to Lua records") = "no";
@@ -361,7 +359,6 @@ static void declareArguments()
   ::arg().set("entropy-source", "") = "";
   ::arg().set("rng", "") = "";
 
->>>>>>> 8e18826f5 (Limit pointer to pointer chains in DNS names)
   ::arg().setDefaults();
 }
 
