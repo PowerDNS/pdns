@@ -547,6 +547,13 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
                         "disabled": False,
                     }
                 ],
+                "comments": [
+                    {
+                        "account": "test TXT",
+                        "content": "I'm on the lamb but I ain't no sheep",
+                        "modified_at": 42,
+                    }
+                ],
             },
             {
                 "name": name,
@@ -564,11 +571,26 @@ class AuthZones(ZonesApiTestCase, AuthZonesHelperMixin):
         name, _, data = self.create_zone(name=name, rrsets=rrsets)
         # NS records have been created
         self.assertEqual(len(data["rrsets"]), len(rrsets) + 1)
-        # check our comment has appeared
+        # Check our comments have appeared
         self.assertEqual(get_rrset(data, name, "SOA")["comments"], rrsets[0]["comments"])
         self.assertEqual(get_rrset(data, name, "A")["comments"], [])
-        self.assertEqual(get_rrset(data, "band." + name, "TXT")["comments"], [])
         self.assertEqual(get_rrset(data, name, "AAAA")["comments"], rrsets[1]["comments"])
+        self.assertEqual(get_rrset(data, "band." + name, "TXT")["comments"], rrsets[2]["comments"])
+        # Now test that comments correctly get deleted after the RRset they
+        # apply to gets deleted.
+        rrset = {"changetype": "delete", "name": "band." + name, "type": "TXT"}
+        payload = {"rrsets": [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
+        self.assert_success(r)
+        # Verify that the matching comments are gone
+        r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=*sheep*&object_type=comment"))
+        self.assert_success_json(r)
+        data = r.json()
+        self.assertEqual(data, [])
 
     def test_create_zone_uncanonical_nameservers(self):
         name = unique_zone_name()
