@@ -1,12 +1,20 @@
-#include <thread>
-#include <future>
-#include <boost/format.hpp>
-#include <boost/uuid/string_generator.hpp>
-#include <utility>
 #include <algorithm>
+#include <condition_variable>
+#include <forward_list>
+#include <future>
 #include <random>
-#include "qtype.hh"
+#include <stdexcept>
+#include <thread>
 #include <tuple>
+#include <utility>
+#include <variant>
+#include <boost/format.hpp>
+#include <boost/format/format_fwd.hpp>
+#include <boost/uuid/string_generator.hpp>
+#include <boost/algorithm/string/erase.hpp>
+
+#include "misc.hh"
+#include "qtype.hh"
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lock.hh"
@@ -83,12 +91,14 @@ private:
     std::atomic<time_t> lastStatusUpdate{0};
   };
 
+  bool d_stop{false};
+
 public:
   IsUpOracle()
   {
     d_checkerThreadStarted.clear();
   }
-  ~IsUpOracle() = default;
+  ~IsUpOracle();
   int isUp(const ComboAddress& remote, const opts_t& opts);
   int isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
   //NOLINTNEXTLINE(readability-identifier-length)
@@ -196,18 +206,17 @@ private:
   void checkThread()
   {
     setThreadName("pdns/luaupcheck");
-    while (true)
-    {
+    while (!d_stop) {
       std::chrono::system_clock::time_point checkStart = std::chrono::system_clock::now();
-      std::vector<std::future<void>> results;
-      std::vector<CheckDesc> toDelete;
-      time_t interval{g_luaHealthChecksInterval};
+      std::forward_list<std::future<void>> results;
+      std::forward_list<CheckDesc> toDelete;
       {
         // make sure there's no insertion
         auto statuses = d_statuses.read_lock();
         for (auto& it: *statuses) {
           auto& desc = it.first;
           auto& state = it.second;
+          time_t interval{g_luaHealthChecksInterval};
           time_t checkInterval{0};
           auto lastAccess = std::chrono::system_clock::from_time_t(state->lastAccess);
 
@@ -232,16 +241,16 @@ private:
           }
 
           if (desc.url.empty()) { // TCP
-            results.push_back(std::async(std::launch::async, &IsUpOracle::checkTCP, this, desc, state->status.load(), state->first.load()));
+            results.push_front(std::async(std::launch::async, &IsUpOracle::checkTCP, this, desc, state->status.load(), state->first.load()));
           } else { // URL
-            results.push_back(std::async(std::launch::async, &IsUpOracle::checkURL, this, desc, state->status.load(), state->first.load()));
+            results.push_front(std::async(std::launch::async, &IsUpOracle::checkURL, this, desc, state->status.load(), state->first.load()));
           }
           // Give it a chance to run at least once.
           // If minimumFailures * interval > lua-health-checks-expire-delay, then a down status will never get reported.
           // This is unlikely to be a problem in practice due to the default value of the expire delay being one hour.
           if (not state->first &&
               lastAccess < (checkStart - std::chrono::seconds(g_luaHealthChecksExpireDelay))) {
-            toDelete.push_back(desc);
+            toDelete.push_front(desc);
           }
         }
       }
@@ -249,17 +258,31 @@ private:
       for (auto& future: results) {
         future.wait();
       }
+      // No need to keep these objects around any further
+      results.clear();
       if (!toDelete.empty()) {
-        auto statuses = d_statuses.write_lock();
-        for (auto& it: toDelete) {
-          statuses->erase(it);
+        {
+          auto statuses = d_statuses.write_lock();
+          for (auto& iter: toDelete) {
+            statuses->erase(iter);
+          }
         }
+        // No need to keep these objects around while we'll be waiting below.
+        toDelete.clear();
       }
 
       // set thread name again, in case std::async surprised us by doing work in this thread
       setThreadName("pdns/luaupcheck");
 
-      std::this_thread::sleep_until(checkStart + std::chrono::seconds(interval));
+      // Wait for at most one complete check interval, but allow an earlier
+      // wakeup in case more work is being put in d_statuses.
+      {
+        std::unique_lock<std::mutex> lock(d_mutex);
+        auto sleepTime = std::chrono::seconds(g_luaHealthChecksInterval) - (std::chrono::system_clock::now() - checkStart);
+        if (sleepTime > std::chrono::seconds::zero()) {
+          d_condvar.wait_until(lock, std::chrono::system_clock::now() + sleepTime);
+        }
+      }
     }
   }
 
@@ -268,6 +291,9 @@ private:
 
   std::unique_ptr<std::thread> d_checkerThread;
   std::atomic_flag d_checkerThreadStarted;
+
+  std::mutex d_mutex; // used with the condition variable below
+  std::condition_variable d_condvar;
 
   void setStatus(const CheckDesc& cd, bool status)
   {
@@ -294,7 +320,8 @@ private:
   }
 
   //NOLINTNEXTLINE(readability-identifier-length)
-  void setWeight(const CheckDesc& cd, int weight){
+  void setWeight(const CheckDesc& cd, int weight)
+  {
     auto statuses = d_statuses.write_lock();
     auto& state = (*statuses)[cd];
     state->weight = weight;
@@ -335,9 +362,6 @@ private:
 //NOLINTNEXTLINE(readability-identifier-length)
 int IsUpOracle::isUp(const CheckDesc& cd)
 {
-  if (!d_checkerThreadStarted.test_and_set()) {
-    d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
-  }
   time_t now = time(nullptr);
   {
     auto statuses = d_statuses.read_lock();
@@ -361,6 +385,14 @@ int IsUpOracle::isUp(const CheckDesc& cd)
       (*statuses)[cd] = std::make_unique<CheckState>(now);
     }
   }
+  // Now that we have given it work to do, make sure the checker thread runs,
+  // and notify it if it had already been running.
+  if (!d_checkerThreadStarted.test_and_set()) {
+    d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
+  }
+  else {
+    d_condvar.notify_all();
+  }
   // If explicitly asked to fail on incomplete checks, report this (as
   // a negative value).
   static const std::string foic{"failOnIncompleteCheck"};
@@ -382,6 +414,16 @@ int IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, const o
 {
   CheckDesc cd{remote, url, opts};
   return isUp(cd);
+}
+
+IsUpOracle::~IsUpOracle()
+{
+  d_stop = true;
+  // If the checker thread has been started, tell it to stop now.
+  if (d_checkerThreadStarted.test_and_set()) {
+    d_condvar.notify_all();
+    d_checkerThread->join();
+  }
 }
 
 IsUpOracle g_up;
