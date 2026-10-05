@@ -23,6 +23,13 @@
 /* we don't use a guard (C++ pragma once or even #ifndef because this file (the .inc version)
    is passed to the Lua FFI wrapper which doesn't support it */
 
+/* This FFI API has been designed for speed, and is not forgiving. Passing null pointers
+   is likely to trigger a crash, holding onto a pointer after its intended lifetime will cause
+   memory corruption, etc.
+   If you are looking for an easy to use and safe API, please use the regular Lua API.
+   Misuse of this API is not a security vulnerability, do not report it as such.
+*/
+
 typedef struct dnsdist_ffi_dnsquestion_t dnsdist_ffi_dnsquestion_t;
 typedef struct dnsdist_ffi_dnsresponse_t dnsdist_ffi_dnsresponse_t;
 typedef struct dnsdist_ffi_servers_list_t dnsdist_ffi_servers_list_t;
@@ -68,7 +75,7 @@ bool dnsdist_ffi_dnsquestion_is_remote_v6(const dnsdist_ffi_dnsquestion_t* dnsQu
 void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const void** addr, size_t* addrSize) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnsquestion_get_remote_port(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
 const char* dnsdist_ffi_dnsquestion_get_incoming_interface(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__((visibility("default")));
-/* qname will point to a read-only buffer holding the DNS name in wire format (at most 255 bytes). qnameSize will be updated to the amount of bytes in qname. Note that the buffer will be invalidated if any function altering the query is called, so don't hold unto it */
+/* qname will point to a read-only buffer holding the DNS name in wire format (at most 255 bytes). qnameSize will be updated to the amount of bytes in qname. Note that the buffer will be invalidated if any function altering the query is called, so don't hold onto it */
 void dnsdist_ffi_dnsquestion_get_qname_raw(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const char** qname, size_t* qnameSize) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_dnsquestion_get_qname_hash(const dnsdist_ffi_dnsquestion_t* dnsQuestion, size_t init) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
@@ -79,7 +86,7 @@ int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dnsQuesti
 bool dnsdist_ffi_dnsquestion_get_header_copy(const dnsdist_ffi_dnsquestion_t* dnsQuestion, char* buffer, size_t buffer_size) __attribute__((visibility("default")));
 /* buffer MUST hold a DNS header (12 bytes) */
 bool dnsdist_ffi_dnsquestion_set_header(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* buffer) __attribute__ ((visibility ("default")));
-/* Return a pointer to the raw query bytes. Note that the buffer will be invalidated if any function altering the query is called, so don't hold unto it */
+/* Return a pointer to the raw query bytes. Note that the buffer will be invalidated if any function altering the query is called, so don't hold onto it */
 const unsigned char* dnsdist_ffi_dnsquestion_get_data(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnsquestion_get_len(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_dnsquestion_get_size(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
@@ -98,7 +105,7 @@ uint8_t dnsdist_ffi_dnsquestion_get_edns_version(const dnsdist_ffi_dnsquestion_t
 uint8_t dnsdist_ffi_dnsquestion_get_edns_extended_rcode(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__((visibility("default")));
 /* sni will be updated to point to a buffer containing the SNI in wire format, and sniSize will contain the number of bytes in the buffer pointed to by sni */
 void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const char** sni, size_t* sniSize) __attribute__((visibility("default")));
-/* return a pointer to a NUL-terminated string containing the value of the corresponding tag, if any. Note that the string will be invalidated as soon as the tags are altered in any way, so don't hold unto it */
+/* return a pointer to a NUL-terminated string containing the value of the corresponding tag, if any. Note that the string will be invalidated as soon as the tags are altered in any way, so don't hold onto it */
 const char* dnsdist_ffi_dnsquestion_get_tag(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* label) __attribute__ ((visibility ("default")));
 /* bufferSize must be set to the size of buffer. If a tag exists for the key passed in label, and buffer is big enough to contain the value of the tag, the content of the value is copied into buffer and the amount of bytes copied is returned */
 size_t dnsdist_ffi_dnsquestion_get_tag_raw(const dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* label, char* buffer, size_t bufferSize) __attribute__((visibility("default")));
@@ -345,7 +352,8 @@ void dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(dnsdist_ffi_dnsquestion
 void dnsdist_ffi_dnsquestion_meta_end_key(dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
 
 /* addr will point to a buffer holding an IPv4 (4 bytes) or IPv6 address (16 bytes). addrSize will be updated to the amount of bytes contained into addr */
-void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dnsQuestion, const void** addr, size_t* addrSize, uint8_t bits) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dnsQuestion, const void** addr, size_t* addrSize, uint8_t bits) __attribute__((visibility("default")));
+/* The pointers in the dnsdist_ffi_ednsoption_t will be invalidated as soon as the query in altered in any way, so don't hold onto them */
 size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dnsQuestion, const dnsdist_ffi_ednsoption_t** out) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dnsQuestion, const char* str, size_t strSize) __attribute__ ((visibility ("default")));
 // returns the length of the resulting 'out' array. 'out' is not set if the length is 0
