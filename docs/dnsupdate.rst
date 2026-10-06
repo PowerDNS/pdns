@@ -85,8 +85,21 @@ successful.
 Use this Lua script containing function ``updatepolicy`` to validate
 each update. This will ``TURN OFF`` all other
 authorization methods, and you are expected to take care of everything
-yourself. See :ref:`dnsupdate-update-policy` for details and
+yourself, unless :ref:`setting-lua-dnsupdate-policy-builtin-checks`
+is enabled. See :ref:`dnsupdate-update-policy` for details and
 examples.
+
+``lua-dnsupdate-policy-builtin-checks``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 5.2.0
+
+When set to ``yes``, the ``allow-dnsupdate-from``, ``ALLOW-DNSUPDATE-FROM``,
+``TSIG-ALLOW-DNSUPDATE`` and ``dnsupdate-require-tsig`` checks are performed
+even if ``lua-dnsupdate-policy-script`` is set. An update has to pass these
+checks first, and is then handed to the Lua policy which can further restrict
+which records may be changed. The default is ``no``, which leaves all
+authorization to the Lua policy.
 
 .. _dnsupdate-metadata:
 
@@ -441,7 +454,8 @@ PowerDNS.
     ServFail is returned when not valid.
 3.  The **dnsupdate** setting is checked. Refused is returned when the
     setting is 'no'.
-4.  If update policy Lua script is provided then skip up to 7.
+4.  If update policy Lua script is provided and
+    **lua-dnsupdate-policy-builtin-checks** is not enabled, then skip up to 7.
 5.  If the **ALLOW-DNSUPDATE-FROM** has a value (from both
     domainmetadata and the configuration file), a check on the value is
     performed. If the requestor (sender of the update message) does not
