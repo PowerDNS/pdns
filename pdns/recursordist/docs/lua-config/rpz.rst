@@ -8,6 +8,12 @@ Response Policy Zone is an open standard developed by Paul Vixie (ISC and Farsig
 Frequently, Response Policy Zones get to be very large and change quickly, so it is customary to update them over IXFR.
 It allows the use of third-party feeds, and near real-time policy updates.
 
+.. warning::
+
+   RPZs change the way :program:`Recursor` resolves names. A malicious RPZ can
+   prevent resolving or change the resuls of resolving for arbitrary names. As such, the
+   provider of an RPZ must be regarded as a trusted entity.
+
 
 Evaluation order
 ----------------
