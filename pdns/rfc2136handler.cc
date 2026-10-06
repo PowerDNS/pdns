@@ -1031,8 +1031,15 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   SLOG(g_log << Logger::Info << ctx.msgPrefix << "Processing started." << endl,
        ctx.slog->info(Logr::Info, "Update: processing started"));
 
-  // if there is policy, we delegate all checks to it
+  // if there is policy, we delegate all checks to it, unless the built-in
+  // checks have been explicitly requested as well
   string fname = ::arg()["lua-dnsupdate-policy-script"];
+  if (fname.empty() || ::arg().mustDo("lua-dnsupdate-policy-builtin-checks")) {
+    if (!isUpdateAllowed(B, ctx, packet)) {
+      return RCode::Refused;
+    }
+  }
+
   std::unique_ptr<AuthLua4> update_policy_lua;
   if (!fname.empty()) {
     try {
@@ -1042,11 +1049,6 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     catch (const std::runtime_error& e) {
       SLOG(g_log<<Logger::Warning<<"Failed to load update policy - disabling: "<<e.what()<<endl,
            ctx.slog->error(Logr::Warning, e.what(), "Failed to load Lua update policy, disabling"));
-      return RCode::Refused;
-    }
-  }
-  else {
-    if (!isUpdateAllowed(B, ctx, packet)) {
       return RCode::Refused;
     }
   }

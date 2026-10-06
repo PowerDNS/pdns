@@ -1155,6 +1155,21 @@ Amount of time (in seconds) between subsequent cleanup routines for pre-computed
 
 Amount of time (in seconds) a pre-computed hash entry will be considered as expired when unused. See :func:`pickchashed()`.
 
+.. _setting-lua-dnsupdate-policy-builtin-checks:
+
+``lua-dnsupdate-policy-builtin-checks``
+---------------------------------------
+
+-  Boolean
+-  Default: no
+
+.. versionadded:: 5.2.0
+
+When a :ref:`Lua DNS update policy <dnsupdate-lua-dnsupdate-policy-script>` is in use,
+also perform the built-in DNS update authorization checks (:ref:`setting-allow-dnsupdate-from`,
+:ref:`setting-dnsupdate-require-tsig`, ``ALLOW-DNSUPDATE-FROM`` and ``TSIG-ALLOW-DNSUPDATE``)
+before the policy is consulted. See :doc:`dnsupdate` for more.
+
 .. _setting-lua-global-include-dir:
 
 ``lua-global-include-dir``

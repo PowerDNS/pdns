@@ -154,4 +154,5 @@ Next you need to define one or more ``GSS-ALLOW-AXFR-PRINCIPAL`` entries for AXF
 These must be set to the exact initiator (client) principal names you intend to allow either AXFR or DNS update.
 No wildcards accepted.
 If a Lua update policy is defined (see :doc:`dnsupdate`) no ``TSIG-ALLOW-DNSUPDATE`` entries are needed, as the Lua policy defines which principals can update which records.
+If :ref:`setting-lua-dnsupdate-policy-builtin-checks` is enabled, ``TSIG-ALLOW-DNSUPDATE`` entries are honoured in addition to the Lua policy.
 

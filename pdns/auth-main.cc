@@ -305,6 +305,7 @@ static void declareArguments()
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler (DO NOT USE)") = "";
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler") = "";
+  ::arg().setSwitch("lua-dnsupdate-policy-builtin-checks", "Also apply the built-in DNS update checks when a Lua DNS update policy is used") = "no";
   ::arg().set("lua-global-include-dir", "Include *.lua files from this directory into Lua contexts") = "";
 
   ::arg().setSwitch("traceback-handler", "Enable the traceback handler (Linux only)") = "yes";
