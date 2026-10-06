@@ -46,7 +46,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     // NOLINTNEXTLINE(bugprone-suspicious-stringview-data-usage)
     const DNSName original(view.data(), view.size(), sizeof(dnsheader), false, nullptr, nullptr, &consumed);
     // a 1-63 octet label shrinks with single alphabet grows the rewritten packet, shifting records and compression pointers with legitimate IDs.
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const DNSName replacement(std::string(1U + (data[0] % 63U), static_cast<char>('a' + (data[1] % 26U))) + ".example.");
     PacketBuffer rewritten(packet);
     if (dnsdist::changeNameInDNSPacket(rewritten, original, replacement)) {
