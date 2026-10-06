@@ -6,6 +6,18 @@
 
 #include "dnsdist-dnsparser.hh"
 
+namespace
+{
+void parseRecords(const std::string_view& packet)
+{
+  const dnsdist::DNSPacketOverlay overlay(packet);
+  for (const auto& record : overlay.d_records) {
+    dnsdist::RecordParsers::parseAddressRecord(packet, record);
+    dnsdist::RecordParsers::parseCNAMERecord(packet, record);
+  }
+}
+}
+
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
@@ -18,11 +30,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   const std::string_view view(reinterpret_cast<const char*>(packet.data()), packet.size());
 
   try {
-    const dnsdist::DNSPacketOverlay overlay(view);
-    for (const auto& record : overlay.d_records) {
-      dnsdist::RecordParsers::parseAddressRecord(view, record);
-      dnsdist::RecordParsers::parseCNAMERecord(view, record);
-    }
+    parseRecords(view);
   }
   catch (const std::exception&) {
   }
@@ -32,11 +40,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   try {
     unsigned int consumed = 0;
     const DNSName original(view.data(), view.size(), sizeof(dnsheader), false, nullptr, nullptr, &consumed);
+    // a 1-63 octet label shrinks with single alphabet grows the rewritten packet, shifting records and compression pointers with legitimate IDs.
     const DNSName replacement(std::string(1 + data[0] % 63, 'a' + data[1] % 26) + ".example.");
     PacketBuffer rewritten(packet);
     if (dnsdist::changeNameInDNSPacket(rewritten, original, replacement)) {
-      const dnsdist::DNSPacketOverlay overlay(std::string_view(reinterpret_cast<const char*>(rewritten.data()), rewritten.size()));
-      (void)overlay;
+      parseRecords(std::string_view(reinterpret_cast<const char*>(rewritten.data()), rewritten.size()));
     }
   }
   catch (const std::exception&) {
