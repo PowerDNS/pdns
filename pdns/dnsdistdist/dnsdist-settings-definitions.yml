@@ -2260,7 +2260,7 @@ proxy_protocol:
     - name: "acl"
       type: "Vec<String>"
       default: ""
-      description: "Set the list of netmasks from which a Proxy Protocol header will be required, over UDP, TCP and DNS over TLS. The default is empty. Note that a proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload. Be also aware that, if ``apply_acl_to_proxied_clients`` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header."
+      description: "Set the list of netmasks from which a Proxy Protocol header will be required, over UDP, TCP and DNS over TLS. The default is empty. Note that:\n   * netmasks present in this list automatically bypass the general ACL\n   * proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload\n   * if ``apply_acl_to_proxied_clients`` is set (default is false), the general ACL will be applied to the source IP address provided in the Proxy Protocol header.\n"
     - name: "maximum_payload_size"
       type: "u32"
       default: "512"
@@ -2274,7 +2274,7 @@ proxy_protocol:
       lua-name: "setProxyProtocolApplyACLToProxiedClients"
       internal-field-name: "d_applyACLToProxiedClients"
       runtime-configurable: true
-      description: "Whether the general ACL should be applied to the source IP address provided in the Proxy Protocol header, in addition to being applied to the source IP address as seen by dnsdist first"
+      description: "Whether the general ACL should be applied to the source IP address provided in the Proxy Protocol header"
 
 snmp:
   description: "SNMP-related settings"
