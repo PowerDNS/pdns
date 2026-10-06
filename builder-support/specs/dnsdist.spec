@@ -41,6 +41,7 @@ BuildRequires: luajit-devel
 %define lua_implementation luajit
 %endif
 BuildRequires: re2-devel
+BuildRequires: libcurl-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
 BuildRequires: systemd-units
@@ -133,7 +134,9 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
   -Dxsk=disabled \
 %endif
   -Debpf=enabled \
-  -Dyaml=enabled
+  -Dyaml=enabled \
+  -Dotlp=enabled \
+  -Dlibcurl=enabled
 %meson_build
 
 %check

@@ -65,7 +65,9 @@ override_dh_auto_configure:
 	  -Dtls-gnutls=enabled \
 	  -Dsnmp=enabled \
 	  -Dlibcap=enabled \
+	  -Dlibcurl=enabled \
 	  -Dlibsodium=enabled \
+	  -Dotlp=enabled \
 	  -Dquiche=enabled \
 	  -Dre2=enabled \
 	  -Dsystemd-service-user='_dnsdist' \

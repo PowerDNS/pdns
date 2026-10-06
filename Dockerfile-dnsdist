@@ -71,7 +71,9 @@ RUN mkdir /build && \
       -Dtls-gnutls=enabled \
       -Dsnmp=enabled \
       -Dlibcap=enabled \
+      -Dlibcurl=enabled \
       -Dlibsodium=enabled \
+      -Dotlp=enabled \
       -Dquiche=enabled \
       -Dre2=enabled \
       -Dsystemd-service=disabled \
