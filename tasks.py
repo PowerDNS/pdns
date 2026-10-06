@@ -87,6 +87,7 @@ dnsdist_build_deps = [
     "catch2",
     "libcdb-dev",
     "libcurl4",
+    "libcurl4-openssl-dev",
     "libedit-dev",
     "libfstrm-dev",
     "libgnutls28-dev",

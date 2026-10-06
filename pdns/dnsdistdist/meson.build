@@ -88,6 +88,11 @@ subdir('meson' / 'yaml-configuration')      # YAML configuration
 subdir('meson' / 'catch2')                  # Microbenchmark
 subdir('meson' / 'mmdb')                    # MMDB (MaxmindDB)
 
+if get_option('otlp').enabled() and not dep_libcurl.found()
+  # OTLP is explicitly requested, but curl is not available
+  error('OTLP requested but libcurl was not found')
+endif
+
 common_sources = []
 
 fs = import('fs')
