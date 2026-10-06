@@ -2791,7 +2791,7 @@ static void houseKeepingWork(Logr::log_t log)
       if (!luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
         log->info(Logr::Debug, "Refreshing Trust Anchors from file");
         try {
-          map<DNSName, dsset_t> dsAnchors;
+          map<DNSName, dsset_t> dsAnchors{g_luaconfs.getLocal()->dsAnchors};
           if (updateTrustAnchorsFromFile(luaconfsLocal->trustAnchorFileInfo.fname, dsAnchors, log)) {
             g_luaconfs.modify([&dsAnchors](LuaConfigItems& lci) {
               lci.dsAnchors = dsAnchors;
