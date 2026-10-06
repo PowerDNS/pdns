@@ -2466,7 +2466,6 @@ class TestDOHOpenSSLAsynchronousEngine(DNSDistTest):
         "_serverCert",
         "_serverKey",
     ]
-    _verboseMode = True
 
     def testSimple(self):
         """
@@ -2477,6 +2476,61 @@ class TestDOHOpenSSLAsynchronousEngine(DNSDistTest):
         response = dns.message.make_response(query)
 
         (receivedQuery, receivedResponse) = self.sendDOHQueryWrapper(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+
+class TestDOHGetWithBody(DNSDistTest):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = "https://%s:%d/dns-query" % (_serverName, _dohServerPort)
+
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/dns-query" })
+    """
+    _config_params = [
+        "_testServerPort",
+        "_dohServerPort",
+        "_serverCert",
+        "_serverKey",
+    ]
+
+    def testSimple(self):
+        """
+        DoH: GET query with body
+        """
+        name = "get-with-body.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        badName = "get-with-body-post.doh.tests.powerdns.com."
+        badQuery = dns.message.make_query(badName, "A", "IN")
+        response = dns.message.make_response(query)
+        conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, self.getDOHGetURL(self._dohBaseURL, query))
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:%s" % (self._serverName, self._dohServerPort, self._dnsDistListeningAddr)])
+        # this means "really do HTTP/2, not HTTP/1 with Upgrade headers"
+        conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+
+        badData = badQuery.to_wire()
+        conn.setopt(pycurl.POSTFIELDS, badData)
+        conn.setopt(pycurl.CUSTOMREQUEST, "GET")
+
+        self._toResponderQueue.put(response, True, timeout=2.0)
+
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 200)
+        receivedResponse = dns.message.from_wire(data)
+        receivedQuery = self._fromResponderQueue.get(True, timeout=2.0)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
