@@ -60,8 +60,6 @@
 ./pdns/dynmessenger.hh
 ./pdns/histog.hh
 ./pdns/inflighter.cc
-./pdns/ixfr.cc
-./pdns/ixfr.hh
 ./pdns/ixfrdist-stats.cc
 ./pdns/ixfrdist-stats.hh
 ./pdns/ixfrdist-web.cc
