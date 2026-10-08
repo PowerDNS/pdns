@@ -37,9 +37,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const std::exception&) {
   }
-  // NOLINTNEXTLINE(bugprone-empty-catch)
-  catch (const PDNSException&) {
-  }
 
   try {
     unsigned int consumed = 0;
@@ -57,9 +54,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const std::exception&) {
   }
-  // NOLINTNEXTLINE(bugprone-empty-catch)
-  catch (const PDNSException&) {
-  }
 
   try {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -72,9 +66,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   }
   // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const std::exception&) {
-  }
-  // NOLINTNEXTLINE(bugprone-empty-catch)
-  catch (const PDNSException&) {
   }
 
   PacketBuffer edited(packet);
