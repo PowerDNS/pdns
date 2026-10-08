@@ -393,8 +393,7 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
 
   ret << "Backend query load, 1, 5, 10 minute averages: " << std::setprecision(3) << (int)d_qcachemisses.get1() << ", " << (int)d_qcachemisses.get5() << ", " << (int)d_qcachemisses.get10() << ". Max queries/second: " << (int)d_qcachemisses.getMax() << "<br>" << endl;
 
-  // TODO: need to convert the "latency" counter to histogram
-  ret << "Total queries: " << d_stats.readCounter("udp-queries") << ". Question/answer latency: " << static_cast<double>(d_stats.readCounter("latency")) / 1000.0 << "ms<br>" << endl;
+  ret << "Total queries: " << d_stats.readCounter("udp-queries") << ". Question/answer latency: " << static_cast<double>(d_stats.readCounter("latency-ewma")) / 1000.0 << "ms<br>" << endl;
 
   if (d_doApi) {
     ret << "API Queries/second, 1, 5, 10 minute averages:  " << std::setprecision(3) << (int)d_api_queries.get1() << ", " << (int)d_api_queries.get5() << ", " << (int)d_api_queries.get10() << ". Max queries/second: " << (int)d_api_queries.getMax() << "<br>" << endl;

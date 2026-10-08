@@ -153,6 +153,26 @@ Counters
 
 All counters that show the "number of X" count since the last startup of the daemon.
 
+.. _stat-backend-latency-ewma:
+
+backend-latency-ewma
+^^^^^^^^^^^^^^^^^^^^
+Average number of microseconds needed for a backend lookup
+(exponentially weighted moving average)
+
+.. versionchanged:: 5.2.0
+This was called backend-latency before 5.2.0.
+
+.. _stat-cache-latency-ewma:
+
+cache-latency-ewma
+^^^^^^^^^^^^^^^^^^
+Average number of microseconds needed for a packet cache lookup
+(exponentially weighted moving average)
+
+.. versionchanged:: 5.2.0
+This was called cache-latency before 5.2.0.
+
 .. _stat-corrupt-packets:
 
 corrupt-packets
@@ -219,11 +239,15 @@ key-cache-size
 ^^^^^^^^^^^^^^
 Number of entries in the key cache
 
-.. _stat-latency:
+.. _stat-latency-ewma:
 
-latency
-^^^^^^^
-Average number of microseconds a packet spends within PowerDNS
+latency-ewma
+^^^^^^^^^^^^
+Average number of microseconds needed to answer a question
+(exponentially weighted moving average)
+
+.. versionchanged:: 5.2.0
+This was called latency before 5.2.0.
 
 .. _stat-meta-cache-size:
 
@@ -291,11 +315,15 @@ rd-queries
 ^^^^^^^^^^
 Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion).
 
-.. _stat-receive-latency:
+.. _stat-receive-latency-ewma:
 
-receive-latency
-^^^^^^^^^^^^^^^
+receive-latency-ewma
+^^^^^^^^^^^^^^^^^^^^
 Average number of microseconds needed to receive a query
+(exponentially weighted moving average)
+
+.. versionchanged:: 5.2.0
+This was called receive-latency before 5.2.0.
 
 .. _stat-recursing-answers:
 
@@ -321,11 +349,15 @@ security-status
 ^^^^^^^^^^^^^^^
 Security status based on :ref:`securitypolling`.
 
-.. _stat-send-latency:
+.. _stat-send-latency-ewma:
 
-send-latency
-^^^^^^^^^^^^
+send-latency-ewma
+^^^^^^^^^^^^^^^^^
 Average number of microseconds needed to send the answer
+(exponentially weighted moving average)
+
+.. versionchanged:: 5.2.0
+This was called send-latency before 5.2.0.
 
 .. _stat-servfail-packets:
 
@@ -542,6 +574,65 @@ Uptime in seconds of the daemon
 user-msec
 ^^^^^^^^^
 Number of milliseconds spend in CPU 'user' time
+
+Histograms
+~~~~~~~~~~
+
+All histogram statistics are reported as a set of nine counter, with the following suffixes:
+
+.. list-table::
+   :header-rows: 1
+
+   * - counter name suffix
+     - description
+   * - `_bucket{le=1}`
+     - number of operations completed in less than 1 microsecond
+   * - `_bucket{le=5}`
+     - number of operations completed in less than 5 microseconds
+   * - `_bucket{le=10}`
+     - number of operations completed in less than 10 microseconds
+   * - `_bucket{le=50}`
+     - number of operations completed in less than 50 microseconds
+   * - `_bucket{le=100}`
+     - number of operations completed in less than 100 microseconds
+   * - `_bucket{le=1000}`
+     - number of operations completed in less than 1000 microseconds
+   * - `_bucket{le=+Inf}`
+     - number of operations completed in 1000 microseconds or more
+   * - `_sum`
+     - total time used by the operations, in milliseconds
+   * - `_count`
+     - total number of operations (sum of all `_bucket` counters)
+
+.. _stat-backend-latency:
+
+backend-latency
+^^^^^^^^^^^^^^^
+Time needed for a backend lookup
+
+.. _stat-cache-latency:
+
+cache-latency
+^^^^^^^^^^^^^
+Time needed for a packet cache lookup
+
+.. _stat-latency:
+
+latency
+^^^^^^^
+Time needed to answer a question
+
+.. _stat-receive-latency:
+
+receive-latency
+^^^^^^^^^^^^^^^^^^^^
+Time needed to receive a query
+
+.. _stat-send-latency:
+
+send-latency
+^^^^^^^^^^^^^^^^^
+Time needed to send the answer
 
 Ring buffers
 ~~~~~~~~~~~~

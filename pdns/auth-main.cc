@@ -134,7 +134,16 @@ std::vector<std::unique_ptr<RemoteLogger>> g_remote_loggers;
 std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
-static std::atomic<double> avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
+static std::atomic<double> avg_latency{0.0};
+static std::atomic<double> receive_latency{0.0};
+static std::atomic<double> cache_latency{0.0};
+static std::atomic<double> backend_latency{0.0};
+static std::atomic<double> send_latency{0.0};
+static std::shared_ptr<LockGuarded<StatBag::Histogram>> s_avg_latency;
+static std::shared_ptr<LockGuarded<StatBag::Histogram>> s_receive_latency;
+static std::shared_ptr<LockGuarded<StatBag::Histogram>> s_cache_latency;
+static std::shared_ptr<LockGuarded<StatBag::Histogram>> s_backend_latency;
+static std::shared_ptr<LockGuarded<StatBag::Histogram>> s_send_latency;
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
 static vector<DNSDistributor*> s_distributors;
 static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
@@ -525,11 +534,21 @@ static void declareStats()
   S.declare("noerror-packets", "Number of times a NOERROR packet was sent out");
   S.declare("servfail-packets", "Number of times a server-failed packet was sent out");
   S.declare("unauth-packets", "Number of times a zone we are not auth for was queried");
-  S.declare("latency", "Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
-  S.declare("receive-latency", "Average number of microseconds needed to receive a query", getReceiveLatency, StatType::gauge);
-  S.declare("cache-latency", "Average number of microseconds needed for a packet cache lookup", getCacheLatency, StatType::gauge);
-  S.declare("backend-latency", "Average number of microseconds needed for a backend lookup", getBackendLatency, StatType::gauge);
-  S.declare("send-latency", "Average number of microseconds needed to send the answer", getSendLatency, StatType::gauge);
+  S.declare("latency", "Number of milliseconds needed to answer a question", StatType::histogram);
+  s_avg_latency = S.getHistogramPointer("latency");
+  S.declare("latency-ewma", "Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
+  S.declare("receive-latency", "Number of milliseconds needed to receive a query", StatType::histogram);
+  s_receive_latency = S.getHistogramPointer("receive-latency");
+  S.declare("receive-latency-ewma", "Average number of microseconds needed to receive a query", getReceiveLatency, StatType::gauge);
+  S.declare("cache-latency", "Number of milliseconds needed for a packet cache lookup", StatType::histogram);
+  s_cache_latency = S.getHistogramPointer("cache-latency");
+  S.declare("cache-latency-ewma", "Average number of microseconds needed for a packet cache lookup", getCacheLatency, StatType::gauge);
+  S.declare("backend-latency", "Number of milliseconds needed for a backend lookup", StatType::histogram);
+  s_backend_latency = S.getHistogramPointer("backend-latency");
+  S.declare("backend-latency-ewma", "Average number of microseconds needed for a backend lookup", getBackendLatency, StatType::gauge);
+  S.declare("send-latency", "Number of milliseconds needed to send the answer", StatType::histogram);
+  s_send_latency = S.getHistogramPointer("send-latency");
+  S.declare("send-latency-ewma", "Average number of microseconds needed to send the answer", getSendLatency, StatType::gauge);
   S.declare("timedout-packets", "Number of packets which weren't answered within timeout set");
   S.declare("security-status", "Security status based on regular polling", StatType::gauge);
   S.declare(
@@ -554,8 +573,12 @@ static int isGuarded(char** argv)
 
 static void update_latencies(long start, long diff)
 {
-  send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0L);
-  avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0L); // 'EWMA'
+  auto delta = std::max(diff - start, 0L);
+  send_latency = 0.999 * send_latency + 0.001 * delta;
+  StatBag::set(s_send_latency, delta);
+  delta = std::max(diff, 0L);
+  avg_latency = 0.999 * avg_latency + 0.001 * delta; // 'EWMA'
+  StatBag::set(s_avg_latency, delta);
 }
 
 static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int istart)
@@ -567,7 +590,9 @@ static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int istart)
   long start = static_cast<long>(istart);
   try {
     long diff = a->d_dt.udiffNoReset();
-    backend_latency = 0.999 * backend_latency + 0.001 * std::max(diff - start, 0L);
+    auto delta = std::max(diff - start, 0L);
+    backend_latency = 0.999 * backend_latency + 0.001 * delta;
+    StatBag::set(s_backend_latency, delta);
     start = diff;
 
     s_udpNameserver->send(*a);
@@ -609,6 +634,7 @@ static void qthread(unsigned int num)
 
     long diff{};
     long start{};
+    long delta{};
     shared_ptr<UDPNameserver> NS; // NOLINT(readability-identifier-length)
     std::string buffer;
     ComboAddress accountremote;
@@ -639,7 +665,9 @@ static void qthread(unsigned int num)
         }
 
         diff = question.d_dt.udiffNoReset();
-        receive_latency = 0.999 * receive_latency + 0.001 * std::max(diff, 0L);
+        delta = std::max(diff, 0L);
+        receive_latency = 0.999 * receive_latency + 0.001 * delta;
+        StatBag::set(s_receive_latency, delta);
 
         numreceived++;
 
@@ -711,7 +739,9 @@ static void qthread(unsigned int num)
             cached.commitD(); // commit d to the packet                        inlined
 
             diff = question.d_dt.udiffNoReset();
-            cache_latency = 0.999 * cache_latency + 0.001 * std::max(diff - start, 0L);
+            delta = std::max(diff - start, 0L);
+            cache_latency = 0.999 * cache_latency + 0.001 * delta;
+            StatBag::set(s_cache_latency, delta);
             start = diff;
 
             NS->send(cached); // answer it then                              inlined
@@ -721,7 +751,9 @@ static void qthread(unsigned int num)
             continue;
           }
           diff = question.d_dt.udiffNoReset();
-          cache_latency = 0.999 * cache_latency + 0.001 * std::max(diff - start, 0L);
+          delta = std::max(diff - start, 0L);
+          cache_latency = 0.999 * cache_latency + 0.001 * delta;
+          StatBag::set(s_cache_latency, delta);
         }
 
         if (distributor->isOverloaded()) {
