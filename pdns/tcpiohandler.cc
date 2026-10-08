@@ -267,14 +267,14 @@ public:
     else if (error == SSL_ERROR_WANT_WRITE) {
       return IOState::NeedWrite;
     }
-    else if (error == SSL_ERROR_SYSCALL) {
-      if (errno == 0) {
-        resetOpenSSLErrorState();
+    if (error == SSL_ERROR_SYSCALL) {
+      auto savederrno = errno;
+      resetOpenSSLErrorState();
+      if (savederrno == 0) {
         throw std::runtime_error("TLS connection closed by remote end");
       }
 
-      resetOpenSSLErrorState();
-      throw std::runtime_error("Syscall error while processing TLS connection: " + stringerror(errno));
+      throw std::runtime_error("Syscall error while processing TLS connection: " + stringerror(savederrno));
     }
     else if (error == SSL_ERROR_ZERO_RETURN) {
       throw std::runtime_error("TLS connection closed by remote end");
