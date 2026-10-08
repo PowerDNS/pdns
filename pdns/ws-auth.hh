@@ -62,6 +62,7 @@ protected:
   AtomicCounter* d_api_result_409{nullptr};
   AtomicCounter* d_api_result_422{nullptr};
   AtomicCounter* d_api_result_500{nullptr};
+  std::shared_ptr<LockGuarded<StatBag::Histogram>> d_api_latency;
 };
 
 class AuthWebServer
