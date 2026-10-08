@@ -145,7 +145,7 @@ public:
   inline void deposit(const string &key, int value); //!< increment the statistics behind this key by value amount
   inline void inc(const string &key); //!< increase this key's value by one
   void set(const string &key, unsigned long value); //!< set this key's value
-  unsigned long read(const string &key); //!< read the value behind this key
+  unsigned long readCounter(const string &key); //!< read the value behind this key
   AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   void blacklist(const string &str);

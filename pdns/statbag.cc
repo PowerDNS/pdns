@@ -143,7 +143,7 @@ void StatBag::set(const string &key, unsigned long value)
   d_stats[key]->store(value);
 }
 
-unsigned long StatBag::read(const string &key)
+unsigned long StatBag::readCounter(const string &key)
 {
   exists(key);
   funcstats_t::const_iterator iter = d_funcstats.find(key);
@@ -156,7 +156,7 @@ unsigned long StatBag::read(const string &key)
 string StatBag::getValueStr(const string &key)
 {
   ostringstream o;
-  o<<read(key);
+  o<<readCounter(key);
   return o.str();
 }
 

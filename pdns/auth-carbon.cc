@@ -64,7 +64,7 @@ void carbonDumpThread(Logr::log_t slog)
       ostringstream str;
       time_t now=time(nullptr);
       for(const string& entry : entries) {
-        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
+        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.readCounter(entry)<<' '<<now<<"\r\n";
       }
       msg = str.str();
 

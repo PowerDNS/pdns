@@ -49,7 +49,7 @@ bool doSecPoll(Logr::log_t slog, bool first)
   std::replace(query.begin(), query.end(), '+', '_');
   std::replace(query.begin(), query.end(), '~', '_');
 
-  int security_status = static_cast<int>(S.read("security-status"));
+  int security_status = static_cast<int>(S.readCounter("security-status"));
 
   vector<DNSRecord> ret;
   int res = stubDoResolve(slog, DNSName(query), QType::TXT, ret);

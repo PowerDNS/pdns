@@ -210,13 +210,13 @@ void AuthWebServer::statThread(Logr::log_t slog, StatBag& stats)
   try {
     setThreadName("pdns/statHelper");
     for (;;) {
-      d_queries.submit(stats.read("udp-queries"));
-      d_cachehits.submit(stats.read("packetcache-hit"));
-      d_cachemisses.submit(stats.read("packetcache-miss"));
-      d_qcachehits.submit(stats.read("query-cache-hit"));
-      d_qcachemisses.submit(stats.read("query-cache-miss"));
+      d_queries.submit(stats.readCounter("udp-queries"));
+      d_cachehits.submit(stats.readCounter("packetcache-hit"));
+      d_cachemisses.submit(stats.readCounter("packetcache-miss"));
+      d_qcachehits.submit(stats.readCounter("query-cache-hit"));
+      d_qcachemisses.submit(stats.readCounter("query-cache-miss"));
       if (d_doApi) {
-        d_api_queries.submit(stats.read("api-queries"));
+        d_api_queries.submit(stats.readCounter("api-queries"));
       }
       Utility::sleep(1);
     }
@@ -317,7 +317,7 @@ static void printvars(StatBag& stats, ostringstream& ret)
 
   vector<string> entries = stats.getEntries();
   for (const auto& entry : entries) {
-    ret << "<tr><td>" << entry << "</td><td>" << stats.read(entry) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
+    ret << "<tr><td>" << entry << "</td><td>" << stats.readCounter(entry) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
   }
 
   ret << "</table></div>" << endl;
@@ -382,7 +382,7 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
 
   ret << "Backend query load, 1, 5, 10 minute averages: " << std::setprecision(3) << (int)d_qcachemisses.get1() << ", " << (int)d_qcachemisses.get5() << ", " << (int)d_qcachemisses.get10() << ". Max queries/second: " << (int)d_qcachemisses.getMax() << "<br>" << endl;
 
-  ret << "Total queries: " << d_stats.read("udp-queries") << ". Question/answer latency: " << static_cast<double>(d_stats.read("latency")) / 1000.0 << "ms<br>" << endl;
+  ret << "Total queries: " << d_stats.readCounter("udp-queries") << ". Question/answer latency: " << static_cast<double>(d_stats.readCounter("latency")) / 1000.0 << "ms<br>" << endl;
 
   if (d_doApi) {
     ret << "API Queries/second, 1, 5, 10 minute averages:  " << std::setprecision(3) << (int)d_api_queries.get1() << ", " << (int)d_api_queries.get5() << ", " << (int)d_api_queries.get10() << ". Max queries/second: " << (int)d_api_queries.getMax() << "<br>" << endl;
@@ -719,7 +719,7 @@ void productServerStatisticsFetch(map<string, string>& out)
 {
   vector<string> items = S.getEntries();
   for (const string& item : items) {
-    out[item] = std::to_string(S.read(item));
+    out[item] = std::to_string(S.readCounter(item));
   }
 
   // add uptime
@@ -729,8 +729,8 @@ void productServerStatisticsFetch(map<string, string>& out)
 std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 {
   try {
-    // ::read() calls ::exists() which throws a PDNSException when the key does not exist
-    return S.read(name);
+    // ::readCounter() calls ::exists() which throws a PDNSException when the key does not exist
+    return S.readCounter(name);
   }
   catch (...) {
     return std::nullopt;
@@ -3226,7 +3226,7 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
 
     output << "# HELP " << prometheusMetricName << " " << S.getDescrip(metricName) << "\n";
     output << "# TYPE " << prometheusMetricName << " " << S.getStatType(metricName) << "\n";
-    output << prometheusMetricName << " " << S.read(metricName) << "\n";
+    output << prometheusMetricName << " " << S.readCounter(metricName) << "\n";
   }
 
   output << "# HELP pdns_auth_info "
