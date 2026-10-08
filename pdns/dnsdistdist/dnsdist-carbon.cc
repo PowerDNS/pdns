@@ -352,10 +352,6 @@ static void carbonHandler(const Carbon::Endpoint& endpoint)
     SLOG(errlog("Carbon thread for %s died, exception: %s", endpoint.server.toStringWithPort(), exp.what()),
          logger->error(Logr::Error, exp.what(), "Carbon thread died"));
   }
-  catch (const PDNSException& e) {
-    SLOG(errlog("Carbon thread for %s died, PDNSException: %s", endpoint.server.toStringWithPort(), e.reason),
-         logger->error(Logr::Error, e.reason, "Carbon thread died"));
-  }
   catch (...) {
     SLOG(errlog("Carbon thread for %s died", endpoint.server.toStringWithPort()),
          logger->info(Logr::Error, "Carbon thread died"));

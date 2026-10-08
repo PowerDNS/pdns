@@ -801,9 +801,9 @@ static void handleAdditionalAddressesForFrontend(const Context& context, const s
         ComboAddress address{std::string(addr)};
         state->d_additionalAddresses.emplace_back(address, -1);
       }
-      catch (const PDNSException& e) {
-        SLOG(errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason),
-             context.logger->error(Logr::Error, e.reason, "Unable to parse additional address for frontend", "frontend.address", Logging::Loggable(addr), "frontend.protocol", Logging::Loggable(protocol)));
+      catch (const std::exception& exp) {
+        SLOG(errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, exp.what()),
+             context.logger->error(Logr::Error, exp.what(), "Unable to parse additional address for frontend", "frontend.address", Logging::Loggable(addr), "frontend.protocol", Logging::Loggable(protocol)));
       }
     }
   }
@@ -907,10 +907,10 @@ static void loadWebServer(const Context& context, const dnsdist::rust::settings:
   dnsdist::configuration::updateRuntimeConfiguration([&context, &webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
     for (const auto& address : webConfig.listen_addresses) {
       try {
-        config.d_webServerAddresses.emplace(ComboAddress(std::string(address)));
+        config.d_webServerAddresses.emplace(std::string(address));
       }
-      catch (const PDNSException& exp) {
-        throw std::runtime_error(std::string("Error parsing bind address for the webserver: ") + exp.reason);
+      catch (const std::runtime_error& exp) {
+        throw std::runtime_error(std::string("Error parsing bind address for the webserver: ") + exp.what());
       }
     }
     if (!webConfig.password.empty()) {
@@ -1389,10 +1389,6 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   catch (const ::rust::Error& exp) {
     SLOG(errlog("Error while parsing YAML file %s: %s", fileName, exp.what()),
          logger->error(Logr::Error, exp.what(), "Error while parsing YAML file", "path", Logging::Loggable(fileName)));
-  }
-  catch (const PDNSException& exp) {
-    SLOG(errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.reason),
-         logger->error(Logr::Error, exp.reason, "Error while processing YAML file", "path", Logging::Loggable(fileName)));
   }
   catch (const std::exception& exp) {
     SLOG(errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.what()),

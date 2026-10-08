@@ -1565,11 +1565,6 @@ size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, con
                 getLogger(__func__)->error(Logr::Info, e.what(), "Error parsing address"));
     return 0;
   }
-  catch (const PDNSException& e) {
-    VERBOSESLOG(infolog("Error parsing address passed to dnsdist_ffi_packetcache_get_domain_list_by_addr: %s", e.reason),
-                getLogger(__func__)->error(Logr::Info, e.reason, "Error parsing address"));
-    return 0;
-  }
 
   const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
   auto poolIt = pools.find(poolName);
@@ -1917,11 +1912,6 @@ size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_e
   catch (const std::exception& e) {
     VERBOSESLOG(infolog("Unable to convert address in dnsdist_ffi_ring_get_entries_by_addr: %s", e.what()),
                 getLogger(__func__)->error(Logr::Info, e.what(), "Unable to parse address", "address", Logging::Loggable(addr)));
-    return 0;
-  }
-  catch (const PDNSException& e) {
-    VERBOSESLOG(vinfolog("Unable to convert address in dnsdist_ffi_ring_get_entries_by_addr: %s", e.reason),
-                getLogger(__func__)->error(Logr::Info, e.reason, "Unable to parse address", "address", Logging::Loggable(addr)));
     return 0;
   }
 
@@ -2367,11 +2357,6 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
            getLogger(__func__)->error(Logr::Error, exp.what(), "Error parsing IP address", "address", Logging::Loggable(address)));
       return false;
     }
-    catch (const PDNSException& exp) {
-      SLOG(errlog("dnsdist_ffi_dynamic_blocks_add: Unable to parse '%s': %s", address, exp.reason),
-           getLogger(__func__)->error(Logr::Error, exp.reason, "Error parsing IP address", "address", Logging::Loggable(address)));
-      return false;
-    }
 
     AddressAndPortRange target(clientIPCA, clientIPMask, clientIPPortMask);
 
@@ -2398,10 +2383,6 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
     SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_add: %s", exp.what()),
          getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding a dynamic rule", "address", Logging::Loggable(address)));
   }
-  catch (const PDNSException& exp) {
-    SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_add: %s", exp.reason),
-         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding a dynamic rule", "address", Logging::Loggable(address)));
-  }
   catch (...) {
     SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_add"),
          getLogger(__func__)->info(Logr::Error, "Unknown exception adding a dynamic rule", "address", Logging::Loggable(address)));
@@ -2420,11 +2401,6 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
     catch (const std::exception& exp) {
       SLOG(errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.what()),
            getLogger(__func__)->error(Logr::Error, exp.what(), "Error parsing suffix", "suffix", Logging::Loggable(suffix)));
-      return false;
-    }
-    catch (const PDNSException& exp) {
-      SLOG(errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.reason),
-           getLogger(__func__)->error(Logr::Error, exp.reason, "Error parsing suffix", "suffix", Logging::Loggable(suffix)));
       return false;
     }
 
@@ -2449,10 +2425,6 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
   catch (const std::exception& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add: %s", exp.what()),
          getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding a dynamic SMT rule", "suffix", Logging::Loggable(suffix)));
-  }
-  catch (const PDNSException& exp) {
-    SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add: %s", exp.reason),
-         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding a dynamic SMT rule", "suffix", Logging::Loggable(suffix)));
   }
   catch (...) {
     SLOG(errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add"),
@@ -2597,10 +2569,6 @@ bool dnsdist_ffi_svc_record_parameters_new(const char* targetName, uint16_t prio
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_new: %s", exp.what()),
          getLogger(__func__)->error(Logr::Error, exp.what(), "Exception creating SVC record parameter", "target_name", Logging::Loggable(targetName)));
   }
-  catch (const PDNSException& exp) {
-    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_new: %s", exp.reason),
-         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception creating SVC record parameter", "target_name", Logging::Loggable(targetName)));
-  }
   catch (...) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_new"),
          getLogger(__func__)->info(Logr::Error, "Exception creating SVC record parameter", "target_name", Logging::Loggable(targetName)));
@@ -2661,10 +2629,6 @@ void dnsdist_ffi_svc_record_parameters_add_ipv4_hint(dnsdist_ffi_svc_record_para
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.what()),
          getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv4 hint to SVC record"));
   }
-  catch (const PDNSException& exp) {
-    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint: %s", exp.reason),
-         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding IPv4 hint to SVC record"));
-  }
   catch (...) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv4_hint"),
          getLogger(__func__)->info(Logr::Error, "Exception adding IPv4 hint to SVC record"));
@@ -2682,10 +2646,6 @@ void dnsdist_ffi_svc_record_parameters_add_ipv6_hint(dnsdist_ffi_svc_record_para
   catch (const std::exception& exp) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint: %s", exp.what()),
          getLogger(__func__)->error(Logr::Error, exp.what(), "Exception adding IPv6 hint to SVC record"));
-  }
-  catch (const PDNSException& exp) {
-    SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint: %s", exp.reason),
-         getLogger(__func__)->error(Logr::Error, exp.reason, "Exception adding IPv6 hint to SVC record"));
   }
   catch (...) {
     SLOG(errlog("Exception in dnsdist_ffi_svc_record_parameters_add_ipv6_hint"),

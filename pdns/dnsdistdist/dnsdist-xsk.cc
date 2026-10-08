@@ -109,10 +109,6 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
     SLOG(errlog("XSK responder thread died because of exception: %s", e.what()),
          dnsdist::logging::getTopLogger("xsk-response-worker")->error(Logr::Error, e.what(), "XSK responder thread died because of exception"));
   }
-  catch (const PDNSException& e) {
-    SLOG(errlog("XSK responder thread died because of PowerDNS exception: %s", e.reason),
-         dnsdist::logging::getTopLogger("xsk-response-worker")->error(Logr::Error, e.reason, "XSK responder thread died because of exception"));
-  }
   catch (...) {
     SLOG(errlog("XSK responder thread died because of an unknown exception"),
          dnsdist::logging::getTopLogger("xsk-response-worker")->info(Logr::Error, "XSK responder thread died because of an unknown exception"));
