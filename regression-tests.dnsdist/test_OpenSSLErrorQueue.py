@@ -7,6 +7,7 @@ import random
 
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
+
 class TestOpenSSLErrorQueue(DNSDistTest):
     _serverKey = "server.key"
     _serverCert = "server.chain"
@@ -44,7 +45,7 @@ class TestOpenSSLErrorQueue(DNSDistTest):
         # create the SSL context
         ctx = ssl.create_default_context(cafile=self._caCert)
 
-        duration = 10 # 10 seconds
+        duration = 10  # 10 seconds
         workers = []
         # these threads are constantly opening and aborting TLS connections, to clobber the OpenSSL per-thread error queue
         for _ in range(40):
@@ -58,7 +59,9 @@ class TestOpenSSLErrorQueue(DNSDistTest):
             for i in range(10):
                 try:
                     self.sendTCPQueryOverConnection(conn, query, response=response, timeout=2)
-                    (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(conn, useQueue=True, timeout=2)
+                    (receivedQuery, receivedResponse) = self.recvTCPResponseOverConnection(
+                        conn, useQueue=True, timeout=2
+                    )
                     self.assertTrue(receivedQuery)
                     self.assertTrue(receivedResponse)
                     receivedQuery.id = query.id
