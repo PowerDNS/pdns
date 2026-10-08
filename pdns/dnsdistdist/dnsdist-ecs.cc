@@ -451,7 +451,7 @@ void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPref
 static void removeTrailingDataFromPacketIfAny(PacketBuffer& packet)
 {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  uint32_t realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(packet.data()), packet.size());
+  auto realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(packet.data()), packet.size());
   packet.resize(realPacketLen);
 }
 
