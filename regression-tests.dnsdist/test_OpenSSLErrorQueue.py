@@ -24,6 +24,7 @@ class TestOpenSSLErrorQueue(DNSDistTest):
     def abortingWorker(self, ctx, duration):
         stop = time.time() + duration
         while time.time() < stop:
+            conn = None
             try:
                 conn = self.openTLSConnection(self._tlsServerPort, self._serverName, sslctx=ctx)
                 time.sleep(random.uniform(0, 0.5))
@@ -31,7 +32,8 @@ class TestOpenSSLErrorQueue(DNSDistTest):
                 time.sleep(random.uniform(0, 0.3))
                 conn.close()
             except Exception:
-                conn.close()
+                if conn:
+                    conn.close()
                 pass
 
     def testSimple(self):
