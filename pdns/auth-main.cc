@@ -552,20 +552,22 @@ static int isGuarded(char** argv)
   return !!p;
 }
 
-static void update_latencies(int start, int diff)
+static void update_latencies(long start, long diff)
 {
-  send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
-  avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0); // 'EWMA'
+  send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0L);
+  avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0L); // 'EWMA'
 }
 
-static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int start)
+static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int istart)
 {
   if (!a)
     return;
 
+  // Parameter is int due to Distributor::callback_t interface
+  long start = static_cast<long>(istart);
   try {
-    int diff = a->d_dt.udiffNoReset();
-    backend_latency = 0.999 * backend_latency + 0.001 * std::max(diff - start, 0);
+    long diff = a->d_dt.udiffNoReset();
+    backend_latency = 0.999 * backend_latency + 0.001 * std::max(diff - start, 0L);
     start = diff;
 
     s_udpNameserver->send(*a);
@@ -605,8 +607,8 @@ static void qthread(unsigned int num)
     AtomicCounter& numreceived6 = *S.getPointer("udp6-queries");
     AtomicCounter& overloadDrops = *S.getPointer("overload-drops");
 
-    int diff{};
-    int start{};
+    long diff{};
+    long start{};
     shared_ptr<UDPNameserver> NS; // NOLINT(readability-identifier-length)
     std::string buffer;
     ComboAddress accountremote;
@@ -637,7 +639,7 @@ static void qthread(unsigned int num)
         }
 
         diff = question.d_dt.udiffNoReset();
-        receive_latency = 0.999 * receive_latency + 0.001 * std::max(diff, 0);
+        receive_latency = 0.999 * receive_latency + 0.001 * std::max(diff, 0L);
 
         numreceived++;
 
@@ -709,7 +711,7 @@ static void qthread(unsigned int num)
             cached.commitD(); // commit d to the packet                        inlined
 
             diff = question.d_dt.udiffNoReset();
-            cache_latency = 0.999 * cache_latency + 0.001 * std::max(diff - start, 0);
+            cache_latency = 0.999 * cache_latency + 0.001 * std::max(diff - start, 0L);
             start = diff;
 
             NS->send(cached); // answer it then                              inlined
@@ -719,7 +721,7 @@ static void qthread(unsigned int num)
             continue;
           }
           diff = question.d_dt.udiffNoReset();
-          cache_latency = 0.999 * cache_latency + 0.001 * std::max(diff - start, 0);
+          cache_latency = 0.999 * cache_latency + 0.001 * std::max(diff - start, 0L);
         }
 
         if (distributor->isOverloaded()) {
