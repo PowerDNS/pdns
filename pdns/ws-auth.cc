@@ -106,16 +106,19 @@ ApiWebServer::ApiWebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, str
     d_api_result_409 = &(*stats.getPointer("api-result-409"));
     d_api_result_422 = &(*stats.getPointer("api-result-422"));
     d_api_result_500 = &(*stats.getPointer("api-result-500"));
+    d_api_latency = stats.getHistogramPointer("api-latency");
   }
 }
 
 void ApiWebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword)
 {
   auto func = [handler, allowPassword, this](HttpRequest* req, HttpResponse* resp) {
+    DTime chrono;
+    chrono.set();
     AtomicCounter* counter{nullptr};
     try {
       if (d_api_queries != nullptr) {
-        (*d_api_queries)++;
+        ++(*d_api_queries);
       }
       apiWrapper(handler, req, resp, allowPassword);
       switch (resp->status) {
@@ -136,14 +139,16 @@ void ApiWebServer::registerApiHandler(const string& url, const HandlerFunction& 
         break;
       }
       if (counter != nullptr) {
-        (*counter)++;
+        ++(*counter);
       }
+      StatBag::set(d_api_latency, chrono.udiffNoReset());
     }
     catch (HttpInternalServerErrorException&) {
       counter = d_api_result_500;
       if (counter != nullptr) {
-        (*counter)++;
+        ++(*counter);
       }
+      StatBag::set(d_api_latency, chrono.udiffNoReset());
       throw;
     }
   };
@@ -168,6 +173,7 @@ AuthWebServer::AuthWebServer(StatBag& stats) :
     d_stats.declare("api-result-409", "Number of API queries returning HTTP status code 409");
     d_stats.declare("api-result-422", "Number of API queries returning HTTP status code 422");
     d_stats.declare("api-result-500", "Number of API queries returning HTTP status code 500");
+    d_stats.declare("api-latency", "Number of milliseconds needed to answer an API query", StatType::histogram);
   }
 
   if (arg().mustDo("webserver") || d_doApi) {
