@@ -54,16 +54,19 @@ public:
     }
 
     std::shared_ptr<TCPIOHandler> d_handler;
+    std::string d_subject;
+    std::string d_tlsConfig;
     std::optional<pdns::AddressAndInterface> d_local;
     timeval d_last_used{0, 0};
     size_t d_numqueries{0};
+    size_t d_iteration;
     bool d_verboseLogging{false};
   };
 
-  using endpoints_t = std::pair<ComboAddress, std::optional<pdns::AddressAndInterface>>;
+  using endpoints_t = std::tuple<ComboAddress, std::optional<pdns::AddressAndInterface>, std::string, std::string, size_t>;
 
   void store(const struct timeval& now, const endpoints_t& endpoints, Connection&& connection);
-  Connection get(const endpoints_t& pair);
+  Connection get(const endpoints_t& endpoint);
   void cleanup(const struct timeval& now);
 
   [[nodiscard]] size_t size() const
@@ -76,7 +79,7 @@ public:
   }
 
   static void setupOutgoingTLSConfigTables(pdns::rust::settings::rec::Recursorsettings& settings);
-  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress, std::string& configName);
+  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress, std::string& configName, size_t& iteration);
 
 private:
   // This does not take into account that we can have multiple connections with different hosts (via SNI) to the same IP.
