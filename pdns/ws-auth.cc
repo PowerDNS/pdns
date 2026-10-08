@@ -154,7 +154,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
 static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype);
 
 AuthWebServer::AuthWebServer(StatBag& stats) :
-  d_start(time(nullptr)), d_stats(stats)
+  d_stats(stats)
 
 {
   d_doApi = arg().mustDo("api");
