@@ -100,12 +100,32 @@ string DLShowHandler(const vector<string>& parts, pid_t /* ppid */, Logr::log_t 
     extern StatBag S;
     string ret("Wrong number of parameters");
     if (parts.size() == 2) {
-      if (parts[1] == "*")
+      if (parts[1] == "*") {
         ret = S.directory();
-      else if (parts[1].length() && parts[1][parts[1].length() - 1 ] == '*')
+      }
+      else if (!parts[1].empty() && parts[1][parts[1].length() - 1 ] == '*') {
         ret = S.directory(parts[1].substr(0, parts[1].length() - 1));
-      else
-        ret = S.getValueStr(parts[1]);
+      }
+      else {
+        switch (S.getStatType(parts[1])) {
+        case StatType::counter:
+        case StatType::gauge:
+          ret = std::to_string(S.readCounter(parts[1]));
+          break;
+        case StatType::histogram:
+          {
+            StatBag::Histogram histo = S.readHistogram(parts[1]);
+            ostringstream ostr;
+            for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+              ostr << parts[1] << StatBag::s_histo_suffixes.at(bucket) << "=" << histo.at(bucket) << ",";
+            }
+            ret = ostr.str();
+            // Remove trailing comma
+            ret.pop_back();
+          }
+          break;
+        }
+      }
     }
 
     return ret;

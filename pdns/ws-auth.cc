@@ -317,7 +317,18 @@ static void printvars(StatBag& stats, ostringstream& ret)
 
   vector<string> entries = stats.getEntries();
   for (const auto& entry : entries) {
-    ret << "<tr><td>" << entry << "</td><td>" << stats.readCounter(entry) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
+    switch (stats.getStatType(entry)) {
+    case StatType::counter:
+    case StatType::gauge:
+      ret << "<tr><td>" << entry << "</td><td>" << stats.readCounter(entry) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
+      break;
+    case StatType::histogram: {
+      StatBag::Histogram histo = stats.readHistogram(entry);
+      for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+        ret << "<tr><td>" << entry << StatBag::s_histo_suffixes.at(bucket) << "</td><td>" << histo.at(bucket) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
+      }
+    } break;
+    }
   }
 
   ret << "</table></div>" << endl;
@@ -382,6 +393,7 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
 
   ret << "Backend query load, 1, 5, 10 minute averages: " << std::setprecision(3) << (int)d_qcachemisses.get1() << ", " << (int)d_qcachemisses.get5() << ", " << (int)d_qcachemisses.get10() << ". Max queries/second: " << (int)d_qcachemisses.getMax() << "<br>" << endl;
 
+  // TODO: need to convert the "latency" counter to histogram
   ret << "Total queries: " << d_stats.readCounter("udp-queries") << ". Question/answer latency: " << static_cast<double>(d_stats.readCounter("latency")) / 1000.0 << "ms<br>" << endl;
 
   if (d_doApi) {
@@ -719,7 +731,18 @@ void productServerStatisticsFetch(map<string, string>& out)
 {
   vector<string> items = S.getEntries();
   for (const string& item : items) {
-    out[item] = std::to_string(S.readCounter(item));
+    switch (S.getStatType(item)) {
+    case StatType::counter:
+    case StatType::gauge:
+      out[item] = std::to_string(S.readCounter(item));
+      break;
+    case StatType::histogram: {
+      StatBag::Histogram histo = S.readHistogram(item);
+      for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+        out[item + StatBag::s_histo_suffixes.at(bucket)] = std::to_string(histo.at(bucket));
+      }
+    } break;
+    }
   }
 
   // add uptime
@@ -729,12 +752,18 @@ void productServerStatisticsFetch(map<string, string>& out)
 std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 {
   try {
-    // ::readCounter() calls ::exists() which throws a PDNSException when the key does not exist
-    return S.readCounter(name);
+    switch (S.getStatType(name)) { // ::getStatType() calls ::exists() which throws a PDNSException when the key does not exist
+    case StatType::counter:
+    case StatType::gauge:
+      return S.readCounter(name);
+    case StatType::histogram:
+      // TODO: find a better way to tell user the stat exists, but not as a single value
+      break;
+    }
   }
   catch (...) {
-    return std::nullopt;
   }
+  return std::nullopt;
 }
 
 static void validateGatheredRRType(const DNSResourceRecord& resourceRecord)
@@ -3213,6 +3242,8 @@ static std::ostream& operator<<(std::ostream& outStream, StatType statType)
     return outStream << "counter";
   case StatType::gauge:
     return outStream << "gauge";
+  case StatType::histogram:
+    return outStream << "histogram";
   };
   return outStream << static_cast<uint16_t>(statType);
 }
@@ -3224,9 +3255,22 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
     // Prometheus suggest using '_' instead of '-'
     std::string prometheusMetricName = "pdns_auth_" + boost::replace_all_copy(metricName, "-", "_");
 
+    auto statType = S.getStatType(metricName);
     output << "# HELP " << prometheusMetricName << " " << S.getDescrip(metricName) << "\n";
-    output << "# TYPE " << prometheusMetricName << " " << S.getStatType(metricName) << "\n";
-    output << prometheusMetricName << " " << S.readCounter(metricName) << "\n";
+    // Note this uses the operator<< specialization above to output a valid string for statType.
+    output << "# TYPE " << prometheusMetricName << " " << statType << "\n";
+    switch (statType) {
+    case StatType::counter:
+    case StatType::gauge:
+      output << prometheusMetricName << " " << S.readCounter(metricName) << "\n";
+      break;
+    case StatType::histogram: {
+      StatBag::Histogram histo = S.readHistogram(metricName);
+      for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+        output << prometheusMetricName << StatBag::s_histo_prometheus_suffixes.at(bucket) << " " << histo.at(bucket) << "\n";
+      }
+    } break;
+    }
   }
 
   output << "# HELP pdns_auth_info "

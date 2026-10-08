@@ -64,7 +64,20 @@ void carbonDumpThread(Logr::log_t slog)
       ostringstream str;
       time_t now=time(nullptr);
       for(const string& entry : entries) {
-        str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.readCounter(entry)<<' '<<now<<"\r\n";
+        switch (S.getStatType(entry)) {
+        case StatType::counter:
+        case StatType::gauge:
+          str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.readCounter(entry)<<' '<<now<<"\r\n";
+          break;
+        case StatType::histogram:
+          {
+            StatBag::Histogram histo = S.readHistogram(entry);
+            for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+              str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<StatBag::s_histo_suffixes.at(bucket)<<' '<<histo.at(bucket)<<' '<<now<<"\r\n";
+            }
+          }
+          break;
+        }
       }
       msg = str.str();
 
