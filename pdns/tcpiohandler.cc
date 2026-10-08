@@ -83,6 +83,16 @@ bool shouldDoVerboseLogging()
 
 #include "libssl.hh"
 
+static void resetOpenSSLErrorState()
+{
+#if !defined(OPENSSL_VERSION_MAJOR) || OPENSSL_VERSION_MAJOR < 4
+  /* this is really needed: before 4.0.0 SSL_get_error was looking at
+     the per-thread (not per-connection!!) error queue, so an error
+     could linger around and clobber unrelated connections.. */
+  ERR_clear_error();
+#endif
+}
+
 static int sni_server_name_callback(SSL* ssl, int* /* alert */, void* arg);
 
 class OpenSSLFrontendContext
@@ -292,10 +302,13 @@ public:
       return IOState::NeedWrite;
     }
     if (error == SSL_ERROR_SYSCALL) {
-      if (errno == 0) {
+      auto savederrno = errno;
+      resetOpenSSLErrorState();
+      if (savederrno == 0) {
         throw std::runtime_error("TLS connection closed by remote end");
       }
-      throw std::runtime_error("Syscall error while processing TLS connection: " + stringerror(errno));
+
+      throw std::runtime_error("Syscall error while processing TLS connection: " + stringerror(savederrno));
     }
     if (error == SSL_ERROR_ZERO_RETURN) {
       throw std::runtime_error("TLS connection closed by remote end");
@@ -307,8 +320,12 @@ public:
 #endif
     else {
       if (shouldDoVerboseLogging()) {
-        throw std::runtime_error("Error while processing TLS connection: (" + std::to_string(error) + ") " + libssl_get_error_string());
+        auto errorStr = libssl_get_error_string();
+        resetOpenSSLErrorState();
+        throw std::runtime_error("Error while processing TLS connection: (" + std::to_string(error) + ") " + errorStr);
       }
+
+      resetOpenSSLErrorState();
       throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));
     }
   }
@@ -342,6 +359,7 @@ public:
     (void) fastOpen;
     (void) remote;
 
+    resetOpenSSLErrorState();
     int res = SSL_connect(d_conn.get());
     if (res == 1) {
       return IOState::Done;
@@ -365,6 +383,7 @@ public:
       gettimeofday(&start, nullptr);
     }
 
+    resetOpenSSLErrorState();
     int res = 0;
     do {
       res = SSL_connect(d_conn.get());
@@ -404,6 +423,8 @@ public:
       return IOState::Async;
     }
 #endif
+
+    resetOpenSSLErrorState();
     /* As explained above in the client-mode block, we only need to call SSL_accept() once
        for SSL_write() and SSL_read() to transparently continue to negotiate the connection after that.
        It is equivalent to calling SSL_set_accept_state() plus trying to read.
@@ -426,6 +447,7 @@ public:
       return;
     }
 
+    resetOpenSSLErrorState();
     int res = 0;
     do {
       res = SSL_accept(d_conn.get());
@@ -449,6 +471,7 @@ public:
       }
     }
 
+    resetOpenSSLErrorState();
     do {
       int res = SSL_write(d_conn.get(), &buffer.at(pos), static_cast<int>(toWrite - pos));
       if (res <= 0) {
@@ -467,6 +490,7 @@ public:
 
   IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete) override
   {
+    resetOpenSSLErrorState();
     do {
       int res = SSL_read(d_conn.get(), &buffer.at(pos), static_cast<int>(toRead - pos));
       if (res <= 0) {
@@ -490,6 +514,7 @@ public:
       gettimeofday(&start, nullptr);
     }
 
+    resetOpenSSLErrorState();
     do {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
       int res = SSL_read(d_conn.get(), (reinterpret_cast<char *>(buffer) + got), static_cast<int>(bufferSize - got));
@@ -522,6 +547,7 @@ public:
   size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) override
   {
     size_t got = 0;
+    resetOpenSSLErrorState();
     do {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic)
       int res = SSL_write(d_conn.get(), (reinterpret_cast<const char *>(buffer) + got), static_cast<int>(bufferSize - got));
@@ -543,6 +569,7 @@ public:
       return false;
     }
 
+    resetOpenSSLErrorState();
     char buf{};
     int res = SSL_peek(d_conn.get(), &buf, sizeof(buf));
     if (res > 0) {
