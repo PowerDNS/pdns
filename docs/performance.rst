@@ -221,9 +221,13 @@ Number of entries in the key cache
 
 .. _stat-latency:
 
-latency
-^^^^^^^
+latency-ewma
+^^^^^^^^^^^^
 Average number of microseconds a packet spends within PowerDNS
+(exponentially weighted moving average)
+
+.. versionchanged:: 5.2.0
+This was called latency before 5.2.0.
 
 .. _stat-meta-cache-size:
 
@@ -293,9 +297,13 @@ Number of packets sent by clients requesting recursion (regardless of if we'll b
 
 .. _stat-receive-latency:
 
-receive-latency
-^^^^^^^^^^^^^^^
+receive-latency-ewma
+^^^^^^^^^^^^^^^^^^^^
 Average number of microseconds needed to receive a query
+(exponentially weighted moving average)
+
+.. versionchanged:: 5.2.0
+This was called receive-latency before 5.2.0.
 
 .. _stat-recursing-answers:
 
@@ -323,9 +331,13 @@ Security status based on :ref:`securitypolling`.
 
 .. _stat-send-latency:
 
-send-latency
-^^^^^^^^^^^^
+send-latency-ewma
+^^^^^^^^^^^^^^^^^
 Average number of microseconds needed to send the answer
+(exponentially weighted moving average)
+
+.. versionchanged:: 5.2.0
+This was called send-latency before 5.2.0.
 
 .. _stat-servfail-packets:
 
