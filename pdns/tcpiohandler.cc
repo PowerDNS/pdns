@@ -302,13 +302,13 @@ public:
       return IOState::NeedWrite;
     }
     if (error == SSL_ERROR_SYSCALL) {
-      if (errno == 0) {
-        resetOpenSSLErrorState();
+      auto savederrno = errno;
+      resetOpenSSLErrorState();
+      if (savederrno == 0) {
         throw std::runtime_error("TLS connection closed by remote end");
       }
 
-      resetOpenSSLErrorState();
-      throw std::runtime_error("Syscall error while processing TLS connection: " + stringerror(errno));
+      throw std::runtime_error("Syscall error while processing TLS connection: " + stringerror(savederrno));
     }
     if (error == SSL_ERROR_ZERO_RETURN) {
       throw std::runtime_error("TLS connection closed by remote end");
