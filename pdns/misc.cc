@@ -1212,7 +1212,7 @@ uint64_t udpErrorStats([[maybe_unused]] const std::string& str)
         break;
       }
 
-      if (str == "udp-rcvbuf-errors") {
+      if (str == "udp-recvbuf-errors") {
         return std::stoull(parts.at(5));
       }
       else if (str == "udp-sndbuf-errors") {
