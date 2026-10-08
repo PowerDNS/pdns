@@ -625,9 +625,7 @@ enum class ResponseType {
 };
 
 static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddress& saddr, const string& logPrefix="") {
-  if (mdp.d_header.opcode != Opcode::Notify) { // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions) opcode is 4 bits, this is not a dangerous conversion
-    return ResponseType::Unknown;
-  }
+  assert(mdp.d_header.opcode == Opcode::Notify);
 
   g_log<<Logger::Info<<logPrefix<<"NOTIFY for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" "<< Opcode::to_s(mdp.d_header.opcode) <<" from "<<saddr.toStringWithPort()<<endl;
 
@@ -1070,7 +1068,7 @@ try
 
   ResponseType respt = ResponseType::Unknown;
 
-  if (allowedByACL(saddr, true)) {
+  if (mdp.d_header.opcode == Opcode::Notify && allowedByACL(saddr, true)) {
     respt = maybeHandleNotify(mdp, saddr);
   }
   else if (!allowedByACL(saddr)) {
@@ -1192,7 +1190,7 @@ static void tcpWorker(int tid) {
       ResponseType respt = ResponseType::Unknown;
 
       // this code is duplicated from the UDP path
-      if (allowedByACL(saddr, true)) {
+      if (mdp.d_header.opcode == Opcode::Notify && allowedByACL(saddr, true)) {
         respt = maybeHandleNotify(mdp, saddr);
       }
       else if (!allowedByACL(saddr)) {
