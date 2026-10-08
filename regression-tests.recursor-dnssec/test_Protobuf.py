@@ -1593,11 +1593,6 @@ auth-zones=example=configs/%s/example.zone"""
         raw1 = self.sendUDPQuery(query, decode=False)
         res = dns.message.from_wire(raw1)
         self.assertMessageHasFlags(res, ["QR", "TC", "RD", "RA", "CD"], ["DO"])
-        raw2 = self.sendTCPQuery(query, decode=False)
-        res = dns.message.from_wire(raw2)
-
-        for rrset in expected:
-            self.assertRRsetInAnswer(res, rrset)
 
         # check the protobuf messages corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -1606,6 +1601,12 @@ auth-zones=example=configs/%s/example.zone"""
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, "127.0.0.1", receivedSize=len(raw1))
         self.assertEqual(len(msg.response.rrs), 0)
+
+        raw2 = self.sendTCPQuery(query, decode=False)
+        res = dns.message.from_wire(raw2)
+
+        for rrset in expected:
+            self.assertRRsetInAnswer(res, rrset)
 
         # check the protobuf messages corresponding to the TCP query and answer
         msg = self.getFirstProtobufMessage()
