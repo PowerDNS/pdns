@@ -60,14 +60,34 @@ private:
 };
 
 enum class StatType : uint8_t {
-  counter = 1,
-  gauge = 2,
+  counter = 1, // monotonically-increasing counter
+  gauge = 2, // bounded value
+  histogram = 3, // set of counters
 };
 
 //! use this to gather and query statistics
 class StatBag
 {
+public:
+  enum HistoBucket : uint8_t {
+    Bucket_0_1 = 0,
+    Bucket_1_10,
+    Bucket_10_50,
+    Bucket_50_100,
+    Bucket_100_1000,
+    Bucket_above_1000,
+    Bucket_sum,
+    Bucket_count,
+    Bucket_first = Bucket_0_1,
+    Bucket_last = Bucket_count
+  };
+  static const std::array<const std::string, 1 + Bucket_last> s_histo_suffixes;
+  static const std::array<const std::string, 1 + Bucket_last> s_histo_prometheus_suffixes;
+  using Histogram = std::array<unsigned long, 1 + Bucket_last>;
+
+private:
   map<string, std::unique_ptr<AtomicCounter>> d_stats;
+  map<string, std::shared_ptr<LockGuarded<Histogram>>> d_histograms;
   map<string, string> d_keyDescriptions;
   map<string, StatType> d_statTypes;
   map<string, LockGuarded<StatRing<string, CIStringCompare> > > d_rings;
@@ -141,14 +161,16 @@ public:
   vector<string> getEntries(); //!< returns a vector with datums (items)
   string getDescrip(const string &item); //!< Returns the description of this datum/item
   StatType getStatType(const string &item); //!< Returns the stats type for the metrics endpoint
-  void exists(const string &key); //!< call this function to throw an exception in case a key does not exist
+  void exists(const string &key); //!< call this function o throw an exception in case a key does not exist
   inline void deposit(const string &key, int value); //!< increment the statistics behind this key by value amount
   inline void inc(const string &key); //!< increase this key's value by one
   void set(const string &key, unsigned long value); //!< set this key's value
-  unsigned long readCounter(const string &key); //!< read the value behind this key
-  AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
-  string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
+  unsigned long readCounter(const string &key); //!< read the value behind this key. Not allowed on histograms
+  Histogram readHistogram(const string &key); //!< read the histogram behind this key. Not allowed on counters and gauges
+  AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments. Not allowed on histograms
+  std::shared_ptr<LockGuarded<Histogram>> getHistogramPointer(const string& key);
   void blacklist(const string &str);
+  static void set(std::shared_ptr<LockGuarded<Histogram>> histogram, unsigned long value);
 
   bool d_allowRedeclare; // only set this true during tests, never in production code
 };

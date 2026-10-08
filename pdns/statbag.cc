@@ -49,11 +49,14 @@ void StatBag::exists(const string &key)
   }
 }
 
+// Reports all the metrics which name start with the given prefix.
+// Used by pdns_control show.
 string StatBag::directory(const string &prefix)
 {
   string dir;
   ostringstream o;
 
+  // Simple counter and gauge metrics
   for(const auto& val : d_stats) {
     if (d_blacklist.find(val.first) != d_blacklist.end())
       continue;
@@ -62,7 +65,7 @@ string StatBag::directory(const string &prefix)
     o << val.first<<"="<<*(val.second)<<",";
   }
 
-
+  // Computed counter and gauge metrics
   for(const funcstats_t::value_type& val :  d_funcstats) {
     if (d_blacklist.find(val.first) != d_blacklist.end())
       continue;
@@ -70,7 +73,24 @@ string StatBag::directory(const string &prefix)
       continue;
     o << val.first<<"="<<val.second(val.first)<<",";
   }
+
+  // Histogram metrics
+  for (auto& val : d_histograms) {
+    if (d_blacklist.find(val.first) != d_blacklist.end())
+      continue;
+    if (val.first.find(prefix) != 0)
+      continue;
+    auto histo = val.second->lock();
+    for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+      o << val.first << StatBag::s_histo_suffixes.at(bucket) << "=" << histo->at(bucket) << ",";
+    }
+  }
+
   dir=o.str();
+  // Remove trailing comma
+  if (!dir.empty()) {
+    dir.pop_back();
+  }
   return dir;
 }
 
@@ -78,21 +98,28 @@ vector<string>StatBag::getEntries()
 {
   vector<string> ret;
 
+  // Simple counter and gauge metrics
   for(const auto& i: d_stats) {
     if (d_blacklist.find(i.first) != d_blacklist.end())
       continue;
     ret.push_back(i.first);
   }
 
+  // Computed counter and gauge metrics
   for(const funcstats_t::value_type& val :  d_funcstats) {
     if (d_blacklist.find(val.first) != d_blacklist.end())
       continue;
     ret.push_back(val.first);
   }
 
+  // Histogram metrics
+  for (const auto& val : d_histograms) {
+    if (d_blacklist.find(val.first) != d_blacklist.end())
+      continue;
+    ret.push_back(val.first);
+  }
 
   return ret;
-
 }
 
 string StatBag::getDescrip(const string &item)
@@ -109,18 +136,40 @@ StatType StatBag::getStatType(const string &item)
 
 void StatBag::declare(const string &key, const string &descrip, StatType statType)
 {
-  if(d_stats.count(key)) {
-    if (d_allowRedeclare) {
-      *d_stats[key] = 0;
-      return;
+  auto seenAsCounter = d_stats.count(key);
+  auto seenAsHisto = d_histograms.count(key);
+
+  switch (statType) {
+  case StatType::counter:
+  case StatType::gauge:
+    if (seenAsHisto != 0) {
+      throw PDNSException("Attempt to re-declare statbag histogram '"+key+"' as non-histogram");
     }
-    else {
-      throw PDNSException("Attempt to re-declare statbag '"+key+"'");
+    if (seenAsCounter != 0) {
+      if (d_allowRedeclare) {
+        *d_stats[key] = 0;
+        return;
+      }
+      else {
+        throw PDNSException("Attempt to re-declare statbag '"+key+"'");
+      }
     }
+
+    d_stats[key]=std::move(make_unique<AtomicCounter>(0));
+    break;
+  case StatType::histogram:
+    if (seenAsCounter != 0) {
+      throw PDNSException("Attempt to re-declare statbag non-histogram '"+key+"' as histogram");
+    }
+    if (seenAsHisto != 0) {
+      throw PDNSException("Attempt to re-declare statbag histogram '"+key+"'");
+    }
+
+    auto array = std::make_shared<LockGuarded<Histogram>>();
+    array->lock()->fill(0);
+    d_histograms[key] = std::move(array);
   }
 
-  auto i=make_unique<AtomicCounter>(0);
-  d_stats[key]=std::move(i);
   d_keyDescriptions[key]=descrip;
   d_statTypes[key]=statType;
 }
@@ -136,34 +185,93 @@ void StatBag::declare(const string &key, const string &descrip, StatBag::func_t 
   d_statTypes[key]=statType;
 }
 
-          
 void StatBag::set(const string &key, unsigned long value)
 {
-  exists(key);
-  d_stats[key]->store(value);
+  switch (getStatType(key)) { // will also check for existence
+  case StatType::counter:
+  case StatType::gauge:
+    d_stats[key]->store(value);
+    break;
+  case StatType::histogram:
+    StatBag::set(d_histograms[key], value);
+    break;
+  }
+}
+
+void StatBag::set(std::shared_ptr<LockGuarded<StatBag::Histogram>> histogram, unsigned long value)
+{
+  auto histo = histogram->lock();
+  HistoBucket bucket{Bucket_above_1000};
+  // For histograms, we assume the value is a time in microseconds
+  value /= 1000UL;
+  if (value < 1UL) {
+    bucket = Bucket_0_1;
+  }
+  else if (value < 10UL) {
+    bucket = Bucket_1_10;
+  }
+  else if (value < 50UL) {
+    bucket = Bucket_10_50;
+  }
+  else if (value < 100UL) {
+    bucket = Bucket_50_100;
+  }
+  else if (value < 1000UL) {
+    bucket = Bucket_100_1000;
+  }
+  ++(histo->at(bucket));
+  histo->at(Bucket_sum) += value;
+  ++(histo->at(Bucket_count));
 }
 
 unsigned long StatBag::readCounter(const string &key)
 {
-  exists(key);
-  funcstats_t::const_iterator iter = d_funcstats.find(key);
-  if (iter != d_funcstats.end()) {
-    return iter->second(iter->first);
+  switch (getStatType(key)) { // will also check for existence
+  case StatType::counter:
+  case StatType::gauge:
+    if (const auto iter = d_funcstats.find(key); iter != d_funcstats.end()) {
+      return iter->second(iter->first);
+    }
+    return *d_stats[key];
+  default:
+    throw PDNSException("Wrong method used to access statbag histogram '"+key+"'");
   }
-  return *d_stats[key];
 }
 
-string StatBag::getValueStr(const string &key)
+StatBag::Histogram StatBag::readHistogram(const string &key)
 {
-  ostringstream o;
-  o<<readCounter(key);
-  return o.str();
+  StatBag::Histogram result;
+
+  switch (getStatType(key)) { // will also check for existence
+  case StatType::counter:
+  case StatType::gauge:
+    throw PDNSException("Wrong method used to access statbag counter '"+key+"'");
+  default:
+    result = *d_histograms[key]->lock();
+    break;
+  }
+  return result;
 }
 
 AtomicCounter *StatBag::getPointer(const string &key)
 {
-  exists(key);
-  return d_stats[key].get();
+  switch (getStatType(key)) { // will also check for existence
+  case StatType::counter:
+  case StatType::gauge:
+    return d_stats[key].get();
+  default:
+    throw PDNSException("Wrong method used to access statbag histogram '"+key+"'");
+  }
+}
+
+std::shared_ptr<LockGuarded<StatBag::Histogram>> StatBag::getHistogramPointer(const string& key)
+{
+  switch (getStatType(key)) { // will also check for existence
+  case StatType::histogram:
+    return d_histograms[key];
+  default:
+    throw PDNSException("Wrong method used to access statbag counter '"+key+"'");
+  }
 }
 
 StatBag::~StatBag() = default;
@@ -359,3 +467,6 @@ void StatBag::blacklist(const string& str) {
 template class StatRing<std::string, CIStringCompare>;
 template class StatRing<SComboAddress>;
 template class StatRing<std::tuple<DNSName, QType> >;
+
+const std::array<const std::string, 1 + StatBag::HistoBucket::Bucket_last> StatBag::s_histo_suffixes{"_0_1", "_1_10", "_10_50", "_50_100", "_100_1000", "_above_1000", "_sum", "_count"};
+const std::array<const std::string, 1 + StatBag::HistoBucket::Bucket_last> StatBag::s_histo_prometheus_suffixes{"_bucket{le=1}", "_bucket{le=10}", "_bucket{le=150}", "_bucket{le=100}", "_bucket{le=1000}", "_bucket{le=+Inf}", "_sum", "_count"};
