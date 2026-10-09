@@ -106,16 +106,19 @@ ApiWebServer::ApiWebServer(std::shared_ptr<ConcurrentConnectionManager> ccm, str
     d_api_result_409 = &(*stats.getPointer("api-result-409"));
     d_api_result_422 = &(*stats.getPointer("api-result-422"));
     d_api_result_500 = &(*stats.getPointer("api-result-500"));
+    d_api_latency = stats.getHistogramPointer("api-latency");
   }
 }
 
 void ApiWebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword)
 {
   auto func = [handler, allowPassword, this](HttpRequest* req, HttpResponse* resp) {
+    DTime chrono;
+    chrono.set();
     AtomicCounter* counter{nullptr};
     try {
       if (d_api_queries != nullptr) {
-        (*d_api_queries)++;
+        ++(*d_api_queries);
       }
       apiWrapper(handler, req, resp, allowPassword);
       switch (resp->status) {
@@ -136,14 +139,16 @@ void ApiWebServer::registerApiHandler(const string& url, const HandlerFunction& 
         break;
       }
       if (counter != nullptr) {
-        (*counter)++;
+        ++(*counter);
       }
+      StatBag::set(d_api_latency, chrono.udiffNoReset());
     }
     catch (HttpInternalServerErrorException&) {
       counter = d_api_result_500;
       if (counter != nullptr) {
-        (*counter)++;
+        ++(*counter);
       }
+      StatBag::set(d_api_latency, chrono.udiffNoReset());
       throw;
     }
   };
@@ -154,7 +159,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
 static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype);
 
 AuthWebServer::AuthWebServer(StatBag& stats) :
-  d_start(time(nullptr)), d_stats(stats)
+  d_stats(stats)
 
 {
   d_doApi = arg().mustDo("api");
@@ -168,6 +173,7 @@ AuthWebServer::AuthWebServer(StatBag& stats) :
     d_stats.declare("api-result-409", "Number of API queries returning HTTP status code 409");
     d_stats.declare("api-result-422", "Number of API queries returning HTTP status code 422");
     d_stats.declare("api-result-500", "Number of API queries returning HTTP status code 500");
+    d_stats.declare("api-latency", "Number of milliseconds needed to answer an API query", StatType::histogram);
   }
 
   if (arg().mustDo("webserver") || d_doApi) {
@@ -210,13 +216,13 @@ void AuthWebServer::statThread(Logr::log_t slog, StatBag& stats)
   try {
     setThreadName("pdns/statHelper");
     for (;;) {
-      d_queries.submit(stats.read("udp-queries"));
-      d_cachehits.submit(stats.read("packetcache-hit"));
-      d_cachemisses.submit(stats.read("packetcache-miss"));
-      d_qcachehits.submit(stats.read("query-cache-hit"));
-      d_qcachemisses.submit(stats.read("query-cache-miss"));
+      d_queries.submit(stats.readCounter("udp-queries"));
+      d_cachehits.submit(stats.readCounter("packetcache-hit"));
+      d_cachemisses.submit(stats.readCounter("packetcache-miss"));
+      d_qcachehits.submit(stats.readCounter("query-cache-hit"));
+      d_qcachemisses.submit(stats.readCounter("query-cache-miss"));
       if (d_doApi) {
-        d_api_queries.submit(stats.read("api-queries"));
+        d_api_queries.submit(stats.readCounter("api-queries"));
       }
       Utility::sleep(1);
     }
@@ -317,7 +323,18 @@ static void printvars(StatBag& stats, ostringstream& ret)
 
   vector<string> entries = stats.getEntries();
   for (const auto& entry : entries) {
-    ret << "<tr><td>" << entry << "</td><td>" << stats.read(entry) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
+    switch (stats.getStatType(entry)) {
+    case StatType::counter:
+    case StatType::gauge:
+      ret << "<tr><td>" << entry << "</td><td>" << stats.readCounter(entry) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
+      break;
+    case StatType::histogram: {
+      StatBag::Histogram histo = stats.readHistogram(entry);
+      for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+        ret << "<tr><td>" << entry << StatBag::s_histo_suffixes.at(bucket) << "</td><td>" << histo.at(bucket) << "</td><td>" << stats.getDescrip(entry) << "</td>" << endl;
+      }
+    } break;
+    }
   }
 
   ret << "</table></div>" << endl;
@@ -382,7 +399,7 @@ void AuthWebServer::indexGET(HttpRequest* req, HttpResponse* resp)
 
   ret << "Backend query load, 1, 5, 10 minute averages: " << std::setprecision(3) << (int)d_qcachemisses.get1() << ", " << (int)d_qcachemisses.get5() << ", " << (int)d_qcachemisses.get10() << ". Max queries/second: " << (int)d_qcachemisses.getMax() << "<br>" << endl;
 
-  ret << "Total queries: " << d_stats.read("udp-queries") << ". Question/answer latency: " << static_cast<double>(d_stats.read("latency")) / 1000.0 << "ms<br>" << endl;
+  ret << "Total queries: " << d_stats.readCounter("udp-queries") << ". Question/answer latency: " << static_cast<double>(d_stats.readCounter("latency-ewma")) / 1000.0 << "ms<br>" << endl;
 
   if (d_doApi) {
     ret << "API Queries/second, 1, 5, 10 minute averages:  " << std::setprecision(3) << (int)d_api_queries.get1() << ", " << (int)d_api_queries.get5() << ", " << (int)d_api_queries.get10() << ". Max queries/second: " << (int)d_api_queries.getMax() << "<br>" << endl;
@@ -719,7 +736,18 @@ void productServerStatisticsFetch(map<string, string>& out)
 {
   vector<string> items = S.getEntries();
   for (const string& item : items) {
-    out[item] = std::to_string(S.read(item));
+    switch (S.getStatType(item)) {
+    case StatType::counter:
+    case StatType::gauge:
+      out[item] = std::to_string(S.readCounter(item));
+      break;
+    case StatType::histogram: {
+      StatBag::Histogram histo = S.readHistogram(item);
+      for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+        out[item + StatBag::s_histo_suffixes.at(bucket)] = std::to_string(histo.at(bucket));
+      }
+    } break;
+    }
   }
 
   // add uptime
@@ -729,12 +757,18 @@ void productServerStatisticsFetch(map<string, string>& out)
 std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 {
   try {
-    // ::read() calls ::exists() which throws a PDNSException when the key does not exist
-    return S.read(name);
+    switch (S.getStatType(name)) { // ::getStatType() calls ::exists() which throws a PDNSException when the key does not exist
+    case StatType::counter:
+    case StatType::gauge:
+      return S.readCounter(name);
+    case StatType::histogram:
+      // TODO: find a better way to tell user the stat exists, but not as a single value
+      break;
+    }
   }
   catch (...) {
-    return std::nullopt;
   }
+  return std::nullopt;
 }
 
 static void validateGatheredRRType(const DNSResourceRecord& resourceRecord)
@@ -3213,6 +3247,8 @@ static std::ostream& operator<<(std::ostream& outStream, StatType statType)
     return outStream << "counter";
   case StatType::gauge:
     return outStream << "gauge";
+  case StatType::histogram:
+    return outStream << "histogram";
   };
   return outStream << static_cast<uint16_t>(statType);
 }
@@ -3224,9 +3260,22 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
     // Prometheus suggest using '_' instead of '-'
     std::string prometheusMetricName = "pdns_auth_" + boost::replace_all_copy(metricName, "-", "_");
 
+    auto statType = S.getStatType(metricName);
     output << "# HELP " << prometheusMetricName << " " << S.getDescrip(metricName) << "\n";
-    output << "# TYPE " << prometheusMetricName << " " << S.getStatType(metricName) << "\n";
-    output << prometheusMetricName << " " << S.read(metricName) << "\n";
+    // Note this uses the operator<< specialization above to output a valid string for statType.
+    output << "# TYPE " << prometheusMetricName << " " << statType << "\n";
+    switch (statType) {
+    case StatType::counter:
+    case StatType::gauge:
+      output << prometheusMetricName << " " << S.readCounter(metricName) << "\n";
+      break;
+    case StatType::histogram: {
+      StatBag::Histogram histo = S.readHistogram(metricName);
+      for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
+        output << prometheusMetricName << StatBag::s_histo_prometheus_suffixes.at(bucket) << " " << histo.at(bucket) << "\n";
+      }
+    } break;
+    }
   }
 
   output << "# HELP pdns_auth_info "

@@ -896,7 +896,7 @@ static void dbBench(const std::string& fname)
   }
   cout<<0.001*dt.udiff()/n<<" millisecond/lookup"<<endl;
   cout<<"Retrieved "<<hits<<" records, did "<<misses<<" queries which should have no match"<<endl;
-  cout<<"Packet cache reports: "<<S.read("query-cache-hit")<<" hits (should be 0) and "<<S.read("query-cache-miss") <<" misses"<<endl;
+  cout<<"Packet cache reports: "<<S.readCounter("query-cache-hit")<<" hits (should be 0) and "<<S.readCounter("query-cache-miss") <<" misses"<<endl;
 }
 
 static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
