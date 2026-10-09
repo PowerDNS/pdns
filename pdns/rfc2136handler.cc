@@ -850,25 +850,23 @@ static bool isUpdateAllowed(UeberBackend& UBackend, const updateContext& ctx, DN
   return true;
 }
 
-static uint8_t updatePrereqCheck323(const MOADNSParser::answers_t& answers, const updateContext& ctx)
+static uint8_t updatePrereqCheck323(const MOADNSParser& mdp, const updateContext& ctx)
 {
   using rrSetKey_t = pair<DNSName, QType>;
   using rrVector_t = vector<DNSResourceRecord>;
   using RRsetMap_t = std::map<rrSetKey_t, rrVector_t>;
   RRsetMap_t preReqRRsets;
 
-  for (const auto& rec : answers) {
-    if (rec.d_place == DNSResourceRecord::ANSWER) {
-      // Last line of 3.2.3
-      if (rec.d_class != QClass::IN && rec.d_class != QClass::NONE && rec.d_class != QClass::ANY) {
-        return RCode::FormErr;
-      }
+  for (const auto& rec : mdp.getAnswers(DNSResourceRecord::Place::ANSWER)) {
+    // Last line of 3.2.3
+    if (rec.d_class != QClass::IN && rec.d_class != QClass::NONE && rec.d_class != QClass::ANY) {
+      return RCode::FormErr;
+    }
 
-      if (rec.d_class == QClass::IN) {
-        rrSetKey_t key = {rec.d_name, QType(rec.d_type)};
-        rrVector_t* vec = &preReqRRsets[key];
-        vec->push_back(DNSResourceRecord::fromWire(rec));
-      }
+    if (rec.d_class == QClass::IN) {
+      rrSetKey_t key = {rec.d_name, QType(rec.d_type)};
+      rrVector_t* vec = &preReqRRsets[key];
+      vec->push_back(DNSResourceRecord::fromWire(rec));
     }
   }
 
@@ -903,12 +901,12 @@ static uint8_t updatePrereqCheck323(const MOADNSParser::answers_t& answers, cons
   return RCode::NoError;
 }
 
-static uint8_t updateRecords(const MOADNSParser::answers_t& answers, DNSSECKeeper& dsk, uint& changedRecords, const std::unique_ptr<AuthLua4>& update_policy_lua, DNSPacket& packet, updateContext& ctx)
+static uint8_t updateRecords(const MOADNSParser& mdp, DNSSECKeeper& dsk, uint& changedRecords, const std::unique_ptr<AuthLua4>& update_policy_lua, DNSPacket& packet, updateContext& ctx)
 {
   // Reject the complete update if it contains Lua records, unless explicitly
   // allowed, regardless of any other policy.
   if (!::arg().mustDo("enable-lua-record-updates")) {
-    for (const auto& rec : answers) {
+    for (const auto& rec : mdp.d_answers) {
       if (QType(rec.d_type) == QType::LUA) {
         SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Refusing update due to Lua record " << rec.d_name << ": Not permitted by global settings" << endl,
              ctx.slog->info(Logr::Warning, "Update: refusing update due to Lua record, not permitted by global settings", "name", Logging::Loggable(rec.d_name)));
@@ -923,36 +921,34 @@ static uint8_t updateRecords(const MOADNSParser::answers_t& answers, DNSSECKeepe
 
   bool anyRecordProcessed{false};
   bool anyRecordAcceptedByLua{false};
-  for (const auto& rec : answers) {
-    if (rec.d_place == DNSResourceRecord::AUTHORITY) {
-      anyRecordProcessed = true;
+  for (const auto& rec : mdp.getAnswers(DNSResourceRecord::Place::AUTHORITY)) {
+    anyRecordProcessed = true;
 
-      /* see if it's permitted by policy */
-      if (update_policy_lua != nullptr) {
-        if (!update_policy_lua->updatePolicy(rec.d_name, QType(rec.d_type), ctx.di.zone.operator const DNSName&(), packet)) {
-          SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << rec.d_name << "/" << QType(rec.d_type).toString() << ": Not permitted by policy" << endl,
-               ctx.slog->info(Logr::Warning, "Update: refusing record update, not permitted by policy", "name", Logging::Loggable(rec.d_name), "type", Logging::Loggable(rec.d_type)));
-          continue;
-        }
-        SLOG(g_log << Logger::Debug << ctx.msgPrefix << "Accepting update for " << rec.d_name << "/" << QType(rec.d_type).toString() << ": Permitted by policy" << endl,
-             ctx.slog->info(Logr::Debug, "Update: accepting record update, permitted by policy", "name", Logging::Loggable(rec.d_name), "type", Logging::Loggable(rec.d_type)));
-        anyRecordAcceptedByLua = true;
+    /* see if it's permitted by policy */
+    if (update_policy_lua != nullptr) {
+      if (!update_policy_lua->updatePolicy(rec.d_name, QType(rec.d_type), ctx.di.zone.operator const DNSName&(), packet)) {
+        SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Refusing update for " << rec.d_name << "/" << QType(rec.d_type).toString() << ": Not permitted by policy" << endl,
+             ctx.slog->info(Logr::Warning, "Update: refusing record update, not permitted by policy", "name", Logging::Loggable(rec.d_name), "type", Logging::Loggable(rec.d_type)));
+        continue;
       }
+      SLOG(g_log << Logger::Debug << ctx.msgPrefix << "Accepting update for " << rec.d_name << "/" << QType(rec.d_type).toString() << ": Permitted by policy" << endl,
+           ctx.slog->info(Logr::Debug, "Update: accepting record update, permitted by policy", "name", Logging::Loggable(rec.d_name), "type", Logging::Loggable(rec.d_type)));
+      anyRecordAcceptedByLua = true;
+    }
 
-      if (rec.d_class == QClass::NONE && rec.d_type == QType::NS && rec.d_name == ctx.di.zone.operator const DNSName&()) {
-        nsRRtoDelete.push_back(&rec);
-      }
-      else if (rec.d_class == QClass::IN) {
-        if (rec.d_type == QType::CNAME) {
-          cnamesToAdd.push_back(&rec);
-        }
-        else {
-          nonCnamesToAdd.push_back(&rec);
-        }
+    if (rec.d_class == QClass::NONE && rec.d_type == QType::NS && rec.d_name == ctx.di.zone.operator const DNSName&()) {
+      nsRRtoDelete.push_back(&rec);
+    }
+    else if (rec.d_class == QClass::IN) {
+      if (rec.d_type == QType::CNAME) {
+        cnamesToAdd.push_back(&rec);
       }
       else {
-        changedRecords += performUpdate(dsk, &rec, ctx);
+        nonCnamesToAdd.push_back(&rec);
       }
+    }
+    else {
+      changedRecords += performUpdate(dsk, &rec, ctx);
     }
   }
 
@@ -1054,15 +1050,11 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   // RFC2136 uses the same DNS Header and Message as defined in RFC1035.
   // This means we can use the MOADNSParser to parse the incoming packet. The result is that we have some different
   // variable names during the use of our MOADNSParser.
-  MOADNSParser::answers_t answers;
-  {
-    MOADNSParser mdp(false, packet.getString());
-    if (mdp.d_header.qdcount != 1) {
-      SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Zone Count is not 1, sending FormErr" << endl,
-           ctx.slog->info(Logr::Warning, "Update: zone count is not 1. sending FormErr"));
-      return RCode::FormErr;
-    }
-    answers = std::move(mdp.d_answers);
+  MOADNSParser mdp(false, packet.getString());
+  if (mdp.d_header.qdcount != 1) {
+    SLOG(g_log << Logger::Warning << ctx.msgPrefix << "Zone Count is not 1, sending FormErr" << endl,
+         ctx.slog->info(Logr::Warning, "Update: zone count is not 1. sending FormErr"));
+    return RCode::FormErr;
   }
 
   if (packet.qtype.getCode() != QType::SOA) { // RFC2136 2.3 - ZTYPE must be SOA
@@ -1089,14 +1081,11 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     return forwardPacket(B, ctx, packet);
   }
 
-  // Check if all the records provided are within the zone
-  for (const auto& rec : answers) {
-    // Skip this check for other field types (like the TSIG - which is in the additional section)
-    // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
-    if (rec.d_place != DNSResourceRecord::ANSWER && rec.d_place != DNSResourceRecord::AUTHORITY) {
-      continue;
-    }
-
+  // Check if all the records provided are within the zone.
+  // We skip this check for the additional section records, which may be TSIG,
+  // for which the label is the dnskey, and would not pass the isPartOf
+  // validation.
+  for (const auto& rec : mdp.getAnswers(-DNSResourceRecord::Place::ADDITIONAL)) { // Note the minus sign: we check everything BUT the additional section
     if (!rec.d_name.isPartOf(ctx.di.zone)) {
       SLOG(g_log << Logger::Error << ctx.msgPrefix << "Received update/record out of zone, sending NotZone." << endl,
            ctx.slog->info(Logr::Error, "Update: received update/record out of zone, sending NotZone"));
@@ -1114,20 +1103,17 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   }
 
   // 3.2.1 and 3.2.2 - Prerequisite check
-  for (const auto& rec : answers) {
-    if (rec.d_place == DNSResourceRecord::ANSWER) {
-      int res = checkUpdatePrerequisites(rec, &ctx.di);
-      if (res > 0) {
-        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed PreRequisites check for " << rec.d_name << ", returning " << RCode::to_s(res) << endl,
-             ctx.slog->info(Logr::Error, "Update: failed PreRequisites check for record", "record", Logging::Loggable(rec.d_name), "returned value", Logging::Loggable(RCode::to_s(res))));
-        ctx.di.backend->abortTransaction();
-        return res;
-      }
+  for (const auto& rec : mdp.getAnswers(DNSResourceRecord::Place::ANSWER)) {
+    if (auto rcode = checkUpdatePrerequisites(rec, &ctx.di); rcode > 0) {
+      SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed PreRequisites check for " << rec.d_name << ", returning " << RCode::to_s(rcode) << endl,
+           ctx.slog->info(Logr::Error, "Update: failed PreRequisites check for record", "record", Logging::Loggable(rec.d_name), "returned value", Logging::Loggable(RCode::to_s(rcode))));
+      ctx.di.backend->abortTransaction();
+      return rcode;
     }
   }
 
   // 3.2.3 - Prerequisite check - this is outside of updatePrerequisitesCheck because we check an RRSet and not the RR.
-  if (auto rcode = updatePrereqCheck323(answers, ctx); rcode != RCode::NoError) {
+  if (auto rcode = updatePrereqCheck323(mdp, ctx); rcode != RCode::NoError) {
     ctx.di.backend->abortTransaction();
     return rcode;
   }
@@ -1135,15 +1121,12 @@ int PacketHandler::processUpdate(DNSPacket& packet)
   // 3.4 - Prescan & Add/Update/Delete records - is all done within a try block.
   try {
     // 3.4.1 - Prescan section
-    for (const auto& rec : answers) {
-      if (rec.d_place == DNSResourceRecord::AUTHORITY) {
-        int res = checkUpdatePrescan(rec);
-        if (res > 0) {
-          SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed prescan check, returning " << RCode::to_s(res) << endl,
-               ctx.slog->info(Logr::Error, "Update: failed prescan check", "returned value", Logging::Loggable(RCode::to_s(res))));
-          ctx.di.backend->abortTransaction();
-          return res;
-        }
+    for (const auto& rec : mdp.getAnswers(DNSResourceRecord::Place::AUTHORITY)) {
+      if (auto rcode = checkUpdatePrescan(rec); rcode > 0) {
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Failed prescan check, returning " << RCode::to_s(rcode) << endl,
+             ctx.slog->info(Logr::Error, "Update: failed prescan check", "returned value", Logging::Loggable(RCode::to_s(rcode))));
+        ctx.di.backend->abortTransaction();
+        return rcode;
       }
     }
 
@@ -1164,8 +1147,8 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     // TODO: convert to use Check::checkRRSet() for consistency
     set<DNSName> cn; // NOLINT(readability-identifier-length)
     set<DNSName> nocn;
-    for (const auto& rec : answers) {
-      if (rec.d_place == DNSResourceRecord::AUTHORITY && rec.d_class == QClass::IN && rec.d_ttl > 0) {
+    for (const auto& rec : mdp.getAnswers(DNSResourceRecord::Place::AUTHORITY)) {
+      if (rec.d_class == QClass::IN && rec.d_ttl > 0) {
         // Addition
         if (rec.d_type == QType::CNAME) {
           cn.insert(rec.d_name);
@@ -1185,7 +1168,7 @@ int PacketHandler::processUpdate(DNSPacket& packet)
     }
 
     uint changedRecords = 0;
-    if (auto rcode = updateRecords(answers, d_dk, changedRecords, update_policy_lua, packet, ctx); rcode != RCode::NoError) {
+    if (auto rcode = updateRecords(mdp, d_dk, changedRecords, update_policy_lua, packet, ctx); rcode != RCode::NoError) {
       ctx.di.backend->abortTransaction();
       return rcode;
     }
