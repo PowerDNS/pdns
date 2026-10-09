@@ -152,6 +152,7 @@ asendtcp
 asendto
 aset
 asn
+asname
 asnr
 asns
 assumeyes
@@ -1553,6 +1554,8 @@ IPDNS
 ipfromstr
 iphdr
 ipi
+IPinfo
+ipinfo
 iplist
 ipmap
 ipo

@@ -1,5 +1,8 @@
 # See https://github.com/check-spelling/check-spelling/wiki/Configuration-Examples:-patterns
 
+# IP...
+(?<![A-Z])IP(?=[a-z])
+
 egrep -v '.*?'
 
 # deprecated
