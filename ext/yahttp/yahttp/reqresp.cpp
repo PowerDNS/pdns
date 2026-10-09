@@ -54,15 +54,28 @@ namespace YaHTTP {
       }
     }
     buffer.append(somedata);
+    size_t cursor = 0;
     while(state < 2) {
       int cr=0;
-      size_t pos = buffer.find_first_of("\n");
+      size_t pos = buffer.find_first_of("\n", cursor);
       // need to find CRLF in buffer
-      if (pos == std::string::npos) return false;
-      if (pos>0 && buffer[pos-1]=='\r')
+      if (pos == std::string::npos) {
+        // Remove all the data which has been consumed as header.
+        if (cursor != 0) {
+          buffer.erase(buffer.begin(), buffer.begin() + cursor);
+        }
+        return false;
+      }
+      if (pos>0 && buffer[pos-1]=='\r') {
         cr=1;
-      std::string line(buffer.begin(), buffer.begin()+pos-cr); // exclude CRLF
-      buffer.erase(buffer.begin(), buffer.begin()+pos+1); // remove line from buffer including CRLF
+      }
+      std::string line(buffer.begin() + cursor, buffer.begin() + pos - cr); // exclude CRLF
+      cursor = pos + 1; // skip line, including CRLF
+      // Release memory as soon as we can
+      if (cursor == buffer.length()) {
+        buffer.clear();
+        cursor = 0;
+      }
 
       if (state == 0) { // startup line
         if (target->kind == YAHTTP_TYPE_REQUEST) {
@@ -153,6 +166,10 @@ namespace YaHTTP {
         }
       }
     }
+    // Remove all the data which has been consumed as header, if we haven't been able to do so earlier.
+    if (cursor != 0) {
+      buffer.erase(buffer.begin(), buffer.begin() + cursor);
+    }
 
     minbody = 0;
     // check for expected body size
@@ -240,7 +257,7 @@ namespace YaHTTP {
           bodybuf << buffer;
           bodysize += buffer.length();
         }
-        buffer = "";
+        buffer.clear();
       }
     }
 
