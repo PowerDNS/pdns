@@ -40,8 +40,6 @@ namespace funcptr = boost;
 #define YAHTTP_TYPE_RESPONSE 2
 
 namespace YaHTTP {
-  typedef std::map<std::string,Cookie,ASCIICINullSafeComparator> strcookie_map_t; //<! String to Cookie map
-
   typedef enum {
     urlencoded,
     multipart
@@ -119,7 +117,6 @@ namespace YaHTTP {
       url = "";
       method = "";
       statusText = "";
-      jar.clear();
       headers.clear();
       parameters.clear();
       getvars.clear();
@@ -134,7 +131,7 @@ protected:
       this->url = rhs.url; this->kind = rhs.kind;
       this->status = rhs.status; this->statusText = rhs.statusText;
       this->method = rhs.method; this->headers = rhs.headers;
-      this->jar = rhs.jar; this->postvars = rhs.postvars;
+      this->postvars = rhs.postvars;
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
       this->body = rhs.body; this->max_request_size = rhs.max_request_size;
       this->max_response_size = rhs.max_response_size; this->version = rhs.version;
@@ -148,7 +145,7 @@ protected:
       this->url = rhs.url; this->kind = rhs.kind;
       this->status = rhs.status; this->statusText = rhs.statusText;
       this->method = rhs.method; this->headers = rhs.headers;
-      this->jar = rhs.jar; this->postvars = rhs.postvars;
+      this->postvars = rhs.postvars;
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
       this->body = rhs.body; this->max_request_size = rhs.max_request_size;
       this->max_response_size = rhs.max_response_size; this->version = rhs.version;
@@ -167,7 +164,6 @@ public:
     std::string statusText; //<! textual representation of status code
     std::string method; //<! http verb
     strstr_map_t headers; //<! map of header(s)
-    CookieJar jar; //<! cookies 
     strstr_map_t postvars; //<! map of POST variables (from POST body)
     strstr_map_t getvars; //<! map of GET variables (from URL)
 // these two are for Router
@@ -187,7 +183,6 @@ public:
 
     strstr_map_t& GET() { return getvars; }; //<! acccessor for getvars
     strstr_map_t& POST() { return postvars; }; //<! accessor for postvars
-    strcookie_map_t& COOKIES() { return jar.cookies; }; //<! accessor for cookies
 
     std::string versionStr(int version_) const {
       switch(version_) {
@@ -227,7 +222,6 @@ public:
       // copy SOME attributes
       this->url = rhs.url;
       this->method = rhs.method;
-      this->jar = rhs.jar;
       this->version = rhs.version;
     }
     friend std::ostream& operator<<(std::ostream& os, const Response &resp);
@@ -256,7 +250,6 @@ public:
       // copy SOME attributes
       this->url = rhs.url;
       this->method = rhs.method;
-      this->jar = rhs.jar;
       this->version = rhs.version;
     }
     void setup(const std::string& method_, const std::string& url_) {
