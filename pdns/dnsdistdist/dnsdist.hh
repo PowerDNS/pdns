@@ -629,6 +629,7 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     bool d_addXForwardedHeaders{false}; // for DoH backends
     bool d_lazyHealthCheckUseExponentialBackOff{false};
     bool d_upgradeToLazyHealthChecks{false};
+    bool d_checkPooled{false};
   };
 
   struct Config : public BaseConfig

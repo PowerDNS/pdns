@@ -515,6 +515,11 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const Con
   backendConfig.maxCheckFailures = hcConf.max_failures;
   backendConfig.minRiseSuccesses = hcConf.rise;
   backendConfig.udpTimeout = config.udp_timeout;
+  backendConfig.d_checkPooled = hcConf.reuse_connections;
+  if (backendConfig.d_checkPooled && backendConfig.useProxyProtocol) {
+    SLOG(warnlog("backend.health_checks.reuse_connections does nothing with use_proxy_protocol"),
+         context.logger->info(Logr::Warning, "backend.health_checks.reuse_connections does nothing with use_proxy_protocol", "backend.address", Logging::Loggable(config.address)));
+  }
 
   getLuaFunctionFromConfiguration<DownstreamState::HealthCheckQueryGenerator>(backendConfig.d_healthCheckGenerationFunction, hcConf.function, hcConf.lua, hcConf.lua_file, "backend health-check");
   getLuaFunctionFromConfiguration<DownstreamState::HealthCheckResponseValidator>(backendConfig.d_healthCheckResponseValidationCallback, hcConf.validation_function, hcConf.validation_lua, hcConf.validation_lua_file, "backend health-check");
