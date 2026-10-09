@@ -76,10 +76,12 @@ string StatBag::directory(const string &prefix)
 
   // Histogram metrics
   for (auto& val : d_histograms) {
-    if (d_blacklist.find(val.first) != d_blacklist.end())
+    if (d_blacklist.find(val.first) != d_blacklist.end()) {
       continue;
-    if (val.first.find(prefix) != 0)
+    }
+    if (val.first.find(prefix) != 0) {
       continue;
+    }
     auto histo = val.second->lock();
     for (uint8_t bucket = StatBag::HistoBucket::Bucket_first; bucket <= StatBag::HistoBucket::Bucket_last; ++bucket) {
       o << val.first << StatBag::s_histo_suffixes.at(bucket) << "=" << histo->at(bucket) << ",";
@@ -114,8 +116,9 @@ vector<string>StatBag::getEntries()
 
   // Histogram metrics
   for (const auto& val : d_histograms) {
-    if (d_blacklist.find(val.first) != d_blacklist.end())
+    if (d_blacklist.find(val.first) != d_blacklist.end()) {
       continue;
+    }
     ret.push_back(val.first);
   }
 
@@ -150,12 +153,10 @@ void StatBag::declare(const string &key, const string &descrip, StatType statTyp
         *d_stats[key] = 0;
         return;
       }
-      else {
-        throw PDNSException("Attempt to re-declare statbag '"+key+"'");
-      }
+      throw PDNSException("Attempt to re-declare statbag '"+key+"'");
     }
 
-    d_stats[key]=std::move(make_unique<AtomicCounter>(0));
+    d_stats[key] = make_unique<AtomicCounter>(0);
     break;
   case StatType::histogram:
     if (seenAsCounter != 0) {
@@ -198,7 +199,7 @@ void StatBag::set(const string &key, unsigned long value)
   }
 }
 
-void StatBag::set(std::shared_ptr<LockGuarded<StatBag::Histogram>> histogram, unsigned long value)
+void StatBag::set(const std::shared_ptr<LockGuarded<StatBag::Histogram>>& histogram, unsigned long value)
 {
   auto histo = histogram->lock();
   HistoBucket bucket{Bucket_above_1000};
