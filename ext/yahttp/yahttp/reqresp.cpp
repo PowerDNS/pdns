@@ -201,11 +201,25 @@ namespace YaHTTP {
           }
         } else {
           int crlf=1;
-          if (buffer.size() < chunk_size+1) return false; // expect newline
-          if (buffer.at(chunk_size) == '\r') {
-            if (buffer.size() < chunk_size+2 || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
-            crlf=2;
-          } else if (buffer.at(chunk_size) != '\n') return false;
+          if (buffer.size() < chunk_size + 1) {
+            return false; // expecting \n or \r\n at chunk_size, but we're not there yet.
+          }
+          switch (buffer.at(chunk_size)) {
+          case '\n':
+            // Well-formed chunk
+            break;
+          case '\r':
+            if (buffer.size() < chunk_size + 2) {
+              return false; // expecting \n to follow \r, but we're not there yet.
+            }
+            if (buffer.at(chunk_size+1) == '\n') {
+              crlf=2;
+              break;
+            }
+            [[fallthrough]];
+          default:
+            throw ParseError("Chunked body is not terminated correctly");
+          }
           if (bodysize + chunk_size > maxbody) {
             throw ParseError("Chunked body is too large");
           }
