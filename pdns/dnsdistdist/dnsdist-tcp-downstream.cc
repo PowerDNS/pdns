@@ -669,7 +669,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(d_currentQuery.d_query.d_idstate.cs);
       auto sender = std::move(d_currentQuery.d_sender);
       if (sender->active()) {
-        if (!handleTimeoutResponseRules(timeoutRespRules, d_currentQuery.d_query.d_idstate, d_ds, sender)) {
+        if (sender->pooledHealthCheck() || !handleTimeoutResponseRules(timeoutRespRules, d_currentQuery.d_query.d_idstate, d_ds, sender)) {
           TCPResponse response(std::move(d_currentQuery.d_query));
           sender->notifyIOError(now, std::move(response));
         }
@@ -680,7 +680,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(query.d_query.d_idstate.cs);
       auto sender = std::move(query.d_sender);
       if (sender->active()) {
-        if (!handleTimeoutResponseRules(timeoutRespRules, query.d_query.d_idstate, d_ds, sender)) {
+        if (sender->pooledHealthCheck() || !handleTimeoutResponseRules(timeoutRespRules, query.d_query.d_idstate, d_ds, sender)) {
           TCPResponse response(std::move(query.d_query));
           sender->notifyIOError(now, std::move(response));
         }
@@ -691,7 +691,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(response.second.d_query.d_idstate.cs);
       auto sender = std::move(response.second.d_sender);
       if (sender->active()) {
-        if (!handleTimeoutResponseRules(timeoutRespRules, response.second.d_query.d_idstate, d_ds, sender)) {
+        if (sender->pooledHealthCheck() || !handleTimeoutResponseRules(timeoutRespRules, response.second.d_query.d_idstate, d_ds, sender)) {
           TCPResponse tresp(std::move(response.second.d_query));
           sender->notifyIOError(now, std::move(tresp));
         }
@@ -777,15 +777,17 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
   --conn->d_ds->outstanding;
   auto ids = std::move(it->second.d_query.d_idstate);
-  const double udiff = ids.queryRealTime.udiff();
-  conn->d_ds->updateTCPLatency(udiff);
-  if (d_responseBuffer.size() >= sizeof(dnsheader)) {
-    dnsheader dh;
-    memcpy(&dh, d_responseBuffer.data(), sizeof(dh));
-    conn->d_ds->reportResponse(dh.rcode);
-  }
-  else {
-    conn->d_ds->reportTimeoutOrError();
+  if (!sender->pooledHealthCheck()) {
+    const double udiff = ids.queryRealTime.udiff();
+    conn->d_ds->updateTCPLatency(udiff);
+    if (d_responseBuffer.size() >= sizeof(dnsheader)) {
+      dnsheader dh;
+      memcpy(&dh, d_responseBuffer.data(), sizeof(dh));
+      conn->d_ds->reportResponse(dh.rcode);
+    }
+    else {
+      conn->d_ds->reportTimeoutOrError();
+    }
   }
 
   d_pendingResponses.erase(it);

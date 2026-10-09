@@ -151,7 +151,7 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
 
   gettimeofday(&now, nullptr);
   try {
-    if (!d_healthCheckQuery) {
+    if (!d_healthCheckQuery && !request.d_sender->pooledHealthCheck()) {
       const double udiff = request.d_query.d_idstate.queryRealTime.udiff();
       d_ds->updateTCPLatency(udiff);
       if (request.d_buffer.size() >= sizeof(dnsheader)) {
@@ -179,7 +179,7 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
 void DoHConnectionToBackend::handleResponseError(PendingRequest&& request, const struct timeval& now)
 {
   try {
-    if (!d_healthCheckQuery) {
+    if (!d_healthCheckQuery && !request.d_sender->pooledHealthCheck()) {
       d_ds->reportTimeoutOrError();
     }
 
@@ -205,7 +205,7 @@ void DoHConnectionToBackend::handleIOError()
 
   gettimeofday(&now, nullptr);
   for (auto& request : d_currentStreams) {
-    if (!d_healthCheckQuery && handleTimeoutResponseRules(timeoutRespRules, request.second.d_query.d_idstate, d_ds, request.second.d_sender)) {
+    if (!d_healthCheckQuery && !request.second.d_sender->pooledHealthCheck() && handleTimeoutResponseRules(timeoutRespRules, request.second.d_query.d_idstate, d_ds, request.second.d_sender)) {
       d_ds->reportTimeoutOrError();
     }
     else {
