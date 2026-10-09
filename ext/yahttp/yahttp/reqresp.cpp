@@ -131,6 +131,11 @@ namespace YaHTTP {
           state = 2;
           break;
         }
+        // give up if there are too many header lines - this shouldn't happen in legitimate traffic
+        ++headerlines;
+        if (headerlines > YAHTTP_MAX_HEADER_LINES) {
+          throw ParseError("Too many headers");
+        }
         // split headers
         if ((pos1 = line.find(':')) == std::string::npos) {
           throw ParseError("Malformed header line");
