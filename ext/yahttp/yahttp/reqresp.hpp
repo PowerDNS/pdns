@@ -304,7 +304,6 @@ public:
   public:
     T* target; //<! target to populate
     int state; //<! reader state
-    size_t pos; //<! reader position
     
     std::string buffer; //<! read buffer 
     bool chunked; //<! whether we are parsing chunked data
@@ -321,7 +320,7 @@ public:
     void initialize(T* target_) {
       chunked = false; chunk_size = 0;
       bodybuf.str(""); minbody = 0; maxbody = 0;
-      pos = 0; state = 0; this->target = target_;
+      state = 0; this->target = target_;
       hasBody = false;
       buffer = "";
       headersize = 0;
