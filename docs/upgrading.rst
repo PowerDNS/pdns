@@ -19,6 +19,15 @@ very old OpenSSL (or compatible) libraries, not providing the OpenSSL 1.1.0
 API, has been removed. No operating system aged less than 10 years should be
 affected by this, but we're mentioning it, just in case.
 
+New TSIG query for SQL backends
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to support the ability to delete a TSIG key matching a specific algorithm only, a new query, ``delete-tsig-key-algorithm-query``, has been added to the SQL backends.
+
+This query is similar to the existing ``delete-tsig-key-query``, but should match on a key name and algorithm, instead of on a key name alone.
+
+If you have modified the ``delete-tsig-key-query`` in your particular setup, be sure to add a matching ``delete-tsig-key-algorithm-query``.
+
 NAPTR additional answers
 ^^^^^^^^^^^^^^^^^^^^^^^^
 

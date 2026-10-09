@@ -199,7 +199,7 @@ public:
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
-  bool deleteTSIGKey(const DNSName& name) override;
+  bool deleteTSIGKey(const DNSName& name, const DNSName& algorithm) override;
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys) override;
   string directBackendCmd(const string& querystr) override;
   bool searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result) override;

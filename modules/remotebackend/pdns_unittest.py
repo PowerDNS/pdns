@@ -292,10 +292,12 @@ class Handler(pdns.remotebackend.Handler):
         for name, key in TSIG_KEYS.items():
             self.result.append(key)
 
-    def do_deletetsigkey(self, name="", **kwargs):
+    def do_deletetsigkey(self, name="", algorithm="", **kwargs):
+        self.result = False
         if name in TSIG_KEYS:
-            del TSIG_KEYS[name]
-            self.result = True
+            if algorithm == "" or TSIG_KEYS[name]["algorithm"] == algorithm:
+                del TSIG_KEYS[name]
+                self.result = True
 
     def do_starttransaction(self, **kwargs):
         self.result = True
