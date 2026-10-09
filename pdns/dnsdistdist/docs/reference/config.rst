@@ -721,6 +721,7 @@ Servers
     ``keyLogFile``                           ``str``               "Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1."
     ``dscp``                                 ``number``            "The DSCP marking value to be applied. Range 0-63. Default is 0 which means no action for DSCP marking."
     ``maxOutstandingQueries``                ``number``            "Maximum number of outstanding queries assigned to this backend, no matter the protocol used and over all connections (see ``maxInFlight`` for the maximum number of outstanding queries per connection). Default is 0 which means unlimited"
+    ``checkReuseConnections``                ``bool``              "Whether to send healthcheck queries on existing connections instead of creating new ones. Ignored with proxy protocol. Also ignored if healthchecks are sent on UDP. Useful on DoT/DoH backends on spotty connections, where handshake can be expensive."
 
 .. function:: getServer(index) -> Server
 

@@ -1455,6 +1455,10 @@ health_check:
       type: "LazyHealthCheckConfiguration"
       default: true
       description: "Settings for lazy health-checks"
+    - name: "reuse_connections"
+      type: "bool"
+      default: "false"
+      description: "Whether to send healthcheck queries on existing connections instead of creating new ones. Ignored with proxy protocol. Also ignored if healthchecks are sent on UDP. Useful on DoT/DoH backends on spotty connections, where handshake can be expensive."
 
 outgoing_auto_upgrade:
   description: "Setting for the automatically upgraded backend to a more secure version of the DNS protocol"

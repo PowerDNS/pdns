@@ -544,6 +544,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          getOptionalValue<bool>(vars, "tcpOnly", config.d_tcpOnly);
+                         getOptionalValue<bool>(vars, "checkReuseConnections", config.d_checkPooled);
+                         if (config.d_checkPooled && config.useProxyProtocol) {
+                           SLOG(warnlog("checkReuseConnections does nothing with useProxyProtocol"),
+                                getLogger("newServer")->info(Logr::Warning, "checkReuseConnections does nothing with useProxyProtocol"));
+                         }
 
                          std::shared_ptr<TLSCtx> tlsCtx;
                          getOptionalValue<std::string>(vars, "ciphers", config.d_tlsParams.d_ciphers);
