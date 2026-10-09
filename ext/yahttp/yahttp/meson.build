@@ -3,7 +3,6 @@ lib_yahttp = static_library(
   'reqresp.cpp',
   'router.cpp',
   extra_files: [
-    'cookie.hpp',
     'exception.hpp',
     'reqresp.hpp',
     'router.hpp',
