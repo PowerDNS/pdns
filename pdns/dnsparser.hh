@@ -209,12 +209,32 @@ public:
     if (stop > d_content.size()) {
       throw std::out_of_range("Attempt to skip bytes (" + std::to_string(n) + " starting at " + std::to_string(d_pos) + ") farther than the packet's end (" + std::to_string(d_content.size()) + ")");
     }
+    if (!isWithinRecordBoundaries(d_pos, d_pos + n)) {
+      throw std::out_of_range("Attempt to skip bytes (" + std::to_string(n) + " starting at " + std::to_string(d_pos) + ") farther than the record's end (" + std::to_string(d_startrecordpos + d_recordlen) + ")");
+    }
+
     d_pos += n;
   }
 
   static size_t s_MaxPointersPerByte;
 
 private:
+  [[nodiscard]] bool isWithinRecordBoundaries(size_t initialPosition, size_t endPosition, bool canBeOutsideRecordContent = false) const
+  {
+    if (d_recordlen == 0) {
+      // we don't know the record's length, nothing to check
+      return true;
+    }
+    if (canBeOutsideRecordContent && initialPosition >= d_startrecordpos + d_recordlen) {
+      // our initial position is after the last known record content,
+      // we are probably parsing the owner name of the next record,
+      // nothing to check
+      return true;
+    }
+    // are we still inside the record's content?
+    return endPosition <= (d_startrecordpos + d_recordlen);
+  }
+
   size_t d_pointerBudget{0};
   uint16_t d_pos;
   uint16_t d_startrecordpos; // needed for getBlob later on

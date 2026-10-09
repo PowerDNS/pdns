@@ -400,6 +400,8 @@ void MOADNSParser::init(bool query, const std::string_view& packet, size_t point
       dr.d_name = std::move(name);
       dr.d_clen = ah.d_clen;
 
+      auto recordContentStartPos = pr.getPosition();
+
       if (query &&
           !(d_qtype == QType::IXFR && dr.d_place == DNSResourceRecord::AUTHORITY && dr.d_type == QType::SOA) && // IXFR queries have a SOA in their AUTHORITY section
           (dr.d_place == DNSResourceRecord::ANSWER || dr.d_place == DNSResourceRecord::AUTHORITY || (dr.d_type != QType::OPT && dr.d_type != QType::TSIG && dr.d_type != QType::SIG && dr.d_type != QType::TKEY) || ((dr.d_type == QType::TSIG || dr.d_type == QType::SIG || dr.d_type == QType::TKEY) && dr.d_class != QClass::ANY))) {
@@ -421,6 +423,10 @@ void MOADNSParser::init(bool query, const std::string_view& packet, size_t point
         }
         seenTSIG = true;
         d_tsigPos = recordStartPos;
+      }
+
+      if (pr.getPosition() != recordContentStartPos + ah.d_clen) {
+        throw MOADNSException("Packet ("+d_qname.toLogString()+"|#"+std::to_string(d_qtype)+") has a record content that does not end on the record boundary");
       }
 
       d_answers.emplace_back(std::move(dr));
@@ -499,6 +505,9 @@ void PacketReader::copyRecord(vector<unsigned char>& dest, uint16_t len)
   if ((d_pos + len) > d_content.size()) {
     throw std::out_of_range("Attempt to copy outside of packet");
   }
+  if (!isWithinRecordBoundaries(d_pos, d_pos + len)) {
+    throw std::out_of_range("Attempt to copy outside of record");
+  }
 
   dest.resize(len);
 
@@ -512,6 +521,9 @@ void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
   if (d_pos + len > d_content.size()) {
     throw std::out_of_range("Attempt to copy outside of packet");
   }
+  if (!isWithinRecordBoundaries(d_pos, d_pos + len)) {
+    throw std::out_of_range("Attempt to copy outside of record");
+  }
 
   memcpy(dest, &d_content.at(d_pos), len);
   d_pos += len;
@@ -522,12 +534,19 @@ void PacketReader::xfrNodeOrLocatorID(NodeOrLocatorID& ret)
   if (d_pos + sizeof(ret) > d_content.size()) {
     throw std::out_of_range("Attempt to read 64 bit value outside of packet");
   }
+  if (!isWithinRecordBoundaries(d_pos, d_pos + sizeof(ret))) {
+    throw std::out_of_range("Attempt to read node or locator ID outside of record");
+  }
+
   memcpy(&ret.content, &d_content.at(d_pos), sizeof(ret.content));
   d_pos += sizeof(ret);
 }
 
 void PacketReader::xfr48BitInt(uint64_t& ret)
 {
+  if (!isWithinRecordBoundaries(d_pos, d_pos + 6U)) {
+    throw std::out_of_range("Attempt to read 48 bit value outside of record");
+  }
   ret=0;
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
   ret<<=8;
@@ -545,6 +564,9 @@ void PacketReader::xfr48BitInt(uint64_t& ret)
 uint32_t PacketReader::get32BitInt()
 {
   uint32_t ret=0;
+  if (!isWithinRecordBoundaries(d_pos, d_pos + sizeof(ret))) {
+    throw std::out_of_range("Attempt to read 32 bit value outside of record");
+  }
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
   ret<<=8;
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
@@ -560,6 +582,9 @@ uint32_t PacketReader::get32BitInt()
 uint16_t PacketReader::get16BitInt()
 {
   uint16_t ret=0;
+  if (!isWithinRecordBoundaries(d_pos, d_pos + sizeof(ret))) {
+    throw std::out_of_range("Attempt to read 16 bit value outside of record");
+  }
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
   ret<<=8;
   ret+=static_cast<uint8_t>(d_content.at(d_pos++));
@@ -569,12 +594,16 @@ uint16_t PacketReader::get16BitInt()
 
 uint8_t PacketReader::get8BitInt()
 {
+  if (!isWithinRecordBoundaries(d_pos, d_pos + 1U)) {
+    throw std::out_of_range("Attempt to read 8 bit value outside of record");
+  }
   return d_content.at(d_pos++);
 }
 
 DNSName PacketReader::getName()
 {
-  unsigned int consumed{};
+  unsigned int consumed{0};
+  const auto initialPosition = d_pos;
   try {
     uint16_t minOffset = d_standalone ? 0 : sizeof(dnsheader);
     bool uncompress = !d_standalone;
@@ -582,6 +611,12 @@ DNSName PacketReader::getName()
     DNSName name((const char*) d_content.data(), d_content.size(), d_pos, uncompress, nullptr /* qtype */, nullptr /* qclass */, &consumed, minOffset, &d_pointerBudget);
 
     d_pos += consumed;
+    // if we have the length of the record, and we were parsing a DNS name inside the record content
+    // (not the owner name, in which case d_startrecordpos and d_recordlen still refer to the content of the previous record),
+    // check that we did not go over the record boundary
+    if (!isWithinRecordBoundaries(initialPosition, d_pos, true)) {
+      throw std::out_of_range("Attempt to read DNS name outside of record");
+    }
     return name;
   }
   catch(const std::range_error& re) {
@@ -691,7 +726,7 @@ string PacketReader::getUnquotedText(bool lenField)
 void PacketReader::xfrBlob(string& blob)
 {
   try {
-    if(d_recordlen && !(d_pos == (d_startrecordpos + d_recordlen))) {
+    if (d_recordlen != 0 && !(d_pos == (d_startrecordpos + d_recordlen))) {
       if (d_pos > (d_startrecordpos + d_recordlen)) {
         throw std::out_of_range("xfrBlob out of record range");
       }
