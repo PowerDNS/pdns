@@ -15,7 +15,6 @@
 #include "url.hpp"
 #include "utility.hpp"
 #include "url.hpp"
-#include "cookie.hpp"
 #include "reqresp.hpp"
 
 /*! \mainpage Yet Another HTTP Library Documentation
