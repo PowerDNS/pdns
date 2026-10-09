@@ -171,17 +171,16 @@ public:
   string getText(bool multi, bool lenField);
   string getUnquotedText(bool lenField);
 
-  /* Whether the current position is at (or after, which would indicate a problem
-     and should have been detected earlier) the end of wire data corresponding to
+  /* Whether the current position is at the end of wire data corresponding to
      the current DNS record */
-  bool eof() const
+  [[nodiscard]] bool eof() const
   {
-    return d_pos >= (d_startrecordpos + d_recordlen);
+    return d_pos == (d_startrecordpos + d_recordlen);
   }
 
   /* Returns a string, formatted for human/log consumption, containing information
      about the wire data from the current position to the end of the current DNS record */
-  std::string getRemaining() const {
+  [[nodiscard]] std::string getRemaining() const {
     return "Remaining data from PacketReader, current position " + std::to_string(d_pos) + " in packet of size " + std::to_string(d_content.size()) + ", end of record expected at " + std::to_string(d_startrecordpos + d_recordlen) + ": " + makeHexDump(std::string(d_content.begin() + d_pos, d_content.begin() + d_startrecordpos + d_recordlen));
   };
 
@@ -197,7 +196,7 @@ public:
   }
 #endif // ]
 
-  uint16_t getPosition() const
+  [[nodiscard]] uint16_t getPosition() const
   {
     return d_pos;
   }
@@ -221,7 +220,7 @@ public:
 private:
   [[nodiscard]] bool isWithinRecordBoundaries(size_t initialPosition, size_t endPosition, bool canBeOutsideRecordContent = false) const
   {
-    if (d_recordlen == 0) {
+    if (canBeOutsideRecordContent && d_recordlen == 0) {
       // we don't know the record's length, nothing to check
       return true;
     }
