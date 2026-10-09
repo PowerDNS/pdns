@@ -170,7 +170,7 @@ public:
   AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments. Not allowed on histograms
   std::shared_ptr<LockGuarded<Histogram>> getHistogramPointer(const string& key);
   void blacklist(const string &str);
-  static void set(std::shared_ptr<LockGuarded<Histogram>> histogram, unsigned long value);
+  static void set(const std::shared_ptr<LockGuarded<Histogram>>& histogram, unsigned long value);
 
   bool d_allowRedeclare; // only set this true during tests, never in production code
 };

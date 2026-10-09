@@ -574,14 +574,14 @@ static int isGuarded(char** argv)
 static void update_latencies(long start, long diff)
 {
   auto delta = std::max(diff - start, 0L);
-  send_latency = 0.999 * send_latency + 0.001 * delta;
+  send_latency = 0.999 * send_latency + 0.001 * delta; // NOLINT(readability-math-missing-parentheses,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
   StatBag::set(s_send_latency, delta);
   delta = std::max(diff, 0L);
-  avg_latency = 0.999 * avg_latency + 0.001 * delta; // 'EWMA'
+  avg_latency = 0.999 * avg_latency + 0.001 * delta; // 'EWMA' // NOLINT(readability-math-missing-parentheses,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
   StatBag::set(s_avg_latency, delta);
 }
 
-static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int istart)
+static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int istart) // NOLINT(readability-identifier-length)
 {
   if (!a)
     return;
@@ -591,7 +591,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, Logr::log_t slog, int istart)
   try {
     long diff = a->d_dt.udiffNoReset();
     auto delta = std::max(diff - start, 0L);
-    backend_latency = 0.999 * backend_latency + 0.001 * delta;
+    backend_latency = 0.999 * backend_latency + 0.001 * delta; // NOLINT(readability-math-missing-parentheses,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     StatBag::set(s_backend_latency, delta);
     start = diff;
 
@@ -666,7 +666,7 @@ static void qthread(unsigned int num)
 
         diff = question.d_dt.udiffNoReset();
         delta = std::max(diff, 0L);
-        receive_latency = 0.999 * receive_latency + 0.001 * delta;
+        receive_latency = 0.999 * receive_latency + 0.001 * delta; // NOLINT(readability-math-missing-parentheses,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         StatBag::set(s_receive_latency, delta);
 
         numreceived++;
@@ -740,7 +740,7 @@ static void qthread(unsigned int num)
 
             diff = question.d_dt.udiffNoReset();
             delta = std::max(diff - start, 0L);
-            cache_latency = 0.999 * cache_latency + 0.001 * delta;
+            cache_latency = 0.999 * cache_latency + 0.001 * delta; // NOLINT(readability-math-missing-parentheses,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
             StatBag::set(s_cache_latency, delta);
             start = diff;
 
@@ -752,7 +752,7 @@ static void qthread(unsigned int num)
           }
           diff = question.d_dt.udiffNoReset();
           delta = std::max(diff - start, 0L);
-          cache_latency = 0.999 * cache_latency + 0.001 * delta;
+          cache_latency = 0.999 * cache_latency + 0.001 * delta; // NOLINT(readability-math-missing-parentheses,bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
           StatBag::set(s_cache_latency, delta);
         }
 
