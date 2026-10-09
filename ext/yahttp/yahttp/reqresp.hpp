@@ -24,6 +24,10 @@ namespace funcptr = boost;
 #define YAHTTP_MAX_HEADER_SIZE (100 * 1024)
 #endif
 
+#ifndef YAHTTP_MAX_HEADER_LINES
+#define YAHTTP_MAX_HEADER_LINES 1000
+#endif
+
 #ifndef YAHTTP_MAX_REQUEST_SIZE
 #define YAHTTP_MAX_REQUEST_SIZE 2097152
 #endif
@@ -312,6 +316,7 @@ public:
     size_t maxbody; //<! maximum size of body
     size_t minbody; //<! minimum size of body
     size_t headersize;
+    size_t headerlines;
     size_t bodysize;
     bool hasBody; //<! are we expecting body
 
@@ -324,6 +329,7 @@ public:
       hasBody = false;
       buffer = "";
       headersize = 0;
+      headerlines = 0;
       bodysize = 0;
       this->target->initialize();
     }; //<! Initialize the parser for target and clear state
