@@ -151,9 +151,9 @@ namespace YaHTTP {
         // is it already defined
 
         if (key == "set-cookie" && target->kind == YAHTTP_TYPE_RESPONSE) {
-          target->jar.parseSetCookieHeader(value);
+          // Nothing (intentional).
         } else if (key == "cookie" && target->kind == YAHTTP_TYPE_REQUEST) {
-          target->jar.parseCookieHeader(value);
+          // Nothing (intentional).
         } else {
           if (key == "host" && target->kind == YAHTTP_TYPE_REQUEST) {
             // maybe it contains port?
@@ -296,7 +296,6 @@ namespace YaHTTP {
     }
     os << "\r\n";
 
-    bool cookieSent = false;
     bool sendChunked = false;
 
     if (this->version > 10) { // 1.1 or better
@@ -321,27 +320,8 @@ namespace YaHTTP {
       if (iter->first == "host" && (kind != YAHTTP_TYPE_REQUEST || version < 10)) { iter++; continue; }
       if (iter->first == "transfer-encoding" && sendChunked) { iter++; continue; }
       std::string header = Utility::camelizeHeader(iter->first);
-      if (header == "Cookie" || header == "Set-Cookie") cookieSent = true;
       os << Utility::camelizeHeader(iter->first) << ": " << iter->second << "\r\n";
       iter++;
-    }
-    if (version > 9 && !cookieSent && jar.cookies.size() > 0) { // write cookies
-     if (kind == YAHTTP_TYPE_REQUEST) {
-        bool first = true;
-        os << "Cookie: ";
-        for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
-          if (first)
-            first = false;
-          else
-            os << "; ";
-          os << Utility::encodeURL(i->second.name) << "=" << Utility::encodeURL(i->second.value);
-        }
-     } else if (kind == YAHTTP_TYPE_RESPONSE) {
-        for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
-          os << "Set-Cookie: ";
-          os << i->second.str() << "\r\n";
-        }
-      }
     }
     os << "\r\n";
 #ifdef HAVE_CPP_FUNC_PTR
