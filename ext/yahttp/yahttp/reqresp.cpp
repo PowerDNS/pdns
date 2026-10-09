@@ -43,7 +43,7 @@ namespace YaHTTP {
   bool AsyncLoader<T>::feed(const std::string& somedata)
   {
     if (state < 2) {
-      headersize += somedata.length(); // maye include some body data, we don't know yet...
+      headersize += somedata.length(); // maybe include some body data, we don't know yet...
       if (headersize > target->max_header_size) {
         if (target->kind == YAHTTP_TYPE_REQUEST) {
           throw ParseError("Request header too large");
@@ -56,7 +56,7 @@ namespace YaHTTP {
     buffer.append(somedata);
     while(state < 2) {
       int cr=0;
-      pos = buffer.find_first_of("\n");
+      size_t pos = buffer.find_first_of("\n");
       // need to find CRLF in buffer
       if (pos == std::string::npos) return false;
       if (pos>0 && buffer[pos-1]=='\r')
@@ -181,7 +181,8 @@ namespace YaHTTP {
         if (chunk_size == 0) {
           char buf[100];
           // read chunk length
-          if ((pos = buffer.find('\n')) == std::string::npos) {
+          size_t pos = buffer.find('\n');
+          if (pos == std::string::npos) {
             if (buffer.size() > 99) {
               throw ParseError("Nonsensical chunk_size");
             }
@@ -287,7 +288,7 @@ namespace YaHTTP {
           os << "Transfer-Encoding: chunked\r\n";
         }
       } else {
-	sendChunked = false;
+        sendChunked = false;
       }
     }
 
