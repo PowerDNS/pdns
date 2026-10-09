@@ -1,6 +1,7 @@
 #include "yahttp.hpp"
 
 #include <limits>
+#include <string_view>
 
 namespace YaHTTP {
 
@@ -69,7 +70,7 @@ namespace YaHTTP {
       if (pos>0 && buffer[pos-1]=='\r') {
         cr=1;
       }
-      std::string line(buffer.begin() + cursor, buffer.begin() + pos - cr); // exclude CRLF
+      std::string_view line(buffer.data() + cursor, (pos - cr) - cursor); // exclude CRLF
       cursor = pos + 1; // skip line, including CRLF
       // Release memory as soon as we can
       if (cursor == buffer.length()) {
@@ -81,7 +82,7 @@ namespace YaHTTP {
         if (target->kind == YAHTTP_TYPE_REQUEST) {
           std::string ver;
           std::string tmpurl;
-          std::istringstream iss(line);
+          std::istringstream iss{std::string(line)};
           iss >> target->method >> tmpurl >> ver;
           if (ver.size() == 0)
             target->version = 9;
@@ -100,7 +101,7 @@ namespace YaHTTP {
           state = 1;
         } else if(target->kind == YAHTTP_TYPE_RESPONSE) {
           std::string ver;
-          std::istringstream iss(line);
+          std::istringstream iss{std::string(line)};
           std::string::size_type pos1;
           iss >> ver >> target->status;
           std::getline(iss, target->statusText);
