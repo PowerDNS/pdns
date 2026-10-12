@@ -2519,4 +2519,30 @@ BOOST_AUTO_TEST_CASE(slowRewriteEDNSOptionInQueryWithRecordsWrongOwnerName)
   BOOST_CHECK_EQUAL(located, 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_generateOptRR_large)
+{
+  InternalQueryState ids;
+  ids.origRemote = ComboAddress("192.0.2.1:42");
+  ids.origDest = ComboAddress("127.0.0.1:53");
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = DNSName("powerdns.com.");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.queryRealTime.start();
+
+  PacketBuffer packet;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(packet, ids.qname, ids.qtype, ids.qclass, 0);
+  packetWriter.commit();
+
+  DNSQuestion dnsQuestion(ids, packet);
+  BOOST_REQUIRE_GE(packet.size(), 1U);
+  // if the maximum size is smaller than the initial packet size, this should fail
+  BOOST_REQUIRE(!generateOptRR(std::string(), packet, packet.size() - 1U, 1232U, 0U, true));
+  // if the available room (maximum size - initial packet size) is not enough for an OPT RR, this should fail as well
+  size_t neededSize = /* root */ 1U + sizeof(dnsrecordheader);
+  BOOST_REQUIRE(!generateOptRR(std::string(), packet, packet.size() + neededSize - 1U, 1232U, 0U, true));
+  // otherwise it should work
+  BOOST_REQUIRE(generateOptRR(std::string(), packet, packet.size() + neededSize, 1232U, 0U, true));
+}
+
 BOOST_AUTO_TEST_SUITE_END();
