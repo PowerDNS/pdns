@@ -448,8 +448,13 @@ static bool catalogProcess(const XFRContext& ctx, vector<DNSResourceRecord>& rrs
         ci.d_zone = ZoneName(rr.content);
         ci.d_unique = unique;
 
+        if (ci.d_zone.operator const DNSName&().isRoot()) {
+          SLOG(g_log << Logger::Warning << ctx.logPrefix << "zone '" << ctx.domain.zone << "', invalid member zone '" << ci.d_zone << "'" << endl,
+               ctx.slog->info(Logr::Warning, "Catalog-Zone: invalid member zone", "member zone", Logging::Loggable(ci.d_zone)));
+          zoneInvalid = true;
+        }
         if (!dupcheck.insert(ci.d_zone).second) {
-          SLOG(g_log << Logger::Warning << ctx.logPrefix << "zone '" << ctx.domain.zone << "', duplicate member zone'" << ci.d_zone << "'" << endl,
+          SLOG(g_log << Logger::Warning << ctx.logPrefix << "zone '" << ctx.domain.zone << "', duplicate member zone '" << ci.d_zone << "'" << endl,
                ctx.slog->info(Logr::Warning, "Catalog-Zone: duplicate member zone", "member zone", Logging::Loggable(ci.d_zone)));
           zoneInvalid = true;
         }
