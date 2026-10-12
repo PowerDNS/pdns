@@ -344,7 +344,7 @@ bool generateOptRR(const std::string& optRData, PacketBuffer& res, size_t maximu
   edns0.version = 0;
   edns0.extFlags = dnssecOK ? htons(EDNS_HEADER_FLAG_DO) : 0;
 
-  if ((maximumSize - res.size()) < (sizeof(name) + sizeof(dnsHeader) + optRData.length())) {
+  if (res.size() >= maximumSize || (maximumSize - res.size()) < (sizeof(name) + sizeof(dnsHeader) + optRData.length())) {
     return false;
   }
 
