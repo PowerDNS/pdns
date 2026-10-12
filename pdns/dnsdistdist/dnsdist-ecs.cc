@@ -666,6 +666,8 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
       return true;
     }
 
+    removeTrailingDataFromPacketIfAny(packet);
+
     return replaceEDNSClientSubnetOption(packet, maximumSize, optRDPosition + ecsOptionStartPosition, ecsOptionSize, optRDPosition, newECSOption);
   }
 
