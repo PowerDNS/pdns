@@ -380,8 +380,12 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
         ci.d_zone = DNSName(rr.content);
         ci.d_unique = unique;
 
+        if (ci.d_zone.isRoot()) {
+          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', invalid member zone '" << ci.d_zone << "'" << endl;
+          zoneInvalid = true;
+        }
         if (!dupcheck.insert(ci.d_zone).second) {
-          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate member zone'" << ci.d_zone << "'" << endl;
+          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate member zone '" << ci.d_zone << "'" << endl;
           zoneInvalid = true;
         }
       }
