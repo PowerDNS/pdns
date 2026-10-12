@@ -68,6 +68,7 @@ struct HealthCheckData
   TCPState d_tcpState{TCPState::WritingQuery};
   bool d_initial{false};
 
+  timeval d_pooledArrived{0, 0};
   bool d_pooled{false};
   double d_pooledElapsed{0};
   // in case of pooled healthchecks, we must call store()
@@ -291,6 +292,7 @@ public:
     // be careful
     d_data->d_buffer = std::move(response.d_buffer);
     d_data->d_pooledElapsed = d_data->d_elapsed.udiff();
+    d_data->d_pooledArrived = now;
     d_data->d_pooledState.store(HealthCheckData::PooledState::Finished);
   }
 
@@ -377,7 +379,19 @@ void PooledHealthChecks::checkResults()
       data->d_pooledState.store(HealthCheckData::PooledState::Cancelled);
       break;
     case HealthCheckData::PooledState::Finished:
-      data->d_ds->submitHealthCheckResult(false, ::handleResponse(data));
+      if (data->d_ttd < data->d_pooledArrived) {
+        if (verboseHealthChecks) {
+          // arrived, but late
+          auto queryLogger = getLoggerFromData(data);
+          SLOG(infolog("Timeout while waiting for the health check response (ID %d) from backend %s (arrived late)", data->d_queryID, data->d_ds->getNameWithAddr()),
+               queryLogger->info(Logr::Info, "Timeout while waiting for the health check response from backend (arrived late)"));
+        }
+        ++data->d_ds->d_healthCheckMetrics.d_timeOuts;
+        data->d_ds->submitHealthCheckResult(false, false);
+      }
+      else {
+        data->d_ds->submitHealthCheckResult(false, ::handleResponse(data));
+      }
       break;
     case HealthCheckData::PooledState::Failure:
       ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
