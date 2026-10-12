@@ -28,87 +28,92 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-lua.hh"
 
+std::shared_ptr<DNSDistPacketCache> newPacketCache(bool client, size_t maxEntries, std::optional<LuaAssociativeTable<boost::variant<bool, size_t, std::string, LuaArray<uint16_t>>>>& vars)
+{
+  DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = maxEntries,
+    .d_shardCount = 20,
+  };
+  bool cookieHashing = false;
+  LuaArray<uint16_t> skipOptions;
+  LuaArray<uint16_t> payloadRanks;
+  std::unordered_set<uint16_t> ranks;
+  size_t maximumEntrySize{4096};
+
+  getOptionalValue<bool>(vars, "deferrableInsertLock", settings.d_deferrableInsertLock);
+  getOptionalValue<bool>(vars, "dontAge", settings.d_dontAge);
+  getOptionalValue<bool>(vars, "keepStaleData", settings.d_keepStaleData);
+  getOptionalValue<bool>(vars, "shuffle", settings.d_shuffle);
+  getOptionalValue<bool>(vars, "dontEvict", settings.d_dontEvict);
+  getOptionalValue<bool>(vars, "dontExpire", settings.d_dontExpire);
+  getOptionalValue<size_t>(vars, "maxNegativeTTL", settings.d_maxNegativeTTL);
+  getOptionalValue<size_t>(vars, "maxTTL", settings.d_maxTTL);
+  getOptionalValue<size_t>(vars, "minTTL", settings.d_minTTL);
+  getOptionalValue<size_t>(vars, "numberOfShards", settings.d_shardCount);
+  getOptionalValue<bool>(vars, "parseECS", settings.d_parseECS);
+  getOptionalValue<size_t>(vars, "staleTTL", settings.d_staleTTL);
+  getOptionalValue<size_t>(vars, "temporaryFailureTTL", settings.d_tempFailureTTL);
+  getOptionalValue<size_t>(vars, "truncatedTTL", settings.d_truncatedTTL);
+  getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
+  getOptionalValue<size_t>(vars, "maximumEntrySize", maximumEntrySize);
+
+  if (maximumEntrySize >= sizeof(dnsheader)) {
+    settings.d_maximumEntrySize = maximumEntrySize;
+  }
+
+  if (getOptionalValue<decltype(skipOptions)>(vars, "skipOptions", skipOptions) > 0) {
+    settings.d_optionsToSkip.clear();
+    settings.d_optionsToSkip.insert(EDNSOptionCode::COOKIE);
+    for (const auto& option : skipOptions) {
+      settings.d_optionsToSkip.insert(option.second);
+    }
+  }
+
+  if (getOptionalValue<decltype(payloadRanks)>(vars, "payloadRanks", payloadRanks) > 0) {
+    for (const auto& rank : payloadRanks) {
+      if (rank.second < 512 || rank.second > settings.d_maximumEntrySize) {
+        continue;
+      }
+      ranks.insert(rank.second);
+    }
+    if (!ranks.empty()) {
+      settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
+      std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
+    }
+  }
+
+  if (cookieHashing) {
+    settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
+  }
+
+  checkAllParametersConsumed("newPacketCache", vars);
+
+  if (maxEntries < settings.d_shardCount) {
+    SLOG(warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, settings.d_shardCount, maxEntries),
+         dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "The number of entries in the packet cache is smaller than the number of shards, decreasing the number of shards to the number of entries", "number_of_entries", Logging::Loggable(maxEntries), "number_of_shards", Logging::Loggable(settings.d_shardCount)));
+    g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(settings.d_shardCount) + "), decreasing the number of shards to " + std::to_string(maxEntries);
+    settings.d_shardCount = maxEntries;
+  }
+
+  if (settings.d_dontEvict && settings.d_dontExpire) {
+    SLOG(warnlog("dont_evict and dont_expire are both set to true; the packet cache will never remove anything"),
+         dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "dont_evict and dont_expire are both set to true; the packet cache will never remove anything"));
+  }
+
+  if (client) {
+    settings.d_maxEntries = 1;
+    settings.d_shardCount = 1;
+  }
+
+  const DNSDistPacketCache::Time now;
+  return std::make_shared<DNSDistPacketCache>(settings, now);
+}
+
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 {
   /* PacketCache */
   luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, std::optional<LuaAssociativeTable<boost::variant<bool, size_t, std::string, LuaArray<uint16_t>>>> vars) {
-    DNSDistPacketCache::CacheSettings settings{
-      .d_maxEntries = maxEntries,
-      .d_shardCount = 20,
-    };
-    bool cookieHashing = false;
-    LuaArray<uint16_t> skipOptions;
-    LuaArray<uint16_t> payloadRanks;
-    std::unordered_set<uint16_t> ranks;
-    size_t maximumEntrySize{4096};
-
-    getOptionalValue<bool>(vars, "deferrableInsertLock", settings.d_deferrableInsertLock);
-    getOptionalValue<bool>(vars, "dontAge", settings.d_dontAge);
-    getOptionalValue<bool>(vars, "keepStaleData", settings.d_keepStaleData);
-    getOptionalValue<bool>(vars, "shuffle", settings.d_shuffle);
-    getOptionalValue<bool>(vars, "dontEvict", settings.d_dontEvict);
-    getOptionalValue<bool>(vars, "dontExpire", settings.d_dontExpire);
-    getOptionalValue<size_t>(vars, "maxNegativeTTL", settings.d_maxNegativeTTL);
-    getOptionalValue<size_t>(vars, "maxTTL", settings.d_maxTTL);
-    getOptionalValue<size_t>(vars, "minTTL", settings.d_minTTL);
-    getOptionalValue<size_t>(vars, "numberOfShards", settings.d_shardCount);
-    getOptionalValue<bool>(vars, "parseECS", settings.d_parseECS);
-    getOptionalValue<size_t>(vars, "staleTTL", settings.d_staleTTL);
-    getOptionalValue<size_t>(vars, "temporaryFailureTTL", settings.d_tempFailureTTL);
-    getOptionalValue<size_t>(vars, "truncatedTTL", settings.d_truncatedTTL);
-    getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
-    getOptionalValue<size_t>(vars, "maximumEntrySize", maximumEntrySize);
-
-    if (maximumEntrySize >= sizeof(dnsheader)) {
-      settings.d_maximumEntrySize = maximumEntrySize;
-    }
-
-    if (getOptionalValue<decltype(skipOptions)>(vars, "skipOptions", skipOptions) > 0) {
-      settings.d_optionsToSkip.clear();
-      settings.d_optionsToSkip.insert(EDNSOptionCode::COOKIE);
-      for (const auto& option : skipOptions) {
-        settings.d_optionsToSkip.insert(option.second);
-      }
-    }
-
-    if (getOptionalValue<decltype(payloadRanks)>(vars, "payloadRanks", payloadRanks) > 0) {
-      for (const auto& rank : payloadRanks) {
-        if (rank.second < 512 || rank.second > settings.d_maximumEntrySize) {
-          continue;
-        }
-        ranks.insert(rank.second);
-      }
-      if (!ranks.empty()) {
-        settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
-        std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
-      }
-    }
-
-    if (cookieHashing) {
-      settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
-    }
-
-    checkAllParametersConsumed("newPacketCache", vars);
-
-    if (maxEntries < settings.d_shardCount) {
-      SLOG(warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, settings.d_shardCount, maxEntries),
-           dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "The number of entries in the packet cache is smaller than the number of shards, decreasing the number of shards to the number of entries", "number_of_entries", Logging::Loggable(maxEntries), "number_of_shards", Logging::Loggable(settings.d_shardCount)));
-      g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(settings.d_shardCount) + "), decreasing the number of shards to " + std::to_string(maxEntries);
-      settings.d_shardCount = maxEntries;
-    }
-
-    if (settings.d_dontEvict && settings.d_dontExpire) {
-      SLOG(warnlog("dont_evict and dont_expire are both set to true; the packet cache will never remove anything"),
-           dnsdist::logging::getTopLogger("configuration")->info(Logr::Warning, "dont_evict and dont_expire are both set to true; the packet cache will never remove anything"));
-    }
-
-    if (client) {
-      settings.d_maxEntries = 1;
-      settings.d_shardCount = 1;
-    }
-
-    const DNSDistPacketCache::Time now;
-    return std::make_shared<DNSDistPacketCache>(settings, now);
+    return newPacketCache(client, maxEntries, vars);
   });
 
 #ifndef DISABLE_PACKETCACHE_BINDINGS
