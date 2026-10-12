@@ -112,7 +112,7 @@ DNSName::DNSName(const std::string_view content)
       throwSafeRangeError("label too long to append: ", content);
     }
 
-    if (position > static_cast<ptrdiff_t>(s_maxDNSNameLength - 1U)) {
+    if (position > s_maxDNSNameLength - 1U) {
       // reserve two bytes, one for length and one for the root label
       throwSafeRangeError("name too long to append: ", content);
     }
