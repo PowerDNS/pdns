@@ -282,6 +282,7 @@ public:
     return d_data->d_pooledState.load() == HealthCheckData::PooledState::Ongoing;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
     (void)now;
@@ -293,6 +294,7 @@ public:
     d_data->d_pooledState.store(HealthCheckData::PooledState::Finished);
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
   {
     (void)now;
@@ -300,6 +302,7 @@ public:
     throw std::runtime_error("Unexpected XFR response to a health check query");
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
   void notifyIOError(const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
   {
     (void)now;

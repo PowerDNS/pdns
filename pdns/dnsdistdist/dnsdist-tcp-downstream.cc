@@ -781,9 +781,9 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     const double udiff = ids.queryRealTime.udiff();
     conn->d_ds->updateTCPLatency(udiff);
     if (d_responseBuffer.size() >= sizeof(dnsheader)) {
-      dnsheader dh;
-      memcpy(&dh, d_responseBuffer.data(), sizeof(dh));
-      conn->d_ds->reportResponse(dh.rcode);
+      dnsheader dnsHeader{};
+      memcpy(&dnsHeader, d_responseBuffer.data(), sizeof(dnsHeader));
+      conn->d_ds->reportResponse(dnsHeader.rcode);
     }
     else {
       conn->d_ds->reportTimeoutOrError();
