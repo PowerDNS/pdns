@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 import dns
+import os
+import random
 import ssl
 import threading
 import time
-import random
+import unittest
 
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
 
+# Disable these tests when built with TSAN: the atomic magic in ossl_namemap_empty
+# does not play well with TSAN, when we have more than one thread accepting connections
+# for the same server context.
+@unittest.skipIf("SANITIZERS" in os.environ and os.environ["SANITIZERS"] == "tsan", "OpenSSLErrorQueue tests are disabled with TSAN")
 class TestOpenSSLErrorQueue(DNSDistTest):
     _serverKey = "server.key"
     _serverCert = "server.chain"
