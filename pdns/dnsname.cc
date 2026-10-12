@@ -75,7 +75,7 @@ void DNSName::throwSafeRangeError(const std::string& msg, const std::string_view
 
 DNSName::DNSName(const std::string_view content)
 {
-  if (content.size() == 0 || (content.size() == 1 && content.at(0) == '.')) {
+  if (content.empty() || (content.size() == 1 && content.at(0) == '.')) {
     d_storage.assign(1U, '\0');
     return;
   }
@@ -94,13 +94,13 @@ DNSName::DNSName(const std::string_view content)
   d_storage.reserve(content.size() + 1U);
   for (size_t position = 0; position < content.size(); ) {
     lenpos = d_storage.size();
-    if (content[position] == '.') {
+    if (content.at(position) == '.') {
       throwSafeRangeError("Found . in wrong position in DNSName: ", content);
     }
     d_storage.append(1U, '\0');
     labellen = 0;
     size_t begPosition = position;
-    for(; position < content.size() && content[position] != '.'; ++position) {
+    for(; position < content.size() && content.at(position) != '.'; ++position) {
       labellen++;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -117,7 +117,7 @@ DNSName::DNSName(const std::string_view content)
       throwSafeRangeError("name too long to append: ", content);
     }
 
-    d_storage[lenpos] = static_cast<char>(labellen);
+    d_storage.at(lenpos) = static_cast<char>(labellen);
   }
   if (d_storage.size() > s_maxDNSNameLength - 1U) {
     throwSafeRangeError("name too long: ", content);
