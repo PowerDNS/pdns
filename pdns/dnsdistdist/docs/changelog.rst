@@ -3,6 +3,76 @@ Changelog
 
 .. changelog::
 
+  :version: 2.1.3
+  :released: 12th of October 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18062
+
+    Fix possible use-after-free in add*Action
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 18150
+
+    Stop Closing TLS connections too early (DNSBunker)
+
+  .. change::
+    :tags: Improvements, Webserver, Metrics
+    :pullreq: 18151
+
+    Tighten access to metrics when the dashboard is passwordless
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18152
+
+    Skip timeout entries for DynBlock NMT rules
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18153
+
+    Fix several AF_XDP / XSK issues
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 18154
+
+    Correct stat name lookup in ``udpErrorStats()``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18155
+
+    Fix out-of-range exception in ``getEDNSOptionsFromContent``
+
+.. changelog::
+
+  :version: 2.0.11
+  :released: 12th of October 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18063
+
+    Fix possible use-after-free in add*Action
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 18156
+
+    Fix TCP listen overflows metric on newer Linux kernels
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 18157
+
+    Stop closing TLS connections too early (DNSBunker)
+
+.. changelog::
+
   :version: 2.0.10
   :released: 22nd of September 2026
 
