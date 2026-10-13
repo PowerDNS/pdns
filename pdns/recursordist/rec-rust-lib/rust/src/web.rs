@@ -1138,33 +1138,37 @@ fn load_pkcs12_key_and_certs(
 ) -> std::io::Result<(pki_types::PrivateKeyDer<'static>, Vec<pki_types::CertificateDer<'static>>)> {
 
     let data = std::fs::read(filename)?;
-    let keystore_file = p12_keystore::KeyStore::from_pkcs12(&data, password);
+    let keystore_file = p12_keystore::KeyStore::from_pkcs12(&data, password, p12_keystore::Pkcs12ImportPolicy::Strict);
 
     match keystore_file {
         Ok(keystore) => {
             if let Some((_alias, chain)) = keystore.private_key_chain() {
-                let key_or_err = PrivateKeyDer::try_from(chain.key().to_owned());
+                let key_or_err = p12_keystore::PrivateKey::try_from(chain.key().to_owned());
                 match key_or_err {
                     Ok(key) => {
                         let mut certs = vec![];
-                        for cert in chain.chain().to_owned() {
+                        for cert in chain.certs().to_owned() {
                             let converted = CertificateDer::from_slice(cert.as_der());
                             certs.push(converted.into_owned());
                         }
-                        return Ok((key, certs));
-                    }
-                    Err(err) => {
-                        let msg = "Failed to parse private key in pkcs12 file";
-                        rustmisc::error(
-                            &ctx.logger,
-                            rustmisc::Priority::Error,
-                            err,
-                            msg,
-                            &vec![rustmisc::KeyValue {
-                                key: "filename".to_string(),
-                                value: filename.to_string(),
-                            }]);
-                        return Err(std::io::Error::other(msg));
+                        let der_bytes = key.as_der().to_owned();
+                        let der = pki_types::PrivateKeyDer::try_from(der_bytes);
+                        match der {
+                            Ok(der) => return Ok((der, certs)),
+                            Err(err) => {
+                                let msg = "Failed to parse private key in pkcs12 file";
+                                rustmisc::error(
+                                    &ctx.logger,
+                                    rustmisc::Priority::Error,
+                                    err,
+                                    msg,
+                                    &vec![rustmisc::KeyValue {
+                                        key: "filename".to_string(),
+                                        value: filename.to_string(),
+                                    }]);
+                                return Err(std::io::Error::other(msg));
+                            }
+                        }
                     }
                 }
             }
