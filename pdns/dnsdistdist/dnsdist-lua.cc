@@ -1187,12 +1187,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       if (getOptionalValue<std::string>(vars, "apiKey", apiKey) > 0) {
-        auto holder = std::make_shared<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
-        if (!holder->wasHashed() && holder->isHashingAvailable()) {
-          SLOG(infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead."),
-               getLogger("setWebserverConfig")->info(Logr::Info, "Passing a plain-text API key via the 'apiKey' parameter is not advised, please consider generating a hashed one using 'hashPassword()' instead."));
+        if (apiKey.empty()) {
+          config.d_webAPIKey.reset();
         }
-        config.d_webAPIKey = std::move(holder);
+        else {
+          auto holder = std::make_shared<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
+          if (!holder->wasHashed() && holder->isHashingAvailable()) {
+            SLOG(infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead."),
+                 getLogger("setWebserverConfig")->info(Logr::Info, "Passing a plain-text API key via the 'apiKey' parameter is not advised, please consider generating a hashed one using 'hashPassword()' instead."));
+          }
+          config.d_webAPIKey = std::move(holder);
+        }
       }
 
       if (getOptionalValue<std::string>(vars, "acl", acl) > 0) {
