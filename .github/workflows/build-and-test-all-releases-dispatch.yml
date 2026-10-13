@@ -41,12 +41,6 @@ jobs:
     with:
       branch-name: rel/rec-5.3.x
 
-  call-build-and-test-all-rec-52:
-    if: ${{ vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    uses: PowerDNS/pdns/.github/workflows/build-and-test-all.yml@rel/rec-5.2.x
-    with:
-      branch-name: rel/rec-5.2.x
-
   call-build-and-test-all-dnsdist-21:
     if: ${{ vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     uses: PowerDNS/pdns/.github/workflows/build-and-test-all.yml@rel/dnsdist-2.1.x
@@ -58,9 +52,3 @@ jobs:
     uses: PowerDNS/pdns/.github/workflows/build-and-test-all.yml@rel/dnsdist-2.0.x
     with:
       branch-name: rel/dnsdist-2.0.x
-
-  call-build-and-test-all-dnsdist-19:
-    if: ${{ vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    uses: PowerDNS/pdns/.github/workflows/build-and-test-all.yml@rel/dnsdist-1.9.x
-    with:
-      branch-name: rel/dnsdist-1.9.x
