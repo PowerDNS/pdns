@@ -177,6 +177,7 @@ Listen Sockets
   .. versionchanged:: 2.2.0
      ``padResponses`` option added.
      ``qLogDir`` option added.
+     ``maxInFlight`` now defaults to ``100`` instead of ``65535`` previously.
 
   Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available in :doc:`../guides/dns-over-http3`.
@@ -194,7 +195,7 @@ Listen Sockets
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``idleTimeout=5``: int - Set the idle timeout, in seconds.
   * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
-  * ``maxInFlight=65535``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
+  * ``maxInFlight=100``: int - Maximum number of in-flight queries. The default is ``100`` (was ``65535`` before 2.2.0). A value of ``0`` would mean that no queries would be allowed and is thus ignored. A large value increases the risk of abuse, especially with regards to memory consumption.
   * ``congestionControlAlgo="cubic"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.
@@ -210,6 +211,7 @@ Listen Sockets
   .. versionchanged:: 2.2.0
      ``padResponses`` option added.
      ``qLogDir`` option added.
+     ``maxInFlight`` now defaults to ``100`` instead of ``65535`` previously.
 
   Listen on the specified address and UDP port for incoming DNS over QUIC connections, presenting the specified X.509 certificate.
   See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
@@ -228,7 +230,7 @@ Listen Sockets
   * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
   * ``idleTimeout=5``: int - Set the idle timeout, in seconds.
   * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
-  * ``maxInFlight=65535``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
+  * ``maxInFlight=100``: int - Maximum number of in-flight queries. The default is ``100`` (was ``65535`` before 2.2.0). A value of ``0`` would mean that no queries would be allowed and is thus ignored. A large value increases the risk of abuse, especially with regards to memory consumption.
   * ``congestionControlAlgo="cubic"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
   * ``padResponses``: bool - Whether to pad DNS responses as specified in RFC 7830. Default is ``false``, meaning responses are not padded.

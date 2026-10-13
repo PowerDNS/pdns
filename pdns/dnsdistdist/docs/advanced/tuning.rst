@@ -129,7 +129,7 @@ For DNS over HTTPS and DNS over TLS, in addition to the advice above we suggest 
 DNS over QUIC
 -------------
 
-For DNS over QUIC, every :func:`addDOQLocal` directive adds a new thread dealing with incoming datagrams, so it might be useful to add more than one directive.
+For DNS over QUIC, every :func:`addDOQLocal`/ :func:`addDOH3Local` directive adds a new thread dealing with incoming datagrams, so it might be useful to add more than one directive.
 
 .. figure:: ../imgs/DNSDistDoQ.png
    :align: center

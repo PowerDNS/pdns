@@ -1144,8 +1144,11 @@ incoming_doq:
   parameters:
     - name: "max_concurrent_queries_per_connection"
       type: "u64"
-      default: 65535
+      default: 100
       description: "Maximum number of in-flight queries on a single connection"
+      changes:
+        - version: "2.2.0"
+          content: "The default value used to be ``65535`` and is now ``100``. This reduces the risk of abuse and unintended high memory consumption on small installations."
 
 incoming_quic:
   description: "QUIC settings for DNS over QUIC and DNS over HTTP/3 frontends"
