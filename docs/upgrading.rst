@@ -29,6 +29,11 @@ PKCS#11 now requires setting an option
 
 When PowerDNS is built with :doc:`PKCS#11 support <dnssec/pkcs11>`, the PKCS#11 engine is disabled by the :ref:`setting-pkcs11` configuration setting by default. To use the PKCS#11 engine, this setting must be set to ``yes``.
 
+Metric counter name changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Due to the introduction of Prometheus-style histogram counters for latencies, the existing exponentially weighted moving average couters now have their name suffixed with `-ewma` to tell them apart from the histogram counters.
+
 5.0.x to 5.1.x
 --------------
 
