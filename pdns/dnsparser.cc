@@ -594,7 +594,7 @@ uint16_t PacketReader::get16BitInt()
 
 uint8_t PacketReader::get8BitInt()
 {
-  if (!isWithinRecordBoundaries(d_pos, d_pos + 1U)) {
+  if (!isWithinRecordBoundaries(d_pos, d_pos + sizeof(uint8_t))) {
     throw std::out_of_range("Attempt to read 8 bit value outside of record");
   }
   return d_content.at(d_pos++);
@@ -611,7 +611,7 @@ DNSName PacketReader::getName()
     DNSName name((const char*) d_content.data(), d_content.size(), d_pos, uncompress, nullptr /* qtype */, nullptr /* qclass */, &consumed, minOffset, &d_pointerBudget);
 
     d_pos += consumed;
-    // if we have the length of the record, and we were parsing a DNS name inside the record content
+    // if we know the length of the record, and we were parsing a DNS name inside the record contents
     // (not the owner name, in which case d_startrecordpos and d_recordlen still refer to the content of the previous record),
     // check that we did not go over the record boundary
     if (!isWithinRecordBoundaries(initialPosition, d_pos, true)) {

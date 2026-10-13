@@ -205,11 +205,11 @@ public:
   {
     size_t stop = d_pos;
     stop += n;
-    if (stop > d_content.size()) {
-      throw std::out_of_range("Attempt to skip bytes (" + std::to_string(n) + " starting at " + std::to_string(d_pos) + ") farther than the packet's end (" + std::to_string(d_content.size()) + ")");
-    }
     if (!isWithinRecordBoundaries(d_pos, d_pos + n)) {
       throw std::out_of_range("Attempt to skip bytes (" + std::to_string(n) + " starting at " + std::to_string(d_pos) + ") farther than the record's end (" + std::to_string(d_startrecordpos + d_recordlen) + ")");
+    }
+    if (stop > d_content.size()) {
+      throw std::out_of_range("Attempt to skip bytes (" + std::to_string(n) + " starting at " + std::to_string(d_pos) + ") farther than the packet's end (" + std::to_string(d_content.size()) + ")");
     }
 
     d_pos += n;
