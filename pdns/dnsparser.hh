@@ -171,11 +171,12 @@ public:
   string getText(bool multi, bool lenField);
   string getUnquotedText(bool lenField);
 
-  /* Whether the current position is at the end of wire data corresponding to
+  /* Whether the current position is at (or after, which would indicate a problem
+     and should have been detected earlier) the end of wire data corresponding to
      the current DNS record */
   [[nodiscard]] bool eof() const
   {
-    return d_pos == (d_startrecordpos + d_recordlen);
+    return d_pos >= (d_startrecordpos + d_recordlen);
   }
 
   /* Returns a string, formatted for human/log consumption, containing information
