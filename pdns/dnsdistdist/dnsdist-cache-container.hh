@@ -24,6 +24,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <optional>
+#include <variant>
 #include <functional>
 #include <stdexcept>
 #include <cstdint>
@@ -58,12 +59,18 @@ template <typename V>
 class DNSDistPacketCacheContainer : boost::noncopyable
 {
 public:
-  enum class InsertState : uint8_t
+  // we can never return "Full" on insert; that is guarded by the cache one layer above
+  struct InsertResultInserted
   {
-    Inserted,
-    Replaced,
-    Existing,
-  }; // we can never return "Full" on insert; that is guarded by the cache above
+  };
+  struct InsertResultReplaced
+  {
+  };
+  struct InsertResultExisting
+  {
+    V& value;
+  };
+  using InsertResult = std::variant<InsertResultInserted, InsertResultReplaced, InsertResultExisting>;
 
   DNSDistPacketCacheContainer(const DNSDistPacketCacheContainer&) = delete;
   DNSDistPacketCacheContainer(DNSDistPacketCacheContainer&&) = delete;
@@ -289,18 +296,18 @@ public:
     return mapIt->second.d_value;
   };
 
-  std::pair<InsertState, std::optional<std::reference_wrapper<V>>> insert(uint32_t key, time_t expires, V& value)
+  InsertResult insert(uint32_t key, time_t expires, V& value)
   {
     auto mapIt = d_map.find(key);
     if (mapIt != d_map.end()) {
-      return {InsertState::Existing, mapIt->second.d_value};
+      return InsertResultExisting{mapIt->second.d_value};
     }
 
-    auto state = InsertState::Inserted;
+    InsertResult state = InsertResultInserted{};
 
     if (d_map.size() == d_maxSize) {
       // we never get here if d_dontevict is set in the main cache object
-      state = InsertState::Replaced;
+      state = InsertResultReplaced{};
 
       evict();
     }
@@ -320,7 +327,7 @@ public:
     if (d_sieve_hand == d_sieve_list.end()) {
       d_sieve_hand = d_sieve_list.begin();
     }
-    return {state, std::nullopt};
+    return state;
   }
 
   size_t size() const

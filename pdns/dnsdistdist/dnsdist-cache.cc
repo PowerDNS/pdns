@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <cinttypes>
+#include <variant>
 
 #include "dnsdist.hh"
 #include "dnsname.hh"
@@ -91,6 +92,16 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint1
   return true;
 }
 
+// util template for std::visit
+// from C++ std::visit docs
+template <class... Ts>
+struct overloaded : Ts...
+{
+  using Ts::operator()...;
+};
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+
 bool DNSDistPacketCache::insertLocked(DNSDistPacketCacheContainer<CacheValue>& map, uint32_t key, time_t expiry, CacheValue& newValue)
 {
   /* check again now that we hold the lock to prevent a race */
@@ -98,39 +109,36 @@ bool DNSDistPacketCache::insertLocked(DNSDistPacketCacheContainer<CacheValue>& m
     return false;
   }
 
+  auto insertResult = map.insert(key, expiry, newValue);
   // note: newValue is moved out on successful insert, not on existing
-  auto result = map.insert(key, expiry, newValue);
+  return std::visit(
+    overloaded{
+      [](DNSDistPacketCacheContainer<CacheValue>::InsertResultInserted) { return true; },
+      [](DNSDistPacketCacheContainer<CacheValue>::InsertResultReplaced) { return false; },
+      [&](DNSDistPacketCacheContainer<CacheValue>::InsertResultExisting existing) {
+        // in case of collision, don't override the existing entry
+        // except if it has expired
+        CacheValue& value = existing.value;
+        bool wasExpired = value.validity <= newValue.added;
 
-  if (result.first == DNSDistPacketCacheContainer<CacheValue>::InsertState::Replaced) {
-    return false;
-  }
+        if (!wasExpired && !cachedValueMatches(value, newValue.queryFlags, newValue.qname, newValue.qtype, newValue.qclass, newValue.receivedOverUDP, newValue.dnssecOK, newValue.subnet)) {
+          ++d_insertCollisions;
+          return false;
+        }
 
-  if (result.first == DNSDistPacketCacheContainer<CacheValue>::InsertState::Inserted) {
-    return true;
-  }
+        // if the existing entry had a longer TTD, keep it
+        if (newValue.validity <= value.validity) {
+          return false;
+        }
 
-  // case DNSDistPacketCacheContainer::InsertState::Existing
+        // this moves deep into the container
+        value = std::move(newValue);
 
-  /* in case of collision, don't override the existing entry
-     except if it has expired */
-  CacheValue& value = *result.second;
-  bool wasExpired = value.validity <= newValue.added;
-
-  if (!wasExpired && !cachedValueMatches(value, newValue.queryFlags, newValue.qname, newValue.qtype, newValue.qclass, newValue.receivedOverUDP, newValue.dnssecOK, newValue.subnet)) {
-    ++d_insertCollisions;
-    return false;
-  }
-
-  /* if the existing entry had a longer TTD, keep it */
-  if (newValue.validity <= value.validity) {
-    return false;
-  }
-
-  // this moves deep into the container
-  value = std::move(newValue);
-
-  map.bump(key, expiry);
-  return false;
+        map.bump(key, expiry);
+        return false;
+      },
+    },
+    insertResult);
 }
 
 void DNSDistPacketCache::insert(uint32_t key, const std::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, std::optional<uint32_t> tempFailureTTL, const Time& now)
