@@ -1699,34 +1699,35 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             headers={"content-type": "application/json"},
         )
         self.assert_success(r)
-        # verify that the new record has been correctly processed and the \000
-        # escape is unchanged
+        # verify that the new record has been correctly processed and the
+        # contents are unchanged
         data = self.get_zone(name)
         self.assertEqual(get_rrset(data, recname, "TXT")["records"][0]["content"], content)
 
     def test_zone_rr_update_with_escapes(self):
         name, payload, zone = self.create_zone()
-        # do a replace (= update)
-        recname = "well-formed-txt." + name
-        content = '"valid\\000record"'
-        rrset = {
-            "changetype": "replace",
-            "name": recname,
-            "type": "txt",
-            "ttl": 3600,
-            "records": [{"content": content, "disabled": False}],
-        }
-        payload = {"rrsets": [rrset]}
-        r = self.session.patch(
-            self.url("/api/v1/servers/localhost/zones/" + name),
-            data=json.dumps(payload),
-            headers={"content-type": "application/json"},
-        )
-        self.assert_success(r)
-        # verify that the new record has been correctly processed and the \000
-        # escape is unchanged
-        data = self.get_zone(name)
-        self.assertEqual(get_rrset(data, recname, "TXT")["records"][0]["content"], content)
+        contents = ['"valid\\000record"', '"valid\\\\record"', '"valid \\"record\\""']
+        for content in contents:
+            # do a replace (= update)
+            recname = "well-formed-txt." + name
+            rrset = {
+                "changetype": "replace",
+                "name": recname,
+                "type": "txt",
+                "ttl": 3600,
+                "records": [{"content": content, "disabled": False}],
+            }
+            payload = {"rrsets": [rrset]}
+            r = self.session.patch(
+                self.url("/api/v1/servers/localhost/zones/" + name),
+                data=json.dumps(payload),
+                headers={"content-type": "application/json"},
+            )
+            self.assert_success(r)
+            # verify that the new record has been correctly processed and the
+            # contents are unchanged
+            data = self.get_zone(name)
+            self.assertEqual(get_rrset(data, recname, "TXT")["records"][0]["content"], content)
 
     def test_zone_rr_update_opt(self):
         name, payload, zone = self.create_zone()
