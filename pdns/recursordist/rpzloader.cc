@@ -271,6 +271,10 @@ static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger,
         continue;
       }
 
+      if (!dnsRecord.d_name.isPartOf(zoneName)) {
+        logger->info(Logr::Warning, "Out-of-zone data received, skipping", "name", Logging::Loggable(dnsRecord.d_name));
+        continue;
+      }
       // We want the full name in the SOA record
       if (dnsRecord.d_type == QType::SOA) {
         zone->setSOA(dnsRecord);
@@ -366,10 +370,17 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
         zone->setDomain(domain);
         soaRecord = std::move(dnsRecord);
       }
-      else if (dnsRecord.d_type == QType::NS || dnsRecord.d_type == QType::ZONEMD) {
+      else if (dnsRecord.d_type == QType::NS || dnsRecord.d_type == QType::TSIG || dnsRecord.d_type == QType::ZONEMD) {
         continue;
       }
       else {
+        if (!dnsRecord.d_name.isPartOf(domain)) {
+          auto [file, line] = zpt.getLineNumAndFile();
+          log->info(Logr::Warning, "Out-of-zone data read, skipping", "name", Logging::Loggable(dnsRecord.d_name),
+                    "line", Logging::Loggable(line),
+                    "file", Logging::Loggable(file));
+          continue;
+        }
         dnsRecord.d_name = dnsRecord.d_name.makeRelative(domain);
         auto name = RPZRecordToPolicy(dnsRecord, zone, true, defpol, defpolOverrideLocal, maxTTL, log);
         if (name && registerAffected) {
@@ -378,7 +389,7 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
       }
     }
     catch (const PDNSException& pe) {
-      throw PDNSException("Issue parsing '" + drr.qname.toLogString() + "' '" + drr.content + "' at " + zpt.getLineOfFile() + ": " + pe.reason);
+      throw PDNSException("Issue parsing '" + drr.qname.toLogString() + "' '" + drr.content + "' " + zpt.getLineOfFile() + ": " + pe.reason);
     }
   }
 
