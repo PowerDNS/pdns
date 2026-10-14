@@ -780,16 +780,10 @@ static std::string normalizeJsonString(const std::string& jsonContent)
     if (quote) {
       ret << '"';
     }
-    // We would love to simply feed chunk to ret here, but unfortunately
-    // we need to RFC1035 escape non-printable characters again.
-    for (char chr : chunk) {
-      if (chr >= 0x20 && chr < 0x7f) {
-        ret << chr;
-      }
-      else {
-        ret << '\\' << std::setfill('0') << std::setw(3) << static_cast<int>(static_cast<unsigned char>(chr)) << std::setw(0);
-      }
-    }
+    // We would love to simply feed chunk to ret here unmodified, but
+    // unfortunately we need to RFC1035 escape non-printable characters again,
+    // as well as escape \ and " occurring in the chunk.
+    ret << txtEscape(chunk);
     if (quote) {
       ret << '"';
     }
