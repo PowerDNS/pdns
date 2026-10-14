@@ -271,13 +271,13 @@ static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger,
         continue;
       }
 
-      // We want the full name in the SOA record
-      if (dnsRecord.d_type == QType::SOA) {
-        zone->setSOA(dnsRecord);
-      }
       if (!dnsRecord.d_name.isPartOf(zoneName)) {
         logger->info(Logr::Warning, "Out-of-zone data received, skipping", "name", Logging::Loggable(dnsRecord.d_name));
         continue;
+      }
+      // We want the full name in the SOA record
+      if (dnsRecord.d_type == QType::SOA) {
+        zone->setSOA(dnsRecord);
       }
       dnsRecord.d_name.makeUsRelative(zoneName);
       if (dnsRecord.d_type == QType::SOA) {
