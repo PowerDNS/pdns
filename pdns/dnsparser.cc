@@ -590,6 +590,7 @@ DNSName PacketReader::getName()
 string txtEscape(const string &name)
 {
   string ret;
+  ret.reserve(name.length()); // In the typical case no escaping is needed
   std::array<char, 5> ebuf{};
 
   for (char letter : name) {
