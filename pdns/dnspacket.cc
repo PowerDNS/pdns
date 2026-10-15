@@ -490,6 +490,14 @@ int DNSPacket::reinit(const char *mesg, size_t length)
     return -1;
   }
   memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
+
+  d_havetsig = false;
+  d_tsig_algo = TSIG_MD5;
+  d_tsigkeyname.clear();
+  d_tsigsecret.clear();
+  d_tsigprevious.clear();
+  d_tsigtimersonly = false;
+
   return 0;
 }
 
