@@ -518,7 +518,7 @@ static bool foundTarget(const ZoneName& target, const ZoneName& shorter, const Q
   return false;
 }
 
-bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, Netmask remote, bool cachedOk, DNSPacket* pkt_p)
+bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk, DNSPacket* pkt_p)
 {
   // A backend can respond to our authority request with the 'best' match it
   // has. For example, when asked for a.b.c.example.com. it might respond with
@@ -531,13 +531,17 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
   ZoneName shorter(target);
   vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.operator const DNSName&().wirelength() + 1, SOAData()));
 
-  std::string view{};
-  if (g_zoneCache.isEnabled()) {
-    Netmask _remote(remote);
-    if (g_views) {
+  if (pkt_p != nullptr && g_views) {
+    std::string view{};
+    if (g_zoneCache.isEnabled()) {
+      Netmask _remote(pkt_p->getRealRemote());
       view = g_zoneCache.getViewFromNetwork(&_remote);
       // Remember the view and its netmask, if applicable, for ECS responses.
-      if (!view.empty() && pkt_p != nullptr) {
+      if (view.empty()) {
+        pkt_p->d_view.clear();
+        pkt_p->d_span = Netmask();
+      }
+      else {
         pkt_p->d_view = view;
         pkt_p->d_span = _remote;
       }
@@ -551,7 +555,10 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
     domainid_t zoneId{UnknownDomainID};
 
     if (cachedOk && g_zoneCache.isEnabled()) {
-      std::string variant = g_zoneCache.getVariantFromView(shorter, view);
+      std::string variant;
+      if (pkt_p != nullptr && g_views) {
+        variant = g_zoneCache.getVariantFromView(shorter, pkt_p->d_view);
+      }
       ZoneName _shorter(shorter.operator const DNSName&(), variant);
       if (g_zoneCache.getEntry(_shorter, zoneId)) {
         if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {

@@ -677,7 +677,7 @@ static bool getAuth(const ZoneName& name, uint16_t qtype, SOAData* soaData, DNSP
 
   {
     auto ueback = s_ub.lock();
-    return ueback->getAuth(name, qtype, soaData, packet->getRealRemote(), true, packet);
+    return ueback->getAuth(name, qtype, soaData, true, packet);
   }
 }
 
