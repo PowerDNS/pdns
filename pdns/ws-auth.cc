@@ -1062,16 +1062,24 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
     }
   }
 
-  if (!document["master_tsig_key_ids"].is_null()) {
+  const auto& master_tsig = document["master_tsig_key_ids"];
+  if (!master_tsig.is_null()) {
+    if (!master_tsig.is_array()) {
+      throw ApiException("master_tsig_key_ids is not an array");
+    }
     vector<string> metadata;
-    extractJsonTSIGKeyIds(backend, document["master_tsig_key_ids"], metadata);
+    extractJsonTSIGKeyIds(backend, master_tsig, metadata);
     if (!domainInfo.backend->setDomainMetadata(zonename, "TSIG-ALLOW-AXFR", metadata)) {
       throw HttpInternalServerErrorException("Unable to set new TSIG primary keys for zone '" + zonename.toString() + "'");
     }
   }
-  if (!document["slave_tsig_key_ids"].is_null()) {
+  const auto& slave_tsig = document["slave_tsig_key_ids"];
+  if (!slave_tsig.is_null()) {
+    if (!slave_tsig.is_array()) {
+      throw ApiException("slave_tsig_key_ids is not an array");
+    }
     vector<string> metadata;
-    extractJsonTSIGKeyIds(backend, document["slave_tsig_key_ids"], metadata);
+    extractJsonTSIGKeyIds(backend, slave_tsig, metadata);
     if (metadata.size() > 1) {
       throw ApiException("Only one TSIG secondary key is currently allowed");
     }
