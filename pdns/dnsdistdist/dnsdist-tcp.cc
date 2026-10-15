@@ -249,7 +249,9 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
 void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse, size_t sentBytes)
 {
   if (currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
-    return;
+    if (!currentResponse.d_xfrFinished) {
+      return;
+    }
   }
 
   --d_currentQueriesCount;

@@ -710,6 +710,27 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   release(true);
 }
 
+IOState TCPConnectionToBackend::nextStepAfterResponseSent(std::shared_ptr<TCPConnectionToBackend>& conn)
+{
+  if (!d_pendingQueries.empty()) {
+    DEBUGLOG("still have some queries to send");
+    return queueNextQuery(conn);
+  }
+  if (d_state == State::sendingQueryToBackend) {
+    DEBUGLOG("still have a query to send");
+    return IOState::NeedWrite;
+  }
+  if (!d_pendingResponses.empty()) {
+    DEBUGLOG("still have some responses to read");
+    return IOState::NeedRead;
+  }
+
+  DEBUGLOG("nothing to do, waiting for a new query");
+  d_state = State::idle;
+  t_downstreamTCPConnectionsManager.moveToIdle(conn);
+  return IOState::Done;
+}
+
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
   d_downstreamFailures = 0;
@@ -750,6 +771,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
     it->second.d_query.d_xfrStarted = true;
     done = isXFRFinished(response, it->second.d_query);
+    response.d_xfrFinished = done;
 
     if (done) {
       d_pendingResponses.erase(it);
@@ -763,9 +785,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
     sender->handleXFRResponse(now, std::move(response));
     if (done) {
-      d_state = State::idle;
-      t_downstreamTCPConnectionsManager.moveToIdle(conn);
-      return IOState::Done;
+      return nextStepAfterResponseSent(conn);
     }
 
     d_state = State::waitingForResponseFromBackend;
@@ -810,23 +830,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     sender->handleResponse(now, std::move(response));
   }
 
-  if (!d_pendingQueries.empty()) {
-    DEBUGLOG("still have some queries to send");
-    return queueNextQuery(shared);
-  }
-  if (d_state == State::sendingQueryToBackend) {
-    DEBUGLOG("still have a query to send");
-    return IOState::NeedWrite;
-  }
-  if (!d_pendingResponses.empty()) {
-    DEBUGLOG("still have some responses to read");
-    return IOState::NeedRead;
-  }
-
-  DEBUGLOG("nothing to do, waiting for a new query");
-  d_state = State::idle;
-  t_downstreamTCPConnectionsManager.moveToIdle(conn);
-  return IOState::Done;
+  return nextStepAfterResponseSent(conn);
 }
 
 uint16_t TCPConnectionToBackend::getQueryIdFromResponse() const
