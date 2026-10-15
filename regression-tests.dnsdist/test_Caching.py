@@ -283,6 +283,7 @@ class TestCaching(DNSDistTest):
             dns.rdatatype.SOA,
             "ns." + name + " hostmaster." + name + " 1 3600 3600 3600 60",
         )
+        query.authority.append(soa)
         response.answer.append(soa)
         response.answer.append(dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1"))
         response.answer.append(soa)
