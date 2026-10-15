@@ -194,7 +194,7 @@ static std::vector<std::string> getLinesFromFile(const std::string& file)
   }
   std::string line;
   while (std::getline(stream, line)) {
-    lines.push_back(line);
+    lines.emplace_back(std::move(line));
   }
   return lines;
 }
@@ -205,15 +205,15 @@ static std::vector<std::string> getURL([[maybe_unused]] const RecZoneToCache::Co
 #ifdef HAVE_LIBCURL
   MiniCurl miniCurl;
   ComboAddress local = config.d_local;
-  std::string reply = miniCurl.getURL(config.d_sources.at(0), nullptr, local == ComboAddress() ? nullptr : &local, static_cast<int>(config.d_timeout), nullptr, false, true);
+  std::string reply = miniCurl.getURL(config.d_sources.at(0), nullptr, local == ComboAddress() ? nullptr : &local, static_cast<int>(config.d_timeout), nullptr, false, true, config.d_maxReceivedBytes);
   if (config.d_maxReceivedBytes > 0 && reply.size() > config.d_maxReceivedBytes) {
-    // We should actually detect this *during* the GET
+    // minicurl still returns the transferred data up to max size
     throw std::runtime_error("Retrieved data exceeds maxReceivedBytes");
   }
   std::istringstream stream(reply);
   string line;
   while (std::getline(stream, line)) {
-    lines.push_back(line);
+    lines.emplace_back(std::move(line));
   }
 #else
   throw std::runtime_error("url method configured but libcurl not compiled in");
