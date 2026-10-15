@@ -1429,7 +1429,7 @@ bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, D
   ZoneName zone = ZoneName(target.makeRelative(d_sd.zonename));
   zone.chopOff();
   // Zone must exist, but need not be secured (could be using front-sign setup)
-  if(!B.getAuth(zone, p.qtype, &zone_sd, p.getRealRemote()) || zone_sd.zonename != zone) {
+  if(!B.getAuth(zone, p.qtype, &zone_sd, true, &p) || zone_sd.zonename != zone) {
     return false; // Bootstrap target zone unknown, NXDOMAIN at _dsboot is OK
   }
 
@@ -1812,7 +1812,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   d_ispresigned.reset();
   d_issecuredzone.reset();
 
-  if(!B.getAuth(ZoneName(state.target), pkt.qtype, &d_sd, pkt.getRealRemote(), true, &pkt)) {
+  if(!B.getAuth(ZoneName(state.target), pkt.qtype, &d_sd, true, &pkt)) {
     DLOG(SLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<state.target<<"'"<<endl,
               d_slog->info(Logr::Error, "We have no authority over zone", "zone", Logging::Loggable(state.target))));
     if (!retargeted) {
