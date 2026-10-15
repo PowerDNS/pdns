@@ -180,7 +180,7 @@ public:
     if (d_pos > endOfRecordContent) {
       throw std::out_of_range("Looking for EOF in PacketReader but we are already beyond the record content's end (" + std::to_string(d_pos) + " while the record content starts at " + std::to_string(d_startrecordpos) + " with a size of " + std::to_string(d_recordlen) + ")");
     }
-    return d_pos == (d_startrecordpos + d_recordlen);
+    return d_pos == endOfRecordContent;
   }
 
   /* Returns a string, formatted for human/log consumption, containing information
