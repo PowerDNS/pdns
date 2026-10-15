@@ -88,7 +88,7 @@ struct ZoneStatus
 };
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vector<CatalogInfo>& fromDB, const string& logPrefix)
+static bool catalogDiff(UeberBackend& B, const DomainInfo& di, vector<CatalogInfo>& fromXFR, vector<CatalogInfo>& fromDB, const string& logPrefix)
 {
   extern CommunicatorClass Communicator;
 
@@ -183,7 +183,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
       if (create && remove) {
         g_log << Logger::Warning << logPrefix << "zone '" << ciCreate.d_zone << "' state reset" << endl;
       }
-      else if (create && di.backend->getDomainInfo(ciCreate.d_zone, d)) { // detect clash
+      else if (create && B.getDomainInfo(ciCreate.d_zone, d)) { // detect clash
         CatalogInfo ci;
         ci.fromJson(d.options, CatalogInfo::CatalogType::Consumer);
 
@@ -259,7 +259,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
     for (const auto& zone : clearCache) {
       if (g_zoneCache.isEnabled()) {
         if (zone.second) {
-          if (di.backend->getDomainInfo(zone.first, d)) {
+          if (B.getDomainInfo(zone.first, d)) {
             g_zoneCache.add(zone.first, d.id);
           }
           else {
@@ -305,7 +305,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
   return false;
 }
 
-static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs, string logPrefix)
+static bool catalogProcess(UeberBackend& B, const DomainInfo& di, vector<DNSResourceRecord>& rrs, string logPrefix)
 {
   logPrefix += "Catalog-Zone ";
 
@@ -427,7 +427,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   }
 
   // Process
-  return catalogDiff(di, fromXFR, fromDB, logPrefix);
+  return catalogDiff(B, di, fromXFR, fromDB, logPrefix);
 }
 
 void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& status, vector<DNSRecord>* axfr)
@@ -794,7 +794,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
     }
 
     if (di.kind == DomainInfo::Consumer) {
-      if (!catalogProcess(di, rrs, logPrefix)) {
+      if (!catalogProcess(B, di, rrs, logPrefix)) {
         g_log << Logger::Warning << logPrefix << "Catalog-Zone update failed, only import records" << endl;
       }
     }
