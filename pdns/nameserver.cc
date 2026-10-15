@@ -243,8 +243,7 @@ void UDPNameserver::send(DNSPacket& p)
     SLOG(g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p.getMaxReplyLen()<<". Question was for "<<p.qdomain<<"|"<<p.qtype.toString()<<endl,
          d_slog->info(Logr::Error, "Weird, trying to send a message that needs trucatian", "size", Logging::Loggable(buffer.length()), "maximum reply size", Logging::Loggable(p.getMaxReplyLen()), "query", Logging::Loggable(p.qdomain), "type", Logging::Loggable(p.qtype)));
   }
-  if (sendOnNBSocket(p.getSocket(), &msgh) < 0) {
-    int err = errno;
+  if (int err = sendOnNBSocket(p.getSocket(), &msgh); err != 0) {
     SLOG(g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p.getSocket()<<", dest="<<p.d_remote.toStringWithPort()<<"): "<<stringerror(err)<<endl,
          d_slog->error(Logr::Error, errno, "Error sending reply with sendmsg", "socket", Logging::Loggable(p.getSocket()), "remote", Logging::Loggable(p.d_remote.toStringWithPort())));
   }
