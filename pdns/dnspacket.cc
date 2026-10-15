@@ -494,6 +494,10 @@ int DNSPacket::reinit(const char *mesg, size_t length)
     return -1;
   }
   memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
+
+  d_span = Netmask();
+  d_view.clear();
+
   return 0;
 }
 
