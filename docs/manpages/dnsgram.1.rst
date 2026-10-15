@@ -4,7 +4,7 @@ dnsgram
 Synopsis
 --------
 
-:program:`dnsgram` *INFILE*...
+:program:`dnsgram` <INFILE>...
 
 Description
 -----------

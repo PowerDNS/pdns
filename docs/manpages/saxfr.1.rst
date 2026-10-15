@@ -4,7 +4,7 @@ saxfr
 Synopsis
 --------
 
-:program:`saxfr` *IPADDRESS* *PORT* *ZONE* [*Options*]
+:program:`saxfr` <IPADDRESS> <PORT> <ZONE> [OPTION]...
 
 Description
 -----------
@@ -16,9 +16,14 @@ information truncated. See below how to show this information.
 Options
 -------
 
-showdetails
-    Show all the data in the NSEC3 and DNSKEY RDATA.
-showflags
-    Show the NSEC3 flags in the RDATA.
-unhash
-    Unhash the NSEC3 names to the normal names.
+.. option:: showdetails
+
+   Show all the data in the NSEC3 and DNSKEY RDATA.
+
+.. option:: showflags
+
+   Show the NSEC3 flags in the RDATA.
+
+.. option:: unhash
+
+   Unhash the NSEC3 names to the normal names.

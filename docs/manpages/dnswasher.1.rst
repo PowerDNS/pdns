@@ -4,7 +4,7 @@ dnswasher
 Synopsis
 --------
 
-:program:`dnswasher` [*OPTION*]... *INFILE* [*INFILE*] *OUTFILE*
+:program:`dnswasher` [OPTION]... <INFILE> [INFILE] <OUTFILE>
 
 Description
 -----------
@@ -25,11 +25,25 @@ about.
 Options
 -------
 
---decrypt, -d                          Undo IPCipher encryption of IP addresses.
---help, -h                             Show summary of options.
---key, -k                              Base64 encoded 128-bit key for IPCipher.
---passphrase, -p                       Passphrase that will be used to derive an IPCipher key.
---version, -v                          Output version.
+.. option:: --decrypt, -d
+
+   Undo IPCipher encryption of IP addresses.
+
+.. option:: --help, -h
+
+   Show summary of options.
+
+.. option:: --key, -k
+
+   Base64 encoded 128-bit key for IPCipher.
+
+.. option:: --passphrase, -p
+
+   Passphrase that will be used to derive an IPCipher key.
+
+.. option:: --version, -v
+
+   Output version.
 
 See also
 --------

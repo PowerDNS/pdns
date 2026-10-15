@@ -4,7 +4,7 @@ dnspcap2calidns
 Synopsis
 --------
 
-:program:`dnspcap2calidns` *PCAPFILE* *OUTFILE*
+:program:`dnspcap2calidns` <PCAPFILE> <OUTFILE>
 
 Description
 -----------
@@ -15,8 +15,13 @@ writes these to *OUTFILE* in the format understood by :program:`calidns`.
 Options
 -------
 
---help           Show a summary of options.
---version        Display the version of dnspcap2calidns
+.. option:: --help
+
+   Show a summary of options.
+
+.. option:: --version
+
+Display the version of dnspcap2calidns
 
 See also
 --------
