@@ -2779,7 +2779,7 @@ static void houseKeepingWork(Logr::log_t log)
       }
     });
 
-    const time_t taInterval = std::max(1, static_cast<int>(luaconfsLocal->trustAnchorFileInfo.interval) * 3600);
+    const time_t taInterval = static_cast<time_t>(std::max(1U, luaconfsLocal->trustAnchorFileInfo.interval)) * 3600;
     static PeriodicTask trustAnchorTask{"trustAnchorTask", taInterval};
     if (!trustAnchorTask.hasRun()) {
       // Loading the Lua config file already "refreshed" the TAs
