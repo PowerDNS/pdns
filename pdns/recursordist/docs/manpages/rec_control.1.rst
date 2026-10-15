@@ -4,7 +4,7 @@ rec_control
 Synopsis
 --------
 
-**rec_control** [*OPTION*]... *COMMAND* [*COMMAND-OPTION*]...
+**rec_control** [OPTION]... <COMMAND> [COMMAND-OPTION]...
 
 Description
 -----------
@@ -39,61 +39,91 @@ To dump the caches to disk, execute::
 
 Options
 -------
---help                provide this helpful message.
---config-dir=<path>   Directory where the recursor.conf lives.
---config-name=<name>  Name of the virtual configuration.
---socket-dir=<path>   Where the controlsocket will live, please
-                      use **--config-dir** instead.
---socket-pid=<pid>    When running in SMP mode, pid of **pdns_recursor** to
-                      control.
---timeout=<num>       Number of seconds to wait for the remote PowerDNS
-                      Recursor to respond.
---version             Show the version number of this program. Note that the **version**
-                      command shows the version of the running recursor.
+
+.. option:: --help
+
+   Provide this helpful message.
+
+.. option:: --config-dir=<PATH>
+
+   Directory where the recursor.conf lives.
+
+.. option:: --config-name=<NAME>
+
+   Name of the virtual configuration.
+
+.. option:: --socket-dir=<PATH>
+
+   Where the controlsocket will live, please use ``--config-dir`` instead.
+
+.. option:: --socket-pid=<PID>
+
+   When running in SMP mode, pid of :program:`pdns_recursor` to control.
+
+.. option:: --timeout=<NUM>
+
+   Number of seconds to wait for the remote PowerDNS Recursor to respond.
+
+.. option:: --version
+
+     Show the version number of this program. Note that the **version** command shows the version of the running recursor.
 
 Commands
 --------
-add-cookies-unsupported *IP* [*IP*...]
+
+.. option:: add-cookies-unsupported <IP> [IP]...
+
     Add non-expiring IPs of servers that do not support cookies to the cookie table.
     Optionally *IP:port* can be specified, the default is to use port 53.
     The listed addresses will be placed as ``Unsupported`` in the cookie support table and will not be pruned.
 
-add-dont-throttle-names *NAME* [*NAME*...]
+.. option:: add-dont-throttle-names <NAME> [NAME]...
+
     Add names for nameserver domains that may not be throttled.
 
-add-dont-throttle-netmasks *NETMASK* [*NETMASK*...]
+.. option:: add-dont-throttle-netmasks <NETMASK> [NETMASK]...
+
     Add netmasks for nameservers that may not be throttled.
 
-add-nta *DOMAIN* [*REASON*]
+.. option:: add-nta <DOMAIN> [REASON]
+
     Add a Negative Trust Anchor for *DOMAIN*, suffixed optionally with
     *REASON*.
 
-add-ta *DOMAIN* *DSRECORD*
+.. option:: add-ta <DOMAIN> <DSRECORD>
+
     Add a Trust Anchor for *DOMAIN* with DS record data *DSRECORD*. This adds
     the new Trust Anchor to the existing set of Trust Anchors for *DOMAIN*.
 
-current-queries
+.. option:: current-queries
+
     Shows the currently active queries.
 
-clear-cookies [*IP*...]
+.. option:: clear-cookies [IP]....
+
     Remove entries from cookie table. If *IP* is ``*``, remove all.
     Optionally *IP:port* can be specified, the default is to use port 53.
 
-clear-dont-throttle-names *NAME* [*NAME*...]
+.. option:: clear-dont-throttle-names <NAME> [NAME]...
+
     Remove names that are not allowed to be throttled. If *NAME* is ``*``, remove all
 
-clear-dont-throttle-netmasks *NETMASK* [*NETMASK*...]
+.. option:: clear-dont-throttle-netmasks <NETMASK> [NETMASK]...
+
     Remove netmasks that are not allowed to be throttled. If *NETMASK* is ``*``, remove all
 
-clear-nta *DOMAIN*...
+.. option:: clear-nta <DOMAIN> [DOMAIN]...
+
     Remove Negative Trust Anchor for one or more *DOMAIN*\ s. Set domain to
     ``*`` to remove all NTA's.
 
-clear-ta [*DOMAIN*]...
+.. option:: clear-ta <DOMAIN> [DOMAIN]...
+
     Remove Trust Anchor for one or more *DOMAIN*\ s. Note that removing the
     root trust anchor is not possible.
 
-dump-cache *FILENAME* [*TYPE*...]
+.. option:: dump-cache <FILENAME> [TYPE]...
+
     Dumps caches to *FILENAME*. This file should not exist already,
     PowerDNS will refuse to overwrite it. While dumping, the recursor
     might not answer questions.
@@ -103,43 +133,51 @@ dump-cache *FILENAME* [*TYPE*...]
     select specific caches specify one or more *TYPE*s, separated
     by spaces. The value of *TYPE* can be r, n, p or a.
 
-dump-cookies *FILENAME*
+.. option:: dump-cookies <FILENAME>
+
     Dump the cookie store.
 
-dump-dot-probe-map *FILENAME*
+.. option:: dump-dot-probe-map <FILENAME>
+
     Dump the contents of the DoT probe map to the *FILENAME* mentioned.
 
-dump-edns *FILENAME*
+.. option:: dump-edns <FILENAME>
+
     Dumps the EDNS status to the filename mentioned. This file should not exist
     already, PowerDNS will refuse to overwrite it. While dumping, the recursor
     will not answer questions.
 
-dump-failedservers *FILENAME*
+.. option:: dump-failedservers <FILENAME>
+
     Dump the contents of the failed server map to the *FILENAME* mentioned.
     This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.
 
-dump-non-resolving *FILENAME*
+.. option:: dump-non-resolving <FILENAME>
+
     Dump the contents of the map of nameserver names that did not resolve to
     an address.  This file should not exist already, PowerDNS will
     refuse to overwrite it otherwise. While dumping, the recursor will
     not answer questions.
 
-dump-nsspeeds *FILENAME*
+.. option:: dump-nsspeeds <FILENAME>
+
     Dumps the nameserver speed statistics to the *FILENAME* mentioned. This
     file should not exist already, PowerDNS will refuse to overwrite it. While
     dumping, the recursor will not answer questions. Statistics are kept per
     thread, and the dumps end up in the same file.
 
-dump-rpz *ZONE NAME* *FILE NAME*
-    Dumps the content of the RPZ zone named *ZONE NAME* to the *FILENAME*
+.. option:: dump-rpz <ZONENAME> <FILENAME>
+
+    Dumps the content of the RPZ zone named *ZONENAME* to the *FILENAME*
     mentioned. This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
     questions. For details on how RPZ are named see
     `<https://docs.powerdns.com/recursor/lua-config/rpz.html#policyname>`__.
 
-dump-saved-parent-ns-sets *FILE NAME*
+.. option:: dump-saved-parent-ns-sets <FILENAME>
+
     Dump the entries of the map containing saved parent NS sets
     that were successfully used in resolving.
     The total number of entries is also printed in the header.
@@ -147,84 +185,105 @@ dump-saved-parent-ns-sets *FILE NAME*
     names not in the child set. This is an indication of a
     misconfigured domain.
 
-dump-throttlemap *FILENAME*
+.. option:: dump-throttlemap <FILENAME>
+
     Dump the contents of the throttle map to the *FILENAME* mentioned.
     This file should not exist already, PowerDNS will refuse to
     overwrite it otherwise. While dumping, the recursor will not answer
     questions.
 
-get *STATISTIC* [*STATISTIC*]...
+.. option:: get <STATISTIC> [STATISTIC]...
+
     Retrieve a statistic. For items that can be queried, see
     `<https://docs.powerdns.com/recursor/metrics.html>`__.
 
-get-all
+.. option:: get-all
+
     Retrieve all known statistics.
 
-get-dont-throttle-names
+.. option:: get-dont-throttle-names
+
     Get the list of names that are not allowed to be throttled.
 
-get-dont-throttle-netmasks
+.. option:: get-dont-throttle-netmasks
+
     Get the list of netmasks that are not allowed to be throttled.
 
-get-ntas
+.. option:: get-ntas
+
     Get a list of the currently configured Negative Trust Anchors.
 
-get-tas
+.. option:: get-tas
+
     Get a list of the currently configured Trust Anchors.
 
-get-parameter [*KEY*]...
+.. option:: get-parameter [KEY]...
+
     Retrieves the configuration parameter(s).
     From version 5.4.0 and if YAML configuration is active, *KEY* is of the form ``section[.name]``
     and no keys produces a full dump.
 
-get-default-parameter [*KEY*]...
+.. option:: get-default-parameter [KEY]...
+
     Retrieves the default values of configuration parameter(s).
     If YAML configuration is active, *KEY* is of the form ``section[.name]``
     and no keys produces a full dump.
 
-get-proxymapping-stats
+.. option:: get-proxymapping-stats
+
     Get the list of proxy-mapped subnets and associated counters.
 
-get-qtypelist
+.. option:: get-qtypelist
+
     Retrieves QType statistics. Queries from cache aren't being counted yet.
 
-get-remotelogger-stats
+.. option:: get-remotelogger-stats
+
     Retrieves the remote logger statistics, per type and address.
 
-hash-password [*WORK-FACTOR*]
+.. option:: hash-password [WORK-FACTOR]
+
     Asks for a password then returns the hashed and salted version,
     to use as a webserver password or API key. This command does
     not contact the recursor but does the hashing inside rec_control.
     An optional scrypt work factor can be specified, in power of two.
     The default is 1024.
 
-help
+.. option:: help
+
     Shows a list of supported commands understood by the running
     :program:`pdns_recursor`.
 
-list-dnssec-algos
+.. option:: list-dnssec-algos
+
     List supported (and potentially disabled) DNSSEC algorithms.
 
-ping
+.. option:: ping
+
     Check if server is alive.
 
-quit
+.. option:: quit
+
     Request shutdown of the recursor, exiting the process while
     letting the OS clean up resources.
 
-quit-nicely
+.. option:: quit-nicely
+
     Request nice shutdown of the recursor. This method allows all
     threads to finish their current work and releases resources before
     exiting. This is the preferred method to stop the recursor.
 
-reload-acls
+.. option:: reload-acls
+
     Reloads ACLs.
 
-reload-lua-script [*FILENAME*]
+.. option:: reload-lua-script [FILENAME]
+
     (Re)loads Lua script *FILENAME*. If *FILENAME* is empty, attempt to reload
     the currently loaded script. This replaces the script currently loaded.
 
-reload-lua-config [*FILENAME*]
+.. option:: reload-lua-config [FILENAME]
+
     (Re)loads Lua configuration *FILENAME*. If *FILENAME* is empty, attempt
     to reload the currently loaded file. Note that *FILENAME* will be fully
     executed, any settings changed at runtime that are not modified in this
@@ -233,98 +292,125 @@ reload-lua-config [*FILENAME*]
     in an asynchronous way. If YAML settings are used this command will
     reload the runtime settable parts of the YAML settings.
 
-reload-yaml
+.. option:: reload-yaml
+
     Reload the runtime settable parts of the YAML settings.
 
-reload-zones
+.. option:: reload-zones
+
     Reload authoritative and forward zones. Retains current configuration in
     case of errors.
 
-set-carbon-server *CARBON SERVER* [*CARBON OURNAME*]
+.. option:: set-carbon-server <CARBON SERVER> [*CARBON OURNAME*]
+
     Set the carbon-server setting to *CARBON SERVER*. If *CARBON OURNAME* is
     not empty, also set the carbon-ourname setting to *CARBON OURNAME*.
 
-set-dnssec-log-bogus *SETTING*
+.. option:: set-dnssec-log-bogus <SETTING>
+
     Set dnssec-log-bogus setting to *SETTING*. Set to ``on`` or ``yes`` to log
     DNSSEC validation failures and to ``no`` or ``off`` to disable logging these
     failures.
 
-set-ecs-minimum-ttl *NUM*
+.. option:: set-ecs-minimum-ttl <NUM>
+
     Set ecs-minimum-ttl-override to *NUM*.
 
-set-max-aggr-nsec-cache-size *NUM*
+.. option:: set-max-aggr-nsec-cache-size <NUM>
+
     Change the maximum number of entries in the NSEC aggressive cache. If the
     cache is disabled by setting its size to 0 in the config, the cache size
     cannot be set by this command. Setting the size to 0 by this command still
     keeps the cache, but makes it mostly ineffective as it is emptied periodically.
 
-set-max-cache-entries *NUM*
+.. option:: set-max-cache-entries <NUM>
+
     Change the maximum number of entries in the DNS cache.  If reduced, the
     cache size will start shrinking to this number as part of the normal
     cache purging process, which might take a while.
 
-set-max-packetcache-entries *NUM*
+.. option:: set-max-packetcache-entries <NUM>
+
     Change the maximum number of entries in the packet cache.  If reduced, the
     cache size will start shrinking to this number as part of the normal
     cache purging process, which might take a while.
 
-set-minimum-ttl *NUM*
+.. option:: set-minimum-ttl <NUM>
+
     Set minimum-ttl-override to *NUM*.
 
-set-event-trace-enabled *NUM*
-    Set logging of event trace messages, ``0`` = disabled, ``1`` = protobuf,
-    ``2`` = log file, ``3`` = protobuf and log file.
+.. option:: set-event-trace-enabled <NUM>
 
-show-yaml [*FILE*]
+    Set logging of event trace messages.
+
+    * ``0``  disabled
+    * ``1``  protobuf
+    * ``2``  log file,
+    * ``3``  protobuf and log file
+
+.. option:: show-yaml [FILE]
+
     Show Yaml representation of old-style config.
 
-top-queries
+.. option:: top-queries
+
     Shows the top-20 queries. Statistics are over the last
     'stats-ringbuffer-entries' queries.
 
-top-pub-queries
+.. option:: top-pub-queries
+
     Shows the top-20 queries grouped by public suffix list. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
 
-top-largeanswer-remotes
+.. option:: top-largeanswer-remotes
+
     Shows the top-20 remote hosts causing large answers. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
 
-top-remotes
+.. option:: top-remotes
+
     Shows the top-20 most active remote hosts. Statistics are over the last
     'stats-ringbuffer-entries' queries.
 
-top-servfail-queries
+.. option:: top-servfail-queries
+
     Shows the top-20 queries causing servfail responses. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
 
-top-bogus-queries
+.. option:: top-bogus-queries
+
     Shows the top-20 queries causing bogus responses. Statistics are over
     the last 'stats-ringbuffer-entries' queries.
 
-top-pub-servfail-queries
+.. option:: top-pub-servfail-queries
+
     Shows the top-20 queries causing servfail responses grouped by public
     suffix list. Statistics are over the last 'stats-ringbuffer-entries'
     queries.
 
-top-pub-bogus-queries
+.. option:: top-pub-bogus-queries
+
     Shows the top-20 queries causing bogus responses grouped by public
     suffix list. Statistics are over the last 'stats-ringbuffer-entries'
     queries.
 
-top-servfail-remotes
+.. option:: top-servfail-remotes
+
     Shows the top-20 most active remote hosts causing servfail responses.
     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
-top-bogus-remotes
+.. option:: top-bogus-remotes
+
     Shows the top-20 most active remote hosts causing bogus responses.
     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
-top-timeouts
+.. option:: top-timeouts
+
     Shows the top-20 most active downstream timeout destinations.
     Statistics are over the last 'stats-ringbuffer-entries' queries.
 
-trace-regex *REGEX* *FILE*
+.. option:: trace-regex <REGEX> <FILE>
+
     Emit resolution trace for matching queries. No arguments disables tracing.
     Before version 4.9.0, there was no *FILE* argument, traces were always
     written to the log. Starting with version 4.9.0, trace information is
@@ -350,13 +436,16 @@ trace-regex *REGEX* *FILE*
     match all queries for Dutch (``.nl``) and German (``.de``) domain names, use:
     ``'\.nl\.$|\.de\.$'``.
 
-unload-lua-script
+.. option:: unload-lua-script
+
     Unloads Lua script if one was loaded.
 
-version
+.. option:: version
+
     Report the version of the running Recursor.
 
-wipe-cache *DOMAIN* [*DOMAIN*] [...]
+.. option:: wipe-cache <DOMAIN> [DOMAIN]...
+
     Wipe entries for *DOMAIN* (exact name match) from the cache. This is useful
     if, for example, an important server has a new IP address, but the TTL has
     not yet expired. Multiple domain names can be passed.
@@ -364,13 +453,18 @@ wipe-cache *DOMAIN* [*DOMAIN*] [...]
     cache. i.e. ``powerdns.com$`` will remove all cached entries under and
     including the powerdns.com name.
 
-    **Note**: this command also wipes the negative cache.
+    .. note::
 
-    **Warning**: Don't just wipe "www.somedomain.com", its NS records or CNAME
-    target may still be undesired, so wipe "somedomain.com" as well.
+      This command also wipes the negative cache.
 
-wipe-cache-typed *qtype* *DOMAIN* [*DOMAIN*] [...]
-    Same as wipe-cache, but only wipe records of type *qtype*.
+    .. warning::
+
+      Don't just wipe "www.somedomain.com", its NS records or CNAME
+      target may still be undesired, so wipe "somedomain.com" as well.
+
+.. option:: wipe-cache-typed <QTYPE> <DOMAIN> [DOMAIN]...
+
+    Same as wipe-cache, but only wipe records of type *QTYPE*.
 
 See also
 --------
