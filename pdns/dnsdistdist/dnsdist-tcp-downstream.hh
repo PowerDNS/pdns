@@ -292,6 +292,7 @@ private:
   static bool isXFRFinished(const TCPResponse& response, TCPQuery& query);
 
   IOState handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now);
+  IOState nextStepAfterResponseSent(std::shared_ptr<TCPConnectionToBackend>& conn);
   uint16_t getQueryIdFromResponse() const;
   void notifyAllQueriesFailed(const struct timeval& now, FailureReason reason);
   bool needProxyProtocolPayload() const
