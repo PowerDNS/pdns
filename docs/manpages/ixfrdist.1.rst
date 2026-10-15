@@ -4,7 +4,7 @@ ixfrdist
 Synopsis
 --------
 
-:program:`ixfrdist` [*OPTION*]...
+:program:`ixfrdist` [OPTION]...
 
 Description
 -----------
@@ -22,12 +22,26 @@ Please see :manpage:`ixfrdist.yml(5)` for information.
 Options
 -------
 
---help            Show all supported options
---verbose         Log INFO messages
---debug           Log INFO and DEBUG messages
---version         Display the version of ixfrdist
---config <PATH>   Load configuration from *PATH*, a YAML file. When not set,
-                  an `ixfrdist.yml` is attempted to be read from the SYSCONFDIR.
+.. option:: --help
+
+   Show all supported options
+
+.. option:: --verbose
+
+   Log INFO messages
+
+.. option:: --debug
+
+   Log INFO and DEBUG messages
+
+.. option:: --version
+
+   Display the version of ixfrdist
+
+.. option:: --config <PATH>
+
+   Load configuration from *PATH*, a YAML file. When not set,
+   an `ixfrdist.yml` is attempted to be read from the SYSCONFDIR.
 
 See also
 --------

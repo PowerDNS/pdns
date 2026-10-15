@@ -4,7 +4,7 @@ zone2sql
 Synopsis
 --------
 
-:program:`zone2sql` {**--named-conf=**\ *PATH*,\ **--zone-file=**\ *PATH* [**--zone-name=**\ *NAME*]} [*Options*]
+:program:`zone2sql` <INPUT_OPTION>... <BACKEND> [OUTPUT_OPTION]... [OPTION]...
 
 Description
 -----------
@@ -27,55 +27,82 @@ Options
 INPUT Options
 -------------
 
---named-conf=<PATH>         Read *PATH* to get the BIND configuration
---zone=<PATH>               Parse only the zone file at *PATH* Conflicts with **--named-conf** parameter.
---zone-name=<NAME>          When parsing a single zone without $ORIGIN statement, set *ZONE* as
-                            the zone name.
+.. option:: --named-conf=<PATH>
+
+   Read *PATH* to get the BIND configuration
+
+.. option:: --zone=<PATH>
+
+   Parse only the zone file at *PATH*.
+   Conflicts with ``--named-conf`` parameter.
+
+.. option:: --zone-name=<NAME>
+
+   When parsing a single zone without $ORIGIN statement, set *ZONE* as the zone name.
 
 BACKENDS
 --------
 
---gmysql
+.. option:: --gmysql
+
     Output in format suitable for the default configuration of the
     Generic MySQL backend.
---gpgsql
+
+.. option:: --gpgsql
+
     Output in format suitable for the default configuration of the
     Generic PostgreSQL backend.
---gsqlite
+
+.. option:: --gsqlite
+
     Output in format suitable for the default configuration of the
     Generic SQLite3 backend.
 
 OUTPUT Options
 --------------
 
---json-comments
+.. option:: --json-comments
+
     Parse JSON in zonefile comments to set the 'disabled' and 'comment'
     fields in the database. See *JSON COMMENTS* for more information.
---transactions
+
+.. option:: --transactions
+
     If the target SQL backend supports transactions, wrap every domain
     into a transaction for integrity and possibly higher speed.
 
 OTHER Options
 -------------
 
---delete-matching-domains
+.. option:: --delete-matching-domains
+
     Adds a delete statement to the sql output to allow re-importing zones.
     Mostly only useful during testing.
     Since this will only delete the domain, but not its records, 
     you should have the optional foreign key relationship enabled in your 
     schema in order to avoid leaving dangling records.
---filter-duplicate-soa
+
+.. option:: --filter-duplicate-soa
+
     If there's more than one SOA record in the zone (possibly because it
     was AXFR'd), ignore it. If this option is not set, all SOA records
     in the zone are emitted.
---help
+
+.. option:: --help
+
     List all options
---on-error-resume-next
+
+.. option:: --on-error-resume-next
+
     Ignore missing zone files during parsing. Dangerous.
---secondary
+
+.. option:: --secondary
+
     Maintain secondary status of zones listed in named.conf as being slaves.
     The default behaviour is to convert all zones to native operation.
---verbose
+
+.. option:: --verbose
+
     Be verbose during conversion.
 
 JSON COMMENTS
@@ -88,13 +115,14 @@ served to clients.
 
 When a zonefile contains a comment like
 ``; json={"comment": "Something", "disabled": true}`` and
-**--json-comments** is provided, the 'comment' field will contain
+``--json-comments`` is provided, the 'comment' field will contain
 "Something" and the 'disabled' field will be set to the database's
 native true value.
 
-WARNING: Using JSON comments to disable records means that the zone in
-PowerDNS is different from the one served by BIND, as BIND does not
-handle the disabled status in the comment.
+.. warning::
+   Using JSON comments to disable records means that the zone in
+   PowerDNS is different from the one served by BIND, as BIND does not
+   handle the disabled status in the comment.
 
 See also
 --------
