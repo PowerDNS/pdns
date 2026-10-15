@@ -2779,7 +2779,7 @@ static void houseKeepingWork(Logr::log_t log)
       }
     });
 
-    const time_t taInterval = std::max(1, static_cast<int>(luaconfsLocal->trustAnchorFileInfo.interval) * 3600);
+    const time_t taInterval = static_cast<time_t>(std::max(1U, luaconfsLocal->trustAnchorFileInfo.interval)) * 3600;
     static PeriodicTask trustAnchorTask{"trustAnchorTask", taInterval};
     if (!trustAnchorTask.hasRun()) {
       // Loading the Lua config file already "refreshed" the TAs
@@ -2791,7 +2791,7 @@ static void houseKeepingWork(Logr::log_t log)
       if (!luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
         log->info(Logr::Debug, "Refreshing Trust Anchors from file");
         try {
-          map<DNSName, dsset_t> dsAnchors;
+          map<DNSName, dsset_t> dsAnchors{g_luaconfs.getLocal()->dsAnchors};
           if (updateTrustAnchorsFromFile(luaconfsLocal->trustAnchorFileInfo.fname, dsAnchors, log)) {
             g_luaconfs.modify([&dsAnchors](LuaConfigItems& lci) {
               lci.dsAnchors = dsAnchors;
