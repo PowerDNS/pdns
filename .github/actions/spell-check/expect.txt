@@ -66,7 +66,7 @@ Atlassian
 Atomia
 aton
 Authoritativedoc
-authzone
+authzones
 autobuilt
 autocalculation
 autofilling
@@ -469,7 +469,7 @@ footertextcolor
 forfun
 Fortiguard
 Fortinet
-forwardzone
+FORWARDZONES
 framestream
 freakshow
 Freenet
