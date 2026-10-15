@@ -2674,6 +2674,20 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         }
         self.put_zone(name, payload, expect_error='A TSIG key with the name')
 
+    def test_put_master_tsig_key_ids_not_array(self):
+        name = unique_zone_name()
+        keyname = unique_zone_name().split(".")[0]
+        self.create_zone(name=name, kind="Native")
+        payload = {"master_tsig_key_ids": keyname}
+        self.put_zone(name, payload, expect_error="is not an array")
+
+    def test_put_slave_tsig_key_ids_not_array(self):
+        name = unique_zone_name()
+        keyname = unique_zone_name().split(".")[0]
+        self.create_zone(name=name, kind="Native")
+        payload = {"slave_tsig_key_ids": keyname}
+        self.put_zone(name, payload, expect_error="is not an array")
+
     def test_zone_replace_rrsets_basic(self):
         """Basic test: all automatic modification is off, on replace the new rrsets are ingested as is."""
         name, _, _ = self.create_zone(dnssec=False, soa_edit='', soa_edit_api='')
