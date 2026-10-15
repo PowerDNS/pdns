@@ -481,7 +481,7 @@ void DNSPacket::spoofQuestion(const DNSPacket& qd)
   }
 }
 
-int DNSPacket::noparse(const char *mesg, size_t length)
+int DNSPacket::reinit(const char *mesg, size_t length)
 {
   d_rawpacket.assign(mesg,length); 
   if(length < 12) { 
@@ -489,9 +489,17 @@ int DNSPacket::noparse(const char *mesg, size_t length)
       << getRemoteStringWithPort();
     return -1;
   }
+  memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
+  return 0;
+}
+
+int DNSPacket::noparse(const char *mesg, size_t length)
+{
+  if (reinit(mesg, length) != 0) {
+    return -1;
+  }
   d_wantsnsid=false;
   d_maxreplylen=512;
-  memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   return 0;
 }
 
@@ -587,14 +595,11 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 int DNSPacket::parse(const char *mesg, size_t length)
 try
 {
-  d_rawpacket.assign(mesg,length); 
-  d_wrapped=true;
-  if(length < 12) { 
-    g_log << Logger::Debug << "Ignoring packet: too short from "
-      << getRemoteString() << endl;
+  if (reinit(mesg, length) != 0) {
     return -1;
   }
 
+  d_wrapped=true;
   MOADNSParser mdp(d_isQuery, d_rawpacket);
   EDNSOpts edo;
 
@@ -646,7 +651,6 @@ try
     d_ednsRawPacketSizeLimit=-1;
   }
 
-  memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   qdomain=mdp.d_qname;
   // if(!qdomain.empty()) // strip dot
   //   boost::erase_tail(qdomain, 1);

@@ -179,6 +179,7 @@ public:
 #endif
 
 private:
+  int reinit(const char *mesg, size_t len);
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
   string d_tsigsecret;
