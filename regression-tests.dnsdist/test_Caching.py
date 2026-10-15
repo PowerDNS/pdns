@@ -297,11 +297,14 @@ class TestCaching(DNSDistTest):
         name = 'ixfr.cache.tests.powerdns.com.'
         query = dns.message.make_query(name, 'IXFR', 'IN')
         response = dns.message.make_response(query)
-        soa = dns.rrset.from_text(name,
-                                  60,
-                                  dns.rdataclass.IN,
-                                  dns.rdatatype.SOA,
-                                  'ns.' + name + ' hostmaster.' + name + ' 1 3600 3600 3600 60')
+        soa = dns.rrset.from_text(
+            name,
+            60,
+            dns.rdataclass.IN,
+            dns.rdatatype.SOA,
+            "ns." + name + " hostmaster." + name + " 1 3600 3600 3600 60",
+        )
+        query.authority.append(soa)
         response.answer.append(soa)
         response.answer.append(dns.rrset.from_text(name,
                                                    60,
