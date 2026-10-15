@@ -4,7 +4,7 @@ dnspcap2protobuf
 Synopsis
 --------
 
-:program:`dnspcap2protobuf` *PCAPFILE* *OUTFILE*
+:program:`dnspcap2protobuf` <PCAPFILE> <OUTFILE>
 
 Description
 -----------
@@ -15,5 +15,10 @@ responses and writes these in the PowerDNS protobuf format to *OUTFILE*.
 Options
 -------
 
---help           Show a summary of options.
---version        Display the version of dnspcap2protobuf
+.. option:: --help
+
+   Show a summary of options.
+
+.. option:: --version
+
+   Display the version of dnspcap2protobuf

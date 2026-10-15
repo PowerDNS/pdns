@@ -4,11 +4,11 @@ ixplore
 Synopsis
 --------
 
-:program:`ixplore` *COMMAND* *COMMAND_OPT*...
+:program:`ixplore` <COMMAND> [COMMAND_OPT]...
 
-:program:`ixplore` diff *ZONE* *BEFORE* *AFTER*
+:program:`ixplore` diff <ZONE> <BEFORE> <AFTER>
 
-:program:`ixplore` track *IP ADDRESS* *PORT* *ZONE* *DIRECTORY*
+:program:`ixplore` track <IP_ADDRESS> <PORT> <ZONE> <DIRECTORY>
 
 Description
 -----------
@@ -31,24 +31,36 @@ Options
 diff-mode
 ---------
 
-ZONE
-    The name of the zone from which the IXFRs are consumed.
-BEFORE
-    Path to the 'before' zonefile.
-AFTER
-    Path to the 'after' zonefile.
+.. option:: ZONE
+
+   The name of the zone from which the IXFRs are consumed.
+
+.. option:: BEFORE
+
+   Path to the 'before' zonefile.
+
+.. option:: AFTER
+
+   Path to the 'after' zonefile.
 
 track-mode
 ----------
 
-IP ADDRESS
-    The IP address to consume IXFRs from.
-PORT
-    The port to use on *IP ADDRESS*.
-ZONE
-    Name of the zone to track changes of.
-DIRECTORY
-    Directory where the zonefiles will be stored.
+.. option:: IP_ADDRESS
+
+   The IP address to consume IXFRs from.
+
+.. option:: PORT
+
+   The port to use on *IP ADDRESS*.
+
+.. option:: ZONE
+
+   Name of the zone to track changes of.
+
+.. option:: DIRECTORY
+
+   Directory where the zonefiles will be stored.
 
 See also
 --------
