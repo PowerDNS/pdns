@@ -199,6 +199,8 @@ class TestTCPShort(DNSDistTest):
             if data and len(data) == datalen:
                 receivedResponse = dns.message.from_wire(data)
                 receivedResponses.append(receivedResponse)
+                if len(receivedResponses) == len(responses):
+                    break
 
         receivedQuery = None
         if not self._fromResponderQueue.empty():
@@ -282,6 +284,8 @@ class TestTCPShort(DNSDistTest):
             if data and len(data) == datalen:
                 receivedResponse = dns.message.from_wire(data)
                 receivedResponses.append(receivedResponse)
+                if len(receivedResponses) == len(responses):
+                    break
 
         receivedQuery = None
         if not self._fromResponderQueue.empty():
