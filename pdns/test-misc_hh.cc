@@ -483,4 +483,18 @@ BOOST_AUTO_TEST_CASE(test_checked_stoi_nonzero)
   BOOST_CHECK_THROW(pdns::checked_stoi_nonzero<int8_t>("0"), std::out_of_range);
 }
 
+BOOST_AUTO_TEST_CASE(test_isCanonical)
+{
+  BOOST_CHECK(isCanonical("example.com."));
+  BOOST_CHECK(isCanonical("com."));
+  BOOST_CHECK(isCanonical("com\\\\."));
+  BOOST_CHECK(isCanonical("\\\\."));
+  BOOST_CHECK(isCanonical("example\\.com."));
+
+  BOOST_CHECK(!isCanonical("com"));
+  BOOST_CHECK(!isCanonical("com\\."));
+  BOOST_CHECK(!isCanonical("\\."));
+  BOOST_CHECK(!isCanonical("\\\\\\."));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
