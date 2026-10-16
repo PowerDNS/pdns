@@ -419,4 +419,18 @@ BOOST_AUTO_TEST_CASE(test_CleanSlashes) {
   BOOST_CHECK_EQUAL(cleanSlashesWrapper("test///"), "test/");
 }
 
+BOOST_AUTO_TEST_CASE(test_isCanonical)
+{
+  BOOST_CHECK(isCanonical("example.com."));
+  BOOST_CHECK(isCanonical("com."));
+  BOOST_CHECK(isCanonical("com\\\\."));
+  BOOST_CHECK(isCanonical("\\\\."));
+  BOOST_CHECK(isCanonical("example\\.com."));
+
+  BOOST_CHECK(!isCanonical("com"));
+  BOOST_CHECK(!isCanonical("com\\."));
+  BOOST_CHECK(!isCanonical("\\."));
+  BOOST_CHECK(!isCanonical("\\\\\\."));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
