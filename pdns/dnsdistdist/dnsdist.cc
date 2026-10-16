@@ -296,6 +296,8 @@ static void healthChecksThread()
     .tv_sec = 0,
     .tv_usec = 0};
 
+  auto pooled = PooledHealthChecks();
+
   for (;;) {
     try {
       checkExiting();
@@ -314,6 +316,8 @@ static void healthChecksThread()
       std::unique_ptr<FDMultiplexer> mplexer{nullptr};
       const auto& runtimeConfig = dnsdist::configuration::refreshLocalRuntimeConfiguration();
 
+      pooled.checkResults();
+
       // this points to the actual shared_ptrs!
       // coverity[auto_causes_copy]
       const auto servers = runtimeConfig.d_backends;
@@ -321,6 +325,10 @@ static void healthChecksThread()
         dss->updateStatisticsInfo();
 
         dss->handleUDPTimeouts();
+
+        if (pooled.hasOngoing(dss)) {
+          continue;
+        }
 
         if (!dss->healthCheckRequired()) {
           continue;
@@ -330,7 +338,7 @@ static void healthChecksThread()
           mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(servers.size()));
         }
 
-        if (!queueHealthCheck(mplexer, dss)) {
+        if (!queueHealthCheck(mplexer, dss, &pooled)) {
           dss->submitHealthCheckResult(false, false);
         }
       }
@@ -1628,7 +1636,7 @@ int main(int argc, char** argv)
             dss->d_nextCheck = dss->d_config.checkInterval;
           }
 
-          if (!queueHealthCheck(mplexer, dss, true)) {
+          if (!queueHealthCheck(mplexer, dss, nullptr, true)) {
             dss->submitHealthCheckResult(true, false);
             dss->setUpStatus(false);
             SLOG(warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr()),
