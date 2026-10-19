@@ -127,6 +127,158 @@ class TestSVCB(DNSDistTest):
             )
 
 
+class TestSVCBYAML(TestSVCB):
+    _yaml_config_template = """---
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+query_rules:
+  - name: Spoof an SVCB
+    selector:
+      type: "And"
+      selectors:
+        - type: "QType"
+          qtype: SVCB
+        - type: "QNameSuffix"
+          suffixes:
+            - "basic.svcb.tests.powerdns.com."
+    action:
+      type: SpoofSVC
+      parameters:
+        - target: "dot.powerdns.com"
+          priority: 1
+          mandatory_params: [3]
+          alpns:
+            - "dot"
+          no_default_alpn: true
+          port: 853
+          ipv4_hints:
+            - 192.0.2.1
+          ipv6_hints:
+            - 2001:db8::1
+        - target: "doh.powerdns.com"
+          priority: 2
+          mandatory_params: [3]
+          alpns:
+            - "h2"
+          no_default_alpn: true
+          port: 443
+          ipv4_hints:
+            - 192.0.2.2
+          ipv6_hints:
+            - 2001:db8::2
+          additional_params:
+            - key: 7
+              value: "/dns-query{?dns}"
+      vars:
+        set_aa: true
+
+  - name: Spoof an unhinted SVCB
+    selector:
+      type: "And"
+      selectors:
+        - type: "QType"
+          qtype: SVCB
+        - type: "QNameSuffix"
+          suffixes:
+            - "no-hints.svcb.tests.powerdns.com."
+    action:
+      type: SpoofSVC
+      parameters:
+        - target: "dot.powerdns.com"
+          priority: 1
+          mandatory_params: [3]
+          alpns:
+            - "dot"
+          no_default_alpn: true
+          port: 853
+        - target: "doh.powerdns.com"
+          priority: 2
+          mandatory_params: [3]
+          alpns:
+            - "h2"
+          no_default_alpn: true
+          port: 443
+          additional_params:
+            - key: 7
+              value: "/dns-query{?dns}"
+      vars:
+        set_aa: true
+
+  - name: Spoof an SVCB with effective name
+    selector:
+      type: "And"
+      selectors:
+        - type: "QType"
+          qtype: SVCB
+        - type: "QNameSuffix"
+          suffixes:
+            - "effective-target.svcb.tests.powerdns.com."
+    action:
+      type: SpoofSVC
+      parameters:
+        - target: "."
+          priority: 1
+          mandatory_params: [3]
+          alpns:
+            - "dot"
+          no_default_alpn: true
+          port: 853
+          ipv4_hints:
+            - 192.0.2.1
+          ipv6_hints:
+            - 2001:db8::1
+        - target: "."
+          priority: 2
+          mandatory_params: [3]
+          alpns:
+            - "h2"
+          no_default_alpn: true
+          port: 443
+          ipv4_hints:
+            - 192.0.2.1
+          ipv6_hints:
+            - 2001:db8::1
+          additional_params:
+            - key: 7
+              value: "/dns-query{?dns}"
+      vars:
+        set_aa: true
+
+  - name: Spoof an HTTPS
+    selector:
+      type: "And"
+      selectors:
+        - type: "QType"
+          qtype: HTTPS
+        - type: "QNameSuffix"
+          suffixes:
+            - "https.svcb.tests.powerdns.com."
+    action:
+      type: SpoofSVC
+      parameters:
+        - target: "."
+          priority: 1
+          mandatory_params: [3]
+          alpns:
+            - "h2"
+          no_default_alpn: true
+          port: 8002
+          ipv4_hints:
+            - 192.0.2.2
+          ipv6_hints:
+            - 2001:db8::2
+"""
+
+    _yaml_config_params = [
+        "_testServerPort",
+    ]
+
+    _config_template = ""
+    _config_params = []
+
+
 class TestSVCBViaFFI(DNSDistTest):
     _config_template = """
     local ffi = require("ffi")
