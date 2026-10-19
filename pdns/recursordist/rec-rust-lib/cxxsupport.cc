@@ -960,7 +960,7 @@ void fromLuaToRust(const map<DNSName, RecZoneToCache::Config>& ztcConfigs, pdns:
     }
     ztc.refreshPeriod = iter.d_refreshPeriod;
     ztc.retryOnErrorPeriod = iter.d_retryOnError;
-    ztc.maxReceivedMBytes = iter.d_maxReceivedBytes;
+    ztc.maxReceivedMBytes = iter.d_maxReceivedBytes / 1024U / 1024U;
     if (iter.d_local != ComboAddress()) {
       ztc.localAddress = iter.d_local.toString();
     }
@@ -1277,7 +1277,7 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ZoneToCache>
       lztc.d_tt.algo = DNSName(std::string(ztc.tsig.algo));
       B64Decode(std::string(ztc.tsig.secret), lztc.d_tt.secret);
     }
-    lztc.d_maxReceivedBytes = ztc.maxReceivedMBytes;
+    lztc.d_maxReceivedBytes = ztc.maxReceivedMBytes * 1024U * 1024U;
     lztc.d_retryOnError = static_cast<time_t>(ztc.retryOnErrorPeriod);
     lztc.d_refreshPeriod = static_cast<time_t>(ztc.refreshPeriod);
     lztc.d_timeout = ztc.timeout;

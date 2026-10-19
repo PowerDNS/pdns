@@ -175,6 +175,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_URL, str.c_str());
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_WRITEDATA, this);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_MAXREDIRS, 30L);
 
   d_byteslimit = byteslimit;
   if (d_byteslimit > 0) {
