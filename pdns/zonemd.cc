@@ -46,6 +46,9 @@ void pdns::ZoneMD::processRecord(const DNSRecord& record)
   if (record.d_class == QClass::IN && record.d_name == DNSName(d_zone)) {
     switch (record.d_type) {
     case QType::SOA: {
+      if (d_soaRecordContent != nullptr) {
+        throw PDNSException("Duplicate apex SOA record");
+      }
       d_soaRecordContent = getRR<SOARecordContent>(record);
       if (d_soaRecordContent == nullptr) {
         throw PDNSException("Invalid SOA record");
@@ -130,7 +133,13 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
     return;
   }
   if (record.d_class == QClass::IN && record.d_type == QType::SOA && d_soaRecordContent) {
-    return;
+    auto newSOA = getRR<SOARecordContent>(record);
+    // ignore duplicate, mostly prompted by
+    // https://www.rfc-editor.org/rfc/rfc8976.html#name-the-root-serversnet-zone, a test vector that
+    // has dup SOAs
+    if (newSOA && newSOA->getZoneRepresentation() == d_soaRecordContent->getZoneRepresentation()) {
+      return;
+    }
   }
 
   processRecord(record);

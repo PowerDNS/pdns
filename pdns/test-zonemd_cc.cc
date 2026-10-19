@@ -115,4 +115,9 @@ BOOST_AUTO_TEST_CASE(test_zonemd15)
   testZoneMD("example", "zonemd-scheme0.zone", false, true, false);
 }
 
+BOOST_AUTO_TEST_CASE(test_zonemd16)
+{
+  testZoneMD("example", "zonemd-dupsoa.zone", true, false, false);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
