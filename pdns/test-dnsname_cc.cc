@@ -1120,6 +1120,54 @@ BOOST_AUTO_TEST_CASE(test_variantnames) {
 }
 #endif
 
+BOOST_AUTO_TEST_CASE(test_isHostname)
+{
+  // Name, allowUnderscore
+  std::list<std::tuple<const std::string, const bool>> goodCases {
+    {"foobar.example.com", false},
+    {"foobar.example.com", true},
+    {"foobar2.example.com", false},
+    {"foobar2.example.com", true},
+    {"foo2bar.example.com", false},
+    {"foo2bar.example.com", true},
+    {"2foobar.example.com", false},
+    {"2foobar.example.com", true},
+    {"foo-bar.example.com", false},
+    {"foo-bar.example.com", true},
+    {"foo-2bar.example.com", false},
+    {"foo-2bar.example.com", true},
+    {"foo-bar2.example.com", false},
+    {"foo-bar2.example.com", true},
+
+    {"_foobar.example.com", true},
+    {"foo_bar.example.com", true},
+    {"foobar_.example.com", true},
+    {"_-foobar.example.com", true}, // somehow allowed :)
+  };
+
+  std::list<std::tuple<const std::string, const bool>> brokenCases {
+    // Leading dash
+    {"-foobar.example.com", false},
+    {"-foobar.example.com", true},
+    {"-foobar_.example.com", true},
+    {"-foo_bar.example.com", true},
+
+    // Trailing dash
+    {"foobar-.example.com", false},
+    {"foobar-.example.com", true},
+  };
+
+  for (const auto& [name, allowUnderScore] : goodCases) {
+    DNSName toTest(name);
+    BOOST_CHECK_MESSAGE(toTest.isHostname(allowUnderScore), name + " is unexpectedly marked as not a hostname");
+  }
+
+  for (const auto& [name, allowUnderScore] : brokenCases) {
+    DNSName toTest(name);
+    BOOST_CHECK_MESSAGE(!toTest.isHostname(allowUnderScore), name + " is unexpectedly marked as a hostname");
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_pdns_ilexicographical_compare) {
   using case_t = boost::tuple<const std::string, const std::string, bool>;
   using cases_t = std::list<case_t>;
