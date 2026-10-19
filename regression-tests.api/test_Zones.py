@@ -3345,11 +3345,11 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         rrset = {
             "changetype": "replace",
             "name": "_underscores_r_us_." + name,
-            "type": "A",
+            "type": "NS",
             "ttl": 3600,
             "records": [
                 {
-                    "content": "42.42.42.42",
+                    "content": "nameserver_with_an_underscore.somewhere.on.the.inter.net.",
                     "disabled": False,
                 }
             ],
@@ -3363,7 +3363,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assert_success(r)
         data = self.get_zone(name)
         # check our record has appeared
-        self.assertEqual(get_rrset(data, rrset["name"], "A")["records"], rrset["records"])
+        self.assertEqual(get_rrset(data, rrset["name"], "NS")["records"], rrset["records"])
 
     def test_record_count(self):
         name, payload, zone = self.create_zone()
