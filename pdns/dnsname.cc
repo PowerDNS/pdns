@@ -652,7 +652,7 @@ bool DNSName::isWildcard() const
 bool DNSName::isHostname(bool allowUnderscore) const
 {
   if (allowUnderscore) {
-    static Regex hostNameRegexWithUnderscore = Regex("^(([A-Za-z0-9_]([A-Za-z0-9-_]*[A-Za-z0-9_])?)\\.)+$");
+    static Regex hostNameRegexWithUnderscore = Regex("^(([A-Za-z0-9_]([A-Za-z0-9_-]*[A-Za-z0-9_])?)\\.)+$");
     return hostNameRegexWithUnderscore.match(this->toString());
   }
   static Regex hostNameRegex = Regex("^(([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)\\.)+$");
