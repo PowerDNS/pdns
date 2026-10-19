@@ -16,6 +16,17 @@ AXFR and IXFR queries received over UDP are immediately discarded with a "Not Im
 
 The :attr:`ClientState.muted` attribute has been removed. To drop responses to clients, use a :func:`DropResponseAction` rule.
 
+YAML SVCRecordParameter changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the YAML config, the ``mandatory_params`` key in :ref:`yaml-settings-SVCRecordParameters` has changed from an integer to a string.
+
+Any configuration using these will need to to updated.
+It should be changed to either:
+
+* The actual key name (e.g. ``"port"`` instead of ``3``)
+* The "generic" format (e.g. ``"key3"`` instead of ``3``)
+
 2.1.0-beta2 to 2.1.0
 --------------------
 

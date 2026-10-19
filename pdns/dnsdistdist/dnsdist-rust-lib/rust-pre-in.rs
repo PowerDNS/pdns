@@ -46,7 +46,7 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct SVCRecordParameters {
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        mandatory_params: Vec<u16>,
+        mandatory_params: Vec<String>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         alpns: Vec<String>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
