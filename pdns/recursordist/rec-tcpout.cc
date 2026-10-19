@@ -53,29 +53,30 @@ void TCPOutConnectionManager::cleanup(const struct timeval& now)
   }
 }
 
-void TCPOutConnectionManager::store(const struct timeval& now, const endpoints_t& endpoints, Connection&& connection)
+void TCPOutConnectionManager::store(const struct timeval& now, Connection&& connection)
 {
   ++connection.d_numqueries;
   if (s_maxQueries > 0 && connection.d_numqueries >= s_maxQueries) {
     return;
   }
 
-  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(endpoints) >= s_maxIdlePerAuth) {
+  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(connection.d_endpoint) >= s_maxIdlePerAuth) {
     cleanup(now);
   }
 
   if (d_idle_connections.size() >= s_maxIdlePerThread) {
     return;
   }
-  if (d_idle_connections.count(endpoints) >= s_maxIdlePerAuth) {
+  if (d_idle_connections.count(connection.d_endpoint) >= s_maxIdlePerAuth) {
     return;
   }
 
   gettimeofday(&connection.d_last_used, nullptr);
-  d_idle_connections.emplace(endpoints, std::move(connection));
+  Endpoint endpoint{connection.d_endpoint};
+  d_idle_connections.emplace(std::move(endpoint), std::move(connection));
 }
 
-TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const endpoints_t& endpoint)
+TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const Endpoint& endpoint)
 {
   if (d_idle_connections.count(endpoint) > 0) {
     auto connection = d_idle_connections.extract(endpoint);

@@ -383,7 +383,6 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
     tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote, verbose, subjectName, subjectAddress, configName, iteration);
   }
 
-
   connection = t_tcp_manager.get({remote, localBind, subjectName, configName, iteration});
   if (connection.d_handler) {
     return false;
@@ -444,10 +443,11 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
     }
   }
   connection.d_handler = std::make_shared<TCPIOHandler>(subjectName, subjectIsAddress, sock.releaseHandle(), timeout, tlsCtx);
-  connection.d_local = localBind;
-  connection.d_subject = subjectName;
-  connection.d_tlsConfig = configName;
-  connection.d_iteration = iteration;
+  connection.d_endpoint.d_remote = remote;
+  connection.d_endpoint.d_local = localBind;
+  connection.d_endpoint.d_subject = subjectName;
+  connection.d_endpoint.d_tlsConfig = configName;
+  connection.d_endpoint.d_iteration = iteration;
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level
   connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, remote);
@@ -995,7 +995,13 @@ LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& address, co
 
   if (doTCP) {
     if (connection.d_handler && lwr->d_validpacket) {
-      t_tcp_manager.store(*now, {address, connection.d_local, connection.d_subject, connection.d_tlsConfig, connection.d_iteration}, std::move(connection));
+      if (address == connection.d_endpoint.d_remote) {
+        t_tcp_manager.store(*now, std::move(connection));
+      }
+      else {
+        // some internal bookkeeping went wrong! Ignore, maybe we should log
+        ;
+      }
     }
   }
   return ret;
