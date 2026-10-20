@@ -47,4 +47,4 @@ bool warnIfDNSSECDisabled(const string& msg);
 vState increaseDNSSECStateCounter(const vState& state);
 vState increaseXDNSSECStateCounter(const vState& state);
 bool updateTrustAnchorsFromFile(const std::string& fname, std::map<DNSName, dsset_t>& dsAnchors, Logr::log_t);
-void detectUntrustedRootKeys(const dsset_t& rootAnchors, Logr::log_t logger);
+void detectUnknownRootKeys(const dsset_t& rootAnchors, Logr::log_t logger);

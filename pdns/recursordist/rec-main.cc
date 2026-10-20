@@ -2800,7 +2800,7 @@ static void houseKeepingWork(Logr::log_t log)
       }
       if (g_luaconfs.getLocal()->dsAnchors.count(g_rootdnsname) != 0) {
         try {
-          detectUntrustedRootKeys(g_luaconfs.getLocal()->dsAnchors.at(g_rootdnsname), log);
+          detectUnknownRootKeys(g_luaconfs.getLocal()->dsAnchors.at(g_rootdnsname), log);
         }
         catch (const PDNSException& pe) {
           log->error(Logr::Error, pe.reason, "Unable to check root keys");

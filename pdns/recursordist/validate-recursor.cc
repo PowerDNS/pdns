@@ -103,9 +103,9 @@ bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsset_t>&
 }
 
 
-std::atomic<size_t> g_UntrustedRootKeys = 0;
+std::atomic<size_t> g_UnknownRootKeys = 0;
 
-void detectUntrustedRootKeys(const dsset_t& rootAnchors, Logr::log_t logger)
+void detectUnknownRootKeys(const dsset_t& rootAnchors, Logr::log_t logger)
 {
 
   std::vector<DNSRecord> dnskeys;
@@ -114,7 +114,7 @@ void detectUntrustedRootKeys(const dsset_t& rootAnchors, Logr::log_t logger)
     logger->info(Logr::Warning, "Could not resolve root key set", "result", Logging::Loggable(res));
     return;
   }
-  g_UntrustedRootKeys = 0;
+  g_UnknownRootKeys = 0;
   for (const auto& key : dnskeys) {
     if (key.d_type != QType::DNSKEY) {
       continue;
@@ -136,7 +136,7 @@ void detectUntrustedRootKeys(const dsset_t& rootAnchors, Logr::log_t logger)
       }
     }
     if (!trusted) {
-      g_UntrustedRootKeys++;
+      g_UnknownRootKeys++;
       const auto dsFromKey = makeDSFromDNSKey(logger, g_rootdnsname, *keyContent, DNSSEC::DIGEST_SHA256).getZoneRepresentation();
       logger->info(Logr::Warning, "Key signing key found in root DNSKEY set that is not in trust anchors",
                    "dnskey", Logging::Loggable(keyContent->getZoneRepresentation()),

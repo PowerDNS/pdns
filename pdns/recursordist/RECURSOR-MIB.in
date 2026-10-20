@@ -23,7 +23,7 @@ rec MODULE-IDENTITY
        "This MIB module describes information gathered through PowerDNS Recursor."
 
     REVISION "202610200000Z"
-    DESCRIPTION "Added metric counting untrsuted root keys"
+    DESCRIPTION "Added metric counting unknown (non-Trust Anchor) root keys"
 
     REVISION "202509100000Z"
     DESCRIPTION "Added metrics related to cookies"

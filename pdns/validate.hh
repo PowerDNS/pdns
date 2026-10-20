@@ -174,4 +174,4 @@ inline bool isRevokedKey(const DNSKEYRecordContent& key)
   /* rfc5011 Section 3 */
   return (key.d_flags & DNSKEYFlag::REVOKED) != 0;
 }
-extern std::atomic<size_t> g_UntrustedRootKeys;
+extern std::atomic<size_t> g_UnknownRootKeys;
