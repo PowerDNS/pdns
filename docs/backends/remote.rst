@@ -165,7 +165,7 @@ Methods required for different features
 :Always required: ``initialize``, ``lookup``
 :Primary operation: ``list``, ``getUpdatedMasters``, ``setNotified``
 :Secondary operation: ``getUnfreshSlaveInfos``, ``startTransaction``, ``commitTransaction``, ``abortTransaction``, ``feedRecord``, ``setFresh``
-:DNSSEC operation (live-signing): ``getDomainKeys``, ``getBeforeAndAfterNamesAbsolute``
+:DNSSEC operation (live-signing): ``getBeforeAndAfterNamesAbsolute``, ``getDomainKeys``, ``removeDomainKey``, ``addDomainKey``, ``activateDomainKey``, ``deactivateDomainKey``, ``publishDomainKey``, ``unpublishDomainKey``, ``getTSIGKey``, ``setTSIGKey``, ``deleteTSIGKey``, ``getTSIGKeys``
 :Filling the Zone Cache: ``getAllDomains``
 :HTTP API specific: ``APILookup``
 
@@ -844,7 +844,7 @@ Response:
 Retrieves the key needed to sign AXFR.
 
 -  Mandatory: no
--  Parameters: name
+-  Parameters: name, optional algorithm
 -  Reply: algorithm, content
 
 Example JSON/RPC
@@ -879,6 +879,96 @@ Response:
     Content-Type: text/javascript; charset=utf-8
 
     {"result":{"algorithm":"hmac-md5","content":"kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}}
+
+``setTSIGKey``
+~~~~~~~~~~~~~~
+
+Registers a TSIG key.
+
+-  Mandatory: no
+-  Parameters: name, algorithm, content
+-  Reply: true on success / false on failure
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: json
+
+    {"method":"settsigkey","parameters":{"name":"example.com.","algorithm":"hmac-md5","content":"kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}}
+
+Response:
+
+.. code-block:: json
+
+    {"result":true}
+
+``deleteTSIGKey``
+~~~~~~~~~~~~~~~~~
+
+Deletes a TSIG key.
+
+-  Mandatory: no
+-  Parameters: name, optional algorithm
+-  Reply: true on success / false on failure
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: json
+
+    {"method":"deletetsigkey","parameters":{"name":"example.com.","algorithm":"hmac-md5"}}
+
+Response:
+
+.. code-block:: json
+
+    {"result":true}
+
+``getTSIGKeys``
+~~~~~~~~~~~~~~~
+
+Retrieves the list of all available TSIG keys.
+
+-  Mandatory: no
+-  Parameters: none
+-  Reply: list of keys (name, algorithm, content)
+
+Example JSON/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: json
+
+    {"method":"gettsigkeys","parameters":{}}
+
+Response:
+
+.. code-block:: json
+
+    {"result":{"name":"example.com.","algorithm":"hmac-md5","content":"kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}}
+
+Example HTTP/RPC
+''''''''''''''''
+
+Query:
+
+.. code-block:: http
+
+    GET /dnsapi/gettsigkeys HTTP/1.1
+
+Response:
+
+.. code-block:: http
+
+    HTTP/1.1 200 OK
+    Content-Type: text/javascript; charset=utf-8
+
+    {"result":{"name":"example.com.","algorithm":"hmac-md5","content":"kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}}
 
 ``getDomainInfo``
 ~~~~~~~~~~~~~~~~~

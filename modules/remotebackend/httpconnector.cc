@@ -146,6 +146,9 @@ void HTTPConnector::restful_requestbuilder(const std::string& method, const Json
     verb = "PATCH";
   }
   else if (method == "deleteTSIGKey") {
+    if (!parameters["algorithm"].is_null() && parameters["algorithm"].is_string()) {
+      req.GET()["algorithm"] = parameters["algorithm"].string_value();
+    }
     verb = "DELETE";
   }
   else if (method == "addDomainKey") {
