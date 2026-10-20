@@ -1,4 +1,6 @@
 import dns
+import os
+import time
 from recursortests import RecursorTest
 
 
@@ -60,3 +62,21 @@ class TrustAnchorsDisabledTest(RecursorTest):
         result = self.sendUDPQuery(query)
 
         self.assertRcodeEqual(result, dns.rcode.SERVFAIL)
+
+
+class TrustAnchorsIncompleteTest(RecursorTest):
+    """This test will check of incomplete TAs are detected"""
+
+    _confdir = "TrustAnchorsIncomplete"
+    _auth_zones = RecursorTest._default_auth_zones
+    _root_DS = None
+    _config_template = """
+"""
+
+    def testMetric(self):
+        confdir = os.path.join("configs", TrustAnchorsIncompleteTest._confdir)
+        for i in range(50):
+            value = self.recControl(confdir, "get", "unknown-root-keys")
+            if value == "0\n":
+                time.sleep(0.1)
+        self.assertEqual(value, "1\n")

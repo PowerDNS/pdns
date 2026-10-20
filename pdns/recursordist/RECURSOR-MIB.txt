@@ -23,7 +23,7 @@ rec MODULE-IDENTITY
        "This MIB module describes information gathered through PowerDNS Recursor."
 
     REVISION "202610200000Z"
-    DESCRIPTION "Added metric counting untrsuted root keys"
+    DESCRIPTION "Added metric counting unknown (non-Trust Anchor) root keys"
 
     REVISION "202509100000Z"
     DESCRIPTION "Added metrics related to cookies"
@@ -1373,12 +1373,12 @@ cookiesUnsupported OBJECT-TYPE
         "Number of authoritative server cookie probes not resulting in success"
     ::= { stats 161 }
 
-untrustedRootKeys OBJECT-TYPE
+unknownRootKeys OBJECT-TYPE
     SYNTAX CounterBasedGauge64
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Untrusted root key signing keys seen"
+        "Unknown root key signing keys seen"
     ::= { stats 162 }
 
 ---
@@ -1589,7 +1589,7 @@ recGroup OBJECT-GROUP
         cookieRetry,
         cookiesSupported,
         cookiesUnsupported,
-        untrustedRootKeys
+        unknownRootKeys
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

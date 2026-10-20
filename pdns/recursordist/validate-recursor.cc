@@ -102,7 +102,6 @@ bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsset_t>&
   }
 }
 
-
 std::atomic<size_t> g_UnknownRootKeys = 0;
 
 void detectUnknownRootKeys(const dsset_t& rootAnchors, Logr::log_t logger)

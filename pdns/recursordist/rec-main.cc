@@ -2798,7 +2798,7 @@ static void houseKeepingWork(Logr::log_t log)
           log->error(Logr::Error, pe.reason, "Unable to update Trust Anchors");
         }
       }
-      if (g_luaconfs.getLocal()->dsAnchors.count(g_rootdnsname) != 0) {
+      if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate && g_luaconfs.getLocal()->dsAnchors.count(g_rootdnsname) != 0) {
         try {
           detectUnknownRootKeys(g_luaconfs.getLocal()->dsAnchors.at(g_rootdnsname), log);
         }
