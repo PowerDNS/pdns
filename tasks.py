@@ -24,7 +24,6 @@ all_build_deps = [
     "pkg-config",
     "python3-venv",
     "systemd",
-    "systemd-dev",
 ]
 git_build_deps = ["autoconf", "automake", "bison", "bzip2", "curl", "flex", "git", "ragel"]
 auth_build_deps = [  # FIXME: perhaps we should be stealing these from the debian (Ubuntu) control file
@@ -164,6 +163,14 @@ doc_deps_pdf = [
 ]
 
 
+def get_all_build_deps(c):
+    # Add package "systemd-dev" only if available. For releases after Debian 12/Ubuntu 22.04, the pkg-config files
+    # were move out of the "systemd" package: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=945922
+    if c.run("apt-cache show systemd-dev", warn=True, hide=True).ok:
+        return all_build_deps + ["systemd-dev"]
+    return all_build_deps
+
+
 @task
 def apt_fresh(c):
     c.sudo("apt-get update")
@@ -225,7 +232,10 @@ def install_doc_deps_pdf(c):
 
 @task
 def install_auth_build_deps(c):
-    c.sudo("apt-get install -y --no-install-recommends " + " ".join(all_build_deps + git_build_deps + auth_build_deps))
+    c.sudo(
+        "apt-get install -y --no-install-recommends "
+        + " ".join(get_all_build_deps(c) + git_build_deps + auth_build_deps)
+    )
 
 
 def is_coverage_enabled():
@@ -410,7 +420,10 @@ def install_dnsdist_test_deps(c, skipXDP=False):  # FIXME: rename this, we do wa
 
 @task
 def install_rec_build_deps(c):
-    c.sudo("apt-get install -y --no-install-recommends " + " ".join(all_build_deps + git_build_deps + rec_build_deps))
+    c.sudo(
+        "apt-get install -y --no-install-recommends "
+        + " ".join(get_all_build_deps(c) + git_build_deps + rec_build_deps)
+    )
 
 
 @task(optional=["skipXDP"])
@@ -418,7 +431,10 @@ def install_dnsdist_build_deps(c, skipXDP=False):
     c.sudo(
         "apt-get install -y --no-install-recommends "
         + " ".join(
-            all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])
+            get_all_build_deps(c)
+            + git_build_deps
+            + dnsdist_build_deps
+            + (dnsdist_xdp_build_deps if not skipXDP else [])
         )
     )
 
