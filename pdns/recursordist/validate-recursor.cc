@@ -138,7 +138,7 @@ void detectUntrustedRootKeys(const dsset_t& rootAnchors, Logr::log_t logger)
     if (!trusted) {
       g_UntrustedRootKeys++;
       const auto dsFromKey = makeDSFromDNSKey(logger, g_rootdnsname, *keyContent, DNSSEC::DIGEST_SHA256).getZoneRepresentation();
-      logger->info(Logr::Warning, "Untrusted key signing key found in root key set key",
+      logger->info(Logr::Warning, "Key signing key found in root DNSKEY set that is not in trust anchors",
                    "dnskey", Logging::Loggable(keyContent->getZoneRepresentation()),
                    "ds", Logging::Loggable(dsFromKey));
     }
