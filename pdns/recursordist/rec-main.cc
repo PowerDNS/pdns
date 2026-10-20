@@ -2781,10 +2781,6 @@ static void houseKeepingWork(Logr::log_t log)
 
     const time_t taInterval = static_cast<time_t>(std::max(1U, luaconfsLocal->trustAnchorFileInfo.interval)) * 3600;
     static PeriodicTask trustAnchorTask{"trustAnchorTask", taInterval};
-    if (!trustAnchorTask.hasRun()) {
-      // Loading the Lua config file already "refreshed" the TAs
-      trustAnchorTask.updateLastRun();
-    }
     // interval might have ben updated
     trustAnchorTask.setPeriod(taInterval);
     trustAnchorTask.runIfDue(now, [&luaconfsLocal, &log]() {
@@ -2800,6 +2796,14 @@ static void houseKeepingWork(Logr::log_t log)
         }
         catch (const PDNSException& pe) {
           log->error(Logr::Error, pe.reason, "Unable to update Trust Anchors");
+        }
+      }
+      if (g_luaconfs.getLocal()->dsAnchors.count(g_rootdnsname) != 0) {
+        try {
+          detectUntrustedRootKeys(g_luaconfs.getLocal()->dsAnchors.at(g_rootdnsname), log);
+        }
+        catch (const PDNSException& pe) {
+          log->error(Logr::Error, pe.reason, "Unable to check root keys");
         }
       }
     });

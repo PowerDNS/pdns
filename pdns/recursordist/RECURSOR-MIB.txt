@@ -16,11 +16,14 @@ IMPORTS
 
 rec MODULE-IDENTITY
 
-    LAST-UPDATED "202509100000Z"
+    LAST-UPDATED "202610200000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
+
+    REVISION "202610200000Z"
+    DESCRIPTION "Added metric counting untrsuted root keys"
 
     REVISION "202509100000Z"
     DESCRIPTION "Added metrics related to cookies"
@@ -1370,6 +1373,14 @@ cookiesUnsupported OBJECT-TYPE
         "Number of authoritative server cookie probes not resulting in success"
     ::= { stats 161 }
 
+untrustedRootKeys OBJECT-TYPE
+    SYNTAX CounterBasedGauge64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Untrusted root key signing keys seen"
+    ::= { stats 162 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1577,7 +1588,8 @@ recGroup OBJECT-GROUP
         cookieNotInReply,
         cookieRetry,
         cookiesSupported,
-        cookiesUnsupported
+        cookiesUnsupported,
+        untrustedRootKeys
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"
