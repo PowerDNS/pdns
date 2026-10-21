@@ -3634,7 +3634,7 @@ Maximum number of name pointers followed per name.
 DNS packets needing more than the limit will fail to parse and be rejected.
 See :ref:`pointers`.
 """,
-        "versionadded": ["5.5.0", "5.4.8", "5.3.12"]
+        "versionadded": ["5.5.0", "5.4.8", "5.3.12"],
     },
     {
         "name": "max_pointers_per_packet_byte",
@@ -3647,7 +3647,7 @@ Maximum number of name pointers per DNS packet byte followed.
 DNS packets needing more than the limit will fail to parse and be rejected.
 See :ref:`pointers`.
 """,
-        "versionadded": ["5.5.0", "5.4.8", "5.3.12"]
+        "versionadded": ["5.5.0", "5.4.8", "5.3.12"],
     },
     {
         "name": "max_pointers_to_pointers",
@@ -3660,7 +3660,6 @@ Maximum number of name pointers pointing to directly another pointer per name.
 DNS packets needing more than the limit will fail to parse and be rejected.
 See :ref:`pointers`.
 """,
-        "versionadded": ["5.5.0", "5.4.8", "5.3.12"]
+        "versionadded": ["5.5.0", "5.4.8", "5.3.12"],
     },
-
 ]
