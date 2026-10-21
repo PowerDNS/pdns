@@ -231,7 +231,7 @@ DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& wire)
   return resourceRecord;
 }
 
-void MOADNSParser::init(bool query, const std::string_view& packet)
+void MOADNSParser::init(bool query, const std::string_view& packet, size_t pointerBudget)
 {
   if (packet.size() < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -252,6 +252,9 @@ void MOADNSParser::init(bool query, const std::string_view& packet)
   unsigned int n=0;
 
   PacketReader pr(packet);
+  if (pointerBudget != 0) {
+    pr.setPointerBudget(pointerBudget);
+  }
   bool validPacket=false;
   try {
     d_qtype = d_qclass = 0; // sometimes replies come in with no question, don't present garbage then
@@ -349,13 +352,15 @@ bool MOADNSParser::hasEDNS() const
   }
 
   for (const auto& record : d_answers) {
-    if (record.d_place == DNSResourceRecord::ADDITIONAL && record.d_type == QType::OPT) {
+    if (record.d_place == DNSResourceRecord::ADDITIONAL && record.d_type == QType::OPT && record.d_name.isRoot()) {
       return true;
     }
   }
 
   return false;
 }
+
+size_t PacketReader::s_MaxPointersPerByte = 4;
 
 void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 {
@@ -458,9 +463,9 @@ uint8_t PacketReader::get8BitInt()
 
 DNSName PacketReader::getName()
 {
-  unsigned int consumed;
+  unsigned int consumed{};
   try {
-    DNSName dn((const char*) d_content.data(), d_content.size(), d_pos, true /* uncompress */, nullptr /* qtype */, nullptr /* qclass */, &consumed, sizeof(dnsheader));
+    DNSName dn((const char*) d_content.data(), d_content.size(), d_pos, true /* uncompress */, nullptr /* qtype */, nullptr /* qclass */, &consumed, sizeof(dnsheader), &d_pointerBudget);
 
     d_pos+=consumed;
     return dn;
@@ -1290,11 +1295,21 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
       dpm.skipBytes(4);
     }
     const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
-    for(size_t n = 0; n < numrecords; ++n) {
-      dpm.skipDomainName();
+    for(size_t index = 0; index < numrecords; ++index) {
+      const auto wasRoot = dpm.skipDomainName();
       const auto dnstype = dpm.get16BitInt();
+      uint8_t section{};
+      if (index < ntohs(dh->ancount)) {
+        section = 1;
+      }
+      else if (index < ntohs(dh->ancount) + ntohs(dh->nscount)) {
+        section = 2;
+      }
+      else {
+        section = 3;
+      }
 
-      if (dnstype == QType::OPT) {
+      if (section == 3 && dnstype == QType::OPT && wasRoot) {
         const auto dnsclass = dpm.get16BitInt();
         /* skip extended rcode and version */
         dpm.skipBytes(2);
