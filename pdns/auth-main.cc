@@ -338,6 +338,11 @@ static void declareArguments()
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
   ::arg().set("gss-max-contexts", "The maximum number of simultaneous GSS contexts allowed") = "1000";
 #endif
+
+  ::arg().set("max-pointers-per-packet-byte", "Maximum number of name pointers per DNS packet byte followed") = "4";
+  ::arg().set("max-pointers-to-pointers", "Maximum number of name pointers pointing directly to another pointer per name") = "4";
+  ::arg().set("max-pointers-per-name", "Maximum number of name pointers followed per name") = "10";
+
   ::arg().setDefaults();
 }
 
@@ -724,6 +729,9 @@ static void mainthread()
 
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+  PacketReader::s_MaxPointersPerByte = ::arg().asNum("max-pointers-per-packet-byte");
+  DNSName::s_maxPointersToPointers = ::arg().asNum("max-pointers-to-pointers");
+  DNSName::s_maxPointersPerName = ::arg().asNum("max-pointers-per-name");
 
   if (::arg()["edns-cookie-secret"].size() != 0) {
     // User wants cookie processing
