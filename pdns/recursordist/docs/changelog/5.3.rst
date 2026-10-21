@@ -4,6 +4,17 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.13
+  :released: 21st of October 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18209
+
+    Fix a performance regression introduced with SA-2026-08.
+    This is only relevant when running with use-incoming-edns-subnet enabled and a scope zero answer is sent to the client.
+
+.. changelog::
   :version: 5.3.12
   :released: 21st of October 2026
 
