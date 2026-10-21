@@ -1299,6 +1299,51 @@ For more information see :ref:`dnssec-operational-nsec-modes-params`.
 .. note::
   Pre 4.5.0 the default was 500.
 
+.. _setting-max-pointers-per-name:
+
+``max-pointers-per-name``
+-------------------------
+
+-  Integer
+-  Default: 10
+
+Maximum number of name pointers followed per name.
+DNS packets needing more than the limit will fail to parse and be rejected.
+
+.. versionadded:: 5.1.5
+.. versionadded:: 5.0.8
+.. versionadded:: 4.9.18
+
+.. _setting-max-pointers-per-packet-byte:
+
+``max-pointers-per-packet-byte``
+--------------------------------
+
+-  Integer
+-  Default: 4
+
+Maximum number of name pointers per DNS packet byte followed.
+DNS packets needing more than the limit will fail to parse and be rejected.
+
+.. versionadded:: 5.1.5
+.. versionadded:: 5.0.8
+.. versionadded:: 4.9.18
+
+.. _setting-max-pointers-to-pointers:
+
+``max-pointers-to-pointers``
+----------------------------
+
+-  Integer
+-  Default: 4
+
+Maximum number of name pointers pointing to directly another pointer per name.
+DNS packets needing more than the limit will fail to parse and be rejected.
+
+.. versionadded:: 5.1.5
+.. versionadded:: 5.0.8
+.. versionadded:: 4.9.18
+
 .. _setting-max-packet-cache-entries:
 
 ``max-packet-cache-entries``
