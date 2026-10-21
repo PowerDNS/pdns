@@ -230,7 +230,9 @@ bool Bind2Backend::startDomainReplacementTransactionInternal(BB2DomainInfo& bbd)
   d_transaction_id = bbd.d_id;
   d_transaction_tmpname = bbd.main_filename() + "XXXXXX";
   // NOLINTNEXTLINE(readability-identifier-length)
+  mode_t curmask = umask(S_IRWXG | S_IRWXO);
   int fd = mkstemp(&d_transaction_tmpname.at(0));
+  umask(curmask);
   if (fd == -1) {
     throw DBException("Unable to create a unique temporary zonefile '" + d_transaction_tmpname + "': " + stringerror());
   }

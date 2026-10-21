@@ -28,6 +28,7 @@
 #include <thread>
 #include "threadname.hh"
 #include <cstdlib>
+#include <sys/stat.h>
 #include "logging.hh"
 #include "misc.hh"
 
@@ -141,7 +142,9 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
         }
         // Now write it out to the file
         std::string ftmp = file.string() + ".XXXXXXXX";
+        mode_t curmask = umask(S_IRWXG | S_IRWXO);
         auto fileDesc = FDWrapper(mkstemp(ftmp.data()));
+        umask(curmask);
         if (fileDesc == -1) {
           throw std::runtime_error("Cannot create temp file: " + stringerror());
         }
