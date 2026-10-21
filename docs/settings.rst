@@ -1314,8 +1314,9 @@ For more information see :ref:`dnssec-operational-nsec-modes-params`.
 Maximum number of name pointers followed per name.
 DNS packets needing more than the limit will fail to parse and be rejected.
 
-.. versionadded:: 5.1.x
-.. versionadded:: 5.0.x
+.. versionadded:: 5.1.5
+.. versionadded:: 5.0.8
+.. versionadded:: 4.9.18
 
 .. _setting-max-pointers-per-packet-byte:
 
@@ -1328,8 +1329,9 @@ DNS packets needing more than the limit will fail to parse and be rejected.
 Maximum number of name pointers per DNS packet byte followed.
 DNS packets needing more than the limit will fail to parse and be rejected.
 
-.. versionadded:: 5.1.x
-.. versionadded:: 5.0.x
+.. versionadded:: 5.1.5
+.. versionadded:: 5.0.8
+.. versionadded:: 4.9.18
 
 .. _setting-max-pointers-to-pointers:
 
@@ -1342,8 +1344,9 @@ DNS packets needing more than the limit will fail to parse and be rejected.
 Maximum number of name pointers pointing to directly another pointer per name.
 DNS packets needing more than the limit will fail to parse and be rejected.
 
-.. versionadded:: 5.1.x
-.. versionadded:: 5.0.x
+.. versionadded:: 5.1.5
+.. versionadded:: 5.0.8
+.. versionadded:: 4.9.18
 
 .. _setting-max-packet-cache-entries:
 
