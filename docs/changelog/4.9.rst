@@ -2,6 +2,63 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.18
+  :released: 21st of October 2026
+
+  This is release 4.9.18 of the Authoritative Server.
+  It contains bug fixes, as well as a security fix.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18199
+
+    Fix PowerDNS Security Advisory 2026-13 for PowerDNS Authoritative Server
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18136
+    :tickets: 17723, 18135
+
+    report remote in "unable to get SOA" messages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18133
+    :tickets: 18077, 17736, 16389, 17514, 16389
+
+    correctly stop the Lua checker thread when exiting
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18093
+    :tickets: 17160
+
+    safer lua geoip queries
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18096
+    :tickets: 18028
+
+    yet another lmdb bugfix
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18094
+    :tickets: 17671
+
+    SQL: stricter listSubZones operation
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18095
+    :tickets: 17904
+
+    better handling of incorrect Lua view() input
+
+.. changelog::
   :version: 4.9.17
   :released: 6th of August 2026
 

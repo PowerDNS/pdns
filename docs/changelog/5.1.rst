@@ -2,6 +2,87 @@ Changelogs for 5.1.x
 ====================
 
 .. changelog::
+  :version: 5.1.5
+  :released: 21st of October 2026
+
+  This is release 5.1.5 of the Authoritative Server.
+  It contains bug fixes, as well as a minor feature and a security fix.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.1.x.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18104
+
+    api: allow forced update for EXTEND and DELETE zone patch operations
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18105
+
+    SQL: stricter listSubZones operation
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18106
+
+    rest-api: fix signedness bug in json data normalization
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18107
+
+    dnsrecords: bound APL wire elements to the record length
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18108
+
+    better handling of incorrect Lua view() input
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18109
+
+    avoid views-related work unless views are enabled
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18110
+
+    yet another lmdb bugfix
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18111
+
+    lmdb: delete comments with domains and RRsets
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18112
+
+    correctly reset the cached "are Lua records enabled?" flag at query start
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18131
+
+    report remote in "unable to get SOA" messages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18134
+
+    correctly stop the Lua checker thread when exiting
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18201
+
+    Fix PowerDNS Security Advisory 2026-13 for PowerDNS Authoritative Server
+
+.. changelog::
   :version: 5.1.4
   :released: 6th of August 2026
 

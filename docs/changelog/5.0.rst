@@ -2,6 +2,77 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.8
+  :released: 21st of October 2026
+
+  This is release 5.0.8 of the Authoritative Server.
+  It contains bug fixes, as well as a security fix.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.0.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18200
+
+    Fix PowerDNS Security Advisory 2026-13 for PowerDNS Authoritative Server
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18135
+    :tickets: 17723
+
+    report remote in "unable to get SOA" messages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18132
+    :tickets: 18077, 17736, 17514, 16389
+
+    correctly stop the Lua checker thread when exiting
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18097
+    :tickets: 17160
+
+    safer lua geoip queries
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18101
+    :tickets: 14058
+
+    don't crash when a catalog SOA is invalid
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18102
+    :tickets: 17971
+
+    avoid views-related work unless views are enabled
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18099
+    :tickets: 17904
+
+    better handling of incorrect Lua view() input
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18098
+    :tickets: 17671
+
+    SQL: stricter listSubZones operation
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18100
+    :tickets: 18028
+
+    yet another lmdb bugfix
+
+.. changelog::
   :version: 5.0.7
   :released: 6th of August 2026
 
