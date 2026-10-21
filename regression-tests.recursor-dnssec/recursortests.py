@@ -232,6 +232,20 @@ dname-bogus.secure.example. 3600 IN DNAME bogus.example.
 non-apex-dnskey.secure.example. 3600 IN DNSKEY 257 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==
 non-apex-dnskey2.secure.example. 3600 IN DNSKEY 256 3 13 CT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==
 non-apex-dnskey3.secure.example. 3600 IN DNSKEY 256 3 13 DT6AJ4MEOtNDgj0+xLtTLGHf1WbLsKWZI8ONHOt/6q7hTjeWSnY/SGig1dIKZrHg+pJFUSPaxeShv48SYVRKEg==
+
+;; YWH-306
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns1.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns2.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns3.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns4.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns5.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns6.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns7.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns8.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN NS ns.bad-auth-with-fake-1918-ns.secure.example.
+;; fake DS, the records are signed with a different DNSKEY
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN DS 59332 13 1 aabbccddeeff11223344556677889900aabbccdd
+ns.bad-auth-with-fake-1918-ns.secure.example. 3600 IN A {prefix}.19
         """,
         'dname-secure.example': """
 dname-secure.example. 3600 IN SOA {soa}
@@ -334,7 +348,24 @@ delay2.example.                       3600 IN SOA  {soa}
 delay2.example.                       3600 IN NS n1.delay2.example.
 ns1.delay2.example.                   3600 IN A    {prefix}.17
 *.delay2.example.                     0    LUA TXT ";" "local socket=require('socket')" "socket.sleep(tonumber(qname:getRawLabels()[1])/10)" "return 'a'"
-        """
+        """,
+        "bad-auth-with-fake-1918-ns.secure.example": """
+bad-auth-with-fake-1918-ns.secure.example. 3600 IN SOA  {soa}
+
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns.bad-auth-with-fake-1918-ns.secure.example.
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns1.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns2.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns3.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns4.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns5.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns6.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns7.10.in-addr.arpa.
+bad-auth-with-fake-1918-ns.secure.example. IN NS ns8.10.in-addr.arpa.
+
+ns.bad-auth-with-fake-1918-ns.secure.example. 3600 IN A {prefix}.19
+
+a.bad-auth-with-fake-1918-ns.secure.example. 3600 IN A 192.0.2.19
+        """,
     }
 
     # The private keys for the zones (note that DS records should go into
@@ -404,7 +435,12 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
 Private-key-format: v1.2
 Algorithm: 13 (ECDSAP256SHA256)
 PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
-"""
+""",
+        "bad-auth-with-fake-1918-ns.secure.example": """
+Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
+""",
     }
 
     # This dict is keyed with the suffix of the IP address and its value
@@ -419,21 +455,14 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
                'zones': ['example']},
 
         # 11 is used by CircleCI provided resolver
-
-        '12': {'threads': 1,
-               'zones': ['bogus.example', 'undelegated.secure.example', 'undelegated.insecure.example']},
-        '13': {'threads': 1,
-               'zones': ['insecure.example', 'insecure.sub2.secure.example', 'dname-secure.example']},
-        '14': {'threads': 1,
-               'zones': ['optout.example']},
-        '15': {'threads': 1,
-               'zones': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']},
-        '16': {'threads': 10,
-               'zones': ['delay1.example']},
-        '17': {'threads': 10,
-               'zones': ['delay2.example']},
-        '18': {'threads': 1,
-               'zones': ['example']}
+        "12": {"threads": 1, "zones": ["bogus.example", "undelegated.secure.example", "undelegated.insecure.example"]},
+        "13": {"threads": 1, "zones": ["insecure.example", "insecure.sub2.secure.example", "dname-secure.example"]},
+        "14": {"threads": 1, "zones": ["optout.example"]},
+        "15": {"threads": 1, "zones": ["insecure.optout.example", "secure.optout.example", "cname-secure.example"]},
+        "16": {"threads": 10, "zones": ["delay1.example"]},
+        "17": {"threads": 10, "zones": ["delay2.example"]},
+        "18": {"threads": 1, "zones": ["example"]},
+        "19": {"threads": 1, "zones": ["bad-auth-with-fake-1918-ns.secure.example"]},
     }
     _auth_zones = {}
     # Other IPs used:

@@ -303,6 +303,10 @@ static bool tcpconnect(const ComboAddress& ip, TCPOutConnectionManager::Connecti
   s.setNonBlocking();
   setTCPNoDelay(s.getHandle());
   ComboAddress localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
+#ifdef IP_BIND_ADDRESS_NO_PORT
+  int one = 1;
+  setsockopt(s.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, &one, sizeof(one)); // failure ignored on purpose
+#endif
   s.bind(localip);
 
   std::shared_ptr<TLSCtx> tlsCtx{nullptr};
@@ -643,7 +647,9 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     if (::arg().mustDo("log-common-errors")) {
       SLOG(g_log << Logger::Notice << "Unable to parse packet from remote server " << address.toString() << ": " << mde.what() << endl,
            g_slogout->error(Logr::Notice, mde.what(), "Unable to parse packet from remote server", "server", Logging::Loggable(address),
-                            "exception", Logging::Loggable("std::exception")));
+                            "exception", Logging::Loggable("std::exception"),
+                            "qname", Logging::Loggable(domain),
+                            "qtype", Logging::Loggable(QType(type))));
     }
 
     lwr->d_rcode = RCode::FormErr;
