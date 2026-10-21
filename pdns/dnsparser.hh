@@ -579,7 +579,9 @@ public:
       return partial_vector<DNSRecord>(d_answers, d_header.ancount, d_header.ancount + d_header.nscount);
     case DNSResourceRecord::Place::ADDITIONAL:
       return partial_vector<DNSRecord>(d_answers, d_header.ancount + d_header.nscount, d_answers.size());
-    case -DNSResourceRecord::Place::ADDITIONAL: // Note the minus sign: everything BUT the additional section
+    // Note the minus sign: everything BUT the additional section. This can
+    // work because the answer and authority sections are contiguous.
+    case -DNSResourceRecord::Place::ADDITIONAL:
       return partial_vector<DNSRecord>(d_answers, 0, d_header.ancount + d_header.nscount);
     default:
       throw MOADNSException("Invalid set of answers requested");
