@@ -71,10 +71,18 @@ public:
   PacketReader(const std::string_view& content, uint16_t initialPos=sizeof(dnsheader), bool internalRepresentation = false, bool standalone = false)
     : d_pos(initialPos), d_startrecordpos(initialPos), d_internal(internalRepresentation), d_standalone(standalone), d_content(content)
   {
-    if(content.size() > std::numeric_limits<uint16_t>::max())
+    if (content.size() > std::numeric_limits<uint16_t>::max()) {
       throw std::out_of_range("packet too large");
+    }
 
-    d_recordlen = (uint16_t) content.size();
+    d_recordlen = static_cast<uint16_t>(content.size());
+    d_pointerBudget = static_cast<size_t>(d_recordlen) * s_MaxPointersPerByte;
+  }
+
+  // Default is s_MaxPointersPerByte * packet size
+  void setPointerBudget(size_t maxPointers)
+  {
+    d_pointerBudget = maxPointers;
   }
 
   uint32_t get32BitInt();
@@ -204,10 +212,13 @@ public:
     d_pos += n;
   }
 
+  static size_t s_MaxPointersPerByte;
+
 private:
+  size_t d_pointerBudget{0};
   uint16_t d_pos;
   uint16_t d_startrecordpos; // needed for getBlob later on
-  uint16_t d_recordlen;      // ditto
+  uint16_t d_recordlen; // ditto
   bool d_internal;
   bool d_standalone; // no dnsheader at the beginning of content
   const std::string_view d_content;
@@ -528,9 +539,9 @@ public:
   }
 
   //! Parse from a pointer and length
-  MOADNSParser(bool query, const char *packet, unsigned int len) : d_tsigPos(0)
+  MOADNSParser(bool query, const char *packet, unsigned int len, size_t pointerBudget = 0) : d_tsigPos(0)
   {
-    init(query, std::string_view(packet, len));
+    init(query, std::string_view(packet, len), pointerBudget);
   }
 
   DNSName d_qname;
@@ -550,7 +561,7 @@ public:
   bool hasEDNS() const;
 
 private:
-  void init(bool query, const std::string_view& packet);
+  void init(bool query, const std::string_view& packet, size_t pointerBudget = 0);
   uint16_t d_tsigPos;
 };
 

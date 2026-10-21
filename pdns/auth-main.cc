@@ -370,6 +370,10 @@ static void declareArguments()
   // even when LUA is not currently used
   ::arg().setSwitch("enable-lua-record-updates", "Allow updates to Lua records") = "no";
 
+  ::arg().set("max-pointers-per-packet-byte", "Maximum number of name pointers per DNS packet byte followed") = "4";
+  ::arg().set("max-pointers-to-pointers", "Maximum number of name pointers pointing directly to another pointer per name") = "4";
+  ::arg().set("max-pointers-per-name", "Maximum number of name pointers followed per name") = "10";
+
   // FIXME520: remove when branching 5.2
   ::arg().set("entropy-source", "") = "";
   ::arg().set("rng", "") = "";
@@ -847,6 +851,9 @@ static void mainthread()
 
     g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
     ::arg().assignNum(g_proxyProtocolMaximumSize, "proxy-protocol-maximum-size");
+    ::arg().assignNum(PacketReader::s_MaxPointersPerByte, "max-pointers-per-packet-byte");
+    ::arg().assignNum(DNSName::s_maxPointersToPointers, "max-pointers-to-pointers");
+    ::arg().assignNum(DNSName::s_maxPointersPerName, "max-pointers-per-name");
   }
   catch (ArgException& exc) {
     SLOG(g_log << Logger::Error << "Fatal error: " << exc.reason << endl,
