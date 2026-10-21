@@ -2781,6 +2781,10 @@ static void houseKeepingWork(Logr::log_t log)
 
     const time_t taInterval = static_cast<time_t>(std::max(1U, luaconfsLocal->trustAnchorFileInfo.interval)) * 3600;
     static PeriodicTask trustAnchorTask{"trustAnchorTask", taInterval};
+    if (!trustAnchorTask.hasRun()) {
+      // Loading the Lua config file already "refreshed" the TAs
+      trustAnchorTask.updateLastRun();
+    }
     // interval might have ben updated
     trustAnchorTask.setPeriod(taInterval);
     trustAnchorTask.runIfDue(now, [&luaconfsLocal, &log]() {
@@ -2798,9 +2802,13 @@ static void houseKeepingWork(Logr::log_t log)
           log->error(Logr::Error, pe.reason, "Unable to update Trust Anchors");
         }
       }
-      if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate && g_luaconfs.getLocal()->dsAnchors.count(g_rootdnsname) != 0) {
+    });
+    const auto detectUnknownRKInterval = static_cast<time_t>(24 * 3600);
+    static PeriodicTask detectUnknownRKTask{"detectUnknownRKTask", detectUnknownRKInterval};
+    detectUnknownRKTask.runIfDue(now, [&luaconfsLocal, &log]() {
+      if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate && luaconfsLocal->dsAnchors.count(g_rootdnsname) != 0) {
         try {
-          detectUnknownRootKeys(g_luaconfs.getLocal()->dsAnchors.at(g_rootdnsname), log);
+          detectUnknownRootKeys(luaconfsLocal->dsAnchors.at(g_rootdnsname), log);
         }
         catch (const PDNSException& pe) {
           log->error(Logr::Error, pe.reason, "Unable to check root keys");
