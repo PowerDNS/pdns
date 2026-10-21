@@ -459,13 +459,8 @@ bool MOADNSParser::hasEDNS() const
     return false;
   }
 
-  for (const auto& record : d_answers) {
-    if (record.d_place == DNSResourceRecord::ADDITIONAL && record.d_type == QType::OPT) {
-      return true;
-    }
-  }
-
-  return false;
+  const auto& records = getAnswers(DNSResourceRecord::Place::ADDITIONAL);
+  return std::any_of(records.begin(), records.end(), [](const auto& record) { return record.d_type == QType::OPT; });
 }
 
 size_t PacketReader::s_MaxPointersPerByte = 4;
