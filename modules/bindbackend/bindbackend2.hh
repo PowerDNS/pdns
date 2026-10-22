@@ -232,7 +232,6 @@ public:
     state_t;
   static SharedLockGuarded<state_t> s_state;
 
-  void parseZoneFile(BB2DomainInfo* bbd);
   void rediscover(string* status = nullptr) override;
 
   // for autoprimary support
@@ -253,6 +252,7 @@ private:
   bool getNSEC3PARAM(const ZoneName& name, NSEC3PARAMRecordContent* ns3p);
   void setLastCheck(domainid_t domain_id, time_t lastcheck);
   bool getNSEC3PARAMuncached(const ZoneName& name, NSEC3PARAMRecordContent* ns3p);
+
   class handle
   {
   public:
@@ -319,6 +319,7 @@ private:
   BB2DomainInfo createDomainEntry(const ZoneName& domain); //!< does not insert in s_state
   bool startDomainReplacementTransactionInternal(BB2DomainInfo& bbd);
 
+  void parseZoneFile(BB2DomainInfo* bbd);
   void queueReloadAndStore(domainid_t id);
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
   void insertRecord(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed = string(), const bool* auth = nullptr);

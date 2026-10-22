@@ -295,20 +295,44 @@ bool Bind2Backend::commitTransaction()
 
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(d_transaction_id, &bbd)) {
+    // The following is equivalent to
+    //   queueReloadAndStore(bbd.d_id)
+    // benefiting from knowing the BB2DomainInfo object already, and we
+    // reload the zone contents from the new file before it gets copied
+    // over the existing one, so that any (unintentional) errors introduced
+    // in the file will cause the transaction to be aborted, and the existing
+    // zone contents preserved.
+    bbd.d_checknow = false;
+    BB2DomainInfo bbnew(bbd);
+    bbnew.d_records = {};
+    bbnew.d_fileinfo.clear();
+    bbnew.d_fileinfo.emplace_back(d_transaction_tmpname, static_cast<time_t>(0));
+    try {
+      parseZoneFile(&bbnew);
+    }
+    catch (PDNSException& exc) {
+      abortTransaction();
+      throw DBException("Unable to commit AXFRed zone: " + exc.reason);
+    }
+    catch (std::exception& exc) {
+      abortTransaction();
+      throw DBException(std::string{"Unable to commit AXFRed zone: "} + exc.what());
+    }
     if (rename(d_transaction_tmpname.c_str(), bbd.main_filename().c_str()) < 0) {
+      auto olderrno = errno;
+      abortTransaction();
+      errno = olderrno;
       throw DBException("Unable to commit (rename to: '" + bbd.main_filename() + "') AXFRed zone: " + stringerror());
     }
+    bbnew.d_fileinfo.front().first = bbd.main_filename();
     // If that domain was part of a transaction, we can finally mark it as
     // available to everyone.
-    if (bbd.d_pending) {
-      bbd.d_pending = false;
-      safePutBBDomainInfo(bbd);
-    }
-    queueReloadAndStore(bbd.d_id);
+    bbnew.d_pending = false;
+    bbnew.d_wasRejectedLastReload = false;
+    safePutBBDomainInfo(bbnew);
   }
 
   d_transaction_id = UnknownDomainID;
-
   return true;
 }
 
@@ -653,11 +677,10 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
   zpt.setMaxGenerateSteps(::arg().asNum<size_t>("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum<size_t>("max-include-depth"));
   DNSResourceRecord rr;
-  string hashed;
   while (zpt.get(rr)) {
-    if (rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3 || rr.qtype.getCode() == QType::NSEC3PARAM)
+    if (rr.qtype.getCode() == QType::NSEC || rr.qtype.getCode() == QType::NSEC3 || rr.qtype.getCode() == QType::NSEC3PARAM) {
       continue; // we synthesise NSECs on demand
-
+    }
     insertRecord(records, bbd->d_name, rr.qname, rr.qtype, rr.content, rr.ttl, "");
   }
   fixupOrderAndAuth(records, bbd->d_name, nsec3zone, ns3pr);
@@ -1267,7 +1290,7 @@ void Bind2Backend::queueReloadAndStore(domainid_t id)
     BB2DomainInfo bbnew(bbold);
     /* make sure that nothing will be able to alter the existing records,
        we will load them from the zone file instead */
-    bbnew.d_records = LookButDontTouch<recordstorage_t>();
+    bbnew.d_records = {};
     parseZoneFile(&bbnew);
     bbnew.d_wasRejectedLastReload = false;
     safePutBBDomainInfo(bbnew);
