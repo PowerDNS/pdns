@@ -287,7 +287,7 @@ public:
     declare(suffix, "basedn-axfr-override", "Override base dn for AXFR subtree search", "no");
     declare(suffix, "bindmethod", "Bind method to use (simple or gssapi)", "simple");
     declare(suffix, "binddn", "User dn for non anonymous binds", "");
-    declare(suffix, "secret", "User password for non anonymous binds", "");
+    declare(suffix, "secret", "User password for non anonymous binds", "", true);
     declare(suffix, "krb5-keytab", "The keytab to use for GSSAPI authentication", "");
     declare(suffix, "krb5-ccache", "The credentials cache used for GSSAPI authentication", "");
     declare(suffix, "timeout", "Seconds before connecting to server fails", "5");

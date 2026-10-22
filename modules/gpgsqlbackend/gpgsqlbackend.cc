@@ -96,7 +96,7 @@ public:
     declare(suffix, "user", "Database backend user to connect as", "");
     declare(suffix, "host", "Database backend host to connect to", "");
     declare(suffix, "port", "Database backend port to connect to", "");
-    declare(suffix, "password", "Database backend password to connect with", "");
+    declare(suffix, "password", "Database backend password to connect with", "", true);
     declare(suffix, "extra-connection-parameters", "Extra parameters to add to connection string", "");
     declare(suffix, "prepared-statements", "Use prepared statements instead of parameterized queries", "yes");
 
