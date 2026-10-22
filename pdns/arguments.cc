@@ -251,20 +251,12 @@ gid_t ArgvMap::asGid(const string& arg)
   if (!parmIsset(arg)) {
     throw ArgException(string("Undefined but needed argument: '") + arg + "'");
   }
-
-  const auto* cptr_orig = d_params[arg].c_str();
-  char* cptr_ret = nullptr;
-  auto gid = static_cast<gid_t>(strtol(cptr_orig, &cptr_ret, 0));
-  if (gid == 0 && cptr_ret == cptr_orig) {
-    // try to resolve
-
-    struct group* group = getgrnam(d_params[arg].c_str()); // NOLINT: called before going multi-threaded
-    if (group == nullptr) {
-      throw ArgException("'" + arg + string("' contains invalid group"));
-    }
-    gid = group->gr_gid;
+  try {
+    return strToGID(d_params[arg]);
   }
-  return gid;
+  catch (std::runtime_error& exc) {
+    throw ArgException(exc.what());
+  }
 }
 
 uid_t ArgvMap::asUid(const string& arg)
@@ -272,20 +264,12 @@ uid_t ArgvMap::asUid(const string& arg)
   if (!parmIsset(arg)) {
     throw ArgException(string("Undefined but needed argument: '") + arg + "'");
   }
-
-  const auto* cptr_orig = d_params[arg].c_str();
-  char* cptr_ret = nullptr;
-
-  auto uid = static_cast<uid_t>(strtol(cptr_orig, &cptr_ret, 0));
-  if (uid == 0 && cptr_ret == cptr_orig) {
-    // try to resolve
-    struct passwd* pwent = getpwnam(d_params[arg].c_str()); // NOLINT: called before going multi-threaded
-    if (pwent == nullptr) {
-      throw ArgException("'" + arg + string("' contains invalid group"));
-    }
-    uid = pwent->pw_uid;
+  try {
+    return strToUID(d_params[arg]);
   }
-  return uid;
+  catch (std::runtime_error& exc) {
+    throw ArgException(exc.what());
+  }
 }
 
 bool ArgvMap::isEmpty(const string& arg)
