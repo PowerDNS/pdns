@@ -121,10 +121,13 @@ public:
     }
 
     try {
-      size_t unused{0};
-      T retval = pdns::checked_stoi<T>(param, &unused, 0);
+      size_t end{0};
+      T retval = pdns::checked_stoi<T>(param, &end, 0);
       if (retval < minval || retval > maxval) {
         throw std::out_of_range("oh no!");
+      }
+      if (end != param.length()) {
+        throw std::invalid_argument("oh no!");
       }
       return retval;
     }
