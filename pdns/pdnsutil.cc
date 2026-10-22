@@ -2676,7 +2676,7 @@ static bool createZoneWithDefaults(UtilBackend &backend, DomainInfo &info, const
   // a domain transaction anyway, and we'll adjust our expectations after that.
   bool success = backend.createDomain(zone, kind, primaries, "", info, true /* startTransaction */);
   bool makeDomainTransaction = info.backend != nullptr && (info.backend->getCapabilities() & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
-  if (!success) {
+  if (!success || info.backend == nullptr) { // if createDomain returns success, info.backend will never be nullptr, but this confuses static analyzers, hence the explicit check here
     cerr << "Zone '" << zone << "' was not created." << endl;
     if (makeDomainTransaction) {
       info.backend->abortTransaction();

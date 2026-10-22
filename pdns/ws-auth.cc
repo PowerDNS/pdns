@@ -2286,7 +2286,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   // a domain transaction anyway, and we'll adjust our expectations after that.
   bool success = backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""), domainInfo, true /* startTransaction */);
   bool makeDomainTransaction = domainInfo.backend != nullptr && (domainInfo.backend->getCapabilities() & DNSBackend::CAP_DOMAIN_TRANSACTION) != 0;
-  if (!success) {
+  if (!success || domainInfo.backend == nullptr) { // if createDomain returns success, info.backend will never be nullptr, but this confuses static analyzers, hence the explicit check here
     if (makeDomainTransaction) {
       domainInfo.backend->abortTransaction();
     }
