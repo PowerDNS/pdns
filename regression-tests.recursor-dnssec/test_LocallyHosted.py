@@ -26,7 +26,12 @@ class LocallyHostedTest(RecursorTest):
         if res.rcode != dns.rcode.SERVFAIL:
             # we *may* have hit the correct nameserver on the first try.
             # Wipe the cache and try again
-            rec_controlCmd = [os.environ["RECCONTROL"], f"--config-dir=configs/{self._confdir}", "wipe-cache", "example$"]
+            rec_controlCmd = [
+                os.environ["RECCONTROL"],
+                f"--config-dir=configs/{self._confdir}",
+                "wipe-cache",
+                "example$",
+            ]
             try:
                 subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:
