@@ -2374,10 +2374,11 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
   // Ensure that the temporary file will only be accessible by the current user,
   // not even by other users in the same group, and certainly not by other
   // users.
-  umask(S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+  mode_t curmask = umask(S_IRWXG | S_IRWXO);
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays): std::array<> would not play well with ѕtruct deleteme below
   char tmpnam[]="/tmp/pdnsutil-XXXXXX";
   int tmpfd=mkstemp(static_cast<char *>(tmpnam));
+  umask(curmask);
   if(tmpfd < 0) {
     unixDie("Making temporary filename in "+string(static_cast<const char*>(tmpnam)));
   }

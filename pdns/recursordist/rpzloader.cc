@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <condition_variable>
+#include <sys/stat.h>
 #include "arguments.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
@@ -433,7 +434,9 @@ static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEn
     logger->info(Logr::Error, "Inconsistency of internal name and SOA name", "zone", Logging::Loggable(newZone->getDomain()), "soaname", Logging::Loggable(soa.d_name));
   }
   auto tempFile = UniqueFilenameDeleterPtr(new string(dumpZoneFileName + "XXXXXX"));
+  mode_t curmask = umask(S_IRWXG | S_IRWXO);
   int fileDesc = mkstemp(tempFile->data());
+  umask(curmask);
   if (fileDesc < 0) {
     logger->error(Logr::Error, errno, "Unable to create temporary file");
     tempFile->clear(); // file has not been created, no need to unlink
