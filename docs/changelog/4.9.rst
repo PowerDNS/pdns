@@ -10,6 +10,11 @@ Changelogs for 4.9.x
 
   Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
 
+  Note: previous Authoritative 4.9.x Docker images were built on Debian Bullseye.
+  Bullseye is now End Of Life.
+  The 4.9.18 Docker image was built on Debian Trixie instead.
+  This is not reflected in git history.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 18199
