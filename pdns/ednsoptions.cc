@@ -119,7 +119,7 @@ bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options
     }
 
     for (index = 0; index < numrecords; ++index) {
-      dpm.skipDomainName();
+      const bool wasRoot = dpm.skipDomainName();
 
       uint8_t section{};
       if (index < ntohs(dnsHeader->ancount)) {
@@ -135,7 +135,7 @@ bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options
       dpm.get16BitInt();
       dpm.skipBytes(4); /* TTL */
 
-      if (section == 3 && dnstype == QType::OPT) {
+      if (section == 3 && dnstype == QType::OPT && wasRoot) {
         uint32_t offset = dpm.getOffset();
         if (offset >= packet.size()) {
           return false;
@@ -152,7 +152,7 @@ bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options
     return false;
   }
 
-  return true;
+  return false;
 }
 
 /* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */
