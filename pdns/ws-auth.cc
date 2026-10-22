@@ -331,7 +331,7 @@ static void printargs(ostringstream& ret)
   for (const auto& entry : entries) {
     ret << "<tr><td>" << entry << "</td><td>";
     // Prevent sensitive configuration values from being leaked
-    if (apiShouldBeRedacted(entry)) {
+    if (::arg().isSensitive(entry) || apiShouldBeRedacted(entry)) {
       ret << "***";
     }
     else {

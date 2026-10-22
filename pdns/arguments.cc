@@ -35,16 +35,6 @@
 #include <unistd.h>
 #include <climits>
 
-ArgvMap::param_t::const_iterator ArgvMap::begin()
-{
-  return d_params.begin();
-}
-
-ArgvMap::param_t::const_iterator ArgvMap::end()
-{
-  return d_params.end();
-}
-
 string& ArgvMap::set(const string& var, bool sensitive)
 {
   auto& item = d_params[var];
@@ -272,6 +262,14 @@ bool ArgvMap::isEmpty(const string& arg)
     return true;
   }
   return d_params[arg].first.empty();
+}
+
+bool ArgvMap::isSensitive(const string& arg)
+{
+  if (!parmIsset(arg)) {
+    return false;
+  }
+  return d_params[arg].second;
 }
 
 double ArgvMap::asDouble(const string& arg)

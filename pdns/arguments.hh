@@ -103,6 +103,7 @@ public:
   string configstring(bool running, bool full); //!< generates the --config
   bool contains(const string& var, const string& val);
   bool isEmpty(const string& arg); //!< checks if variable has value
+  bool isSensitive(const string& arg); //!< checks if variable value should be redacted
   void setDefault(const string& var, const string& value, bool sensitive = false);
   void setDefaults();
 
@@ -166,10 +167,10 @@ public:
     auto iter = defaultmap.find(item);
     return iter == defaultmap.end() ? "" : iter->second.first;
   }
-  using param_t = std::map<std::string, std::pair<std::string, bool>>; //!< use this if you need to know the content of the map
 
-  param_t::const_iterator begin(); //!< iterator semantics
-  param_t::const_iterator end(); //!< iterator semantics
+  using param_info = std::pair<std::string, bool>;
+  using param_t = std::map<std::string, param_info>; //!< use this if you need to know the content of the map
+
   const string& operator[](const string&); //!< iterator semantics
   const vector<string>& getCommands();
   void gatherIncludes(const std::string& dir, const std::string& suffix, std::vector<std::string>& extraConfigs);
