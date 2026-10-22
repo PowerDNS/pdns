@@ -568,7 +568,7 @@ public:
   [[nodiscard]] const string& getName() const;
 
 protected:
-  void declare(const string& suffix, const string& param, const string& explanation, const string& value);
+  void declare(const string& suffix, const string& param, const string& explanation, const string& value, bool sensitive = false);
 
 private:
   string d_name;
