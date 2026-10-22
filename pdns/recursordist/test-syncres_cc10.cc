@@ -2233,4 +2233,85 @@ BOOST_AUTO_TEST_CASE(test_nodata_out_of_order)
   BOOST_CHECK(!SyncRes::answerIsNOData(QType::A, RCode::NoError, vec));
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_oob)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver, true, false);
+
+  setDNSSECValidation(resolver, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("com.");
+  const ComboAddress targetAddr("192.0.2.42");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSEC::RSASHA512, DNSSEC::DIGEST_SHA384, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  SyncRes::AuthDomain authDomain;
+  DNSRecord dnsRecord;
+  const DNSName authZone("10.in-addr.arpa.");
+
+  dnsRecord.d_place = DNSResourceRecord::ANSWER;
+  dnsRecord.d_name = DNSName("a.10.in-addr.arpa.");
+  dnsRecord.d_type = QType::A;
+  dnsRecord.d_ttl = 1800;
+  dnsRecord.setContent(std::make_shared<ARecordContent>("192.0.2.1"));
+  authDomain.d_records.insert(dnsRecord);
+
+  (*SyncRes::t_sstorage.domainmap)[authZone] = authDomain;
+
+  size_t queriesCount = 0;
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    const DNSName& auth = domain;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys) == LWResult::Result::Timeout) {
+        return LWResult::Result::Timeout;
+      }
+      return LWResult::Result::Success;
+    }
+
+    if (isRootServer(address)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "com.", QType::NS, "a.10.in-addr.arpa.", DNSResourceRecord::AUTHORITY, 3600);
+      addDS(DNSName("."), 300, res->d_records, keys);
+      addRRSIG(keys, res->d_records, DNSName("com."), 300);
+      addRecordToLW(res, "a.10.in-addr.arpa.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    if (address == ComboAddress("192.0.2.1:53")) {
+      setLWResult(res, RCode::NoError, true, false, true);
+      addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
+      addRRSIG(keys, res->d_records, auth, 300, true);
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::BogusNoValidRRSIG);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::BogusNoValidRRSIG);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
