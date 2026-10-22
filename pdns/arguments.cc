@@ -230,22 +230,6 @@ const string& ArgvMap::operator[](const string& arg)
   return d_params[arg];
 }
 
-mode_t ArgvMap::asMode(const string& arg)
-{
-  if (!parmIsset(arg)) {
-    throw ArgException(string("Undefined but needed argument: '") + arg + "'");
-  }
-
-  const auto* const cptr_orig = d_params[arg].c_str();
-  char* cptr_ret = nullptr;
-
-  auto mode = static_cast<mode_t>(strtol(cptr_orig, &cptr_ret, 8));
-  if (mode == 0 && cptr_ret == cptr_orig) {
-    throw ArgException("'" + arg + string("' contains invalid octal mode"));
-  }
-  return mode;
-}
-
 gid_t ArgvMap::asGid(const string& arg)
 {
   if (!parmIsset(arg)) {

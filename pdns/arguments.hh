@@ -92,7 +92,6 @@ public:
   bool parseFile(const string& fname, const string& arg, bool lax); //<! parse one line
   bool parmIsset(const string& var); //!< Checks if a parameter is set to *a* value
   bool mustDo(const string& var); //!< if a switch is given, if we must do something (--help)
-  mode_t asMode(const string& arg); //!< return value interpreted as octal number
   uid_t asUid(const string& arg); //!< return user id, resolves if necessary
   gid_t asGid(const string& arg); //!< return group id, resolves if necessary
   double asDouble(const string& arg); //!< return a variable value as a number
@@ -108,7 +107,7 @@ public:
   void setDefaults();
 
   template <typename T>
-  T asBoundedNum(const string& arg, T minval = std::numeric_limits<T>::min(), T maxval = std::numeric_limits<T>::max(), T def = 0)
+  T asBoundedNum(const string& arg, T minval = std::numeric_limits<T>::min(), T maxval = std::numeric_limits<T>::max(), T def = 0, int base = 0)
   {
     if (!parmIsset(arg)) {
       throw ArgException(string("Undefined but needed argument: '") + arg + "'");
@@ -122,7 +121,7 @@ public:
 
     try {
       size_t end{0};
-      T retval = pdns::checked_stoi<T>(param, &end, 0);
+      T retval = pdns::checked_stoi<T>(param, &end, base);
       if (retval < minval || retval > maxval) {
         throw std::out_of_range("oh no!");
       }
@@ -140,15 +139,20 @@ public:
   }
 
   template <typename T = int>
-  T asNum(const string& arg, T def = 0)
+  T asNum(const string& arg, T def = 0, int base = 0)
   {
-    return asBoundedNum<T>(arg, std::numeric_limits<T>::min(), std::numeric_limits<T>::max(), def);
+    return asBoundedNum<T>(arg, std::numeric_limits<T>::min(), std::numeric_limits<T>::max(), def, base);
   }
 
   template <typename T = int>
-  void assignNum(T& var, const string& arg, T def = 0)
+  void assignNum(T& var, const string& arg, T def = 0, int base = 0)
   {
-    var = asNum<T>(arg, def);
+    var = asNum<T>(arg, def, base);
+  }
+
+  mode_t asMode(const string& arg) //!< return value interpreted as octal number
+  {
+    return asNum<mode_t>(arg, 0, 8);
   }
 
   vector<string> list();
