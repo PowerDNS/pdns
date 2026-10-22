@@ -2235,10 +2235,10 @@ BOOST_AUTO_TEST_CASE(test_nodata_out_of_order)
 
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_oob)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true, false);
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver, true, false);
 
-  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+  setDNSSECValidation(resolver, DNSSECMode::ValidateAll);
 
   primeHints();
   const DNSName target("com.");
@@ -2252,25 +2252,25 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_oob)
 
   g_luaconfs.setState(luaconfsCopy);
 
-  SyncRes::AuthDomain ad;
-  DNSRecord dr;
+  SyncRes::AuthDomain authDomain;
+  DNSRecord dnsRecord;
   const DNSName authZone("10.in-addr.arpa.");
 
-  dr.d_place = DNSResourceRecord::ANSWER;
-  dr.d_name = DNSName("a.10.in-addr.arpa.");
-  dr.d_type = QType::A;
-  dr.d_ttl = 1800;
-  dr.setContent(std::make_shared<ARecordContent>("192.0.2.1"));
-  ad.d_records.insert(dr);
+  dnsRecord.d_place = DNSResourceRecord::ANSWER;
+  dnsRecord.d_name = DNSName("a.10.in-addr.arpa.");
+  dnsRecord.d_type = QType::A;
+  dnsRecord.d_ttl = 1800;
+  dnsRecord.setContent(std::make_shared<ARecordContent>("192.0.2.1"));
+  authDomain.d_records.insert(dnsRecord);
 
-  (*SyncRes::t_sstorage.domainmap)[authZone] = ad;
+  (*SyncRes::t_sstorage.domainmap)[authZone] = authDomain;
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
-    DNSName auth = domain;
+    const DNSName& auth = domain;
 
     if (type == QType::DS || type == QType::DNSKEY) {
       if (genericDSAndDNSKEYHandler(res, domain, auth, type, keys) == LWResult::Result::Timeout) {
@@ -2299,17 +2299,17 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_oob)
   });
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::BogusNoValidRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::BogusNoValidRRSIG);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
