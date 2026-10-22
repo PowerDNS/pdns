@@ -1041,7 +1041,8 @@ static RecursorPacketCache::ECSInfo findScopeZero(const std::vector<uint8_t>& re
   }
   size_t pos{};
   size_t size{};
-  ret = getEDNSOption(reinterpret_cast<const char*>(&response.at(optRR)), response.size(), EDNSOptionCode::ECS, &pos, &size);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  ret = getEDNSOption(reinterpret_cast<const char*>(&response.at(optRR)), response.size() - optRR, EDNSOptionCode::ECS, &pos, &size);
   if (ret != 0) {
     return {0, 0};
   }
