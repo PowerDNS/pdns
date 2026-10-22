@@ -86,7 +86,7 @@ public:
     declare(suffix, "host", "Database backend host to connect to", "");
     declare(suffix, "port", "Database backend port to connect to", "3306");
     declare(suffix, "socket", "Database backend socket to connect to", "");
-    declare(suffix, "password", "Database backend password to connect with", "");
+    declare(suffix, "password", "Database backend password to connect with", "", true);
     declare(suffix, "group", "Database backend MySQL 'group' to connect as", "client");
     declare(suffix, "innodb-read-committed", "Use InnoDB READ-COMMITTED transaction isolation level", "yes");
     declare(suffix, "timeout", "The timeout in seconds for each attempt to read/write to the server", "10");

@@ -191,7 +191,7 @@ static void declareArguments()
 
   ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for secondary operation") = "2";
   ::arg().setSwitch("api", "Enable/disable the REST API (including HTTP listener)") = "no";
-  ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API") = "";
+  ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API", true) = "";
   ::arg().setSwitch("default-api-rectify", "Default API-RECTIFY value for zones") = "yes";
   ::arg().setSwitch("dname-processing", "If we should support DNAME records") = "no";
 
@@ -231,7 +231,7 @@ static void declareArguments()
 
   ::arg().set("tcp-control-address", "If set, PowerDNS can be controlled over TCP on this address") = "";
   ::arg().set("tcp-control-port", "If set, PowerDNS can be controlled over TCP on this port") = "53000";
-  ::arg().set("tcp-control-secret", "If set, PowerDNS can be controlled over TCP after passing this secret") = "";
+  ::arg().set("tcp-control-secret", "If set, PowerDNS can be controlled over TCP after passing this secret", true) = "";
   ::arg().set("tcp-control-range", "If set, remote control of PowerDNS is possible over these networks only") = "127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
 
   ::arg().setSwitch("secondary", "Act as a secondary") = "no";
@@ -244,13 +244,13 @@ static void declareArguments()
   ::arg().setSwitch("edns-subnet-processing", "If we should act on EDNS Subnet options") = "no";
   ::arg().set("delay-notifications", "Configure a delay to send out notifications, no delay by default") = "0";
 
-  ::arg().set("edns-cookie-secret", "When set, set a server cookie when responding to a query with a Client cookie (in hex)") = "";
+  ::arg().set("edns-cookie-secret", "When set, set a server cookie when responding to a query with a Client cookie (in hex)", true) = "";
 
   ::arg().setSwitch("webserver", "Start a webserver for monitoring (api=yes also enables the HTTP listener)") = "no";
   ::arg().setSwitch("webserver-print-arguments", "If the webserver should print arguments") = "no";
   ::arg().set("webserver-address", "IP Address or path to UNIX domain socket for webserver/API to listen on") = "127.0.0.1";
   ::arg().set("webserver-port", "Port of webserver/API to listen on") = "8081";
-  ::arg().set("webserver-password", "Password required for accessing the webserver") = "";
+  ::arg().set("webserver-password", "Password required for accessing the webserver", true) = "";
   ::arg().set("webserver-allow-from", "Webserver/API access is only allowed from these subnets") = "127.0.0.1,::1";
   ::arg().set("webserver-loglevel", "Amount of logging in the webserver (none, normal, detailed)") = "normal";
   ::arg().set("webserver-max-bodysize", "Webserver/API maximum request/response body size in megabytes") = "2";
