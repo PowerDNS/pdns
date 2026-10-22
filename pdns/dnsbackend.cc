@@ -139,10 +139,10 @@ bool DNSBackend::searchComments(const string& pattern, size_t maxResults, vector
   return true;
 }
 
-void BackendFactory::declare(const string& suffix, const string& param, const string& explanation, const string& value)
+void BackendFactory::declare(const string& suffix, const string& param, const string& explanation, const string& value, bool sensitive)
 {
   string fullname = d_name + suffix + "-" + param;
-  arg().set(fullname, explanation) = value;
+  arg().set(fullname, explanation, sensitive) = value;
   arg().setDefault(fullname, value);
 }
 

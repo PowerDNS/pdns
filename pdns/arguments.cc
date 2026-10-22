@@ -45,15 +45,17 @@ ArgvMap::param_t::const_iterator ArgvMap::end()
   return d_params.end();
 }
 
-string& ArgvMap::set(const string& var)
+string& ArgvMap::set(const string& var, bool sensitive)
 {
-  return d_params[var];
+  auto& item = d_params[var];
+  item.second = sensitive;
+  return item.first;
 }
 
-void ArgvMap::setDefault(const string& var, const string& value)
+void ArgvMap::setDefault(const string& var, const string& value, bool sensitive)
 {
   if (defaultmap.count(var) == 0) {
-    defaultmap.insert(pair<string, string>(var, value));
+    defaultmap.insert(std::make_pair(var, std::make_pair(value, sensitive)));
   }
 }
 
@@ -81,11 +83,11 @@ vector<string> ArgvMap::list()
   return ret;
 }
 
-string& ArgvMap::set(const string& var, const string& help)
+string& ArgvMap::set(const string& var, const string& help, bool sensitive)
 {
   helpmap[var] = help;
   d_typeMap[var] = "Parameter";
-  return set(var);
+  return set(var, sensitive);
 }
 
 void ArgvMap::setCmd(const string& var, const string& help)
@@ -105,12 +107,12 @@ string& ArgvMap::setSwitch(const string& var, const string& help)
 bool ArgvMap::contains(const string& var, const string& val)
 {
   const auto& param = d_params.find(var);
-  if (param == d_params.end() || param->second.empty()) {
+  if (param == d_params.end() || param->second.first.empty()) {
     return false;
   }
   vector<string> parts;
 
-  stringtok(parts, param->second, ", \t");
+  stringtok(parts, param->second.first, ", \t");
   return std::find(parts.begin(), parts.end(), val) != parts.end();
 }
 
@@ -195,7 +197,7 @@ string ArgvMap::configstring(bool running, bool full)
   }
 
   // Affects parsing, should come first.
-  help += formatOne(running, full, "ignore-unknown-settings", helpmap["ignore-unknown-settings"], defaultmap["ignore-unknown-settings"], d_params["ignore-unknown-settings"]);
+  help += formatOne(running, full, "ignore-unknown-settings", helpmap["ignore-unknown-settings"], defaultmap["ignore-unknown-settings"].first, d_params["ignore-unknown-settings"].first);
 
   for (const auto& helpitem : helpmap) {
     if (d_typeMap[helpitem.first] == "Command") {
@@ -209,7 +211,7 @@ string ArgvMap::configstring(bool running, bool full)
       throw ArgException(string("Default for setting '") + helpitem.first + "' not set");
     }
 
-    help += formatOne(running, full, helpitem.first, helpitem.second, defaultmap[helpitem.first], d_params[helpitem.first]);
+    help += formatOne(running, full, helpitem.first, helpitem.second, defaultmap[helpitem.first].first, d_params[helpitem.first].first);
   }
 
   if (running) {
@@ -227,7 +229,7 @@ const string& ArgvMap::operator[](const string& arg)
     throw ArgException(string("Undefined but needed argument: '") + arg + "'");
   }
 
-  return d_params[arg];
+  return d_params[arg].first;
 }
 
 gid_t ArgvMap::asGid(const string& arg)
@@ -236,7 +238,7 @@ gid_t ArgvMap::asGid(const string& arg)
     throw ArgException(string("Undefined but needed argument: '") + arg + "'");
   }
   try {
-    return strToGID(d_params[arg]);
+    return strToGID(d_params[arg].first);
   }
   catch (std::runtime_error& exc) {
     throw ArgException(exc.what());
@@ -249,7 +251,7 @@ uid_t ArgvMap::asUid(const string& arg)
     throw ArgException(string("Undefined but needed argument: '") + arg + "'");
   }
   try {
-    return strToUID(d_params[arg]);
+    return strToUID(d_params[arg].first);
   }
   catch (std::runtime_error& exc) {
     throw ArgException(exc.what());
@@ -261,7 +263,7 @@ bool ArgvMap::isEmpty(const string& arg)
   if (!parmIsset(arg)) {
     return true;
   }
-  return d_params[arg].empty();
+  return d_params[arg].first.empty();
 }
 
 double ArgvMap::asDouble(const string& arg)
@@ -270,11 +272,11 @@ double ArgvMap::asDouble(const string& arg)
     throw ArgException(string("Undefined but needed argument: '") + arg + "'");
   }
 
-  if (d_params[arg].empty()) {
+  if (d_params[arg].first.empty()) {
     return 0.0;
   }
 
-  const auto* cptr_orig = d_params[arg].c_str();
+  const auto* cptr_orig = d_params[arg].first.c_str();
   char* cptr_ret = nullptr;
   auto retval = strtod(cptr_orig, &cptr_ret);
 
@@ -359,25 +361,25 @@ void ArgvMap::parseOne(const string& arg, const string& parseOnly, bool lax)
     }
     if (parmIsset(var)) {
       if (incremental) {
-        if (d_params[var].empty()) {
+        if (d_params[var].first.empty()) {
           if (d_cleared.count(var) == 0) {
             throw ArgException("Incremental setting '" + var + "' without a parent");
           }
-          d_params[var] = val;
+          d_params[var].first = val;
         }
         else {
-          d_params[var] += ", " + val;
+          d_params[var].first += ", " + val;
         }
       }
       else {
-        d_params[var] = val;
+        d_params[var].first = val;
         d_cleared.insert(std::move(var));
       }
     }
     else {
       // unknown setting encountered. see if its on the ignore list before throwing.
       vector<string> parts;
-      stringtok(parts, d_params["ignore-unknown-settings"], " ,\t\n\r");
+      stringtok(parts, d_params["ignore-unknown-settings"].first, " ,\t\n\r");
       if (find(parts.begin(), parts.end(), var) != parts.end()) {
         d_unknownParams[var] = std::move(val);
         SLOG(g_log << Logger::Warning << "Ignoring unknown setting '" << var << "' as requested" << endl,
@@ -466,7 +468,7 @@ bool ArgvMap::parseFile(const string& fname, const string& arg, bool lax)
 
 bool ArgvMap::preParseFile(const string& fname, const string& arg, const string& theDefault)
 {
-  d_params[arg] = theDefault;
+  d_params[arg].first = theDefault;
 
   return parseFile(fname, arg, false);
 }
@@ -489,9 +491,9 @@ bool ArgvMap::file(const string& fname, bool lax, bool included)
   }
 
   // handle include here (avoid re-include)
-  if (!included && !d_params["include-dir"].empty()) {
+  if (!included && !d_params["include-dir"].first.empty()) {
     std::vector<std::string> extraConfigs;
-    gatherIncludes(d_params["include-dir"], ".conf", extraConfigs);
+    gatherIncludes(d_params["include-dir"].first, ".conf", extraConfigs);
     for (const std::string& filename : extraConfigs) {
       if (!file(filename.c_str(), lax, true)) {
         SLOG(g_log << Logger::Error << filename << " could not be parsed" << std::endl,

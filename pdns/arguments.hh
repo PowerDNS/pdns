@@ -95,15 +95,15 @@ public:
   uid_t asUid(const string& arg); //!< return user id, resolves if necessary
   gid_t asGid(const string& arg); //!< return group id, resolves if necessary
   double asDouble(const string& arg); //!< return a variable value as a number
-  string& set(const string&); //!< Gives a writable reference and allocates space for it
-  string& set(const string&, const string&); //!< Does the same but also allows one to specify a help message
+  string& set(const string&, bool sensitive = false); //!< Gives a writable reference and allocates space for it
+  string& set(const string&, const string&, bool sensitive = false); //!< Does the same but also allows one to specify a help message
   void setCmd(const string&, const string&); //!< Add a command flag
   string& setSwitch(const string&, const string&); //!< Add a switch flag
   string helpstring(string prefix = ""); //!< generates the --help
   string configstring(bool running, bool full); //!< generates the --config
   bool contains(const string& var, const string& val);
   bool isEmpty(const string& arg); //!< checks if variable has value
-  void setDefault(const string& var, const string& value);
+  void setDefault(const string& var, const string& value, bool sensitive = false);
   void setDefaults();
 
   template <typename T>
@@ -114,7 +114,7 @@ public:
     }
 
     // use default for empty values
-    const std::string& param = d_params[arg];
+    const std::string& param = d_params[arg].first;
     if (param.empty()) {
       return def;
     }
@@ -164,9 +164,9 @@ public:
   [[nodiscard]] string getDefault(const string& item) const
   {
     auto iter = defaultmap.find(item);
-    return iter == defaultmap.end() ? "" : iter->second;
+    return iter == defaultmap.end() ? "" : iter->second.first;
   }
-  using param_t = map<string, string>; //!< use this if you need to know the content of the map
+  using param_t = std::map<std::string, std::pair<std::string, bool>>; //!< use this if you need to know the content of the map
 
   param_t::const_iterator begin(); //!< iterator semantics
   param_t::const_iterator end(); //!< iterator semantics
@@ -184,13 +184,13 @@ public:
 private:
   void parseOne(const string& arg, const string& parseOnly = "", bool lax = false);
   static string formatOne(bool running, bool full, const string& var, const string& help, const string& theDefault, const string& current);
-  map<string, string> d_params;
-  map<string, string> d_unknownParams;
-  map<string, string> helpmap;
-  map<string, string> defaultmap;
-  map<string, string> d_typeMap;
-  vector<string> d_cmds;
-  std::set<string> d_cleared;
+  param_t d_params;
+  std::map<std::string, std::string> d_unknownParams;
+  std::map<std::string, std::string> helpmap;
+  param_t defaultmap;
+  std::map<std::string, std::string> d_typeMap;
+  std::vector<std::string> d_cmds;
+  std::set<std::string> d_cleared;
 #if defined(PDNS_AUTH) || defined(RECURSOR)
   std::shared_ptr<Logr::Logger> d_log;
 #endif
