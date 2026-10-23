@@ -46,6 +46,8 @@ public:
   PDNSException(std::string r) :
     reason(std::move(r)) {};
 
+  const char* what() { return reason.c_str(); }
+
   std::string reason; //! Print this to tell the user what went wrong
 };
 #endif /* DNSDIST */
