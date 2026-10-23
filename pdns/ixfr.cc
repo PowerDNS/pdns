@@ -144,7 +144,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(Logr::log_t slo
   packetWriter.commit();
   TSIGRecordContent trc;
   TSIGTCPVerifier tsigVerifier(slog, tsigConf, primary, trc);
-  if (!tsigConf.algo.empty()) {
+  if (!tsigConf.name.empty() && !tsigConf.algo.empty()) {
     TSIGHashEnum hashEnum{};
     getTSIGHashEnum(tsigConf.algo, hashEnum);
     try {
