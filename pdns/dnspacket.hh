@@ -163,6 +163,7 @@ public:
 
   bool getTSIGDetails(TSIGRecordContent* tr, DNSName* keyname, uint16_t* tsigPos=nullptr) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly=false);
+  void clearTSIGDetails();
   bool getTKEYRecord(TKEYRecordContent* tr, DNSName* keyname) const;
 
   vector<DNSZoneRecord>& getRRS() { return d_rrs; }
