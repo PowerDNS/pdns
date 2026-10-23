@@ -58,7 +58,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
             tkey_out->d_error = 19;
           }
           else {
-            sign = true;
+            sign = ctx.valid();
           }
         }
       } else {
