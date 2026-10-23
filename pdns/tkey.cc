@@ -131,6 +131,9 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     // this should cause it to lookup name context
     r->setTSIGDetails(trc, name, name.toStringNoDot(), "", false);
   }
+  else {
+    r->clearTSIGDetails();
+  }
 #endif
 
   r->commitD();
