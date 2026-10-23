@@ -164,7 +164,7 @@ try
 
   pw.getHeader()->id = dns_random_uint16();
 
-  if (tsig) {
+  if (tsig && !tsig_key.empty()) {
     TSIGRecordContent trc;
     trc.d_algoName = getTSIGAlgoName(tsig_algo);
     trc.d_time = time((time_t*)NULL);
