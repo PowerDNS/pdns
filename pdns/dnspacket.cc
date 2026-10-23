@@ -400,8 +400,9 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     }
   }
 
-  if(d_trc.d_algoName.countLabels())
+  if(!d_tsigkeyname.empty() && d_trc.d_algoName.countLabels()) {
     addTSIG(pw, d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
+  }
 
   d_rawpacket.assign((char*)&packet[0], packet.size()); // XXX we could do this natively on a vector..
 

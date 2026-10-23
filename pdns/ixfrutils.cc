@@ -35,7 +35,7 @@ uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone,
 {
   vector<uint8_t> packet;
   DNSPacketWriter pwriter(packet, zone.operator const DNSName&(), QType::SOA);
-  if(!tsig.algo.empty()) {
+  if (!tsig.name.empty() && !tsig.algo.empty()) {
     TSIGRecordContent trc;
     trc.d_algoName = tsig.algo;
     trc.d_time = time(nullptr);
