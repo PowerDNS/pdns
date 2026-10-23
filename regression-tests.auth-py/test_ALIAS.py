@@ -39,6 +39,10 @@ nxd.example.org.             3600 IN ALIAS nxd.example.com.
 servfail.example.org.        3600 IN ALIAS servfail.example.com.
 subnet.example.org.          3600 IN ALIAS subnet.example.com.
 subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
+
+mixed.example.org.           3600 IN ALIAS noerror.example.com.
+mixed.example.org.           3600 IN MX    10 mail.example.org.
+mixed.example.org.           3600 IN TXT   "mixed"
         """,
     }
 
@@ -85,6 +89,21 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 0)
+
+    def testANYWithOtherRRsets(self):
+        expected = [
+            dns.rrset.from_text("mixed.example.org.", 0, dns.rdataclass.IN, "A", "192.0.2.1"),
+            dns.rrset.from_text("mixed.example.org.", 0, dns.rdataclass.IN, "AAAA", "2001:DB8::1"),
+            dns.rrset.from_text("mixed.example.org.", 0, dns.rdataclass.IN, "MX", "10 mail.example.org."),
+            dns.rrset.from_text("mixed.example.org.", 0, dns.rdataclass.IN, "TXT", '"mixed"'),
+        ]
+
+        query = dns.message.make_query("mixed.example.org", "ANY")
+        for res in (self.sendUDPQuery(query), self.sendTCPQuery(query)):
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            for rrset in expected:
+                self.assertRRsetInAnswer(res, rrset)
+            self.assertEqual(len(res.answer), len(expected))
 
     def testNxDomain(self):
         query = dns.message.make_query("nxd.example.org", "A")

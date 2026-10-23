@@ -34,6 +34,8 @@ When the authoritative server receives a query for the A-record for
 ``example.net``, it will resolve the A record for
 ``mywebapp.paas-provider.net`` and serve an answer for ``example.net``
 with that A record.
+An ANY query for ``example.net`` returns the resolved A and AAAA records
+together with the other records at that name, but not the ALIAS record itself.
 If the ALIAS target cannot be resolved (SERVFAIL) or does not exist (NXDOMAIN) the authoritative server will answer SERVFAIL.
 
 .. warning::

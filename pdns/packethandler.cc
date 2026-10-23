@@ -1988,6 +1988,23 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   if(!haveAlias.empty() && (!weDone || pkt.qtype.getCode() == QType::ANY)) {
     DLOG(SLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<state.target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl,
               d_slog->info(Logr::Warning, "Found nothing that matched, but got alias, referring", "query", Logging::Loggable(state.target), "alias", Logging::Loggable(haveAlias))));
+    // completePacket() only appends the expanded A/AAAA, so an ANY answer
+    // needs the other RRsets at this name added first.
+    if (pkt.qtype.getCode() == QType::ANY) {
+      for (const auto& loopRR : rrset) {
+        if (loopRR.dr.d_type == QType::ENT || loopRR.dr.d_type == QType::ALIAS) {
+          continue;
+        }
+#ifdef HAVE_LUA_RECORDS
+        if (loopRR.dr.d_type == QType::LUA) {
+          continue;
+        }
+#endif
+        if (loopRR.auth) {
+          state.r->addRecord(DNSZoneRecord(loopRR));
+        }
+      }
+    }
     DP->completePacket(state.r, haveAlias, state.target, aliasScopeMask);
     state.r = nullptr;
     return false;
