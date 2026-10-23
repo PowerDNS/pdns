@@ -519,6 +519,14 @@ int DNSPacket::noparse(const char *mesg, size_t length)
   return 0;
 }
 
+void DNSPacket::clearTSIGDetails()
+{
+  d_trc = {}; // resets d_algoName
+  d_tsigkeyname.clear();
+  d_tsigsecret.clear();
+  d_tsigprevious.clear();
+}
+
 void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly)
 {
   d_trc=tr;
