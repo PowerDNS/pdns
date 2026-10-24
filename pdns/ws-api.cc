@@ -126,7 +126,7 @@ void apiServerConfig(HttpRequest* /* req */, HttpResponse* resp)
   Json::array doc;
   for (const string& item : items) {
     // Prevent sensitive configuration values from being leaked
-    if (apiShouldBeRedacted(item)) {
+    if (::arg().isSensitive(item) || apiShouldBeRedacted(item)) {
       value = "***";
     }
     else {
