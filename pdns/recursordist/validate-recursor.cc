@@ -21,6 +21,7 @@
  */
 
 #include "validate-recursor.hh"
+#include "dnsparser.hh"
 #include "syncres.hh"
 #include "logging.hh"
 #include "dnssec.hh"
@@ -98,5 +99,47 @@ bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsset_t>&
   }
   catch (...) {
     throw PDNSException("Error while reading Trust Anchors from file '" + fname + "'");
+  }
+}
+
+std::atomic<size_t> g_UnknownRootKeys = 0;
+
+void detectUnknownRootKeys(const dsset_t& rootAnchors, Logr::log_t logger)
+{
+
+  std::vector<DNSRecord> dnskeys;
+  auto res = directResolve(g_rootdnsname, QType::DNSKEY, QClass::IN, dnskeys, nullptr, false, logger);
+  if (res != 0) {
+    logger->info(Logr::Warning, "Could not resolve root key set", "result", Logging::Loggable(res));
+    return;
+  }
+  g_UnknownRootKeys = 0;
+  for (const auto& key : dnskeys) {
+    if (key.d_type != QType::DNSKEY) {
+      continue;
+    }
+    const auto keyContent = getRR<DNSKEYRecordContent>(key);
+    if (keyContent == nullptr) {
+      logger->info(Logr::Warning, "Invalid key in root key set");
+      continue;
+    }
+    if (!isSepKey(*keyContent) || isRevokedKey(*keyContent)) {
+      continue;
+    }
+    bool trusted = false;
+    for (const auto& dsRecord : rootAnchors) {
+      const auto dsFromKey = makeDSFromDNSKey(logger, g_rootdnsname, *keyContent, dsRecord.d_digesttype);
+      if (dsFromKey.d_digest == dsRecord.d_digest) {
+        trusted = true;
+        break;
+      }
+    }
+    if (!trusted) {
+      g_UnknownRootKeys++;
+      const auto dsFromKey = makeDSFromDNSKey(logger, g_rootdnsname, *keyContent, DNSSEC::DIGEST_SHA256).getZoneRepresentation();
+      logger->info(Logr::Warning, "Key signing key found in root DNSKEY set that is not in trust anchors",
+                   "dnskey", Logging::Loggable(keyContent->getZoneRepresentation()),
+                   "ds", Logging::Loggable(dsFromKey));
+    }
   }
 }

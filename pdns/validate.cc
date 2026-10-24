@@ -47,12 +47,6 @@ static bool isAZoneKey(const DNSKEYRecordContent& key)
   return (key.d_flags & DNSKEYFlag::ZONE) != 0;
 }
 
-static bool isRevokedKey(const DNSKEYRecordContent& key)
-{
-  /* rfc5011 Section 3 */
-  return (key.d_flags & DNSKEYFlag::REVOKED) != 0;
-}
-
 static vector<shared_ptr<const DNSKEYRecordContent>> getByTag(const skeyset_t& keys, uint16_t tag, uint8_t algorithm, const OptLog& log)
 {
   vector<shared_ptr<const DNSKEYRecordContent>> ret;

@@ -1453,4 +1453,12 @@ table = [
         "pname": "proxy-mapping-total-n-0",  # For multicounters, state the first
         # No SNMP
     },
+    {
+        "name": "unknown-root-keys",
+        "lambda": "[] { return g_UnknownRootKeys.load();}",
+        "desc": "Unknown root key signing keys seen",
+        "longdesc": "If this value is not zero, the root zone contains key signing keys that we do not have in our trust anchors. Once these keys start being used exclusively for signing, DNSSEC validations will fail. VERIFY YOUR TRUST ANCHORS.",
+        "ptype": "gauge",
+        "snmp": 162,
+    },
 ]
