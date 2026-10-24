@@ -41,6 +41,7 @@ void checkParameterBound(const std::string& parameter, uint64_t value, uint64_t 
 void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config);
 void setupLuaActions(LuaContext& luaCtx);
 void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck);
+void setupLuaBindingsCache(LuaContext& luaCtx);
 void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client);
 void setupLuaBindingsDNSParser(LuaContext& luaCtx);
 void setupLuaBindingsDNSQuestion(LuaContext& luaCtx);
