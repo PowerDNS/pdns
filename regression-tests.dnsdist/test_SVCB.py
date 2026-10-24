@@ -148,7 +148,8 @@ query_rules:
       parameters:
         - target: "dot.powerdns.com"
           priority: 1
-          mandatory_params: [3]
+          mandatory_params:
+            - port
           alpns:
             - "dot"
           no_default_alpn: true
@@ -159,7 +160,8 @@ query_rules:
             - 2001:db8::1
         - target: "doh.powerdns.com"
           priority: 2
-          mandatory_params: [3]
+          mandatory_params:
+            - port
           alpns:
             - "h2"
           no_default_alpn: true
@@ -188,14 +190,16 @@ query_rules:
       parameters:
         - target: "dot.powerdns.com"
           priority: 1
-          mandatory_params: [3]
+          mandatory_params:
+            - port
           alpns:
             - "dot"
           no_default_alpn: true
           port: 853
         - target: "doh.powerdns.com"
           priority: 2
-          mandatory_params: [3]
+          mandatory_params:
+            - port
           alpns:
             - "h2"
           no_default_alpn: true
@@ -220,7 +224,8 @@ query_rules:
       parameters:
         - target: "."
           priority: 1
-          mandatory_params: [3]
+          mandatory_params:
+            - key3 # port
           alpns:
             - "dot"
           no_default_alpn: true
@@ -231,7 +236,8 @@ query_rules:
             - 2001:db8::1
         - target: "."
           priority: 2
-          mandatory_params: [3]
+          mandatory_params:
+            - key3 # port
           alpns:
             - "h2"
           no_default_alpn: true
@@ -260,7 +266,8 @@ query_rules:
       parameters:
         - target: "."
           priority: 1
-          mandatory_params: [3]
+          mandatory_params:
+            - port
           alpns:
             - "h2"
           no_default_alpn: true

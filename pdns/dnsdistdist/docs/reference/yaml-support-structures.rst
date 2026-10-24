@@ -39,7 +39,10 @@ SVCRecordAdditionalParams
 SVCRecordParameters
 -------------------
 
-- **mandatory_params**: Sequence of Unsigned integer
+.. versionchanged:: 2.2.0
+   ``mandatory_params`` is now a Sequence of String with the full key name in either well-known (e.g. "port") or generic format (e.g. "key3") instead of an integer.
+
+- **mandatory_params**: Sequence of String
 - **alpns**: Sequence of String
 - **ipv4_hints**: Sequence of String
 - **ipv6_hints**: Sequence of String
