@@ -19,7 +19,7 @@ GeoIP backend
 * Module name: geoip
 * Launch name: ``geoip``
 
-This backend (which is a.k.a. the YAML backend) allows visitors to be sent to a server closer to them, with
+This backend allows visitors to be sent to a server closer to them, with
 no appreciable delay, as would otherwise be incurred with a protocol
 level redirect. Additionally, the GeoIP backend can be used to provide
 service over several clusters, any of which can be taken out of use
@@ -76,8 +76,22 @@ Drivers and options
 
 :mmdb: driver for libmaxminddb databases. Options:
 
-  :mode: The caching mode for data, only ``mmap`` is supported
-  :language: The language to use, ``en`` by default
+  :mode: The caching mode for data, only ``mmap`` is supported.
+  :query-asname: The mmdb path for AS name, defaults to ``autonomous_system_organization``.
+  :query-asnum: The mmdb path for AS number, defaults to ``autonomous_system_number``.
+  :query-city: The mmdb path for city name, defaults to ``cities/0``.
+  :query-city-alt: An alternate mmdb path for city name if the above one fails, defaults to ``city/names/en``.
+  :query-continent: The mmdb path for continent code, defaults to ``continent/code``.
+  :query-country: The mmdb path for country code, defaults to ``country/iso_code```.
+  :query-latitude: The mmdb path for latitude, defaults to ``location/latitude``.
+  :query-longitude: The mmdb path for longitude, defaults to ``location/longitude``.
+  :query-precision: The mmdb path for location precision, defaults to ``location/accuracy_radius``.
+  :query-region: The mmdb path for region code, defaults to ``subdivisions/0/iso_code``.
+  :language: The language to use for ``query-city-alt`` above if not specified, instead of ``en`` (this parameter is kept for backwards compatibility with older versions which do not allow queries to be specified in the options).
+
+  If you want to use `IPinfo Lite <https://ipinfo.io/lite>`__ instead of MaxMind, the queries need to be configured as::
+
+  query-city=city,query-continent=continent_code,query-country=country_code,query-latitude=latitude,query-longitude=longitude,query-precision=radius,query-region=region_code
 
 .. _setting-geoip-zones-file:
 
