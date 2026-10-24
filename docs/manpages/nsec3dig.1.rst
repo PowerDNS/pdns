@@ -4,7 +4,7 @@ nsec3dig
 Synopsis
 --------
 
-:program:`nsec3dig` *IPADDRESS* *PORT* *QNAME* *QTYPE* [recurse]
+:program:`nsec3dig` <IPADDRESS> <PORT> <QNAME> <QTYPE> [recurse]
 
 Description
 -----------

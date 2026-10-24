@@ -4,7 +4,7 @@ dnsscan
 Synopsis
 --------
 
-:program:`dnsscan` *INFILE*...
+:program:`dnsscan` <INFILE>...
 
 Description
 -----------
