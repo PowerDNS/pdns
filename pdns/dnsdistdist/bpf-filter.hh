@@ -181,3 +181,5 @@ private:
 #endif /* HAVE_EBPF */
 };
 using CounterAndActionValue = BPFFilter::CounterAndActionValue;
+
+bool setRandomReusePortPolicy(int socketDesc, uint32_t numberOfSockets);
