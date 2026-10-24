@@ -121,8 +121,8 @@ BOOST_AUTO_TEST_CASE(test_QueryCacheThreaded) {
     }
     manglers.clear();
 
-    BOOST_CHECK_EQUAL(QC.size() + S.read("deferred-cache-inserts"), 400000U);
-    BOOST_CHECK_SMALL(1.0*S.read("deferred-cache-inserts"), 10000.0);
+    BOOST_CHECK_EQUAL(QC.size() + S.readCounter("deferred-cache-inserts"), 400000U);
+    BOOST_CHECK_SMALL(1.0*S.readCounter("deferred-cache-inserts"), 10000.0);
 
     std::vector<std::thread> readers;
     for (int i=0; i < 4; ++i) {
@@ -134,8 +134,8 @@ BOOST_AUTO_TEST_CASE(test_QueryCacheThreaded) {
     }
     readers.clear();
 
-    BOOST_CHECK(S.read("deferred-cache-inserts") + S.read("deferred-cache-lookup") >= g_QCmissing);
-    //    BOOST_CHECK_EQUAL(S.read("deferred-cache-lookup"), 0); // cache cleaning invalidates this
+    BOOST_CHECK(S.readCounter("deferred-cache-inserts") + S.readCounter("deferred-cache-lookup") >= g_QCmissing);
+    //    BOOST_CHECK_EQUAL(S.readCounter("deferred-cache-lookup"), 0); // cache cleaning invalidates this
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
@@ -223,9 +223,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     }
     manglers.clear();
 
-    BOOST_CHECK_EQUAL(PC.size() + S.read("deferred-packetcache-inserts"), 400000UL);
-    BOOST_CHECK_EQUAL(S.read("deferred-packetcache-lookup"), 0UL);
-    BOOST_CHECK_SMALL(1.0*S.read("deferred-packetcache-inserts"), 10000.0);
+    BOOST_CHECK_EQUAL(PC.size() + S.readCounter("deferred-packetcache-inserts"), 400000UL);
+    BOOST_CHECK_EQUAL(S.readCounter("deferred-packetcache-lookup"), 0UL);
+    BOOST_CHECK_SMALL(1.0*S.readCounter("deferred-packetcache-inserts"), 10000.0);
 
     std::vector<std::thread> readers;
     for (int i=0; i < 4; ++i) {
@@ -238,16 +238,16 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     readers.clear();
 
 /*
-    cerr<<"Misses: "<<S.read("packetcache-miss")<<endl;
-    cerr<<"Hits: "<<S.read("packetcache-hit")<<endl;
-    cerr<<"Deferred inserts: "<<S.read("deferred-packetcache-inserts")<<endl;
-    cerr<<"Deferred lookups: "<<S.read("deferred-packetcache-lookup")<<endl;
+    cerr<<"Misses: "<<S.readCounter("packetcache-miss")<<endl;
+    cerr<<"Hits: "<<S.readCounter("packetcache-hit")<<endl;
+    cerr<<"Deferred inserts: "<<S.readCounter("deferred-packetcache-inserts")<<endl;
+    cerr<<"Deferred lookups: "<<S.readCounter("deferred-packetcache-lookup")<<endl;
     cerr<<g_PCmissing<<endl;
     cerr<<PC.size()<<endl;
 */
 
-    BOOST_CHECK_EQUAL(g_PCmissing + S.read("packetcache-hit"), 400000UL);
-    BOOST_CHECK_EQUAL(S.read("deferred-packetcache-inserts") + S.read("deferred-packetcache-lookup"), g_PCmissing);
+    BOOST_CHECK_EQUAL(g_PCmissing + S.readCounter("packetcache-hit"), 400000UL);
+    BOOST_CHECK_EQUAL(S.readCounter("deferred-packetcache-inserts") + S.readCounter("deferred-packetcache-lookup"), g_PCmissing);
   }
   catch(PDNSException& e) {
     cerr<<"Had error: "<<e.reason<<endl;
