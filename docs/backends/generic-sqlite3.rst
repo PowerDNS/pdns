@@ -94,7 +94,13 @@ Set this to 0 for blazing speed.
 ``gsqlite3-pragma-foreign-keys``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+-  Boolean
+-  Default: yes
+
 Enable foreign key constraints.
+
+.. note::
+  Before version 5.0.0, the default was no.
 
 .. _setting-gsqlite3-dnssec:
 
