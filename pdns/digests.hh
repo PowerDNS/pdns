@@ -26,23 +26,32 @@
 #include <stdexcept>
 #include <string>
 
+#include <openssl/err.h>
 #include <openssl/evp.h>
 
 namespace pdns
 {
+/* The failure is reported via the exception, so do not also leave it on this thread's OpenSSL
+   error queue, where the next unrelated OpenSSL user (libmysqlclient, for one) would find it */
+[[noreturn]] inline void throwDigestError(const EVP_MD* messageDigest, const std::string& what)
+{
+  ERR_clear_error();
+  throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " " + what);
+}
+
 inline std::string hash(const EVP_MD* messageDigest, const std::string& input)
 {
   auto mdctx = std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
   if (!mdctx) {
-    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " context initialization failed");
+    throwDigestError(messageDigest, "context initialization failed");
   }
 
   if (EVP_DigestInit_ex(mdctx.get(), messageDigest, nullptr) != 1) {
-    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " EVP initialization failed");
+    throwDigestError(messageDigest, "EVP initialization failed");
   }
 
   if (EVP_DigestUpdate(mdctx.get(), input.data(), input.size()) != 1) {
-    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " EVP update failed");
+    throwDigestError(messageDigest, "EVP update failed");
   }
 
   unsigned int written = 0;
@@ -51,7 +60,7 @@ inline std::string hash(const EVP_MD* messageDigest, const std::string& input)
 
   // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
   if (EVP_DigestFinal_ex(mdctx.get(), const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>(result.c_str())), &written) != 1) {
-    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " EVP final failed");
+    throwDigestError(messageDigest, "EVP final failed");
   }
 
   if (written != result.size()) {
