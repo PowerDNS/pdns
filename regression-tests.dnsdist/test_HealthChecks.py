@@ -28,8 +28,8 @@ class HealthCheckTest(DNSDistTest):
     newServer{address="127.0.0.1:%d"}
     """
 
-    def getBackendStatus(self):
-        return self.sendConsoleCommand("if getServer(0):isUp() then return 'up' else return 'down' end").strip("\n")
+    def getBackendStatus(self, id=0):
+        return self.sendConsoleCommand(f"if getServer({id}):isUp() then return 'up' else return 'down' end").strip("\n")
 
     def getBackendMetric(self, backendID, metricName):
         headers = {"x-api-key": self._webServerAPIKey}
@@ -520,7 +520,7 @@ class TestLazyHealthChecks(HealthCheckTest):
 
         time.sleep(1.5)
         self.assertEqual(_dotHealthCheckQueries, 2)
-        self.assertEqual(self.getBackendStatus(), "up")
+        self.assertEqual(self.getBackendStatus(1), "up")
 
     def testDoHLazy(self):
         """
@@ -554,7 +554,7 @@ class TestLazyHealthChecks(HealthCheckTest):
 
         time.sleep(1.5)
         self.assertEqual(_dohHealthCheckQueries, 2)
-        self.assertEqual(self.getBackendStatus(), "up")
+        self.assertEqual(self.getBackendStatus(2), "up")
 
 
 class HealthCheckUpdateParams(HealthCheckTest):
