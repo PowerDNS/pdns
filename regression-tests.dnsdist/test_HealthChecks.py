@@ -312,6 +312,7 @@ class TestHealthCheckCustomResponseValidationFunction(HealthCheckTest):
         "_healthCheckName",
     ]
     _verboseMode = True
+    _delayResponse = None
 
     @classmethod
     def startResponders(cls):
@@ -326,6 +327,8 @@ class TestHealthCheckCustomResponseValidationFunction(HealthCheckTest):
 
     @classmethod
     def healthCallback(cls, request):
+        if cls._delayResponse is not None:
+            time.sleep(cls._delayResponse)
         print(request)
         rrset = dns.rrset.from_text(request.question[0].name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.2")
         response = dns.message.make_response(request)
@@ -336,8 +339,16 @@ class TestHealthCheckCustomResponseValidationFunction(HealthCheckTest):
         """
         HealthChecks: Custom response validation function
         """
+        self.setDelay(0.5)
         time.sleep(1.5)
         self.assertEqual(self.getBackendStatus(), "up")
+
+        latency = self.getBackendMetric(0, "healthCheckLatency")
+        self.assertGreaterEqual(latency, 500)
+
+    @classmethod
+    def setDelay(cls, delay):
+        cls._delayResponse = delay
 
 
 _do53HealthCheckQueries = 0
