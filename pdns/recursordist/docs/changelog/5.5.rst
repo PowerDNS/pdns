@@ -4,6 +4,224 @@ Changelogs for 5.5.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.5.0-alpha2
+  :released: 27th of October 2026
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17715
+    :tickets: 17492
+
+    NSspeed computation improvements.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17734
+    :tickets: 17726
+
+    Add more, empty Special Use domains.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17773
+
+    DNSSEC: MLDSA44 (Module-Lattice Digital Signature Algorithm for DNSSEC).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17878
+
+    Better numerical parameter parsing.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17883
+
+    Dnsrecords: bound APL wire elements to the record length.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17894
+    :tickets: 17893
+
+    Scrub (most) answer records from rcode != 0 answers.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17895
+
+    On quit-nicely wait for mthreads to be done.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17897,17978
+
+    Store scope zero replies in packetcache and modify on retrieval.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17905
+
+    Minor optimization.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17958
+    :tickets: 17710
+
+    Move to yaml_serde.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17984
+
+    Padding should be last of all EDE options.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17985
+
+    Stop using the 257 DNSKEY flag value directly.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18029
+
+    Fix Lua to YAML conversion of custom RPZ policies.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18035
+
+    Retrieve DNSSEC data with RPZ processing disabled.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18050
+
+    Two new SVCParams
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18060
+
+    Fix Lua processing of wipePacketCache flag, was not processed for file RPZ.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18068
+
+    Catch exception thrown by parsing system resolver result.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18069
+
+    Catch two cases of the system resolver throwing an exception that isn't caught..
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18070
+
+    Wipe caches when wiping all NTA's.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18076
+
+    Correct stat name lookup in udpErrorStats() (Benjamin Gentil).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18084
+
+    Fix axfr failure to invalidate fd on close in all cases.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18085
+
+    RPZ transfer limits are megabytes, not bytes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18173
+
+    Update crates and modify pkcs12 code to handle the newer API.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18177
+
+    Reject RPZ out of zone records instead of rejecting the whole zone.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18178
+
+    TxtEscape(): reduce allocations and copying by reserving enough space for the typical case.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18182
+
+    Actually compare TA file against current config.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18190
+
+    Limit size of http(s) downloads for zoneToCache as advertized.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18204
+
+    Stricter umask usage.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18207
+
+    Limit pointer to pointer chains in DNS names.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18208
+
+    Set IP_BIND_ADDRESS_NO_PORT to circumvent too many sockets in TIME_WAIT issue.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18214, 18216
+
+    Ensure the map with TCP Connections is cleaned.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18217
+
+    Fix YWH-306: do no let an oob access to a NS set the flag permanently.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18218
+
+    Fix YWH323: enforce EDNS option record has root as its name.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18219
+
+    Fix TLS handshake, YWH-307.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18220
+
+    Fix bound of EDNS option read while checking scopeZero ECS (YWH415).
+
+.. changelog::
   :version: 5.5.0-alpha1
   :released: 13th of August 2026
 
