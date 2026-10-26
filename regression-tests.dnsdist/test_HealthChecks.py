@@ -29,7 +29,9 @@ class HealthCheckTest(DNSDistTest):
     """
 
     def getBackendStatus(self, id=0):
-        return self.sendConsoleCommand("if getServer(%d):isUp() then return 'up' else return 'down' end" % id).strip("\n")
+        return self.sendConsoleCommand("if getServer(%d):isUp() then return 'up' else return 'down' end" % id).strip(
+            "\n"
+        )
 
     def getBackendMetric(self, backendID, metricName):
         headers = {"x-api-key": self._webServerAPIKey}
