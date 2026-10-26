@@ -42,7 +42,12 @@ uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, 
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tt.name, tt.secret, "", false);
+    try {
+      addTSIG(pw, trc, tt.name, tt.secret, "", false);
+    }
+    catch (const PDNSException& exc) {
+      throw std::runtime_error(exc.reason);
+    }
   }
 
   Socket s(primary.sin4.sin_family, SOCK_DGRAM);
