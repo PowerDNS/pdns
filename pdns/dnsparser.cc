@@ -556,7 +556,7 @@ string PacketReader::getText(bool multi, bool lenField)
   return ret;
 }
 
-string PacketReader::getUnquotedText(bool lenField)
+string PacketReader::getUnquotedText(bool lenField, const std::string& validChars)
 {
   uint16_t stop_at{};
   if (lenField) {
@@ -583,6 +583,9 @@ string PacketReader::getUnquotedText(bool lenField)
   }
 
   string ret(d_content.substr(d_pos, stop_at-d_pos));
+  if (!validChars.empty() && ret.find_first_not_of(validChars) != string::npos) {
+    throw std::out_of_range("getUnquotedText: invalid character found in record content");
+  }
   d_pos = stop_at;
   return ret;
 }

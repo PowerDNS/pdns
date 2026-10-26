@@ -398,6 +398,8 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (ZONE_CASE(QType::SOA, "ns.rec.test hostmaster.test.rec 20130512010 3600 3600 604800 120")) // too long serial
      (ZONE_CASE(QType::TXT, "\\02unlimited")) // incorrect escape
      (ZONE_CASE(QType::TXT, "\\384excessive")) // incorrect escape
+     (ZONE_CASE(QType::CAA, "256 issue example.com")) // flags is > 255
+     (ZONE_CASE(QType::CAA, "0 issue_ example.com")) // tag contains forbidden character
 ;
 
   int n=0;
