@@ -152,7 +152,12 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
     trc.d_fudge = 300;
     trc.d_origID=ntohs(randomid);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
+    try {
+      addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
+    }
+    catch (const PDNSException& exc) {
+      throw ResolverException(exc.reason);
+    }
   }
 
   int sock;

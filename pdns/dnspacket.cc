@@ -400,7 +400,8 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     }
   }
 
-  if(!d_tsigkeyname.empty() && d_trc.d_algoName.countLabels()) {
+  if (!d_tsigkeyname.empty() && d_trc.d_algoName.countLabels()) {
+    // may throw PDNSException if signing fails
     addTSIG(pw, d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
   }
 

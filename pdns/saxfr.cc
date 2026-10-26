@@ -174,6 +174,7 @@ try
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
+    // may throw PDNSException if signing fails
     addTSIG(pw, trc, tsig_key, tsig_secret, "", false);
   }
 
