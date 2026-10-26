@@ -43,7 +43,12 @@ uint32_t getSerialFromPrimary(Logr::log_t slog, const ComboAddress& primary, con
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pwriter.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(slog, pwriter, trc, tsig.name, tsig.secret, "", false);
+    try {
+      addTSIG(slog, pwriter, trc, tsig.name, tsig.secret, "", false);
+    }
+    catch (const PDNSException& exc) {
+      throw std::runtime_error(exc.reason);
+    }
   }
 
   Socket s(primary.sin4.sin_family, SOCK_DGRAM);

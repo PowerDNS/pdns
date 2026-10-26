@@ -373,6 +373,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   }
 
   if (!d_tsigkeyname.empty() && d_trc.d_algoName.hasLabels()) {
+    // may throw PDNSException if signing fails
     addTSIG(d_slog, pw, d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
   }
 
