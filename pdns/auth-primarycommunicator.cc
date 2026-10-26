@@ -357,7 +357,12 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
            d_slog->info(Logr::Error, "Unable to Base-64 decode TSIG key", "domain", Logging::Loggable(domain), "key", Logging::Loggable(tsigkeyname)));
       return;
     }
-    addTSIG(d_slog, pwriter, trc, tsigkeyname, tsigsecret, "", false);
+    try {
+      addTSIG(d_slog, pwriter, trc, tsigkeyname, tsigsecret, "", false);
+    }
+    catch (const PDNSException& exc) {
+      throw ResolverException(exc.reason);
+    }
   }
 
   if (sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {

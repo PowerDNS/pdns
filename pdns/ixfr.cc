@@ -155,7 +155,12 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(Logr::log_t slo
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(slog, pw, trc, tt.name, tt.secret, "", false);
+    try {
+      addTSIG(slog, pw, trc, tt.name, tt.secret, "", false);
+    }
+    catch (const PDNSException& exc) {
+      throw std::runtime_error(exc.reason);
+    }
   }
   uint16_t len=htons(packet.size());
   string msg((const char*)&len, 2);
