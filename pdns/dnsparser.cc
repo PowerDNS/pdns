@@ -561,6 +561,7 @@ string PacketReader::getUnquotedText(bool lenField)
   uint16_t stop_at{};
   if (lenField) {
     stop_at = static_cast<uint8_t>(d_content.at(d_pos)) + d_pos + 1;
+    d_pos++; // d_pos now points at the start of the text
   }
   else {
     stop_at = d_recordlen;
@@ -581,7 +582,6 @@ string PacketReader::getUnquotedText(bool lenField)
     return "";
   }
 
-  d_pos++;
   string ret(d_content.substr(d_pos, stop_at-d_pos));
   d_pos = stop_at;
   return ret;
