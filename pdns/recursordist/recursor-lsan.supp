@@ -1,0 +1,2 @@
+# See comment on tec-tcp.cc:tcpClientCountsDt()
+leak:TCPConnection::TCPConnection
