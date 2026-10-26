@@ -606,8 +606,13 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
       DNSPacket l_forwardPacket(p);
       l_forwardPacket.setID(dns_random_uint16());
       l_forwardPacket.setRemote(&remote);
-      uint16_t len=htons(l_forwardPacket.getString().length());
-      buffer.assign((const char*)&len, 2);
+      std::string error;
+      if (!l_forwardPacket.readyToEmit(error)) {
+        g_log << Logger::Error << msgPrefix << "Unable to forward update message to " << remote.toStringWithPort() << ", error:" << error << endl;
+        continue;
+      }
+      uint16_t len = htons(l_forwardPacket.getString().length());
+      buffer.assign((const char*)&len, 2); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast): less ugly than a reinterpret_cast which would require a linter annotation anyway
       buffer.append(l_forwardPacket.getString());
       if(write(sock, buffer.c_str(), buffer.length()) < 0) {
         g_log<<Logger::Error<<msgPrefix<<"Unable to forward update message to "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
