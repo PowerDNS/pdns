@@ -159,6 +159,17 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
       }
     }
 
+    std::string error;
+    if (!reply->readyToEmit(error)) {
+      SLOG(g_log << Logger::Error << "Error building packet (" << error << "), returning SERVFAIL" << endl,
+           d_slog->error(Logr::Error, error, "Error building packet, returning SERVFAIL"));
+      reply->clearRecords();
+      reply->clearTSIGDetails();
+      reply->setRcode(RCode::ServFail);
+      // By clearing the TSIG information, we should be able to build a packet
+      // without any error now.
+    }
+
     uint16_t len = htons(reply->getString().length());
     string buffer((const char*)&len, 2);
     buffer.append(reply->getString());
@@ -331,6 +342,18 @@ void DNSProxy::mainloop()
           iter->second.complete->clearRecords();
           iter->second.complete->setRcode(RCode::ServFail);
         }
+
+        std::string error;
+        if (!iter->second.complete->readyToEmit(error)) {
+          SLOG(g_log << Logger::Error << "Error building packet (" << error << "), returning SERVFAIL" << endl,
+               d_slog->error(Logr::Error, error, "Error building packet, returning SERVFAIL"));
+          iter->second.complete->clearRecords();
+          iter->second.complete->clearTSIGDetails();
+          iter->second.complete->setRcode(RCode::ServFail);
+          // By clearing the TSIG information, we should be able to build a
+          // packet without any error now.
+        }
+
         reply = iter->second.complete->getString();
         iov.iov_base = (void*)reply.c_str();
         iov.iov_len = reply.length();

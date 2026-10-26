@@ -712,6 +712,12 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
       DNSPacket l_forwardPacket(p);
       l_forwardPacket.setID(dns_random_uint16());
       l_forwardPacket.setRemote(&remote);
+      std::string error;
+      if (!l_forwardPacket.readyToEmit(error)) {
+        SLOG(g_log << Logger::Error << ctx.msgPrefix << "Unable to forward update message to " << remote.toStringWithPort() << ", error:" << error << endl,
+             ctx.slog->error(Logr::Error, error, "Update: unable to forward update message", "remote", Logging::Loggable(remote.toStringWithPort())));
+        continue;
+      }
       uint16_t len = htons(l_forwardPacket.getString().length());
       buffer.assign((const char*)&len, 2); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast): less ugly than a reinterpret_cast which would require a linter annotation anyway
       buffer.append(l_forwardPacket.getString());
