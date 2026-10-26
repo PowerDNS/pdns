@@ -69,7 +69,21 @@ bool g_anyToTcp;
 uint16_t TCPConnection::s_maxInFlight;
 
 using tcpClientCounts_t = map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan>;
-static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
+
+static void tcpClientCountsDt([[maybe_unused]] tcpClientCounts_t* ptr)
+{
+  // One some systems (Suse 15.7 using gcc13 is a known example) the order of thread local objects
+  // teardown is such that the destruction of t_tcpClientCounts happens before running client TCP
+  // connections are torn down. That causes a Use After Free of tcpClientCounts and consequently a
+  // Double Free when erase() is called in the TCPConnection destructor. To avoid this order
+  // dependency, as a workaround we explictly do not destroy the object managed by the
+  // tcpClientCounts unique pointer on exit.
+
+  // delete ptr
+}
+
+using uniqueClientTCPCounts_t = std::unique_ptr<tcpClientCounts_t, decltype(&tcpClientCountsDt)>;
+static thread_local uniqueClientTCPCounts_t t_tcpClientCounts(new tcpClientCounts_t, tcpClientCountsDt);
 
 static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var);
 
