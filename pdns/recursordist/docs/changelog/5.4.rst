@@ -4,6 +4,17 @@ Changelogs for 5.4.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.4.9
+  :released: 26th of October 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18231
+    :tickets: 18216
+
+    Do not depend on specific order of thread local object destruction.
+
+.. changelog::
   :version: 5.4.8
   :released: 21st of October 2026
 
