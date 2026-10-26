@@ -153,8 +153,8 @@ public:
     text=getText(multi, lenField);
   }
 
-  void xfrUnquotedText(string &text, bool lenField){
-    text=getUnquotedText(lenField);
+  void xfrUnquotedText(string &text, bool lenField, const std::string& validChars=""){
+    text=getUnquotedText(lenField, validChars);
   }
 
   void xfrBlob(string& blob);
@@ -169,7 +169,7 @@ public:
 
   DNSName getName();
   string getText(bool multi, bool lenField);
-  string getUnquotedText(bool lenField);
+  string getUnquotedText(bool lenField, const std::string& validChar);
 
 
   bool eof() { return true; };
