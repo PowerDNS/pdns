@@ -662,7 +662,7 @@ void RecordTextReader::xfrText(string& val, bool multi, bool /* lenField */)
   }
 }
 
-void RecordTextReader::xfrUnquotedText(string& val, bool /* lenField */)
+void RecordTextReader::xfrUnquotedText(string& val, bool /* lenField */, const std::string& validChars)
 {
   val.clear();
   val.reserve(d_end - d_pos);
@@ -674,6 +674,9 @@ void RecordTextReader::xfrUnquotedText(string& val, bool /* lenField */)
   val.append(1, d_string[d_pos]);
   while(++d_pos < d_end && d_string[d_pos] != ' '){
     val.append(1, d_string[d_pos]);
+  }
+  if (!validChars.empty() && val.find_first_not_of(validChars) != string::npos) {
+    throw RecordTextException("found invalid character in record content '" + d_string + "'");
   }
 }
 
@@ -983,10 +986,12 @@ void RecordTextWriter::xfrText(const string& val, bool /* multi */, bool /* lenF
   d_string.append(val);
 }
 
-void RecordTextWriter::xfrUnquotedText(const string& val, bool /* lenField */)
+void RecordTextWriter::xfrUnquotedText(const string& val, bool /* lenField */, const std::string& /*validChars*/)
 {
-  if(!d_string.empty())
+  // We're not checking validChars, we expect that either the RecordTextReader or the PacketReader did this
+  if(!d_string.empty()) {
     d_string.append(1,' ');
+  }
   d_string.append(val);
 }
 
