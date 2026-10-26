@@ -64,6 +64,25 @@ DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
   memset(&d, 0, sizeof(d));
 }
 
+bool DNSPacket::readyToEmit(std::string& error, bool throwsOnTruncation)
+{
+  if (!d_wrapped) {
+    try {
+      wrapup(throwsOnTruncation);
+    }
+    catch (const PDNSException& exc) {
+      error = exc.reason;
+      return false;
+    }
+    catch (const std::exception& exc) {
+      error = exc.what();
+      return false;
+    }
+  }
+  error.clear();
+  return true;
+}
+
 const string& DNSPacket::getString(bool throwsOnTruncation)
 {
   if(!d_wrapped)
@@ -345,6 +364,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection || d_haveednscookie) {
     try {
       uint8_t maxScopeMask=0;
+      bool shallCommit{true};
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
 
@@ -357,15 +377,13 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
           pw.rollback();
           pw.truncate();
           pw.getHeader()->tc=1;
-          goto noCommit;
+          shallCommit = false;
+          break;
         }
       }
-
-      // if(!pw.getHeader()->tc) // protect against double commit from addSignature
-
-      if(!d_rrs.empty()) pw.commit();
-
-      noCommit:;
+      if (shallCommit && !d_rrs.empty()) {
+        pw.commit();
+      }
 
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
