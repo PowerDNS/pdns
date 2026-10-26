@@ -60,7 +60,7 @@ public:
 #ifdef HAVE_LUA_RECORDS
   void xfrLua(string& val);
 #endif
-  void xfrUnquotedText(string& val, bool lenField=true);
+  void xfrUnquotedText(string& val, bool lenField=true, const std::string& validChars="");
   void xfrHexBlob(string& val, bool keepReading=false);
   void xfrBase32HexBlob(string& val);
 
@@ -116,7 +116,7 @@ public:
 #ifdef HAVE_LUA_RECORDS
   void xfrLua(const string& val);
 #endif
-  void xfrUnquotedText(const string& val, bool lenField=true);
+  void xfrUnquotedText(const string& val, bool lenField=true, const std::string& validChars="");
   void xfrBlobNoSpaces(const string& val, int len=-1);
   void xfrBlob(const string& val, int len=-1);
   void xfrHexBlob(const string& val, bool keepReading=false);
