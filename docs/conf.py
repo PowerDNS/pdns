@@ -86,7 +86,6 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     ".venv",
-    "security-advisories/security-policy.rst",
     "common/secpoll.rst",
     "common/api/*",
 ]
