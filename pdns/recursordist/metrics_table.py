@@ -1457,7 +1457,7 @@ table = [
         "name": "unknown-root-keys",
         "lambda": "[] { return g_UnknownRootKeys.load();}",
         "desc": "Unknown root key signing keys seen",
-        "longdesc": "If this value is not zero, the root zone contains key signing keys that do are not present in our trust anchors. Once these keys start being used exclusively for signing, DNSSEC validations will fail. VERIFY YOUR TRUST ANCHORS.",
+        "longdesc": "If this value is not zero, the root zone contains Key Signing Keys that are not present in our trust anchors. Once these keys start being used exclusively for signing, DNSSEC validations will fail. VERIFY YOUR TRUST ANCHORS.",
         "ptype": "gauge",
         "snmp": 162,
     },

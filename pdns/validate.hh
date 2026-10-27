@@ -165,7 +165,7 @@ bool isTypeDenied(const NSEC& nsec, const QType& type)
 
 inline bool isSepKey(const DNSKEYRecordContent& key)
 {
-  /* rfc5011 Section 3 */
+  /* rfc4034 Section 2.1.1 */
   return (key.d_flags & DNSKEYFlag::SEP) != 0;
 }
 
