@@ -57,8 +57,8 @@
 #endif
 
 #ifndef HAVE_EXPLICIT_BZERO
-#    if (defined(__OpenBSD__) || defined(__FreeBSD__) || defined(__NetBSD__) || \
-         defined(__DragonFly__)) ||                                             \
+#    if (defined(__OpenBSD__) || defined(__FreeBSD__) || \
+         defined(__DragonFly__)) ||                      \
         (defined(__sun) && defined(__illumos__))
 #        define HAVE_EXPLICIT_BZERO 1
 #    elif defined(__GLIBC__) && defined(__GLIBC_PREREQ) && defined(_GNU_SOURCE)
