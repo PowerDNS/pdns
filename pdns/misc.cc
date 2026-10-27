@@ -1579,7 +1579,7 @@ uid_t strToUID(const string& str)
   const char* cstr = str.c_str();
   auto bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
   if (bufsize == -1) {
-    throw runtime_error("cannot retrieve buffer size for passwd entry");
+    bufsize = 1024; // e.g. musl does not implement the sysconf, so we guess
   }
   std::string buffer;
   buffer.resize(bufsize);
@@ -1618,7 +1618,7 @@ gid_t strToGID(const string& str)
   const char* cstr = str.c_str();
   auto bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
   if (bufsize == -1) {
-    throw runtime_error("cannot retrieve buffer size for group entry");
+    bufsize = 1024; // e.g. musl does not implement the sysconf, so we guess
   }
   std::string buffer;
   buffer.resize(bufsize);
