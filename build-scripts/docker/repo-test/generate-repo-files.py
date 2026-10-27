@@ -58,6 +58,7 @@ def init_argparser():
             "rec-52",
             "rec-53",
             "rec-54",
+            "rec-55",
             "rec-master",
             # DNSDist
             "dnsdist-17",
@@ -154,6 +155,7 @@ def write_release_files(release):
         "rec-52",
         "rec-53",
         "rec-54",
+        "rec-55",
         "rec-master",
         "dnsdist-17",
         "dnsdist-18",
@@ -165,10 +167,7 @@ def write_release_files(release):
         write_pkg_pin_file(release)
         write_dockerfile("el", "8", release)
         write_dockerfile("el", "9", release)
-        if not release in ["auth-51"]:
-            write_dockerfile("debian", "bullseye", release)
-            write_list_file("debian", "bullseye", release)
-        if not release in ["auth-51", "auth-50", "rec-54", "rec-53", "dnsdist-20", "dnsdist-21"]:
+        if not release in ["auth-51", "auth-50", "rec-55", "rec-54", "rec-53", "dnsdist-20", "dnsdist-21"]:
             write_dockerfile("ubuntu", "focal", release)
             write_list_file("ubuntu", "focal", release)
         write_dockerfile("ubuntu", "jammy", release)
@@ -180,6 +179,7 @@ def write_release_files(release):
         "auth-master",
         "rec-53",
         "rec-54",
+        "rec-55",
         "rec-master",
         "dnsdist-20",
         "dnsdist-21",
@@ -200,6 +200,7 @@ def write_release_files(release):
         "rec-52",
         "rec-53",
         "rec-54",
+        "rec-55",
         "rec-master",
         "dnsdist-19",
         "dnsdist-20",
@@ -216,6 +217,7 @@ def write_release_files(release):
         "auth-master",
         "rec-53",
         "rec-54",
+        "rec-55",
         "rec-master",
         "dnsdist-20",
         "dnsdist-21",
@@ -234,6 +236,7 @@ def write_release_files(release):
         "rec-52",
         "rec-53",
         "rec-54",
+        "rec-55",
         "rec-master",
         "dnsdist-19",
         "dnsdist-20",
@@ -243,7 +246,7 @@ def write_release_files(release):
         write_dockerfile("ubuntu", "noble", release)
         write_list_file("ubuntu", "noble", release)
 
-    if release in ["auth-51", "auth-master", "dnsdist-21", "dnsdist-master"]:
+    if release in ["auth-51", "auth-master", "rec-55", "rec-54", "rec-master", "dnsdist-21", "dnsdist-master"]:
         write_dockerfile("ubuntu", "resolute", release)
         write_list_file("ubuntu", "resolute", release)
 
@@ -355,6 +358,7 @@ def test_release(release, arch="x86_64"):
             "rec-52",
             "rec-53",
             "rec-54",
+            "rec-55",
             "rec-master",
             "dnsdist-19",
             "dnsdist-20",
