@@ -1234,7 +1234,7 @@ def ci_rec_run_ninja(c, build_dir):
 
 @task
 def ci_dnsdist_run_ninja(c, build_dir):
-    c.run(f". {repo_home}/.venv/bin/activate && meson compile -C {build_dir} -j{get_build_concurrency(4)} --verbose")
+    c.run(f". {repo_home}/.venv/bin/activate && meson compile -C {build_dir} -j{get_build_concurrency(3)} --verbose")
 
 
 @task
