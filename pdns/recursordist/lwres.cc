@@ -365,22 +365,17 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && remote.getPort() == 853;
   subjectName = nsName;
-  std::string subjectAddress;
   std::string configName;
   bool verbose{};
   bool subjectIsAddress = false;
   size_t iteration{0};
   std::shared_ptr<TLSCtx> tlsCtx{nullptr};
   if (dnsOverTLS) {
-    if (subjectName.empty() && !subjectAddress.empty()) {
-      subjectName = std::move(subjectAddress);
-      subjectIsAddress = true;
-    }
     if (subjectName.empty()) {
       subjectName = remote.toString();
       subjectIsAddress = true;
     }
-    tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote, verbose, subjectName, subjectAddress, configName, iteration);
+    tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote, verbose, subjectName, subjectIsAddress, configName, iteration);
   }
 
   connection = t_tcp_manager.get({remote, localBind, subjectName, configName, iteration});

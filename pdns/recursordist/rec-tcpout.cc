@@ -115,7 +115,7 @@ void TCPOutConnectionManager::setupOutgoingTLSConfigTables(pdns::rust::settings:
   ++table->iteration;
 }
 
-std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress, std::string& configName, size_t& iteration)
+std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, bool& subjectIsAddress, std::string& configName, size_t& iteration)
 {
   const pdns::rust::settings::rec::OutgoingTLSConfiguration* config{nullptr};
   TLSContextParameters tlsParams;
@@ -139,9 +139,11 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
       verboseLogging = config->verbose_logging;
       if (!config->subject_name.empty()) {
         subjectName = std::string(config->subject_name);
+        subjectIsAddress = false;
       };
       if (!config->subject_address.empty()) {
-        subjectAddress = std::string(config->subject_address);
+        subjectName = std::string(config->subject_address);
+        subjectIsAddress = true;
       };
       configName = std::string(config->name);
 

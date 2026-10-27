@@ -87,7 +87,7 @@ public:
   }
 
   static void setupOutgoingTLSConfigTables(pdns::rust::settings::rec::Recursorsettings& settings);
-  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress, std::string& configName, size_t& iteration);
+  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, bool& subjectIsAddress, std::string& configName, size_t& iteration);
 
 private:
   // This does not take into account that we can have multiple connections with different hosts (via SNI) to the same IP.
