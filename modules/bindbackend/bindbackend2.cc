@@ -425,6 +425,8 @@ static const std::string bindEscape(const std::string& name)
     case ';':
     case '(':
     case ')':
+    case '\n':
+    case '\r':
       snprintf(ebuf.data(), ebuf.size(), "\\%03u", static_cast<unsigned char>(letter));
       ret += ebuf.data();
       break;
