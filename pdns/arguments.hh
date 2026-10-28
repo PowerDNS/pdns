@@ -92,39 +92,42 @@ public:
   bool parseFile(const string& fname, const string& arg, bool lax); //<! parse one line
   bool parmIsset(const string& var); //!< Checks if a parameter is set to *a* value
   bool mustDo(const string& var); //!< if a switch is given, if we must do something (--help)
-  mode_t asMode(const string& arg); //!< return value interpreted as octal number
   uid_t asUid(const string& arg); //!< return user id, resolves if necessary
   gid_t asGid(const string& arg); //!< return group id, resolves if necessary
   double asDouble(const string& arg); //!< return a variable value as a number
-  string& set(const string&); //!< Gives a writable reference and allocates space for it
-  string& set(const string&, const string&); //!< Does the same but also allows one to specify a help message
+  string& set(const string&, bool sensitive = false); //!< Gives a writable reference and allocates space for it
+  string& set(const string&, const string&, bool sensitive = false); //!< Does the same but also allows one to specify a help message
   void setCmd(const string&, const string&); //!< Add a command flag
   string& setSwitch(const string&, const string&); //!< Add a switch flag
   string helpstring(string prefix = ""); //!< generates the --help
   string configstring(bool running, bool full); //!< generates the --config
   bool contains(const string& var, const string& val);
   bool isEmpty(const string& arg); //!< checks if variable has value
-  void setDefault(const string& var, const string& value);
+  bool isSensitive(const string& arg); //!< checks if variable value should be redacted
+  void setDefault(const string& var, const string& value, bool sensitive = false);
   void setDefaults();
 
   template <typename T>
-  T asBoundedNum(const string& arg, T minval = std::numeric_limits<T>::min(), T maxval = std::numeric_limits<T>::max(), T def = 0)
+  T asBoundedNum(const string& arg, T minval = std::numeric_limits<T>::min(), T maxval = std::numeric_limits<T>::max(), T def = 0, int base = 0)
   {
     if (!parmIsset(arg)) {
       throw ArgException(string("Undefined but needed argument: '") + arg + "'");
     }
 
     // use default for empty values
-    const std::string& param = d_params[arg];
+    const std::string& param = d_params[arg].first;
     if (param.empty()) {
       return def;
     }
 
     try {
-      size_t unused{0};
-      T retval = pdns::checked_stoi<T>(param, &unused, 0);
+      size_t end{0};
+      T retval = pdns::checked_stoi<T>(param, &end, base);
       if (retval < minval || retval > maxval) {
         throw std::out_of_range("oh no!");
+      }
+      if (end != param.length()) {
+        throw std::invalid_argument("oh no!");
       }
       return retval;
     }
@@ -137,15 +140,20 @@ public:
   }
 
   template <typename T = int>
-  T asNum(const string& arg, T def = 0)
+  T asNum(const string& arg, T def = 0, int base = 0)
   {
-    return asBoundedNum<T>(arg, std::numeric_limits<T>::min(), std::numeric_limits<T>::max(), def);
+    return asBoundedNum<T>(arg, std::numeric_limits<T>::min(), std::numeric_limits<T>::max(), def, base);
   }
 
   template <typename T = int>
-  void assignNum(T& var, const string& arg, T def = 0)
+  void assignNum(T& var, const string& arg, T def = 0, int base = 0)
   {
-    var = asNum<T>(arg, def);
+    var = asNum<T>(arg, def, base);
+  }
+
+  mode_t asMode(const string& arg) //!< return value interpreted as octal number
+  {
+    return asNum<mode_t>(arg, 0, 8);
   }
 
   vector<string> list();
@@ -157,12 +165,12 @@ public:
   [[nodiscard]] string getDefault(const string& item) const
   {
     auto iter = defaultmap.find(item);
-    return iter == defaultmap.end() ? "" : iter->second;
+    return iter == defaultmap.end() ? "" : iter->second.first;
   }
-  using param_t = map<string, string>; //!< use this if you need to know the content of the map
 
-  param_t::const_iterator begin(); //!< iterator semantics
-  param_t::const_iterator end(); //!< iterator semantics
+  using param_info = std::pair<std::string, bool>;
+  using param_t = std::map<std::string, param_info>; //!< use this if you need to know the content of the map
+
   const string& operator[](const string&); //!< iterator semantics
   const vector<string>& getCommands();
   void gatherIncludes(const std::string& dir, const std::string& suffix, std::vector<std::string>& extraConfigs);
@@ -177,13 +185,13 @@ public:
 private:
   void parseOne(const string& arg, const string& parseOnly = "", bool lax = false);
   static string formatOne(bool running, bool full, const string& var, const string& help, const string& theDefault, const string& current);
-  map<string, string> d_params;
-  map<string, string> d_unknownParams;
-  map<string, string> helpmap;
-  map<string, string> defaultmap;
-  map<string, string> d_typeMap;
-  vector<string> d_cmds;
-  std::set<string> d_cleared;
+  param_t d_params;
+  std::map<std::string, std::string> d_unknownParams;
+  std::map<std::string, std::string> helpmap;
+  param_t defaultmap;
+  std::map<std::string, std::string> d_typeMap;
+  std::vector<std::string> d_cmds;
+  std::set<std::string> d_cleared;
 #if defined(PDNS_AUTH) || defined(RECURSOR)
   std::shared_ptr<Logr::Logger> d_log;
 #endif
