@@ -1557,8 +1557,8 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 
     prependSizeToTCPQuery(query.d_buffer, query.d_idstate.d_proxyProtocolPayloadSize);
 
-    VERBOSESLOG(infolog("Got query for %s|%s from %s (%s, %d bytes), relayed to %s", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), query.d_idstate.origRemote.toStringWithPort(), query.d_idstate.protocol.toString(), query.d_buffer.size(), downstreamServer->getNameWithAddr()),
-                query.d_idstate.getLogger()->info(Logr::Info, "Relayed query to backend", "dns.query.size", Logging::Loggable(query.d_buffer.size())));
+    VERBOSESLOG(infolog("Got %squery for %s|%s from %s (%s, %d bytes), relayed to %s", tqs->pooledHealthCheck() ? "healthcheck " : "", query.d_idstate.qname.toLogString(), QType(query.d_idstate.qtype).toString(), query.d_idstate.origRemote.toStringWithPort(), query.d_idstate.protocol.toString(), query.d_buffer.size(), downstreamServer->getNameWithAddr()),
+                query.d_idstate.getLogger()->info(Logr::Info, "Relayed query to backend", "dns.query.size", Logging::Loggable(query.d_buffer.size()), "healthcheck", Logging::Loggable(tqs->pooledHealthCheck())));
 
     downstream->queueQuery(tqs, std::move(query));
   }

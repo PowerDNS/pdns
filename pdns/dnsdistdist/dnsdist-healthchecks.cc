@@ -39,13 +39,21 @@ struct HealthCheckData
     ReadingResponse
   };
 
-  HealthCheckData(FDMultiplexer& mplexer, std::shared_ptr<DownstreamState> downstream, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID) :
+  enum class PooledState : uint8_t
+  {
+    Ongoing,
+    Cancelled,
+    Finished,
+    Failure
+  };
+
+  HealthCheckData(FDMultiplexer* mplexer, std::shared_ptr<DownstreamState> downstream, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID) :
     d_ds(std::move(downstream)), d_mplexer(mplexer), d_udpSocket(-1), d_checkName(std::move(checkName)), d_checkType(checkType), d_checkClass(checkClass), d_queryID(queryID)
   {
   }
 
   const std::shared_ptr<DownstreamState> d_ds;
-  FDMultiplexer& d_mplexer;
+  FDMultiplexer* d_mplexer; // is null on pooled
   std::unique_ptr<TCPIOHandler> d_tcpHandler{nullptr};
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   PacketBuffer d_buffer;
@@ -59,6 +67,14 @@ struct HealthCheckData
   uint16_t d_queryID;
   TCPState d_tcpState{TCPState::WritingQuery};
   bool d_initial{false};
+
+  timeval d_pooledArrived{0, 0};
+  bool d_pooled{false};
+  double d_pooledElapsed{0};
+  // in case of pooled healthchecks, we must call store()
+  // AFTER writing to buffer;
+  // and load() BEFORE reading the buffer
+  std::atomic<PooledState> d_pooledState{PooledState::Ongoing};
 };
 
 static void updateLatencyMetrics(DownstreamState& downstream, double elapsedUs /* microseconds */)
@@ -179,7 +195,9 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     }
 
     if (data->d_ds->d_config.d_healthCheckResponseValidationCallback) {
-      return validateHealthCheckResponseWithCallback(data);
+      if (!validateHealthCheckResponseWithCallback(data)) {
+        return false;
+      }
     }
   }
   catch (const std::exception& e) {
@@ -198,7 +216,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     return false;
   }
 
-  const auto elapsed = data->d_elapsed.udiff();
+  const auto elapsed = data->d_pooled ? data->d_pooledElapsed : data->d_elapsed.udiff();
   updateLatencyMetrics(*data->d_ds, elapsed);
 
   return true;
@@ -248,6 +266,146 @@ private:
   std::shared_ptr<HealthCheckData> d_data;
 };
 
+class PooledHealthCheckQuerySender : public TCPQuerySender
+{
+public:
+  PooledHealthCheckQuerySender(std::shared_ptr<HealthCheckData>& data) :
+    d_data(data)
+  {
+    d_pooledHealthCheck = true;
+  }
+  PooledHealthCheckQuerySender(const PooledHealthCheckQuerySender&) = default;
+  PooledHealthCheckQuerySender(PooledHealthCheckQuerySender&&) = default;
+  PooledHealthCheckQuerySender& operator=(const PooledHealthCheckQuerySender&) = default;
+  PooledHealthCheckQuerySender& operator=(PooledHealthCheckQuerySender&&) = default;
+  ~PooledHealthCheckQuerySender() override = default;
+
+  [[nodiscard]] bool active() const override
+  {
+    return d_data->d_pooledState.load() == HealthCheckData::PooledState::Ongoing;
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  void handleResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    (void)now;
+    // this is run in the TCP connection thread,
+    // not in the healthcheck thread!
+    // be careful
+    d_data->d_buffer = std::move(response.d_buffer);
+    d_data->d_pooledElapsed = d_data->d_elapsed.udiff();
+    d_data->d_pooledArrived = now;
+    d_data->d_pooledState.store(HealthCheckData::PooledState::Finished);
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
+  {
+    (void)now;
+    (void)response;
+    throw std::runtime_error("Unexpected XFR response to a health check query");
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+  void notifyIOError(const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
+  {
+    (void)now;
+    (void)response;
+    d_data->d_pooledState.store(HealthCheckData::PooledState::Failure);
+  }
+
+private:
+  std::shared_ptr<HealthCheckData> d_data;
+};
+
+class PooledHealthCheckCrossProtocolQuery : public CrossProtocolQuery
+{
+public:
+  PooledHealthCheckCrossProtocolQuery(InternalQuery&& query_, std::shared_ptr<DownstreamState> downstream_, std::shared_ptr<TCPQuerySender> sender, uint16_t queryID) :
+    CrossProtocolQuery(std::move(query_), downstream_), d_sender(std::move(sender))
+  {
+    query.d_idstate.origID = queryID;
+    query.d_idstate.queryRealTime.start();
+  }
+
+  PooledHealthCheckCrossProtocolQuery(const PooledHealthCheckCrossProtocolQuery&) = delete;
+  PooledHealthCheckCrossProtocolQuery& operator=(const PooledHealthCheckCrossProtocolQuery&) = delete;
+  PooledHealthCheckCrossProtocolQuery(PooledHealthCheckCrossProtocolQuery&&) = delete;
+  PooledHealthCheckCrossProtocolQuery& operator=(PooledHealthCheckCrossProtocolQuery&&) = delete;
+  ~PooledHealthCheckCrossProtocolQuery() override = default;
+
+  std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
+  {
+    return d_sender;
+  }
+
+private:
+  std::shared_ptr<TCPQuerySender> d_sender;
+};
+
+bool PooledHealthChecks::hasOngoing(const std::shared_ptr<DownstreamState>& downstream)
+{
+  return d_map.count(downstream->getID()) != 0;
+}
+
+void PooledHealthChecks::save(const std::shared_ptr<DownstreamState>& downstream, std::shared_ptr<HealthCheckData>& data)
+{
+  d_map[downstream->getID()] = data;
+}
+
+void PooledHealthChecks::checkResults()
+{
+  // this is run in the main health check thread
+  struct timeval now{};
+  gettimeofday(&now, nullptr);
+  const auto verboseHealthChecks = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verboseHealthChecks;
+  for (auto it = d_map.begin(); it != d_map.end();) {
+    auto& data = it->second;
+    const auto state = data->d_pooledState.load();
+    switch (state) {
+    case HealthCheckData::PooledState::Ongoing:
+      // healthcheck TTD and actual TTD of the connection are different
+      // we must check deadline here
+      if (now < data->d_ttd) {
+        ++it;
+        continue;
+      }
+      // healthcheck still ongoing, but we are over limit
+      if (verboseHealthChecks) {
+        auto queryLogger = getLoggerFromData(data);
+        SLOG(infolog("Timeout while waiting for the health check response (ID %d) from backend %s", data->d_queryID, data->d_ds->getNameWithAddr()),
+             queryLogger->info(Logr::Info, "Timeout while waiting for the health check response from backend"));
+      }
+      ++data->d_ds->d_healthCheckMetrics.d_timeOuts;
+      data->d_ds->submitHealthCheckResult(false, false);
+      data->d_pooledState.store(HealthCheckData::PooledState::Cancelled);
+      break;
+    case HealthCheckData::PooledState::Finished:
+      if (data->d_ttd < data->d_pooledArrived) {
+        if (verboseHealthChecks) {
+          // arrived, but late
+          auto queryLogger = getLoggerFromData(data);
+          SLOG(infolog("Timeout while waiting for the health check response (ID %d) from backend %s (arrived late)", data->d_queryID, data->d_ds->getNameWithAddr()),
+               queryLogger->info(Logr::Info, "Timeout while waiting for the health check response from backend (arrived late)"));
+        }
+        ++data->d_ds->d_healthCheckMetrics.d_timeOuts;
+        data->d_ds->submitHealthCheckResult(false, false);
+      }
+      else {
+        data->d_ds->submitHealthCheckResult(false, ::handleResponse(data));
+      }
+      break;
+    case HealthCheckData::PooledState::Failure:
+      ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
+      data->d_ds->submitHealthCheckResult(false, false);
+      break;
+    case HealthCheckData::PooledState::Cancelled:;
+      // unreachable. we are the ones setting cancelled. here just for linter.
+    }
+    it = d_map.erase(it);
+  }
+}
+
 static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& param)
 {
   auto data = boost::any_cast<std::shared_ptr<HealthCheckData>>(param);
@@ -283,7 +441,7 @@ static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& p
       }
       ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
       data->d_ds->submitHealthCheckResult(data->d_initial, false);
-      data->d_mplexer.removeReadFD(descriptor);
+      data->d_mplexer->removeReadFD(descriptor);
       return;
     }
   } while (got < 0);
@@ -301,7 +459,7 @@ static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& p
     return;
   }
 
-  data->d_mplexer.removeReadFD(descriptor);
+  data->d_mplexer->removeReadFD(descriptor);
   data->d_ds->submitHealthCheckResult(data->d_initial, handleResponse(data));
 }
 
@@ -386,7 +544,7 @@ static void healthCheckTCPCallback(int descriptor, FDMultiplexer::funcparam_t& p
   }
 }
 
-bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& downstream, bool initialCheck)
+bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& downstream, PooledHealthChecks* pooledHealthChecks, bool initialCheck)
 {
   const auto verboseHealthChecks = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verboseHealthChecks;
   std::shared_ptr<Logr::Logger> logger;
@@ -422,6 +580,10 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     GenericDNSPacketWriter<PacketBuffer> dpw(packet, checkName, checkType, checkClass);
     dnsheader* requestHeader = dpw.getHeader();
     *requestHeader = checkHeader;
+
+    const bool pool = downstream->d_config.d_checkPooled && downstream->doHealthcheckOverTCP() && // only TCP makes sense to pool
+      !downstream->d_config.useProxyProtocol && // pool makes no sense in proxy protocol
+      !initialCheck; // no connection exists at initial; pooledHealthChecks is null
 
     /* we need to compute that _before_ adding the proxy protocol payload */
     uint16_t packetSize = packet.size();
@@ -462,8 +624,10 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       sock.bind(downstream->d_config.sourceAddr, false);
     }
 
-    auto data = std::make_shared<HealthCheckData>(*mplexer, downstream, std::move(checkName), checkType, checkClass, queryID);
+    FDMultiplexer* mplexerp = pool ? nullptr : &*mplexer;
+    auto data = std::make_shared<HealthCheckData>(mplexerp, downstream, std::move(checkName), checkType, checkClass, queryID);
     data->d_initial = initialCheck;
+    data->d_pooled = pool;
 
     gettimeofday(&data->d_ttd, nullptr);
     data->d_ttd.tv_sec += static_cast<decltype(data->d_ttd.tv_sec)>(downstream->d_config.checkTimeout / 1000); /* ms to seconds */
@@ -471,7 +635,24 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
     normalizeTV(data->d_ttd);
     data->d_elapsed.start();
 
-    if (!downstream->doHealthcheckOverTCP()) {
+    if (pool) {
+      InternalQueryState ids;
+      ids.qname = data->d_checkName;
+      ids.qtype = data->d_checkType;
+      ids.qclass = data->d_checkClass;
+      ids.protocol = downstream->getProtocol();
+      InternalQuery query(std::move(packet), std::move(ids));
+      auto sender = std::shared_ptr<TCPQuerySender>(new PooledHealthCheckQuerySender(data));
+      auto cpq = std::make_unique<PooledHealthCheckCrossProtocolQuery>(std::move(query), downstream, sender, queryID);
+      if (!downstream->passCrossProtocolQuery(std::move(cpq))) {
+        ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
+        data->d_ds->submitHealthCheckResult(false, false);
+      }
+      else {
+        pooledHealthChecks->save(downstream, data);
+      }
+    }
+    else if (!downstream->doHealthcheckOverTCP()) {
       sock.connect(downstream->d_config.remote);
       data->d_udpSocket = std::move(sock);
       ssize_t sent = udpClientSendRequestToBackend(downstream, data->d_udpSocket.getHandle(), packet, true);

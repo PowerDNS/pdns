@@ -28,8 +28,10 @@ class HealthCheckTest(DNSDistTest):
     newServer{address="127.0.0.1:%d"}
     """
 
-    def getBackendStatus(self):
-        return self.sendConsoleCommand("if getServer(0):isUp() then return 'up' else return 'down' end").strip("\n")
+    def getBackendStatus(self, id=0):
+        return self.sendConsoleCommand("if getServer(%d):isUp() then return 'up' else return 'down' end" % id).strip(
+            "\n"
+        )
 
     def getBackendMetric(self, backendID, metricName):
         headers = {"x-api-key": self._webServerAPIKey}
@@ -310,6 +312,7 @@ class TestHealthCheckCustomResponseValidationFunction(HealthCheckTest):
         "_healthCheckName",
     ]
     _verboseMode = True
+    _delayResponse = None
 
     @classmethod
     def startResponders(cls):
@@ -324,6 +327,8 @@ class TestHealthCheckCustomResponseValidationFunction(HealthCheckTest):
 
     @classmethod
     def healthCallback(cls, request):
+        if cls._delayResponse is not None:
+            time.sleep(cls._delayResponse)
         print(request)
         rrset = dns.rrset.from_text(request.question[0].name, 60, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.2")
         response = dns.message.make_response(request)
@@ -334,8 +339,284 @@ class TestHealthCheckCustomResponseValidationFunction(HealthCheckTest):
         """
         HealthChecks: Custom response validation function
         """
+        self.setDelay(0.5)
         time.sleep(1.5)
         self.assertEqual(self.getBackendStatus(), "up")
+
+        latency = self.getBackendMetric(0, "healthCheckLatency")
+        self.assertGreaterEqual(latency, 500)
+
+    @classmethod
+    def setDelay(cls, delay):
+        cls._delayResponse = delay
+
+
+_dotReusedHealthCheckQueries = 0
+_dohReusedHealthCheckQueries = 0
+
+
+class TestReusedConnectionHealthChecks(HealthCheckTest):
+    _dotPort = pickAvailablePort()
+    _dohPort = pickAvailablePort()
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode("ascii")
+    _consolePort = pickAvailablePort()
+    _config_params = [
+        "_consoleKeyB64",
+        "_consolePort",
+        "_webServerPort",
+        "_webServerAPIKeyHashed",
+        "_dotPort",
+        "_dohPort",
+    ]
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%d")
+    setWebserverConfig({apiKey="%s"})
+
+    setMaxTCPClientThreads(1)
+    setOutgoingDoHWorkerThreads(1)
+
+    function myHealthCheckFunction(qname, qtype, qclass, dh)
+      dh:setCD(true)
+
+      return newDNSName('powerdns.com.'), DNSQType.AAAA, qclass
+    end
+
+    function myHealthCheckValidationFunction(dr)
+      local overlay = newDNSPacketOverlay(dr:getContent())
+      return overlay:getRecordsCountInSection(1) == 1
+    end
+
+    newServer{address="127.0.0.1:%d", tls='openssl', caStore='ca.pem', subjectAddr='127.0.0.1', checkInterval=1, checkTimeout=1000, maxCheckFailures=1, rise=1,
+  checkReuseConnections=true, retries=0, checkName='powerdns.org.'}
+    srv = newServer{address="127.0.0.1:%d", dohPath='/dns-query', tls='openssl', caStore='ca.pem', subjectAddr='127.0.0.1', checkInterval=1, checkTimeout=1000, maxCheckFailures=1, rise=1,
+  checkReuseConnections=true, retries=0, checkFunction=myHealthCheckFunction}
+    srv:setHealthCheckResponseValidator(myHealthCheckValidationFunction)
+
+    serverUpCount = {}
+    serverDownCount = {}
+    function ServerStateChange(nameAddr, newState)
+        if newState then
+            if not serverUpCount[nameAddr] then serverUpCount[nameAddr] = 0 end
+            serverUpCount[nameAddr] = serverUpCount[nameAddr] + 1
+        else
+            if not serverDownCount[nameAddr] then serverDownCount[nameAddr] = 0 end
+            serverDownCount[nameAddr] = serverDownCount[nameAddr] + 1
+        end
+    end
+
+    addServerStateChangeCallback(ServerStateChange)
+    function getCount(nameAddr, state)
+        if state then
+            if not serverUpCount[nameAddr] then serverUpCount[nameAddr] = 0 end
+            return serverUpCount[nameAddr]
+        else
+            if not serverDownCount[nameAddr] then serverDownCount[nameAddr] = 0 end
+            return serverDownCount[nameAddr]
+        end
+    end
+    """
+    _verboseMode = True
+    _delayResponseDOH = 0
+    _delayResponseDOT = 0
+    _dropHealthCheckDOH = False
+    _invalidHealthCheckDOH = False
+    _dropHealthCheckDOT = False
+    _invalidHealthCheckDOT = False
+
+    @staticmethod
+    def HandleDNSQuery(request):
+        response = dns.message.make_response(request)
+        return response.to_wire()
+
+    # with DOT, ResponderDropAction drops connection
+    # with DOH, `0, None` drops connection
+
+    @classmethod
+    def DOTCallback(cls, request):
+        global _dotReusedHealthCheckQueries
+        if str(request.question[0].name).startswith("powerdns.org"):
+            if cls._dropHealthCheckDOT:
+                return ResponderDropAction()
+
+            time.sleep(cls._delayResponseDOT)
+
+            _dotReusedHealthCheckQueries = _dotReusedHealthCheckQueries + 1
+            response = dns.message.make_response(request)
+
+            if cls._invalidHealthCheckDOT:
+                response.set_rcode(dns.rcode.SERVFAIL)
+
+            return response.to_wire()
+        return cls.HandleDNSQuery(request)
+
+    @classmethod
+    def DOHCallback(cls, request, requestHeaders, fromQueue, toQueue, conn):
+        global _dohReusedHealthCheckQueries
+        if str(request.question[0].name).startswith("powerdns.com"):
+            if cls._dropHealthCheckDOH:
+                return (
+                    0,
+                    None,
+                )  # DropAction is different in DOH, None actually drops connection
+
+            time.sleep(cls._delayResponseDOH)
+
+            _dohReusedHealthCheckQueries = _dohReusedHealthCheckQueries + 1
+            response = dns.message.make_response(request)
+
+            if not cls._invalidHealthCheckDOH:
+                rrset = dns.rrset.from_text(
+                    request.question[0].name,
+                    60,
+                    dns.rdataclass.IN,
+                    dns.rdatatype.A,
+                    "127.0.0.1",
+                )
+                response.answer.append(rrset)
+
+            return 200, response.to_wire()
+        return 200, cls.HandleDNSQuery(request)
+
+    @classmethod
+    def startResponders(cls):
+        tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tlsContext.load_cert_chain("server.chain", "server.key")
+        cls._DOTResponder = threading.Thread(
+            name="reused healthcheck DoT Responder",
+            target=cls.TCPResponder,
+            args=[
+                cls._dotPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.DOTCallback,
+                tlsContext,
+                False,
+                "127.0.0.1",
+                False,
+                None,
+                True,
+            ],
+        )
+        cls._DOTResponder.daemon = True
+        cls._DOTResponder.start()
+
+        cls._DOHResponder = threading.Thread(
+            name="reused healthcheck DoH Responder",
+            target=cls.DOHResponder,
+            args=[
+                cls._dohPort,
+                cls._toResponderQueue,
+                cls._fromResponderQueue,
+                False,
+                False,
+                cls.DOHCallback,
+                tlsContext,
+            ],
+        )
+        cls._DOHResponder.daemon = True
+        cls._DOHResponder.start()
+
+    def testReusedDOT(self):
+        self.setDelayDOT(0.5)
+
+        time.sleep(5)
+        self.assertEqual(self.getBackendMetric(0, "healthCheckFailures"), 0)
+        self.assertEqual(self.getBackendStatus(0), "up")
+        self.assertEqual(self.getBackendMetric(0, "tcpNewConnections"), 1)
+        self.assertGreaterEqual(self.getBackendMetric(0, "tcpReusedConnections"), 5)
+        self.assertGreaterEqual(_dotReusedHealthCheckQueries, 5)
+        self.assertEqual(self.getBackendMetric(0, "tcpLatency"), 0)
+        self.assertEqual(self.getBackendMetric(0, "tlsResumptions"), 0)
+
+        latency = self.getBackendMetric(0, "healthCheckLatency")
+        self.assertGreaterEqual(latency, 500)
+
+        self.setServfailDOT(True)
+        time.sleep(2)
+        self.assertEqual(self.getBackendStatus(0), "down")
+        self.setServfailDOT(False)
+        time.sleep(2)
+        self.assertEqual(self.getBackendStatus(0), "up")
+        self.assertEqual(self.getBackendMetric(0, "tcpNewConnections"), 1)
+        self.setDropDOT(True)
+        time.sleep(4)  # drop ends up in a timeout; can get up to 4
+        self.assertEqual(self.getBackendStatus(0), "down")
+        self.setDropDOT(False)
+        time.sleep(2)
+        self.assertEqual(self.getBackendStatus(0), "up")
+        self.assertGreaterEqual(self.getBackendMetric(0, "tcpNewConnections"), 2)
+
+        nameAddr = self.sendConsoleCommand("getServer(0):getNameWithAddr()").strip("\n")
+        self.assertEqual(self.getCount(nameAddr, True), 3)
+        self.assertEqual(self.getCount(nameAddr, False), 2)
+
+    def testReusedDOH(self):
+        self.setDelayDOH(0.5)
+
+        time.sleep(5)
+        self.assertEqual(self.getBackendMetric(1, "healthCheckFailures"), 0)
+        self.assertEqual(self.getBackendStatus(1), "up")
+        self.assertEqual(self.getBackendMetric(1, "tcpNewConnections"), 2)  # doh adds +1 on initial vs dot
+        self.assertGreaterEqual(self.getBackendMetric(1, "tcpReusedConnections"), 5)
+        self.assertGreaterEqual(_dohReusedHealthCheckQueries, 5)
+        self.assertEqual(self.getBackendMetric(1, "tcpLatency"), 0)
+        self.assertEqual(self.getBackendMetric(1, "tlsResumptions"), 0)
+
+        latency = self.getBackendMetric(1, "healthCheckLatency")
+        self.assertGreaterEqual(latency, 500)
+
+        self.setServfailDOH(True)
+        time.sleep(2)
+        self.assertEqual(self.getBackendStatus(1), "down")
+        self.setServfailDOH(False)
+        time.sleep(2)
+        self.assertEqual(self.getBackendStatus(1), "up")
+        self.assertEqual(self.getBackendMetric(1, "tcpNewConnections"), 2)
+        self.setDropDOH(True)
+        time.sleep(4)  # drop ends up in a timeout; can get up to 4
+        self.assertEqual(self.getBackendStatus(1), "down")
+        self.setDropDOH(False)
+        time.sleep(2)
+        self.assertEqual(self.getBackendStatus(1), "up")
+        self.assertGreaterEqual(self.getBackendMetric(1, "tcpNewConnections"), 3)
+
+        nameAddr = self.sendConsoleCommand("getServer(1):getNameWithAddr()").strip("\n")
+        self.assertEqual(self.getCount(nameAddr, True), 3)
+        self.assertEqual(self.getCount(nameAddr, False), 2)
+
+    @classmethod
+    def setDelayDOH(cls, delay):
+        cls._delayResponseDOH = delay
+
+    @classmethod
+    def setDelayDOT(cls, delay):
+        cls._delayResponseDOT = delay
+
+    @classmethod
+    def setDropDOH(cls, flag):
+        cls._dropHealthCheckDOH = flag
+
+    @classmethod
+    def setServfailDOH(cls, flag):
+        cls._invalidHealthCheckDOH = flag
+
+    @classmethod
+    def setDropDOT(cls, flag):
+        cls._dropHealthCheckDOT = flag
+
+    @classmethod
+    def setServfailDOT(cls, flag):
+        cls._invalidHealthCheckDOT = flag
+
+    def getCount(self, nameAddr, state):
+        if state:
+            return int(self.sendConsoleCommand("getCount('{}', true)".format(nameAddr)).strip("\n"))
+        return int(self.sendConsoleCommand("getCount('{}', false)".format(nameAddr)).strip("\n"))
 
 
 _do53HealthCheckQueries = 0
@@ -520,7 +801,7 @@ class TestLazyHealthChecks(HealthCheckTest):
 
         time.sleep(1.5)
         self.assertEqual(_dotHealthCheckQueries, 2)
-        self.assertEqual(self.getBackendStatus(), "up")
+        self.assertEqual(self.getBackendStatus(1), "up")
 
     def testDoHLazy(self):
         """
@@ -554,7 +835,7 @@ class TestLazyHealthChecks(HealthCheckTest):
 
         time.sleep(1.5)
         self.assertEqual(_dohHealthCheckQueries, 2)
-        self.assertEqual(self.getBackendStatus(), "up")
+        self.assertEqual(self.getBackendStatus(2), "up")
 
 
 class HealthCheckUpdateParams(HealthCheckTest):
