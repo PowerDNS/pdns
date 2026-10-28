@@ -62,6 +62,7 @@ protected:
   AtomicCounter* d_api_result_409{nullptr};
   AtomicCounter* d_api_result_422{nullptr};
   AtomicCounter* d_api_result_500{nullptr};
+  std::shared_ptr<LockGuarded<StatBag::Histogram>> d_api_latency;
 };
 
 class AuthWebServer
@@ -78,8 +79,6 @@ private:
   void webThread(Logr::log_t slog);
   void statThread(Logr::log_t slog, StatBag& stats);
 
-  time_t d_start;
-  double d_min10{0}, d_min5{0}, d_min1{0};
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
   Ewma d_api_queries;

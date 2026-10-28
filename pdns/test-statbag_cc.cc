@@ -40,19 +40,19 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   s.declare("b", "description");
   s.declare("c", "description");
   s.inc("a");
-  BOOST_CHECK_EQUAL(s.read("a"), 1UL);
+  BOOST_CHECK_EQUAL(s.readCounter("a"), 1UL);
 
   unsigned long n;
   for(n=0; n < 1000000; ++n)
     s.inc("b");
 
-  BOOST_CHECK_EQUAL(s.read("b"), n);
+  BOOST_CHECK_EQUAL(s.readCounter("b"), n);
 
   AtomicCounter* ac = s.getPointer("a");
   for(n=0; n < 1000000; ++n)
     (*ac)++;
 
-  BOOST_CHECK_EQUAL(s.read("a"), n+1);
+  BOOST_CHECK_EQUAL(s.readCounter("a"), n+1);
 
   AtomicCounter* acc = s.getPointer("c");
   std::vector<std::thread> manglers;
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   }
   manglers.clear();
 
-  BOOST_CHECK_EQUAL(s.read("c"), 4000000U);
+  BOOST_CHECK_EQUAL(s.readCounter("c"), 4000000U);
 
   s.set("c", 0);
 
@@ -78,33 +78,33 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   }
   manglers.clear();
 
-  BOOST_CHECK_EQUAL(s.read("c"), 4000000U);
+  BOOST_CHECK_EQUAL(s.readCounter("c"), 4000000U);
 
 
   s.set("c", 1ULL<<31);
-  BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<31) );
+  BOOST_CHECK_EQUAL(s.readCounter("c"), (1ULL<<31) );
   s.inc("c");
-  BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<31) +1 );
+  BOOST_CHECK_EQUAL(s.readCounter("c"), (1ULL<<31) +1 );
 
 #ifdef UINTPTR_MAX
 #if UINTPTR_MAX > 0xffffffffULL
     BOOST_CHECK_EQUAL(sizeof(AtomicCounterInner), 8U);
     s.set("c", 1ULL<<33);
-    BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<33) );
+    BOOST_CHECK_EQUAL(s.readCounter("c"), (1ULL<<33) );
     s.inc("c");
-    BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<33) +1 );
+    BOOST_CHECK_EQUAL(s.readCounter("c"), (1ULL<<33) +1 );
 
     s.set("c", ~0ULL);
-    BOOST_CHECK_EQUAL(s.read("c"), 0xffffffffffffffffULL );
+    BOOST_CHECK_EQUAL(s.readCounter("c"), 0xffffffffffffffffULL );
     s.inc("c");
-    BOOST_CHECK_EQUAL(s.read("c"), 0UL );
+    BOOST_CHECK_EQUAL(s.readCounter("c"), 0UL );
 #else
     BOOST_CHECK_EQUAL(sizeof(AtomicCounterInner), 4U);
     BOOST_CHECK_EQUAL(~0UL, 0xffffffffUL);
     s.set("c", ~0UL);
-    BOOST_CHECK_EQUAL(s.read("c"), 0xffffffffUL );
+    BOOST_CHECK_EQUAL(s.readCounter("c"), 0xffffffffUL );
     s.inc("c");
-    BOOST_CHECK_EQUAL(s.read("c"), 0UL );
+    BOOST_CHECK_EQUAL(s.readCounter("c"), 0UL );
 #endif
 #endif
 }
