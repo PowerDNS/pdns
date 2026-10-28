@@ -4,7 +4,7 @@ calidns
 Synopsis
 --------
 
-:program:`calidns` [*OPTIONS*] *QUERY\_FILE* *DESTINATION* *INITIAL_QPS* *HITRATE*
+:program:`calidns` [OPTIONS] <QUERY_FILE> <DESTINATION> <INITIAL_QPS> <HITRATE>
 
 Description
 -----------
@@ -32,22 +32,51 @@ This is similar to Alexa top 1 million list.
 Options
 -------
 
---ecs <SUBNET>                 Add EDNS Client Subnet option to outgoing queries using random
-                               addresses from the specified *SUBNET* range (IPv4 only).
---ecs-from-file                Read IP or subnet values from the query file and add them as EDNS
-                               Client Subnet option to outgoing queries.
---increment <NUM>              On every subsequent run, multiply the number of queries per second
-                               by *NUM*. By default, this is 1.1.
---maximum-qps <NUM>            Stop incrementing once this rate has been reached, to provide a
-                               stable load.
---minimum-success-rate <NUM>   Stop the test as soon as the success rate drops below this value,
-                               in percent.
---plot-file <FILE>             Write results to the specified file.
---proxy-protocol               Send a Proxy Protocol payload in front of outgoing queries using
-                               random addresses from the specified range (IPv4 only) as the initial
-                               source IP.
---proxy-protocol-from-file     Read IP or subnet values from the query file and use them as the
-                               source IP in Proxy Protocol payloads in front of outgoing queries.
---quiet                        Whether to run quietly, outputting only the maximum QPS reached.
-                               This option is mostly useful when used with ``--minimum-success-rate``.
---want-recursion               Set this flag to send queries with the Recursion Desired flag set.
+.. option:: --ecs <SUBNET>
+
+   Add EDNS Client Subnet option to outgoing queries using random
+   addresses from the specified *SUBNET* range (IPv4 only).
+
+.. option:: --ecs-from-file
+
+   Read IP or subnet values from the query file and add them as EDNS
+   Client Subnet option to outgoing queries.
+
+.. option:: --increment <NUM>
+
+   On every subsequent run, multiply the number of queries per second
+   by *NUM*. By default, this is 1.1.
+
+.. option:: --maximum-qps <NUM>
+
+   Stop incrementing once this rate has been reached, to provide a
+   stable load.
+
+.. option:: --minimum-success-rate <NUM>
+
+   Stop the test as soon as the success rate drops below this value,
+   in percent.
+
+.. option:: --plot-file <FILE>
+
+   Write results to the specified file.
+
+.. option:: --proxy-protocol
+
+   Send a Proxy Protocol payload in front of outgoing queries using
+   random addresses from the specified range (IPv4 only) as the initial
+   source IP.
+
+.. option:: --proxy-protocol-from-file
+
+   Read IP or subnet values from the query file and use them as the
+   source IP in Proxy Protocol payloads in front of outgoing queries.
+
+.. option:: --quiet
+
+   Whether to run quietly, outputting only the maximum QPS reached.
+   This option is mostly useful when used with ``--minimum-success-rate``.
+
+.. option:: --want-recursion
+
+   Set this flag to send queries with the Recursion Desired flag set.

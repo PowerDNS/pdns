@@ -4,7 +4,7 @@ dnsbulktest
 Synopsis
 --------
 
-:program:`dnsbulktest` [*OPTION*]... *IPADDRESS* *PORT* [*LIMIT*]
+:program:`dnsbulktest` [OPTION]... <IPADDRESS> <PORT> [LIMIT]
 
 Description
 -----------
@@ -17,8 +17,22 @@ and outputs statistics on STDOUT.
 Options
 -------
 
---help, -h               Show a summary of options.
---quiet, -q              Don't show information on individual queries.
---type, -t <TYPE>        Query the nameserver for *TYPE*, A by default.
---envoutput, -e          Write results on STDOUT as shell environment variables
---version                Display the version of dnsbulktest
+.. option:: --help, -h
+
+   Show a summary of options.
+
+.. option:: --quiet, -q
+
+   Don't show information on individual queries.
+
+.. option:: --type, -t <TYPE>
+
+   Query the nameserver for *TYPE*, A by default.
+
+.. option:: --envoutput, -e
+
+   Write results on STDOUT as shell environment variables
+
+.. option:: --version
+
+   Display the version of dnsbulktest

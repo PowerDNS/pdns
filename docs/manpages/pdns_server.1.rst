@@ -19,20 +19,40 @@ Options
 
 See the online documentation for all options. The most important ones are:
 
---daemon                Indicate if the server should run in the background as a real
-                        daemon, or in the foreground.
---guardian              Run :program:`pdns_server` inside a guardian. This guardian monitors the
-                        performance of the inner :program:`pdns_server` instance. It is also this
-                        guardian that :program:`pdns_control` talks to.
---control-console       Run the server in a special monitor mode. This enables detailed
-                        logging and exposes the raw control socket.
---loglevel=<LEVEL>      Set the logging level.
---config                Show the current configuration. There are three optional values:
+.. option:: --daemon
 
-                        --config=default       show the default configuration.
-                        --config=diff          show modified options in the current configuration.
-                        --config=check         parse the current configuration, with error checking.
---help                  Display the list of all the available options.
+   Indicate if the server should run in the background as a real
+   daemon, or in the foreground.
+
+.. option:: --guardian
+
+   Run :program:`pdns_server` inside a guardian. This guardian monitors the
+   performance of the inner :program:`pdns_server` instance. It is also this
+   guardian that :program:`pdns_control` talks to.
+
+.. option:: --control-console
+
+   Run the server in a special monitor mode. This enables detailed
+   logging and exposes the raw control socket.
+
+.. option:: --loglevel=<LEVEL>
+
+   Set the logging level.
+
+.. option:: --config, --config=<TYPE>
+
+   Show the current configuration.
+
+   There's also the option to show more information about the configuration using *TYPE*,
+   which should be one of the following::
+
+   * default       show the default configuration.
+   * diff          show modified options in the current configuration.
+   * check         parse the current configuration, with error checking.
+
+.. option:: --help
+
+Display the list of all the available options.
 
 See also
 --------
