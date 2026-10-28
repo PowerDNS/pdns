@@ -37,7 +37,8 @@ Homepage: https://dnsdist.org
 
 Package: dnsdist
 Architecture: any
-Depends: ${misc:Depends},
+Depends: adduser,
+         ${misc:Depends},
          ${shlibs:Depends}
 Description: DNS loadbalancer
  Highly DoS- and abuse-aware load balancing tool for DNS traffic,
