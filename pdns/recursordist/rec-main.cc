@@ -2807,6 +2807,18 @@ static void houseKeepingWork(Logr::log_t log)
         }
       }
     });
+    const auto detectUnknownRKInterval = static_cast<time_t>(24 * 3600);
+    static PeriodicTask detectUnknownRKTask{"detectUnknownRKTask", detectUnknownRKInterval};
+    detectUnknownRKTask.runIfDue(now, [&luaconfsLocal, &log]() {
+      if (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate && luaconfsLocal->dsAnchors.count(g_rootdnsname) != 0) {
+        try {
+          detectUnknownRootKeys(luaconfsLocal->dsAnchors.at(g_rootdnsname), log);
+        }
+        catch (const PDNSException& pe) {
+          log->error(Logr::Error, pe.reason, "Unable to check root keys");
+        }
+      }
+    });
   }
   t_Counters.updateSnap(g_regressionTestMode);
 }
