@@ -97,6 +97,10 @@ public:
   double asDouble(const string& arg); //!< return a variable value as a number
   string& set(const string&, bool sensitive = false); //!< Gives a writable reference and allocates space for it
   string& set(const string&, const string&, bool sensitive = false); //!< Does the same but also allows one to specify a help message
+  string& set(const string& var, const char* help, bool sensitive = false)
+  {
+    return set(var, std::string(help), sensitive);
+  }
   void setCmd(const string&, const string&); //!< Add a command flag
   string& setSwitch(const string&, const string&); //!< Add a switch flag
   string helpstring(string prefix = ""); //!< generates the --help
