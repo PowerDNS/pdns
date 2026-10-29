@@ -37,7 +37,7 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct SVCRecordAdditionalParams {
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        key: u16,
+        key: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         value: String,
     }

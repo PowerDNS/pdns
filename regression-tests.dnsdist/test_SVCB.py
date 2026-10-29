@@ -171,7 +171,7 @@ query_rules:
           ipv6_hints:
             - 2001:db8::2
           additional_params:
-            - key: 7
+            - key: dohpath
               value: "/dns-query{?dns}"
       vars:
         set_aa: true
@@ -205,7 +205,7 @@ query_rules:
           no_default_alpn: true
           port: 443
           additional_params:
-            - key: 7
+            - key: dohpath
               value: "/dns-query{?dns}"
       vars:
         set_aa: true
@@ -247,7 +247,7 @@ query_rules:
           ipv6_hints:
             - 2001:db8::1
           additional_params:
-            - key: 7
+            - key: dohpath
               value: "/dns-query{?dns}"
       vars:
         set_aa: true
@@ -317,7 +317,7 @@ class TestSVCBViaFFI(DNSDistTest):
       SVCrecords[0] = generateSVC("dot.powerdns.com.", 1, 853, "dot", true, "192.0.2.1", "2001:db8::1")
       SVCrecords[1] = generateSVC("doh.powerdns.com.", 2, 443, "h2", false, "192.0.2.2", "2001:db8::2")
       local path = "/dns-query{?dns}"
-      ffi.C.dnsdist_ffi_svc_record_parameters_set_additional_param(SVCrecords[1], 7, path, #path)
+      ffi.C.dnsdist_ffi_svc_record_parameters_set_additional_param(SVCrecords[1], "dohpath", path, #path)
       local SVCrecordsPtr = ffi.cast("const dnsdist_ffi_svc_record_parameters**", SVCrecords)
       if not ffi.C.dnsdist_ffi_dnsquestion_generate_svc_response(dq, SVCrecordsPtr, 2, 60) then
         return DNSAction.ServFail
@@ -332,7 +332,7 @@ class TestSVCBViaFFI(DNSDistTest):
       SVCrecords[0] = generateSVC("dot.powerdns.com.", 1, 853, "dot", true, nil, nil)
       SVCrecords[1] = generateSVC("doh.powerdns.com.", 2, 443, "h2", false, nil, nil)
       local path = "/dns-query{?dns}"
-      ffi.C.dnsdist_ffi_svc_record_parameters_set_additional_param(SVCrecords[1], 7, path, #path)
+      ffi.C.dnsdist_ffi_svc_record_parameters_set_additional_param(SVCrecords[1], "dohpath", path, #path)
       local SVCrecordsPtr = ffi.cast("const dnsdist_ffi_svc_record_parameters**", SVCrecords)
       if not ffi.C.dnsdist_ffi_dnsquestion_generate_svc_response(dq, SVCrecordsPtr, 2, 60) then
         return DNSAction.ServFail
@@ -347,7 +347,7 @@ class TestSVCBViaFFI(DNSDistTest):
       SVCrecords[0] = generateSVC(".", 1, 853, "dot", true, "192.0.2.1", "2001:db8::1")
       SVCrecords[1] = generateSVC(".", 2, 443, "h2", false, "192.0.2.1", "2001:db8::1")
       local path = "/dns-query{?dns}"
-      ffi.C.dnsdist_ffi_svc_record_parameters_set_additional_param(SVCrecords[1], 7, path, #path)
+      ffi.C.dnsdist_ffi_svc_record_parameters_set_additional_param(SVCrecords[1], "dohpath", path, #path)
       local SVCrecordsPtr = ffi.cast("const dnsdist_ffi_svc_record_parameters**", SVCrecords)
       if not ffi.C.dnsdist_ffi_dnsquestion_generate_svc_response(dq, SVCrecordsPtr, 2, 60) then
         return DNSAction.ServFail

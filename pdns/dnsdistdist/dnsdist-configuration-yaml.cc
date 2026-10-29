@@ -1529,7 +1529,7 @@ static std::vector<::SVCRecordParameters> convertSVCRecordParameters(const ::rus
       cppConfig.ipv6hints.emplace_back(std::string(hint));
     }
     for (const auto& param : rustConfig.additional_params) {
-      cppConfig.additionalParams.emplace_back(param.key, std::string(param.value));
+      cppConfig.additionalParams.emplace_back(SvcParam::keyFromString(std::string(param.key)), std::string(param.value));
     }
     cppConfig.target = DNSName(std::string(rustConfig.target));
     if (rustConfig.port != 0) {
