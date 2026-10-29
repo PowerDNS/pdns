@@ -16,13 +16,13 @@ IMPORTS
 
 rec MODULE-IDENTITY
 
-    LAST-UPDATED "202610200000Z"
+    LAST-UPDATED "202610290000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
 
-    REVISION "202610200000Z"
+    REVISION "202610290000Z"
     DESCRIPTION "Added metric counting unknown (non-Trust Anchor) root keys"
 
     REVISION "202509100000Z"
