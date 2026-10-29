@@ -37,6 +37,7 @@
 #include "dnsdist-svc.hh"
 #include "dnsdist-snmp.hh"
 #include "dolog.hh"
+#include "svc-records.hh"
 
 static std::shared_ptr<const Logr::Logger> getLogger(const std::string_view fromFunction)
 {
@@ -2593,12 +2594,12 @@ void dnsdist_ffi_svc_record_parameters_set_ech(dnsdist_ffi_svc_record_parameters
   parameters->parameters.ech = std::string(ech, echLen);
 }
 
-void dnsdist_ffi_svc_record_parameters_set_additional_param(dnsdist_ffi_svc_record_parameters* parameters, uint16_t key, const char* value, size_t valueLen)
+void dnsdist_ffi_svc_record_parameters_set_additional_param(dnsdist_ffi_svc_record_parameters* parameters, const char* key, const char* value, size_t valueLen)
 {
   if (parameters == nullptr || (value == nullptr && valueLen != 0)) {
     return;
   }
-  parameters->parameters.additionalParams.emplace_back(key, std::string(value, valueLen));
+  parameters->parameters.additionalParams.emplace_back(SvcParam::keyFromString(key), std::string(value, valueLen));
 }
 
 void dnsdist_ffi_svc_record_parameters_add_mandatory_param(dnsdist_ffi_svc_record_parameters* parameters, uint16_t key)

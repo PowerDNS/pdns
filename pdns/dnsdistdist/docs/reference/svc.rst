@@ -48,7 +48,7 @@ This action takes one or more :class:`SVCRecordParameters <SVCRecordParameter>` 
                    ipv6_hints:
                      - 2001:db8::2
                    additional_params:
-                     - key: 7
+                     - key: dohpath
                        value: "/dns-query{?dns}"
 
            - name: Spoof NODATA for _dns.resolver.arpa

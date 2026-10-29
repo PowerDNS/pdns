@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(test_Basic)
     const std::string ech("whatever");
     const std::string dohParam("/dns-query{?dns}");
 
-    BOOST_CHECK(generateSVCPayload(payload, priority, target, {SvcParam::SvcParamKey::port}, {"h2"}, true, 443, ech, {ComboAddress("192.0.2.2")}, {ComboAddress("2001:db8::2")}, {std::pair<uint16_t, std::string>(42, dohParam)}));
+    BOOST_CHECK(generateSVCPayload(payload, priority, target, {SvcParam::SvcParamKey::port}, {"h2"}, true, 443, ech, {ComboAddress("192.0.2.2")}, {ComboAddress("2001:db8::2")}, {std::pair<SvcParam::SvcParamKey, std::string>(SvcParam::keyFromString("key42"), dohParam)}));
 
     size_t expectedSize = (/* priority */ 2) + target.wirelength() + (/* mandatory */ 2 + 2 + 2) + (/* alpns */ 2 + 2 + 3) + (/* no-alpn-default is true */ 2 + 2) + (/* port */ 2 + 2 + 2) + (/* ech */ 2 + 2 + ech.size()) + (/* v4 hints */ 2 + 2 + 9) + (/* v6 hints */ 2 + 2 + 11) + (/* doh parameter */ 2 + 2 + dohParam.size());
     BOOST_CHECK_EQUAL(payload.size(), expectedSize);

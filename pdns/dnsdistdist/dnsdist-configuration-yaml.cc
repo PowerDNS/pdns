@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -53,6 +54,7 @@
 #include "remote_logger.hh"
 #include "remote_logger_pool.hh"
 #include "xsk.hh"
+#include "svc-records.hh"
 
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
@@ -1515,7 +1517,7 @@ static std::vector<::SVCRecordParameters> convertSVCRecordParameters(const ::rus
   for (const auto& rustConfig : rustParameters) {
     ::SVCRecordParameters cppConfig{};
     for (auto param : rustConfig.mandatory_params) {
-      cppConfig.mandatoryParams.insert(param);
+      cppConfig.mandatoryParams.insert(SvcParam::keyFromString(std::string(param)));
     }
     for (const auto& alpn : rustConfig.alpns) {
       cppConfig.alpns.emplace_back(alpn);
@@ -1527,7 +1529,7 @@ static std::vector<::SVCRecordParameters> convertSVCRecordParameters(const ::rus
       cppConfig.ipv6hints.emplace_back(std::string(hint));
     }
     for (const auto& param : rustConfig.additional_params) {
-      cppConfig.additionalParams.emplace_back(param.key, std::string(param.value));
+      cppConfig.additionalParams.emplace_back(SvcParam::keyFromString(std::string(param.key)), std::string(param.value));
     }
     cppConfig.target = DNSName(std::string(rustConfig.target));
     if (rustConfig.port != 0) {
