@@ -493,7 +493,7 @@ bool ArgvMap::file(const string& fname, bool lax, bool included)
     std::vector<std::string> extraConfigs;
     gatherIncludes(d_params["include-dir"].first, ".conf", extraConfigs);
     for (const std::string& filename : extraConfigs) {
-      if (!file(filename.c_str(), lax, true)) {
+      if (!file(filename, lax, true)) {
         SLOG(g_log << Logger::Error << filename << " could not be parsed" << std::endl,
              d_log->info(Logr::Error, "Unable to parse config file", "name", Logging::Loggable(filename)));
         throw ArgException(filename + " could not be parsed");
