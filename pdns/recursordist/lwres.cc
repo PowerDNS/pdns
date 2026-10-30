@@ -364,11 +364,25 @@ class BindError
 static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std::optional<pdns::AddressAndInterface>& localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName, std::string& subjectName)
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && remote.getPort() == 853;
+  subjectName = nsName;
+  std::string configName;
+  bool verbose{};
+  bool subjectIsAddress = false;
+  size_t iteration{0};
+  std::shared_ptr<TLSCtx> tlsCtx{nullptr};
+  if (dnsOverTLS) {
+    if (subjectName.empty()) {
+      subjectName = remote.toString();
+      subjectIsAddress = true;
+    }
+    tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote, verbose, subjectName, subjectIsAddress, configName, iteration);
+  }
 
-  connection = t_tcp_manager.get({remote, localBind});
+  connection = t_tcp_manager.get({remote, localBind, subjectName, configName, iteration});
   if (connection.d_handler) {
     return false;
   }
+  connection.d_verboseLogging = verbose;
 
   const struct timeval timeout{
     g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
@@ -408,27 +422,14 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
     throw;
   }
 
-  std::shared_ptr<TLSCtx> tlsCtx{nullptr};
-  bool subjectIsAddress = false;
   if (dnsOverTLS) {
-    subjectName = nsName;
-    std::string subjectAddress;
-    std::string configName;
-    tlsCtx = TCPOutConnectionManager::getTLSContext(nsName, remote, connection.d_verboseLogging, subjectName, subjectAddress, configName);
     if (tlsCtx == nullptr) {
       g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(remote));
       dnsOverTLS = false;
     }
     else {
-      if (subjectName.empty() && !subjectAddress.empty()) {
-        subjectName = std::move(subjectAddress);
-        subjectIsAddress = true;
-      }
-      if (subjectName.empty()) {
-        subjectName = remote.toString();
-        subjectIsAddress = true;
-      }
     }
+
     if (dnsOverTLS && connection.d_verboseLogging) {
       g_slogout->info(Logr::Debug, "Connecting with DoT", "server", Logging::Loggable(remote),
                       "subjectName", Logging::Loggable(subjectName),
@@ -437,7 +438,11 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
     }
   }
   connection.d_handler = std::make_shared<TCPIOHandler>(subjectName, subjectIsAddress, sock.releaseHandle(), timeout, tlsCtx);
-  connection.d_local = localBind;
+  connection.d_endpoint.d_remote = remote;
+  connection.d_endpoint.d_local = localBind;
+  connection.d_endpoint.d_subject = subjectName;
+  connection.d_endpoint.d_tlsConfig = configName;
+  connection.d_endpoint.d_iteration = iteration;
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level
   connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, remote);
@@ -985,7 +990,13 @@ LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& address, co
 
   if (doTCP) {
     if (connection.d_handler && lwr->d_validpacket) {
-      t_tcp_manager.store(*now, std::make_pair(address, connection.d_local), std::move(connection));
+      if (address == connection.d_endpoint.d_remote) {
+        t_tcp_manager.store(*now, std::move(connection));
+      }
+      else {
+        // some internal bookkeeping went wrong! Ignore, maybe we should log
+        ;
+      }
     }
   }
   return ret;
