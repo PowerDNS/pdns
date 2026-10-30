@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
@@ -69,7 +69,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       # installing the python3-package does not work because of actions/setup-python which installs a different version in /opt/hostedtoolcache/Python
@@ -117,7 +117,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: install pip build dependencies
