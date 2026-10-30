@@ -686,6 +686,13 @@ class TestUpdateHCParamsCombo2(HealthCheckUpdateParams):
 
         self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkInterval=2})")
 
+        # consume any value received in the meantime
+        try:
+            while self.wait1(False):
+                pass
+        except queue.Empty:
+            pass
+
         # start timing
         self.assertEqual(self.wait1(), True)
         t1 = time.time()
