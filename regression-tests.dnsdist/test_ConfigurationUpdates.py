@@ -135,6 +135,8 @@ query_rules:
             self.assertEqual(receivedResponse, response)
 
             self.sendConsoleCommand(f'addAction(QNameRule("{name}"), RCodeAction(DNSRCode.REFUSED))')
+            if protocol in ("TCP", "DOT", "DOH"):
+                time.sleep(2)
 
             # the configuration should have been updated
             response = dns.message.make_response(query)
@@ -165,7 +167,7 @@ query_rules:
 
             self.sendConsoleCommand(f'addResponseAction(QNameRule("{name}"), SetExtendedDNSErrorResponseAction(15))')
             if protocol == "TCP":
-                time.sleep(1)
+                time.sleep(2)
 
             # the configuration should have been updated
             expectedResponse = dns.message.make_response(query)
