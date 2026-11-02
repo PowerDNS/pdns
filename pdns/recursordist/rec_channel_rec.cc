@@ -2088,7 +2088,7 @@ static void activateLua(LuaConfigItems& lci, bool broadcast, ProxyMapping&& prox
 {
   extern std::unique_ptr<ProxyMapping> g_proxyMapping;
 
-  activateLuaConfig(lci);
+  activateLuaConfig(lci, !broadcast);
   lci = g_luaconfs.getCopy();
   if (broadcast) {
     startLuaConfigDelayedThreads(lci, lci.generation);

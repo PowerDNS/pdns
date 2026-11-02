@@ -14,7 +14,7 @@ Building using autotools is no longer possible, use meson. See :doc:`appendices/
 
 Changed Behaviour
 ^^^^^^^^^^^^^^^^^
-- A (re)load of an RPZ will wipe relevant packet cache entries. For a large RPZ, this can take some time. See :ref:`wipePacketCache`.
+- A reload of an RPZ will wipe relevant packet cache entries. For a large RPZ, this can take some time. See :ref:`wipePacketCache`.
 
 Changed Settings
 ^^^^^^^^^^^^^^^^
