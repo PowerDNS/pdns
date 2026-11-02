@@ -828,6 +828,48 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return (receivedQuery, message)
 
     @classmethod
+    def sendUDPQueryRepeated(
+        cls,
+        query,
+        response,
+        count,
+        useQueue=True,
+        timeout=2.0,
+        rawQuery=False,
+    ):
+        if useQueue and response is not None:
+            for _ in range(count):
+                cls._toResponderQueue.put(response, True, timeout)
+
+        if timeout:
+            cls._sock.settimeout(timeout)
+
+        responses = []
+
+        try:
+            if not rawQuery:
+                query = query.to_wire()
+            for _ in range(count):
+                cls._sock.send(query)
+            while len(responses) < count:
+                try:
+                    data = cls._sock.recv(4096)
+                except socket.timeout:
+                    break
+                responses.append(dns.message.from_wire(data))
+        finally:
+            if timeout:
+                cls._sock.settimeout(None)
+
+        received = []
+        if useQueue:
+            while not cls._fromResponderQueue.empty():
+                receivedQuery = cls._fromResponderQueue.get(True, timeout)
+                received.append(receivedQuery)
+            cls.clearToResponderQueue()
+        return (received, responses)
+
+    @classmethod
     def openTCPConnection(cls, timeout=2.0, port=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -903,6 +945,127 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         if useQueue:
             return cls.recvTCPResponseOverConnection(conn, useQueue=useQueue, timeout=timeout)
         return None, cls.recvTCPResponseOverConnection(conn, useQueue=useQueue, timeout=timeout)
+
+    @classmethod
+    def sendTCPQueryRepeated(
+        cls,
+        query,
+        response,
+        count,
+        useQueue=True,
+        timeout=2.0,
+        rawQuery=False,
+        prependPayload=None,
+    ):
+        if useQueue:
+            for _ in range(count):
+                cls._toResponderQueue.put(response, True, timeout)
+
+        opened = True
+        socks = []
+        for _ in range(count):
+            try:
+                sock = cls.openTCPConnection(timeout)
+                socks.append(sock)
+            except socket.timeout as e:
+                print("Timeout while opening TCP connection: %s" % (str(e)))
+                opened = False
+                break
+
+        if not opened:
+            for sock in socks:
+                sock.close()
+            return (None, None)
+
+        sent = True
+        for sock in socks:
+            try:
+                cls.sendTCPQueryOverConnection(sock, query, rawQuery, timeout=timeout, prependPayload=prependPayload)
+            except socket.timeout as e:
+                print("Timeout while sending TCP data: %s" % (str(e)))
+                sent = False
+            except socket.error as e:
+                print("Network error while sending TCP data: %s" % (str(e)))
+                sent = False
+
+        if not sent:
+            for sock in socks:
+                sock.close()
+            return (None, None)
+
+        responses = []
+        for sock in socks:
+            try:
+                message = cls.recvTCPResponseOverConnection(sock, timeout=timeout)
+            except socket.timeout as e:
+                print("Timeout while sending or receiving TCP data: %s" % (str(e)))
+                message = None
+            except socket.error as e:
+                print("Network error: %s" % (str(e)))
+                message = None
+            finally:
+                sock.close()
+            if message != None:
+                responses.append(message)
+
+        received = []
+        if useQueue:
+            while not cls._fromResponderQueue.empty():
+                receivedQuery = cls._fromResponderQueue.get(True, timeout)
+                received.append(receivedQuery)
+            cls.clearToResponderQueue()
+
+        return (received, responses)
+
+    # sends N same queries in short succession, and checks that:
+    # - the queries that go to backend are correct
+    # - all queries that backend replied are received
+    # - all queries are either the replies, or special blocked response
+    # it does NOT check the number of returned replies; that is just returned
+    def sendQueryBurst(
+        self,
+        query,
+        response,
+        count,
+        blockedResponse=None,
+        tcp=False,
+        prependPayload=None,
+    ):
+        if tcp:
+            (receivedQueries, receivedResponses) = self.sendTCPQueryRepeated(
+                query, response, count, timeout=2.0, prependPayload=prependPayload
+            )
+        else:
+            data = query.to_wire()
+            if prependPayload:
+                data = prependPayload + data
+            (receivedQueries, receivedResponses) = self.sendUDPQueryRepeated(
+                data, response, count, timeout=2.0, rawQuery=True
+            )
+
+        if receivedQueries is None and receivedResponses is None:
+            self.fail()
+
+        for receivedQuery in receivedQueries:
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+
+        answered = 0
+
+        for receivedResponse in receivedResponses:
+            if blockedResponse is None:
+                self.assertEqual(receivedResponse, response)
+            else:
+                self.assertIn(receivedResponse, (response, blockedResponse))
+            if receivedResponse == response:
+                answered += 1
+
+        self.assertEqual(len(receivedQueries), answered)
+        if blockedResponse is not None:
+            # blocked queries must still be answered, not silently dropped
+            self.assertEqual(len(receivedResponses), count)
+
+        return len(receivedQueries)
 
     @classmethod
     def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False, prependPayload=None):

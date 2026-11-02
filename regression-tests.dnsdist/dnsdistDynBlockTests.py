@@ -57,20 +57,8 @@ class DynBlocksTest(DNSDistTest):
         rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
-        allowed = 0
-        sent = 0
-        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(response, receivedResponse)
-                allowed = allowed + 1
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        sent = (self._dynBlockQPS * self._dynBlockPeriod) + 1
+        allowed = self.sendQueryBurst(query, response, sent)
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -104,20 +92,8 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
         # again, over TCP this time
-        allowed = 0
-        sent = 0
-        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(response, receivedResponse)
-                allowed = allowed + 1
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        sent = (self._dynBlockQPS * self._dynBlockPeriod) + 1
+        allowed = self.sendQueryBurst(query, response, sent, tcp=True)
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -188,21 +164,8 @@ class DynBlocksTest(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(rcode)
 
-        allowed = 0
-        sent = 0
-        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(receivedResponse, response)
-                allowed = allowed + 1
-            else:
-                self.assertEqual(receivedResponse, expectedResponse)
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        sent = (self._dynBlockQPS * self._dynBlockPeriod) + 1
+        allowed = self.sendQueryBurst(query, response, sent, blockedResponse=expectedResponse)
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -224,22 +187,8 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        allowed = 0
-        sent = 0
-        # again, over TCP this time
-        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(receivedResponse, response)
-                allowed = allowed + 1
-            else:
-                self.assertEqual(receivedResponse, expectedResponse)
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        sent = (self._dynBlockQPS * self._dynBlockPeriod) + 1
+        allowed = self.sendQueryBurst(query, response, sent, blockedResponse=expectedResponse, tcp=True)
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -271,27 +220,14 @@ class DynBlocksTest(DNSDistTest):
         )
         response.answer.append(dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.AAAA, "2001:DB8::1"))
 
-        allowed = 0
-        sent = 0
-
         print(time.time())
 
-        for _ in range(int(dynBlockBytesPerSecond * 5 / len(response.to_wire()))):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            sent = sent + len(response.to_wire())
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(response, receivedResponse)
-                allowed = allowed + len(response.to_wire())
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
-                # and stop right there, otherwise we might
-                # wait for so long that the dynblock is gone
-                # by the time we finished
-                break
+        responseLen = len(response.to_wire())
+        count = int(dynBlockBytesPerSecond * 5 / responseLen)
+        allowedCount = self.sendQueryBurst(query, response, count)
+
+        sent = count * responseLen
+        allowed = allowedCount * responseLen
 
         # we might be already blocked, but we should have been able to send
         # at least dynBlockBytesPerSecond bytes
@@ -334,24 +270,12 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(response, receivedResponse)
 
         # again, over TCP this time
-        allowed = 0
-        sent = 0
-        for _ in range(int(dynBlockBytesPerSecond * 5 / len(response.to_wire()))):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response, timeout=0.5)
-            sent = sent + len(response.to_wire())
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(response, receivedResponse)
-                allowed = allowed + len(response.to_wire())
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
-                # and stop right there, otherwise we might
-                # wait for so long that the dynblock is gone
-                # by the time we finished
-                break
+        responseLen = len(response.to_wire())
+        count = int(dynBlockBytesPerSecond * 5 / responseLen)
+        allowedCount = self.sendQueryBurst(query, response, count, tcp=True)
+
+        sent = count * responseLen
+        allowed = allowedCount * responseLen
 
         # we might be already blocked, but we should have been able to send
         # at least dynBlockBytesPerSecond bytes
@@ -395,20 +319,8 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(receivedResponse, response)
 
         # now with rcode!
-        sent = 0
-        allowed = 0
-        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, expectedResponse)
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(expectedResponse, receivedResponse)
-                allowed = allowed + 1
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        sent = (self._dynBlockQPS * self._dynBlockPeriod) + 1
+        allowed = self.sendQueryBurst(query, expectedResponse, sent)
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -445,20 +357,8 @@ class DynBlocksTest(DNSDistTest):
         self.assertEqual(receivedResponse, response)
 
         # now with rcode!
-        sent = 0
-        allowed = 0
-        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, expectedResponse)
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(expectedResponse, receivedResponse)
-                allowed = allowed + 1
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        sent = (self._dynBlockQPS * self._dynBlockPeriod) + 1
+        allowed = self.sendQueryBurst(query, expectedResponse, sent, tcp=True)
 
         # we might be already blocked, but we should have been able to send
         # at least self._dynBlockQPS queries
