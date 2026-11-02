@@ -223,10 +223,10 @@ wipePacketCache
 ^^^^^^^^^^^^^^^
 .. versionadded:: 5.5.0
 
-When set, relevant names from qname triggers are cleared from the packet cache after (re)load of the
+When set, relevant names from qname triggers are cleared from the packet cache after reload of the
 RPZ.
 Defaults to ``true``.
-On a large zone this can slow down the (re)loading of the RPZ.
+On a large zone this can slow down the reloading of the RPZ.
 The actual time depends on the load of the recursor, the size of the RPZ and size of the packet cache and
 the performance of the machine.
 If the automatic cache flushing takes too long it is possible to revert
