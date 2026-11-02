@@ -53,32 +53,33 @@ void TCPOutConnectionManager::cleanup(const struct timeval& now)
   }
 }
 
-void TCPOutConnectionManager::store(const struct timeval& now, const endpoints_t& endpoints, Connection&& connection)
+void TCPOutConnectionManager::store(const struct timeval& now, Connection&& connection)
 {
   ++connection.d_numqueries;
   if (s_maxQueries > 0 && connection.d_numqueries >= s_maxQueries) {
     return;
   }
 
-  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(endpoints) >= s_maxIdlePerAuth) {
+  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(connection.d_endpoint) >= s_maxIdlePerAuth) {
     cleanup(now);
   }
 
   if (d_idle_connections.size() >= s_maxIdlePerThread) {
     return;
   }
-  if (d_idle_connections.count(endpoints) >= s_maxIdlePerAuth) {
+  if (d_idle_connections.count(connection.d_endpoint) >= s_maxIdlePerAuth) {
     return;
   }
 
   gettimeofday(&connection.d_last_used, nullptr);
-  d_idle_connections.emplace(endpoints, std::move(connection));
+  Endpoint endpoint{connection.d_endpoint};
+  d_idle_connections.emplace(std::move(endpoint), std::move(connection));
 }
 
-TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const endpoints_t& pair)
+TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const Endpoint& endpoint)
 {
-  if (d_idle_connections.count(pair) > 0) {
-    auto connection = d_idle_connections.extract(pair);
+  if (d_idle_connections.count(endpoint) > 0) {
+    auto connection = d_idle_connections.extract(endpoint);
     return connection.mapped();
   }
   return Connection{};
@@ -88,7 +89,8 @@ struct OutgoingTLSConfigTable
 {
   SuffixMatchTree<pdns::rust::settings::rec::OutgoingTLSConfiguration> d_suffixToConfig;
   NetmaskTree<pdns::rust::settings::rec::OutgoingTLSConfiguration> d_netmaskToConfig;
-  std::map<std::string, std::shared_ptr<TLSCtx>> d_TLSContexts;
+  std::map<std::pair<std::string, size_t>, std::shared_ptr<TLSCtx>> d_TLSContexts;
+  size_t iteration{0};
 };
 
 static LockGuarded<OutgoingTLSConfigTable> s_outgoingTLSConfigTable;
@@ -110,9 +112,10 @@ void TCPOutConnectionManager::setupOutgoingTLSConfigTables(pdns::rust::settings:
       table->d_netmaskToConfig.insert(std::string(element)).second = entry;
     }
   }
+  ++table->iteration;
 }
 
-std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress, std::string& configName)
+std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, bool& subjectIsAddress, std::string& configName, size_t& iteration)
 {
   const pdns::rust::settings::rec::OutgoingTLSConfiguration* config{nullptr};
   TLSContextParameters tlsParams;
@@ -124,6 +127,7 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
 
   {
     auto table = s_outgoingTLSConfigTable.lock();
+    iteration = table->iteration;
     if (auto* node = table->d_netmaskToConfig.lookup(address); node != nullptr) {
       config = &node->second;
     }
@@ -135,14 +139,16 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
       verboseLogging = config->verbose_logging;
       if (!config->subject_name.empty()) {
         subjectName = std::string(config->subject_name);
+        subjectIsAddress = false;
       };
       if (!config->subject_address.empty()) {
-        subjectAddress = std::string(config->subject_address);
+        subjectName = std::string(config->subject_address);
+        subjectIsAddress = true;
       };
       configName = std::string(config->name);
 
       // Check to see if we already made the TLSContext earlier, in that case we re-use
-      if (auto iter = table->d_TLSContexts.find(configName); iter != table->d_TLSContexts.end()) {
+      if (auto iter = table->d_TLSContexts.find({configName, iteration}); iter != table->d_TLSContexts.end()) {
         return iter->second;
       }
       // setup tlsParams for context creation
@@ -165,7 +171,7 @@ std::shared_ptr<TLSCtx> TCPOutConnectionManager::getTLSContext(const std::string
       // We found a config, save it for later re-use. There is a race here as we do not like to call
       // ::getTLSContext() holding a lock, first one wins.
       auto table = s_outgoingTLSConfigTable.lock();
-      table->d_TLSContexts.emplace(configName, ret);
+      table->d_TLSContexts.emplace(std::make_pair(configName, iteration), ret);
     }
   }
 

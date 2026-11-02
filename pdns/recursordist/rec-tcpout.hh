@@ -43,6 +43,19 @@ public:
   // Per thread max # of idle connections, 0 means no idle connections will be kept open
   static size_t s_maxIdlePerThread;
 
+  struct Endpoint
+  {
+    ComboAddress d_remote;
+    std::optional<pdns::AddressAndInterface> d_local;
+    std::string d_subject;
+    std::string d_tlsConfig;
+    size_t d_iteration{0};
+    bool operator<(const Endpoint& rhs) const
+    {
+      return std::make_tuple(d_remote, d_local, d_subject, d_tlsConfig, d_iteration) < std::make_tuple(rhs.d_remote, rhs.d_local, rhs.d_subject, rhs.d_tlsConfig, rhs.d_iteration);
+    }
+  };
+
   struct Connection
   {
     [[nodiscard]] std::string toString() const
@@ -54,16 +67,14 @@ public:
     }
 
     std::shared_ptr<TCPIOHandler> d_handler;
-    std::optional<pdns::AddressAndInterface> d_local;
+    Endpoint d_endpoint;
     timeval d_last_used{0, 0};
     size_t d_numqueries{0};
     bool d_verboseLogging{false};
   };
 
-  using endpoints_t = std::pair<ComboAddress, std::optional<pdns::AddressAndInterface>>;
-
-  void store(const struct timeval& now, const endpoints_t& endpoints, Connection&& connection);
-  Connection get(const endpoints_t& pair);
+  void store(const struct timeval& now, Connection&& connection);
+  Connection get(const Endpoint& endpoint);
   void cleanup(const struct timeval& now);
 
   [[nodiscard]] size_t size() const
@@ -76,12 +87,12 @@ public:
   }
 
   static void setupOutgoingTLSConfigTables(pdns::rust::settings::rec::Recursorsettings& settings);
-  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, std::string& subjectAddress, std::string& configName);
+  static std::shared_ptr<TLSCtx> getTLSContext(const std::string& name, const ComboAddress& address, bool& verboseLogging, std::string& subjectName, bool& subjectIsAddress, std::string& configName, size_t& iteration);
 
 private:
   // This does not take into account that we can have multiple connections with different hosts (via SNI) to the same IP.
   // That is OK, since we are connecting by IP only at the moment.
-  std::multimap<endpoints_t, Connection> d_idle_connections;
+  std::multimap<Endpoint, Connection> d_idle_connections;
 };
 
 extern thread_local TCPOutConnectionManager t_tcp_manager;

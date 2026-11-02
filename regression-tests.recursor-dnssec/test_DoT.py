@@ -103,6 +103,113 @@ devonly-regression-test-mode
             raise
 
 
+class DoTIPVerifyTest(RecursorTest):
+    """
+    This tests DoT to rec server with IP validation and is dependent on quad9 nameservers having DoT enabled.
+    """
+
+    _confdir = "DoTIPVerify"
+    _config_template = """
+dnssec:
+    validation: validate
+outgoing:
+    tls_configurations:
+    - name: dotwithipverify
+      subnets: [9.9.9.9]
+      validate_certificate: true
+      subject_address: 9.9.9.9
+      verbose_logging: true
+recursor:
+    devonly_regression_test_mode: true
+    forward_zones_recurse:
+      - zone: .
+        forwarders: [9.9.9.9:853]
+    """
+
+    _roothints = None
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        super(DoTIPVerifyTest, cls).generateRecursorYamlConfig(confdir, False)
+
+    @pytest.mark.external
+    def testTXT(self):
+        query = dns.message.make_query("org.", "DNSKEY", want_dnssec=True)
+        query.flags |= dns.flags.AD
+
+        # As this test uses external servers, be more generous wrt timeouts than the default 2.0s
+        res = self.sendUDPQuery(query, timeout=5.0)
+
+        self.assertMessageIsAuthenticated(res)
+        self.assertRcodeEqual(res, 0)
+        rec_controlCmd = [
+            os.environ["RECCONTROL"],
+            "--config-dir=%s" % "configs/" + self._confdir,
+            "get tcp-outqueries",
+        ]
+        try:
+            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+            tcpcount = ret
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            raise
+
+        rec_controlCmd = [
+            os.environ["RECCONTROL"],
+            "--config-dir=%s" % "configs/" + self._confdir,
+            "get dot-outqueries",
+        ]
+        try:
+            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+            dotcount = ret
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            raise
+
+        expected = dns.rrset.from_text(
+            "dot-test-target.powerdns.org.", 0, dns.rdataclass.IN, "TXT", "https://github.com/PowerDNS/pdns/pull/12825"
+        )
+        query = dns.message.make_query("dot-test-target.powerdns.org", "TXT", want_dnssec=True)
+        query.flags |= dns.flags.AD
+
+        # As this test uses external servers, be a more generous wrt timeouts than the default 2.0s
+        res = self.sendUDPQuery(query, timeout=5.0)
+
+        self.assertMessageIsAuthenticated(res)
+        self.assertRRsetInAnswer(res, expected)
+        self.assertMatchingRRSIGInAnswer(res, expected)
+
+        rec_controlCmd = [
+            os.environ["RECCONTROL"],
+            "--config-dir=%s" % "configs/" + self._confdir,
+            "get dot-outqueries",
+        ]
+        try:
+            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+            self.assertNotEqual(ret, b"UNKNOWN\n")
+            self.assertNotEqual(ret, b"0\n")
+            self.assertGreater(int(ret), int(dotcount))
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            raise
+
+        rec_controlCmd = [
+            os.environ["RECCONTROL"],
+            "--config-dir=%s" % "configs/" + self._confdir,
+            "get tcp-outqueries",
+        ]
+        try:
+            ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+            self.assertEqual(ret, tcpcount)
+
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            raise
+
+
 class DoTTest(RecursorTest):
     """
     This tests DoT to auth server with validation and is dependent on powerdns.com nameservers having DoT enabled.
