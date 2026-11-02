@@ -27,7 +27,7 @@
 #include "dnswriter.hh"
 #include "svc-records.hh"
 
-bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const DNSName& target, const std::set<uint16_t>& mandatoryParams, const std::vector<std::string>& alpns, bool noDefaultAlpn, std::optional<uint16_t> port, const std::string& ech, const std::vector<ComboAddress>& ipv4hints, const std::vector<ComboAddress>& ipv6hints, const std::vector<std::pair<uint16_t, std::string>>& additionalParams)
+bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const DNSName& target, const std::set<uint16_t>& mandatoryParams, const std::vector<std::string>& alpns, bool noDefaultAlpn, std::optional<uint16_t> port, const std::string& ech, const std::vector<ComboAddress>& ipv4hints, const std::vector<ComboAddress>& ipv6hints, const std::vector<std::pair<SvcParam::SvcParamKey, std::string>>& additionalParams)
 {
   // this is an _ordered_ set and the comparison operator is properly defined,
   // so the parameters will be ordered as defined in the RFC
@@ -66,7 +66,7 @@ bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const 
   }
 
   for (const auto& param : additionalParams) {
-    params.insert({static_cast<SvcParam::SvcParamKey>(param.first), param.second});
+    params.insert({param.first, param.second});
   }
 
   if (priority == 0 && params.size() != 0) {

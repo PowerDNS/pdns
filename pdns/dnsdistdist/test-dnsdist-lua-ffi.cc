@@ -1093,8 +1093,8 @@ BOOST_AUTO_TEST_CASE(test_SVC_Generation)
     /* invalid parameters */
     dnsdist_ffi_svc_record_parameters_set_port(nullptr, 0);
     dnsdist_ffi_svc_record_parameters_set_ech(nullptr, "alpn", 4);
-    dnsdist_ffi_svc_record_parameters_set_additional_param(nullptr, 7, "/dns-query{?dns}", 16);
-    dnsdist_ffi_svc_record_parameters_set_additional_param(parameters, 7, nullptr, 0);
+    dnsdist_ffi_svc_record_parameters_set_additional_param(nullptr, "dohpath", "/dns-query{?dns}", 16);
+    dnsdist_ffi_svc_record_parameters_set_additional_param(parameters, "dohpath", nullptr, 0);
     dnsdist_ffi_svc_record_parameters_add_mandatory_param(nullptr, 0);
     dnsdist_ffi_svc_record_parameters_add_alpn(nullptr, "h2", 2);
     dnsdist_ffi_svc_record_parameters_add_alpn(parameters, nullptr, 0);
@@ -1107,7 +1107,7 @@ BOOST_AUTO_TEST_CASE(test_SVC_Generation)
 
   dnsdist_ffi_svc_record_parameters_set_port(parameters, 443);
   dnsdist_ffi_svc_record_parameters_set_ech(parameters, "binary", 6);
-  dnsdist_ffi_svc_record_parameters_set_additional_param(parameters, 7, "/dns-query{?dns}", 16);
+  dnsdist_ffi_svc_record_parameters_set_additional_param(parameters, "dohpath", "/dns-query{?dns}", 16);
   dnsdist_ffi_svc_record_parameters_add_mandatory_param(parameters, 7);
   dnsdist_ffi_svc_record_parameters_add_alpn(parameters, "h2", 2);
   dnsdist_ffi_svc_record_parameters_add_ipv4_hint(parameters, "9.9.9.9", 8);

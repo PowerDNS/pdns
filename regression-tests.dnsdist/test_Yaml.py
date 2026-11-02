@@ -552,6 +552,66 @@ query_rules:
             self.assertEqual(response, receivedResponse)
 
 
+class TestYamlBadSVCParameters(DNSDistTest):
+    _yaml_config_template = """---
+logging:
+  structured:
+    enabled: false
+
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+query_rules:
+  - name: Spoof an SVCB
+    selector:
+      type: "And"
+      selectors:
+        - type: "QType"
+          qtype: SVCB
+    action:
+      type: SpoofSVC
+      parameters:
+        - target: "dot.powerdns.com"
+          priority: 1
+          mandatory_params:
+            - unknown
+"""
+    _yaml_config_params = ["_dnsDistPort", "_testServerPort"]
+    _config_params = []
+    # we need this because the error is triggered during the parsing of the YAML configuration,
+    # too early for the logging for the logging configuration to have been applied
+    _enableStructuredLoggingOnCL = False
+
+    def testFailToStart(self):
+        """
+        YAML: Fails to start with unknown selector name
+        """
+        pass
+
+    @classmethod
+    def setUpClass(cls):
+        failed = False
+        try:
+            cls.startDNSDist()
+        except AssertionError as err:
+            failed = True
+            expected = "dnsdist --check-config failed (1): b\"Error while parsing YAML file configs/dnsdist_TestYamlBadSVCParameters.yml: SvcParam 'unknown' is not recognized or in keyNNNN format\\n\""
+            if str(err) != expected:
+                raise AssertionError("DNSdist should not start with an unknown mandatory SvcKey parameter: %s" % (err))
+        if not failed:
+            raise AssertionError("DNSdist should not start with an unknown mandatory SvcKey parameter")
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls._dnsdist:
+            cls.killProcess(cls._dnsdist)
+
+
 class TestYamlUnknownSelectorName(DNSDistTest):
     _yaml_config_template = """---
 logging:

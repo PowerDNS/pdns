@@ -30,6 +30,7 @@
 
 #include "dnsname.hh"
 #include "iputils.hh"
+#include "svc-records.hh"
 
 struct SVCRecordParameters
 {
@@ -41,7 +42,7 @@ struct SVCRecordParameters
   std::vector<std::string> alpns;
   std::vector<ComboAddress> ipv4hints;
   std::vector<ComboAddress> ipv6hints;
-  std::vector<std::pair<uint16_t, std::string>> additionalParams;
+  std::vector<std::pair<SvcParam::SvcParamKey, std::string>> additionalParams;
   std::string ech;
   DNSName target;
   std::optional<uint16_t> port{std::nullopt};
@@ -60,7 +61,7 @@ using svcParamsLua_t = std::unordered_map<
 
 struct SVCRecordParameters parseSVCParameters(const svcParamsLua_t& params);
 
-bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const DNSName& target, const std::set<uint16_t>& mandatoryParams, const std::vector<std::string>& alpns, bool noDefaultAlpn, std::optional<uint16_t> port, const std::string& ech, const std::vector<ComboAddress>& ipv4hints, const std::vector<ComboAddress>& ipv6hints, const std::vector<std::pair<uint16_t, std::string>>& additionalParams);
+bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const DNSName& target, const std::set<uint16_t>& mandatoryParams, const std::vector<std::string>& alpns, bool noDefaultAlpn, std::optional<uint16_t> port, const std::string& ech, const std::vector<ComboAddress>& ipv4hints, const std::vector<ComboAddress>& ipv6hints, const std::vector<std::pair<SvcParam::SvcParamKey, std::string>>& additionalParams);
 
 bool generateSVCPayload(std::vector<uint8_t>& payload, const SVCRecordParameters& parameters);
 

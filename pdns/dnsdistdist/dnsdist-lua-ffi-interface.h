@@ -320,7 +320,7 @@ typedef struct dnsdist_ffi_svc_record_parameters dnsdist_ffi_svc_record_paramete
 bool dnsdist_ffi_svc_record_parameters_new(const char* targetName, uint16_t priority, bool noDefaultALPN, dnsdist_ffi_svc_record_parameters** out) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_svc_record_parameters_set_port(dnsdist_ffi_svc_record_parameters* parameters, uint16_t port) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_svc_record_parameters_set_ech(dnsdist_ffi_svc_record_parameters* parameters, const char* ech, size_t echLen) __attribute__ ((visibility ("default")));
-void dnsdist_ffi_svc_record_parameters_set_additional_param(dnsdist_ffi_svc_record_parameters* parameters, uint16_t key, const char* value, size_t valueLen) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_svc_record_parameters_set_additional_param(dnsdist_ffi_svc_record_parameters* parameters, const char* key, const char* value, size_t valueLen) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_svc_record_parameters_add_mandatory_param(dnsdist_ffi_svc_record_parameters* parameters, uint16_t key) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_svc_record_parameters_add_alpn(dnsdist_ffi_svc_record_parameters* parameters, const char* value, size_t valueLen) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_svc_record_parameters_add_ipv4_hint(dnsdist_ffi_svc_record_parameters* parameters, const char* value, size_t valueLen) __attribute__ ((visibility ("default")));
