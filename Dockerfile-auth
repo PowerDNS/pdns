@@ -97,6 +97,7 @@ RUN chmod 1777 /tmp
 # - supervisor (for special use cases requiring advanced process management)
 # - adduser (for adding an unprivileged user)
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates \
         python3 python3-jinja2 \
         sqlite3 \
         tini \

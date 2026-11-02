@@ -112,7 +112,8 @@ RUN chmod 1777 /tmp
 # - python3 + jinja2 (for startup script)
 # - tini (for signal management)
 # - adduser (for adding an unprivileged user)
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates \
         python3 python3-jinja2 \
         tini \
         adduser libcap2-bin \

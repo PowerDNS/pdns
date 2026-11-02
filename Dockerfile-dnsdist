@@ -126,6 +126,7 @@ RUN chmod 1777 /tmp
 # - ca-certificates (for verifying downstream DoH/DoT certificates)
 # - adduser (for adding an unprivileged user)
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        ca-certificates \
         python3 \
         python3-jinja2 \
         tini \
