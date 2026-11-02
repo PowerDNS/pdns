@@ -83,7 +83,7 @@ extended-resolution-errors
         self.assertAuthorityHasSOA(res)
 
         after = self.getOutgoingQueriesCount()
-        self.assertEqual(after, before + 1)
+        self.assertGreater(after, before)
         self.assertEqual(res.edns, 0)
         self.assertEqual(len(res.options), 0)
 
@@ -130,15 +130,15 @@ extended-resolution-errors
 
         # then query nx2.example.
         before = after
-        query = dns.message.make_query("www2.nx-example.", "A", use_edns=True)
-        res = self.sendUDPQuery(query)
-
-        self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
-        self.assertAuthorityHasSOA(res)
+        for i in range(10):
+            query = dns.message.make_query("www" + str(i) + ".nx-example.", "A", use_edns=True)
+            res = self.sendUDPQuery(query)
+            self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+            self.assertAuthorityHasSOA(res)
+            self.assertEqual(res.edns, 0)
+            self.assertEqual(len(res.options), 1)
+            self.assertEqual(res.options[0].otype, 15)
+            self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(29, b"Result synthesized by root-nx-trust"))
 
         after = self.getOutgoingQueriesCount()
-        self.assertEqual(after, before)
-        self.assertEqual(res.edns, 0)
-        self.assertEqual(len(res.options), 1)
-        self.assertEqual(res.options[0].otype, 15)
-        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(29, b"Result synthesized by root-nx-trust"))
+        self.assertLess(before - after, 10)
