@@ -114,6 +114,7 @@ RUN adduser --system --disabled-password --disabled-login --no-create-home --gro
 COPY dockerdata/startup.py /usr/local/sbin/pdns_server-startup
 COPY dockerdata/pdns.conf /etc/powerdns/
 
+USER pdns
 # Set up database
 # TODO: this needs to be done smarter
 RUN sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/local/share/doc/pdns/schema.sqlite3.sql
@@ -125,6 +126,5 @@ EXPOSE 53/tcp
 # Default webserver port
 EXPOSE 8081/tcp
 
-USER pdns
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/sbin/pdns_server-startup"]
 HEALTHCHECK --interval=10s --timeout=5s --start-period=1s --start-interval=1s --retries=3 CMD ["pdns_control", "rping"]
