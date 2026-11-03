@@ -229,14 +229,15 @@ private:
       // we don't know the record's length, nothing to check
       return true;
     }
-    if (canBeOutsideRecordContent && initialPosition >= d_startrecordpos + d_recordlen) {
+    const size_t endOfRecordContent = d_startrecordpos + d_recordlen;
+    if (canBeOutsideRecordContent && initialPosition >= endOfRecordContent) {
       // our initial position is after the last known record content,
       // we are probably parsing the owner name of the next record,
       // nothing to check
       return true;
     }
     // are we still inside the record's content?
-    return endPosition <= (d_startrecordpos + d_recordlen);
+    return initialPosition >= d_startrecordpos && initialPosition <= endOfRecordContent && endPosition <= endOfRecordContent;
   }
 
   size_t d_pointerBudget{0};
