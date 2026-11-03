@@ -63,3 +63,4 @@ compile_commands.*
 .venv
 sphinx.stamp
 sphinx.d
+*.profraw
