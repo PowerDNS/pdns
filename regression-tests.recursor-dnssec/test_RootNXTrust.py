@@ -70,9 +70,10 @@ extended-resolution-errors
         print(res)
         self.assertAuthorityHasSOA(res)
 
-        # check that we sent one query to the root
+        # check that we sent at least one query to the root, it might be more because
+        # of background tasks
         after = self.getOutgoingQueriesCount()
-        self.assertEqual(after, before + 1)
+        self.assertGreaterEqual(after, before + 1)
 
         # then query nx2.example.
         before = after
@@ -124,9 +125,10 @@ extended-resolution-errors
         print(res)
         self.assertAuthorityHasSOA(res)
 
-        # check that we sent one query to the root
+        # check that we sent at least one query to the root, it might be more because
+        # of background tasks
         after = self.getOutgoingQueriesCount()
-        self.assertEqual(after, before + 1)
+        self.assertGreaterEqual(after, before + 1)
 
         # then query a couple of wwwN.nx-example. Since rec might be doing background tasks,
         # e.g. checking the root TAs, we check a bound that says we did less outgoing queries than
