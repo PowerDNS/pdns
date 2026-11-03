@@ -783,6 +783,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
     }
     lastKey = keyInt;
 
+    // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): this is fine, we will handle that in the switch/case
     auto key = static_cast<SvcParam::SvcParamKey>(keyInt);
 
     uint16_t len;
