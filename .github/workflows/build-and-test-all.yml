@@ -150,6 +150,7 @@ jobs:
       env:
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        # detect_stack_use_after_return does not play well with our MTasker, see mtasker_context.cc::threadWrapper
         ASAN_OPTIONS: "detect_stack_use_after_return=0:max_malloc_fill_size=1073741824"
         UNIT_TESTS: yes
         CARGO_USE_DEV: 1
@@ -566,6 +567,7 @@ jobs:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        # detect_stack_use_after_return does not play well with our MTasker, see mtasker_context.cc::threadWrapper
         ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0:max_malloc_fill_size=1073741824"
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
@@ -621,6 +623,7 @@ jobs:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
+        # detect_stack_use_after_return does not play well with our MTasker, see mtasker_context.cc::threadWrapper
         ASAN_OPTIONS: "detect_stack_use_after_return=0:max_malloc_fill_size=1073741824"
         LSAN_OPTIONS: "suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-lsan.supp"
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
@@ -681,6 +684,7 @@ jobs:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
+        # detect_stack_use_after_return does not play well with our MTasker, see mtasker_context.cc::threadWrapper
         ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0:max_malloc_fill_size=1073741824"
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
@@ -757,6 +761,7 @@ jobs:
       - run: . ${{ github.workspace }}/.venv/bin/activate && inv test-bulk-recursor 50000 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
         env:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp'
+          # detect_stack_use_after_return does not play well with our MTasker, see mtasker_context.cc::threadWrapper
           ASAN_OPTIONS: "detect_leaks=0:detect_stack_use_after_return=0:max_malloc_fill_size=1073741824"
           TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
       #  Disabled, it gives us: "/bin/bash: line 1: llvm-profdata-13: command not found" due to mismatch between deb and ubuntu versions
