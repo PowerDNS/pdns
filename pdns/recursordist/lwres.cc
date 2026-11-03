@@ -401,7 +401,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   try {
 #ifdef IP_BIND_ADDRESS_NO_PORT
     int one = 1;
-    setsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, &one, sizeof(one)); // failure ignored on purpose
+    (void)setsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, &one, sizeof(one)); // failure ignored on purpose
 #endif
     sock.bind(localip.d_address);
 #ifdef SO_BINDTODEVICE
@@ -441,7 +441,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   connection.d_endpoint.d_remote = remote;
   connection.d_endpoint.d_local = localBind;
   connection.d_endpoint.d_subject = subjectName;
-  connection.d_endpoint.d_tlsConfig = configName;
+  connection.d_endpoint.d_tlsConfig = std::move(configName);
   connection.d_endpoint.d_iteration = iteration;
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level
