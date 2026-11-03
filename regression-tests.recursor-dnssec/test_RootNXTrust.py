@@ -128,7 +128,9 @@ extended-resolution-errors
         after = self.getOutgoingQueriesCount()
         self.assertEqual(after, before + 1)
 
-        # then query nx2.example.
+        # then query a couple of wwwN.nx-example. Since rec might be doing background tasks,
+        # e.g. checking the root TAs, we check a bound that says we did less outgoing queries than
+        # the number of incoming queries and not a hard value.
         before = after
         for i in range(10):
             query = dns.message.make_query("www" + str(i) + ".nx-example.", "A", use_edns=True)
