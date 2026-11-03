@@ -1745,7 +1745,7 @@ static void lua_include(LuaContext& lua, const string& record)
 
 // Lua variables available to the user
 
-static std::unordered_map<std::string, int> lua_variables{
+static const std::unordered_map<std::string, int> lua_variables{
   {"ASn", GeoIPInterface::GeoIPQueryAttribute::ASn},
   {"City", GeoIPInterface::GeoIPQueryAttribute::City},
   {"Continent", GeoIPInterface::GeoIPQueryAttribute::Continent},
