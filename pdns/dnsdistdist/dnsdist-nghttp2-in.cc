@@ -403,6 +403,8 @@ void IncomingHTTP2Connection::handleIO()
   struct timeval now{};
   gettimeofday(&now, nullptr);
 
+  d_lastIOBlocked = false; // setting this does matter, because it is used in IncomingTCPConnectionState::handleProxyProtocolPayload
+
   try {
     if (maxConnectionDurationReached(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration, now)) {
       VERBOSESLOG(infolog("Terminating DoH connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort()),
