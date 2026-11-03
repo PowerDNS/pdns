@@ -242,7 +242,7 @@ sh_program = find_program('sh')
 dep_no_config_in_source_check = custom_target(
     input: [],
     output: ['Checking absence of various generated files in source directory; rm offenders and re-run meson setup if this test fails'],
-    command: [sh_program, '-c', 'test ! -e @SOURCE_ROOT@/config.h && test ! -e @SOURCE_ROOT@/dnslabeltext.cc && test ! -e @SOURCE_ROOT@/dnslabeltext.o'],
+    command: [sh_program, '-c', 'test ! -e @SOURCE_ROOT@/config.h && test ! -e @SOURCE_ROOT@/dnslabeltext.o'],
     build_always_stale: true,
 )
 dep_no_config_in_source = declare_dependency(
