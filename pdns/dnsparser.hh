@@ -225,6 +225,9 @@ public:
 private:
   [[nodiscard]] bool isWithinRecordBoundaries(size_t initialPosition, size_t endPosition, bool canBeOutsideRecordContent = false) const
   {
+    if (initialPosition > endPosition) {
+      return false;
+    }
     if (canBeOutsideRecordContent && d_recordlen == 0) {
       // we don't know the record's length, nothing to check
       return true;
