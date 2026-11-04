@@ -164,15 +164,21 @@ void BaseLua4::prepareContext() {
     [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
     {
       try {
-      if(auto s = boost::get<string>(&in)) {
-        cas.insert(ComboAddress(*s));
+        if (const auto *str1 = boost::get<string>(&in)) {
+          cas.insert(ComboAddress(*str1));
+        }
+        else if (const auto *vec = boost::get<vector<pair<unsigned int, string>>>(&in)) {
+          for (const auto& str2 : *vec) {
+            cas.insert(ComboAddress(str2.second));
+          }
+        }
+        else {
+          cas.insert(boost::get<ComboAddress>(in));
+        }
       }
-      else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-        for(const auto& str : *v)
-          cas.insert(ComboAddress(str.second));
-      }
-      else
-        cas.insert(boost::get<ComboAddress>(in));
+      catch(PDNSException& exc) {
+        SLOG(g_log <<Logger::Error<<exc.what()<<endl,
+             g_slog->withName("lua")->error(Logr::Error, exc.what(), "Exception in newCAS", "exception", Logging::Loggable("PDNSException")));
       }
       catch(std::exception& e) {
         SLOG(g_log <<Logger::Error<<e.what()<<endl,

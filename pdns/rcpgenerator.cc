@@ -433,7 +433,14 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
             hints.clear();
             break;
           }
-          hints.push_back(ComboAddress(v));
+          ComboAddress addr;
+          try {
+            addr = ComboAddress(v);
+          }
+          catch (PDNSException& exc) {
+            throw RecordTextException(std::string("SVC Param ").append(k).append(" contains an invalid address '").append(v).append("'"));
+          }
+          hints.push_back(addr);
         }
       }
       if (!doAuto && hints.empty()) {

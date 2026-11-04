@@ -839,9 +839,9 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
         SLOG(g_log << Logger::Info << ctx.logPrefix << "xfr source set to " << localaddr[0] << endl,
              ctx.slog->info(Logr::Info, "XFR: source set according to AXFR-SOURCE metadata", "source", Logging::Loggable(localaddr[0])));
       }
-      catch (std::exception& e) {
-        SLOG(g_log << Logger::Error << ctx.logPrefix << "failed to set xfr source '" << localaddr[0] << "': " << e.what() << endl,
-             ctx.slog->error(Logr::Error, e.what(), "XFR: failed to set source", "source", Logging::Loggable(localaddr[0])));
+      catch (PDNSException& exc) {
+        SLOG(g_log << Logger::Error << ctx.logPrefix << "failed to set xfr source '" << localaddr[0] << "': " << exc.what() << endl,
+             ctx.slog->error(Logr::Error, exc.what(), "XFR: failed to set source", "source", Logging::Loggable(localaddr[0])));
         return;
       }
     }
@@ -1398,9 +1398,9 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P) // NOLINT(readability
           SLOG(g_log << Logger::Info << "Freshness check source (AXFR-SOURCE) for domain '" << di.zone << "' set to " << localaddr[0] << endl,
                d_slog->info(Logr::Info, "Freshness check source (AXFR-SOURCE) set", "zone", Logging::Loggable(di.zone), "source", Logging::Loggable(localaddr[0])));
         }
-        catch (std::exception& e) {
-          SLOG(g_log << Logger::Error << "Failed to load freshness check source '" << localaddr[0] << "' for '" << di.zone << "': " << e.what() << endl,
-               d_slog->error(Logr::Error, e.what(), "Failed to load freshness check source", "zone", Logging::Loggable(di.zone)));
+        catch (PDNSException& exc) {
+          SLOG(g_log << Logger::Error << "Failed to load freshness check source '" << localaddr[0] << "' for '" << di.zone << "': " << exc.what() << endl,
+               d_slog->error(Logr::Error, exc.what(), "Failed to load freshness check source", "zone", Logging::Loggable(di.zone)));
           return;
         }
       }

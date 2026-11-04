@@ -172,7 +172,15 @@ int main(int argc, char **argv)
         exit(99);
       }
 
-      D = std::make_shared<DynMessenger>(ComboAddress(::arg()["remote-address"], port), ::arg()["secret"]);
+      ComboAddress remote;
+      try {
+        remote = ComboAddress(::arg()["remote-address"]);
+      }
+      catch (PDNSException& exc) {
+        cerr << "Unable to convert '" << ::arg()["remote-address"] << "' to a valid address for connecting to remote PowerDNS\n";
+        exit(99); // NOLINT(concurrency-mt-unsafe): this code doesn't even use threads
+      }
+      D = std::make_shared<DynMessenger>(remote, ::arg()["secret"]);
     }
 
     string message;
