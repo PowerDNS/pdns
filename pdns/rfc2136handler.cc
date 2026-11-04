@@ -713,7 +713,7 @@ static int forwardPacket(UeberBackend& B, const updateContext& ctx, const DNSPac
       l_forwardPacket.setID(dns_random_uint16());
       l_forwardPacket.setRemote(&remote);
       std::string error;
-      if (!l_forwardPacket.readyToEmit(error)) {
+      if (!l_forwardPacket.preparePayload(error)) {
         SLOG(g_log << Logger::Error << ctx.msgPrefix << "Unable to forward update message to " << remote.toStringWithPort() << ", error:" << error << endl,
              ctx.slog->error(Logr::Error, error, "Update: unable to forward update message", "remote", Logging::Loggable(remote.toStringWithPort())));
         continue;

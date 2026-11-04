@@ -160,7 +160,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
     }
 
     std::string error;
-    if (!reply->readyToEmit(error)) {
+    if (!reply->preparePayload(error)) {
       SLOG(g_log << Logger::Error << "Error building packet (" << error << "), returning SERVFAIL" << endl,
            d_slog->error(Logr::Error, error, "Error building packet, returning SERVFAIL"));
       reply->clearRecords();
@@ -344,7 +344,7 @@ void DNSProxy::mainloop()
         }
 
         std::string error;
-        if (!iter->second.complete->readyToEmit(error)) {
+        if (!iter->second.complete->preparePayload(error)) {
           SLOG(g_log << Logger::Error << "Error building packet (" << error << "), returning SERVFAIL" << endl,
                d_slog->error(Logr::Error, error, "Error building packet, returning SERVFAIL"));
           iter->second.complete->clearRecords();
