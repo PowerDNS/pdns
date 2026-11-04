@@ -174,14 +174,18 @@ public:
   /* Whether the current position is at (or after, which would indicate a problem
      and should have been detected earlier) the end of wire data corresponding to
      the current DNS record */
-  bool eof() const
+  [[nodiscard]] bool eof() const
   {
-    return d_pos >= (d_startrecordpos + d_recordlen);
+    const auto endOfRecordContent = d_startrecordpos + d_recordlen;
+    if (d_pos > endOfRecordContent) {
+      throw std::out_of_range("Looking for EOF in PacketReader but we are already beyond the record content's end (" + std::to_string(d_pos) + " while the record content starts at " + std::to_string(d_startrecordpos) + " with a size of " + std::to_string(d_recordlen) + ")");
+    }
+    return d_pos == endOfRecordContent;
   }
 
   /* Returns a string, formatted for human/log consumption, containing information
      about the wire data from the current position to the end of the current DNS record */
-  std::string getRemaining() const {
+  [[nodiscard]] std::string getRemaining() const {
     return "Remaining data from PacketReader, current position " + std::to_string(d_pos) + " in packet of size " + std::to_string(d_content.size()) + ", end of record expected at " + std::to_string(d_startrecordpos + d_recordlen) + ": " + makeHexDump(std::string(d_content.begin() + d_pos, d_content.begin() + d_startrecordpos + d_recordlen));
   };
 
@@ -197,7 +201,7 @@ public:
   }
 #endif // ]
 
-  uint16_t getPosition() const
+  [[nodiscard]] uint16_t getPosition() const
   {
     return d_pos;
   }
@@ -206,15 +210,39 @@ public:
   {
     size_t stop = d_pos;
     stop += n;
+    if (!isWithinRecordBoundaries(d_pos, d_pos + n)) {
+      throw std::out_of_range("Attempt to skip bytes (" + std::to_string(n) + " starting at " + std::to_string(d_pos) + ") farther than the record's end (" + std::to_string(d_startrecordpos + d_recordlen) + ")");
+    }
     if (stop > d_content.size()) {
       throw std::out_of_range("Attempt to skip bytes (" + std::to_string(n) + " starting at " + std::to_string(d_pos) + ") farther than the packet's end (" + std::to_string(d_content.size()) + ")");
     }
+
     d_pos += n;
   }
 
   static size_t s_MaxPointersPerByte;
 
 private:
+  [[nodiscard]] bool isWithinRecordBoundaries(size_t initialPosition, size_t endPosition, bool canBeOutsideRecordContent = false) const
+  {
+    if (initialPosition > endPosition) {
+      return false;
+    }
+    if (canBeOutsideRecordContent && d_recordlen == 0) {
+      // we don't know the record's length, nothing to check
+      return true;
+    }
+    const size_t endOfRecordContent = d_startrecordpos + d_recordlen;
+    if (canBeOutsideRecordContent && initialPosition >= endOfRecordContent) {
+      // our initial position is after the last known record content,
+      // we are probably parsing the owner name of the next record,
+      // nothing to check
+      return true;
+    }
+    // are we still inside the record's content?
+    return initialPosition >= d_startrecordpos && initialPosition <= endOfRecordContent && endPosition <= endOfRecordContent;
+  }
+
   size_t d_pointerBudget{0};
   uint16_t d_pos;
   uint16_t d_startrecordpos; // needed for getBlob later on
