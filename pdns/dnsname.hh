@@ -164,7 +164,7 @@ public:
   DNSName(const DNSName& a) = default;
   DNSName(DNSName&& a) = default;
 
-  explicit DNSName(std::string_view sw); //!< Constructs from a human formatted, escaped presentation
+  explicit DNSName(std::string_view content); //!< Constructs from a human formatted, escaped presentation
   DNSName(const char* pos, size_t len, size_t offset, bool uncompress, uint16_t* qtype = nullptr, uint16_t* qclass = nullptr, unsigned int* consumed = nullptr, uint16_t minOffset = 0, size_t* pointerBudget = nullptr); //!< Construct from a DNS Packet, taking the first question if offset=12. If supplied, consumed is set to the number of bytes consumed from the packet, which will not be equal to the wire length of the resulting name in case of compression.
 
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name? Note that name.isPartOf(name).
@@ -218,15 +218,21 @@ public:
   }
   DNSName& operator+=(const DNSName& rhs)
   {
-    if(d_storage.size() + rhs.d_storage.size() > s_maxDNSNameLength + 1) // one extra byte for the second root label
-      throwSafeRangeError("resulting name too long", rhs.d_storage.data(), rhs.d_storage.size());
-    if(rhs.empty())
-      return *this;
+    if (d_storage.size() + rhs.d_storage.size() > s_maxDNSNameLength + 1) {
+      // one extra byte for the second root label
+      throwSafeRangeError("resulting name too long", std::string_view(rhs.d_storage.data(), rhs.d_storage.size()));
+    }
 
-    if(d_storage.empty())
-      d_storage+=rhs.d_storage;
-    else
-      d_storage.replace(d_storage.length()-1, rhs.d_storage.length(), rhs.d_storage);
+    if (rhs.empty()) {
+      return *this;
+    }
+
+    if (d_storage.empty()) {
+      d_storage += rhs.d_storage;
+    }
+    else {
+      d_storage.replace(d_storage.length() - 1, rhs.d_storage.length(), rhs.d_storage);
+    }
 
     return *this;
   }
@@ -306,7 +312,7 @@ private:
   size_t parsePacketUncompressed(const pdns::views::UnsignedCharView& view, size_t position, bool uncompress);
   static void appendEscapedLabel(std::string& appendTo, const char* orig, size_t len);
   static std::string unescapeLabel(const std::string& orig);
-  static void throwSafeRangeError(const std::string& msg, const char* buf, size_t length);
+  static void throwSafeRangeError(const std::string& msg, const std::string_view& content);
 };
 
 size_t hash_value(DNSName const& d);
