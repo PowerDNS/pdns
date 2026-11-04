@@ -4,7 +4,7 @@
 wheel==0.46.3
 dnspython
 pytest
-Twisted>=26.10.0rc1
+Twisted>=26.10.0
 requests>=2.18.4
 https://github.com/PowerDNS/xfrserver/archive/refs/tags/0.3.zip
 setuptools<82
