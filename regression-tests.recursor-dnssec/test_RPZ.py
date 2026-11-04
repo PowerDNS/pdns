@@ -446,11 +446,15 @@ class RPZServer(object):
             wire = answer.to_wire()
             lenprefix = struct.pack("!H", len(wire))
 
-            for b in lenprefix:
-                conn.send(bytes([b]))
-                time.sleep(0.1)
+            try:
+                for b in lenprefix:
+                    conn.send(bytes([b]))
+                    time.sleep(0.1)
 
-            conn.send(wire)
+                conn.send(wire)
+            except BrokenPipeError as e:
+                break
+
             self._currentSerial = serial
             break
 
