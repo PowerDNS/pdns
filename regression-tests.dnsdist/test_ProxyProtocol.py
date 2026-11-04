@@ -30,28 +30,22 @@ udpResponder = threading.Thread(
     name="UDP Proxy Protocol Responder",
     target=ProxyProtocolUDPResponder,
     args=[proxyResponderPort, toProxyQueue, fromProxyQueue],
-    daemon = True,
+    daemon=True,
 )
 udpResponder.start()
 tcpResponder = threading.Thread(
     name="TCP Proxy Protocol Responder",
     target=ProxyProtocolTCPResponder,
     args=[proxyResponderPort, toProxyQueue, fromProxyQueue],
-    daemon = True,
+    daemon=True,
 )
 tcpResponder.start()
 
 backgroundThreads = {}
 
+
 def MockTCPReverseProxyAddingProxyProtocolConnectionHandler(
-        listeningPort,
-        forwardingPort,
-        deferFirstWrite,
-        sslCtx,
-        ca,
-        sni,
-        remote,
-        incoming
+    listeningPort, forwardingPort, deferFirstWrite, sslCtx, ca, sni, remote, incoming
 ):
     incoming.setblocking(False)
 
@@ -76,7 +70,9 @@ def MockTCPReverseProxyAddingProxyProtocolConnectionHandler(
 
     outgoing.settimeout(2.0)
 
-    print(f"Mock TCP reverse proxy listening on {listeningPort} connecting to {forwardingPort} to forward a connection from {remote}")
+    print(
+        f"Mock TCP reverse proxy listening on {listeningPort} connecting to {forwardingPort} to forward a connection from {remote}"
+    )
     outgoing.connect(("127.0.0.1", forwardingPort))
 
     # deferFirstWrite needs to do several things to simulate DoH bug
@@ -153,6 +149,7 @@ def MockTCPReverseProxyAddingProxyProtocolConnectionHandler(
     sel.close()
     incoming.close()
     outgoing.close()
+
 
 def MockTCPReverseProxyAddingProxyProtocol(
     listeningPort,
