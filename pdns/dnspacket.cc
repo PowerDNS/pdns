@@ -66,7 +66,7 @@ DNSPacket::DNSPacket(Logr::log_t slog, bool isQuery): d_isQuery(isQuery), d_slog
   memset(&d, 0, sizeof(d));
 }
 
-bool DNSPacket::readyToEmit(std::string& error, bool throwsOnTruncation)
+bool DNSPacket::preparePayload(std::string& error, bool throwsOnTruncation)
 {
   if (!d_wrapped) {
     try {
