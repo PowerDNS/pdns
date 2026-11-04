@@ -81,10 +81,15 @@ public:
         if (d_paridx) {
           // This is ugly, but will do until paramValues is converted to a
           // std::array.
-          std::vector<char*> vecparam;
+          std::vector<const char*> vecparam;
           vecparam.reserve(d_paridx);
           for (auto i = 0; i < d_paridx; ++i) {
-            vecparam[i] = paramValues[i];
+            if (paramValues[i] == nullptr) {
+              vecparam.emplace_back("(null)");
+            }
+            else {
+              vecparam.emplace_back(paramValues[i]);
+            }
           }
           d_slog->info(Logr::Warning, "execute SQL query", "query", Logging::Loggable(d_query), "arguments", Logging::IterLoggable(vecparam.cbegin(), vecparam.cend()));
         }
