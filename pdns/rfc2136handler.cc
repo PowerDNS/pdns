@@ -591,7 +591,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
       l_forwardPacket.setID(dns_random_uint16());
       l_forwardPacket.setRemote(&remote);
       std::string error;
-      if (!l_forwardPacket.readyToEmit(error)) {
+      if (!l_forwardPacket.preparePayload(error)) {
         g_log << Logger::Error << msgPrefix << "Unable to forward update message to " << remote.toStringWithPort() << ", error:" << error << endl;
         continue;
       }

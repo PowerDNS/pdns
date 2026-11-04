@@ -58,7 +58,7 @@ public:
 
   int noparse(const char *mesg, size_t len); //!< just suck the data inward
   int parse(const char *mesg, size_t len); //!< parse a raw UDP or TCP packet and suck the data inward
-  bool readyToEmit(std::string& error, bool throwsOnTruncation=false);
+  bool preparePayload(std::string& error, bool throwsOnTruncation=false);
   const string& getString(bool throwsOnTruncation=false); //!< for serialization - just passes the whole packet. If throwsOnTruncation is set, an exception will be raised if the records are too large to fit inside a single DNS payload, instead of setting the TC bit
 
   // address & socket manipulation
