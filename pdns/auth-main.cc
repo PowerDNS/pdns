@@ -1363,7 +1363,7 @@ static int guardian(int argc, char** argv)
           // This is ugly, but will do until newargv is converted to a
           // std::array.
           std::vector<char*> vecargv;
-          vecargv.reserve(argc);
+          vecargv.resize(argc);
           for (n = 0; n < argc; ++n) {
             vecargv[n] = newargv[n];
           }
