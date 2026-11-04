@@ -84,11 +84,11 @@ public:
           std::vector<const char*> vecparam;
           vecparam.reserve(d_paridx);
           for (auto i = 0; i < d_paridx; ++i) {
-            if (paramValues[i] == nullptr) {
+            if (paramValues[i] == nullptr) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic): sigh
               vecparam.emplace_back("(null)");
             }
             else {
-              vecparam.emplace_back(paramValues[i]);
+              vecparam.emplace_back(paramValues[i]); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic): sigh
             }
           }
           d_slog->info(Logr::Warning, "execute SQL query", "query", Logging::Loggable(d_query), "arguments", Logging::IterLoggable(vecparam.cbegin(), vecparam.cend()));
