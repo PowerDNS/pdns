@@ -577,7 +577,6 @@ private:
 class BackendMakerClass
 {
 public:
-  BackendMakerClass(Logr::log_t slog);
   void report(std::unique_ptr<BackendFactory>&& backendFactory);
   void launch(const string& instr);
   vector<std::unique_ptr<DNSBackend>> all(bool metadataOnly = false);
@@ -585,6 +584,7 @@ public:
   [[nodiscard]] size_t numLauncheable() const;
   vector<string> getModules();
   void clear();
+  static void setSLog(Logr::log_t slog);
 
 private:
   static void load_all();

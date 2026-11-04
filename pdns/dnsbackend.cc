@@ -153,7 +153,7 @@ const string& BackendFactory::getName() const
 
 std::shared_ptr<Logr::Logger> BackendMakerClass::s_slog;
 
-BackendMakerClass::BackendMakerClass(Logr::log_t slog)
+void BackendMakerClass::setSLog(Logr::log_t slog)
 {
   if (s_slog == nullptr && slog != nullptr) {
     s_slog = slog;
@@ -162,7 +162,15 @@ BackendMakerClass::BackendMakerClass(Logr::log_t slog)
 
 BackendMakerClass& BackendMakers(Logr::log_t slog)
 {
-  static BackendMakerClass bmc(slog);
+  static BackendMakerClass bmc;
+  // Note that, although `bmc` above is a static object, depending on the
+  // backend initialization order, it might have first been created at a
+  // point where we don't have a structured logger available yet.
+  // The last call to BackendMakers(), from auth-main.cc, will always have
+  // a valid `slog` argument if structured logging is enabled, so we can
+  // update the static object in time for launch() to create backends with
+  // the appropriate logger.
+  BackendMakerClass::setSLog(slog);
   return bmc;
 }
 
