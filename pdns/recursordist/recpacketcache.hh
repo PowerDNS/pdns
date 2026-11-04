@@ -22,6 +22,7 @@
 #pragma once
 #include <string>
 #include <cinttypes>
+#include <algorithm>
 #include "dns.hh"
 #include "namespaces.hh"
 #include <iostream>
@@ -58,7 +59,7 @@ public:
   using ECSInfo = std::pair<uint16_t, uint16_t>;
 
   RecursorPacketCache(size_t maxsize, size_t shards = 1024) :
-    d_maps(shards)
+    d_maps(std::max<size_t>(1, shards))
   {
     setMaxSize(maxsize);
   }
