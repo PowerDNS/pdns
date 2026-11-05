@@ -16,12 +16,12 @@ recursor:
 webservice:
   api_dir: $d2
 EOF
-${PDNSRECURSOR} --config-dir=. &
+${PDNSRECURSOR} --config-dir=. 2> recursor.log &
 
 set +e
 for in in 0 1 2 3 4 5 6 7 8 9; do
 sleep 1
-${RECCONTROL} --config-dir=. quit-nicely
+${RECCONTROL} --config-dir=. quit-nicely 2> /dev/null
 if [ $? = 0 ]; then
   break
 fi
@@ -31,4 +31,4 @@ set -e
 diff -u apizones.expected $d2/apizones
 diff -u allow-from.yml.expected $d2/allow-from.yml
 diff -u allow-notify-from.yml.expected $d2/allow-notify-from.yml
-rm -rf $d $d2 recursor.yml
+rm -rf $d $d2 recursor.yml recursor.log
