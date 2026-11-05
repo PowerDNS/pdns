@@ -36,7 +36,7 @@ tcpResponder.start()
 
 backgroundThreads = {}
 
-def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, serverCtx=None, ca=None, sni=None):
+def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, deferFirstWrite, serverCtx=None, ca=None, sni=None):
     # this responder accepts TCP connections on the listening port,
     # and relay the raw content to a second TCP connection to the
     # forwarding port, after adding a Proxy Protocol v2 payload
@@ -86,21 +86,53 @@ def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, server
 
         outgoing.connect(('127.0.0.1', forwardingPort))
 
-        outgoing.send(payload)
+        # deferFirstWrite needs to do several things to simulate DoH bug
+        # * open connection
+        # * sleep
+        # * send proxy protocol header together with the first data
+        # * hold all the data, until dnsdist writes back something
+        # * then send all the data and start forwarding normally
+
+        if deferFirstWrite:
+            time.sleep(0.5)
+            incoming.settimeout(2)
+            data = incoming.recv(512)
+            incoming.settimeout(0.1)
+            try:
+                while True:
+                    data += incoming.recv(512)
+            except socket.timeout:
+                pass
+            incoming.setblocking(False)
+            outgoing.sendall(payload + data)
+        else:
+            outgoing.sendall(payload)
 
         sel = selectors.DefaultSelector()
+        hold = deferFirstWrite
+        held = []
+
         def readFromClient(conn):
             data = conn.recv(512)
             if not data or len(data) == 0:
-              return False
-            outgoing.send(data)
+                return False
+            if hold:
+                held.append(data)
+                return True
+            outgoing.sendall(data)
             return True
 
         def readFromBackend(conn):
+            nonlocal hold
             data = conn.recv(512)
             if not data or len(data) == 0:
-              return False
-            incoming.send(data)
+                return False
+            incoming.sendall(data)
+            if hold:
+                hold = False
+                for chunk in held:
+                    outgoing.sendall(chunk)
+                held.clear()
             return True
 
         sel.register(incoming, selectors.EVENT_READ, readFromClient)
@@ -780,14 +812,29 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         """
         Incoming Proxy Protocol: Several queries over the same connection (DoH, PP outside TLS)
         """
-        name = 'several-queries.doh-outside.proxy-protocol-incoming.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "several-queries.doh-outside.proxy-protocol-incoming.tests.powerdns.com."
+        self.doTestProxyDoHSeveralQueriesOverConnectionPPOutside(name, False)
+
+    def testProxyDoHSeveralQueriesOverConnectionPPOutsideDeferFirstWrite(self):
+        """
+        Incoming Proxy Protocol: Several queries over the same connection (DoH, PP outside TLS),
+        with defered first read/write in the proxy
+        """
+        name = "several-queries.defer-first-write.doh-outside.proxy-protocol-incoming.tests.powerdns.com."
+        self.doTestProxyDoHSeveralQueriesOverConnectionPPOutside(name, True)
+
+    def doTestProxyDoHSeveralQueriesOverConnectionPPOutside(self, name, deferFirstWrite):
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         toProxyQueue.put(response, True, 2.0)
 
         reverseProxyPort = pickAvailablePort()
-        reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dohServerPPOutsidePort])
+        reverseProxy = threading.Thread(
+            name="Mock Proxy Protocol Reverse Proxy",
+            target=MockTCPReverseProxyAddingProxyProtocol,
+            args=[reverseProxyPort, self._dohServerPPOutsidePort, deferFirstWrite],
+        )
         reverseProxy.start()
         time.sleep(1)
 
@@ -828,8 +875,19 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         """
         Incoming Proxy Protocol: Several queries over the same connection (DoH, PP inside TLS)
         """
-        name = 'several-queries.doh-inside.proxy-protocol-incoming.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "several-queries.doh-inside.proxy-protocol-incoming.tests.powerdns.com."
+        self.doTestProxyDoHSeveralQueriesOverConnectionPPInside(name, False)
+
+    def testProxyDoHSeveralQueriesOverConnectionPPInsideDeferFirstWrite(self):
+        """
+        Incoming Proxy Protocol: Several queries over the same connection (DoH, PP inside TLS),
+        with defered first read/write in the proxy
+        """
+        name = "several-queries.defer-first-write.doh-inside.proxy-protocol-incoming.tests.powerdns.com."
+        self.doTestProxyDoHSeveralQueriesOverConnectionPPInside(name, True)
+
+    def doTestProxyDoHSeveralQueriesOverConnectionPPInside(self, name, deferFirstWrite):
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         toProxyQueue.put(response, True, 2.0)
@@ -837,8 +895,19 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         reverseProxyPort = pickAvailablePort()
         tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         tlsContext.load_cert_chain(self._serverCert, self._serverKey)
-        tlsContext.set_alpn_protocols(['h2'])
-        reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dohServerPPInsidePort, tlsContext, self._caCert, self._serverName])
+        tlsContext.set_alpn_protocols(["h2"])
+        reverseProxy = threading.Thread(
+            name="Mock Proxy Protocol Reverse Proxy",
+            target=MockTCPReverseProxyAddingProxyProtocol,
+            args=[
+                reverseProxyPort,
+                self._dohServerPPInsidePort,
+                deferFirstWrite,
+                tlsContext,
+                self._caCert,
+                self._serverName,
+            ],
+        )
         reverseProxy.start()
 
         receivedResponse = None
@@ -879,14 +948,29 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         """
         Incoming Proxy Protocol: Several queries over the same connection (DoT, PP outside TLS)
         """
-        name = 'several-queries.dot-outside.proxy-protocol-incoming.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "several-queries.dot-outside.proxy-protocol-incoming.tests.powerdns.com."
+        self.doTestProxyDoTSeveralQueriesOverConnectionPPOutside(name, False)
+
+    def testProxyDoTSeveralQueriesOverConnectionPPOutsideDeferFirstWrite(self):
+        """
+        Incoming Proxy Protocol: Several queries over the same connection (DoT, PP outside TLS),
+        with defered first read/write in the proxy
+        """
+        name = "several-queries.defer-first-write.dot-outside.proxy-protocol-incoming.tests.powerdns.com."
+        self.doTestProxyDoTSeveralQueriesOverConnectionPPOutside(name, True)
+
+    def doTestProxyDoTSeveralQueriesOverConnectionPPOutside(self, name, deferFirstWrite):
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         toProxyQueue.put(response, True, 2.0)
 
         reverseProxyPort = pickAvailablePort()
-        reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dotServerPPOutsidePort])
+        reverseProxy = threading.Thread(
+            name="Mock Proxy Protocol Reverse Proxy",
+            target=MockTCPReverseProxyAddingProxyProtocol,
+            args=[reverseProxyPort, self._dotServerPPOutsidePort, deferFirstWrite],
+        )
         reverseProxy.start()
         time.sleep(1)
 
@@ -928,8 +1012,19 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         """
         Incoming Proxy Protocol: Several queries over the same connection (DoT, PP inside TLS)
         """
-        name = 'several-queries.dot-inside.proxy-protocol-incoming.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        name = "several-queries.dot-inside.proxy-protocol-incoming.tests.powerdns.com."
+        self.doTestProxyDoTSeveralQueriesOverConnectionPPInside(name, False)
+
+    def testProxyDoTSeveralQueriesOverConnectionPPInsideDeferFirstWrite(self):
+        """
+        Incoming Proxy Protocol: Several queries over the same connection (DoT, PP inside TLS),
+        with defered first read/write in the proxy
+        """
+        name = "several-queries.defer-first-write.dot-inside.proxy-protocol-incoming.tests.powerdns.com."
+        self.doTestProxyDoTSeveralQueriesOverConnectionPPInside(name, True)
+
+    def doTestProxyDoTSeveralQueriesOverConnectionPPInside(self, name, deferFirstWrite):
+        query = dns.message.make_query(name, "A", "IN")
         response = dns.message.make_response(query)
 
         toProxyQueue.put(response, True, 2.0)
@@ -937,8 +1032,19 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         reverseProxyPort = pickAvailablePort()
         tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         tlsContext.load_cert_chain(self._serverCert, self._serverKey)
-        tlsContext.set_alpn_protocols(['dot'])
-        reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dotServerPPInsidePort, tlsContext, self._caCert, self._serverName])
+        tlsContext.set_alpn_protocols(["dot"])
+        reverseProxy = threading.Thread(
+            name="Mock Proxy Protocol Reverse Proxy",
+            target=MockTCPReverseProxyAddingProxyProtocol,
+            args=[
+                reverseProxyPort,
+                self._dotServerPPInsidePort,
+                deferFirstWrite,
+                tlsContext,
+                self._caCert,
+                self._serverName,
+            ],
+        )
         reverseProxy.start()
 
         receivedResponse = None
