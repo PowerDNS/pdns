@@ -107,7 +107,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
       - name: Coveralls Parallel auth unit
         if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: auth-unit-${{ env.SANITIZERS }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -189,7 +189,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel rec unit
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: rec-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -275,7 +275,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist unit
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: dnsdist-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -362,7 +362,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: auth-api-${{ matrix.backend }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -498,7 +498,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: auth-backend-${{ matrix.backend }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -544,7 +544,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel ixfrdist
         if: ${{ env.COVERAGE == 'yes' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: ixfrdist
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -600,7 +600,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor API
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: rec-api-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -658,7 +658,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor regression
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: rec-regression-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -715,7 +715,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor bulk
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: rec-regression-bulk-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -769,7 +769,7 @@ jobs:
       #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       #- name: Coveralls Parallel recursor bulk
       #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-      #  uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+      #  uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
       #  with:
       #    flag-name: rec-regression-bulk-full-${{ matrix.sanitizers }}
       #    path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -825,7 +825,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist regression
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           flag-name: dnsdist-regression-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -879,7 +879,7 @@ jobs:
     steps:
       - name: Coveralls Parallel Finished
         if: ${{ env.COVERAGE == 'yes' }}
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329
         with:
           parallel-finished: true
           fail-on-error: false
