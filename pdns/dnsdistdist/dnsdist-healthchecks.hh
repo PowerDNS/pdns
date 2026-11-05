@@ -25,5 +25,17 @@
 #include "mplexer.hh"
 #include "sstuff.hh"
 
-bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& downstream, bool initial = false);
+struct HealthCheckData;
+
+struct PooledHealthChecks
+{
+  void checkResults();
+  [[nodiscard]] bool hasOngoing(const std::shared_ptr<DownstreamState>& downstream);
+  void save(const std::shared_ptr<DownstreamState>& downstream, std::shared_ptr<HealthCheckData>& data);
+
+private:
+  std::map<boost::uuids::uuid, std::shared_ptr<HealthCheckData>> d_map;
+};
+
+bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& downstream, PooledHealthChecks* pooledHealthChecks, bool initial = false);
 void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial = false);

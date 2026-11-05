@@ -451,73 +451,78 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         multipleResponses=False,
         callback=None,
         partialWrite=False,
+        multipleQueries=False,
     ):
-        ignoreTrailing = trailingDataResponse is True
-        try:
-            data = conn.recv(2)
-        except Exception as err:
-            data = None
-            print(f"Error while reading query size in TCP responder thread {err=}, {type(err)=}")
-        if not data:
-            conn.close()
-            return
+        repeat = True
+        while repeat:
+            repeat = multipleQueries
 
-        (datalen,) = struct.unpack("!H", data)
-        data = conn.recv(datalen)
-        forceRcode = None
-        try:
-            request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
-        except dns.message.TrailingJunk as e:
-            if trailingDataResponse is False or forceRcode is True:
-                raise
-            print("TCP query with trailing data, synthesizing response")
-            request = dns.message.from_wire(data, ignore_trailing=True)
-            forceRcode = trailingDataResponse
-
-        if callback:
-            wire = callback(request)
-        else:
-            if request.edns > 1:
-                forceRcode = dns.rcode.BADVERS
-            response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
-            if response:
-                wire = response.to_wire(max_size=65535)
-
-        if not wire:
-            conn.close()
-            return
-        elif isinstance(wire, ResponderDropAction):
-            return
-
-        wireLen = struct.pack("!H", len(wire))
-        if partialWrite:
-            for b in wireLen:
-                conn.send(bytes([b]))
-                time.sleep(0.5)
-        else:
-            conn.send(wireLen)
-        conn.send(wire)
-
-        while multipleResponses:
-            # do not block, and stop as soon as the queue is empty, either the next response is already here or we are done
-            # otherwise we might read responses intended for the next connection
-            if fromQueue.empty():
-                break
-
-            response = fromQueue.get(False)
-            if not response:
-                break
-
-            response = copy.copy(response)
-            response.id = request.id
-            wire = response.to_wire(max_size=65535)
+            ignoreTrailing = trailingDataResponse is True
             try:
-                conn.send(struct.pack("!H", len(wire)))
-                conn.send(wire)
-            except socket.error as e:
-                # some of the tests are going to close
-                # the connection on us, just deal with it
-                break
+                data = conn.recv(2)
+            except Exception as err:
+                data = None
+                print(f"Error while reading query size in TCP responder thread {err=}, {type(err)=}")
+            if not data:
+                conn.close()
+                return
+
+            (datalen,) = struct.unpack("!H", data)
+            data = conn.recv(datalen)
+            forceRcode = None
+            try:
+                request = dns.message.from_wire(data, ignore_trailing=ignoreTrailing)
+            except dns.message.TrailingJunk as e:
+                if trailingDataResponse is False or forceRcode is True:
+                    raise
+                print("TCP query with trailing data, synthesizing response")
+                request = dns.message.from_wire(data, ignore_trailing=True)
+                forceRcode = trailingDataResponse
+
+            if callback:
+                wire = callback(request)
+            else:
+                if request.edns > 1:
+                    forceRcode = dns.rcode.BADVERS
+                response = cls._getResponse(request, fromQueue, toQueue, synthesize=forceRcode)
+                if response:
+                    wire = response.to_wire(max_size=65535)
+
+            if not wire:
+                conn.close()
+                return
+            elif isinstance(wire, ResponderDropAction):
+                return
+
+            wireLen = struct.pack("!H", len(wire))
+            if partialWrite:
+                for b in wireLen:
+                    conn.send(bytes([b]))
+                    time.sleep(0.5)
+            else:
+                conn.send(wireLen)
+            conn.send(wire)
+
+            while multipleResponses:
+                # do not block, and stop as soon as the queue is empty, either the next response is already here or we are done
+                # otherwise we might read responses intended for the next connection
+                if fromQueue.empty():
+                    break
+
+                response = fromQueue.get(False)
+                if not response:
+                    break
+
+                response = copy.copy(response)
+                response.id = request.id
+                wire = response.to_wire(max_size=65535)
+                try:
+                    conn.send(struct.pack("!H", len(wire)))
+                    conn.send(wire)
+                except socket.error as e:
+                    # some of the tests are going to close
+                    # the connection on us, just deal with it
+                    break
 
         conn.close()
 
@@ -535,6 +540,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         listeningAddr="127.0.0.1",
         partialWrite=False,
         expectedALPN=None,
+        multipleQueriesPerConnection=False,
     ):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
@@ -581,13 +587,29 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 thread = threading.Thread(
                     name="TCP Connection Handler",
                     target=cls.handleTCPConnection,
-                    args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite],
+                    args=[
+                        conn,
+                        fromQueue,
+                        toQueue,
+                        trailingDataResponse,
+                        multipleResponses,
+                        callback,
+                        partialWrite,
+                        multipleQueriesPerConnection,
+                    ],
                 )
                 thread.daemon = True
                 thread.start()
             else:
                 cls.handleTCPConnection(
-                    conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite
+                    conn,
+                    fromQueue,
+                    toQueue,
+                    trailingDataResponse,
+                    multipleResponses,
+                    callback,
+                    partialWrite,
+                    multipleQueriesPerConnection,
                 )
 
         sock.close()

@@ -178,8 +178,14 @@ public:
     return d_releaseConnection;
   }
 
+  bool pooledHealthCheck() const
+  {
+    return d_pooledHealthCheck;
+  }
+
 protected:
   bool d_releaseConnection{true};
+  bool d_pooledHealthCheck{false};
 };
 
 struct CrossProtocolQuery
