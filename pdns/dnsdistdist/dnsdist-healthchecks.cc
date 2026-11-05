@@ -179,7 +179,9 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     }
 
     if (data->d_ds->d_config.d_healthCheckResponseValidationCallback) {
-      return validateHealthCheckResponseWithCallback(data);
+      if (!validateHealthCheckResponseWithCallback(data)) {
+        return false;
+      }
     }
   }
   catch (const std::exception& e) {
