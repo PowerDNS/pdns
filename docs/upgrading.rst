@@ -51,8 +51,10 @@ Views support for the PostgreSQL backend
 :doc:`PostgreSQL <backends/generic-postgresql>` backend. Existing
 installations that wish to use this feature need to apply the schema
 addition in ``4.7.0_to_5.2.0_schema.pgsql.sql``, which adds the new
-``networks`` and ``views`` tables; installations which do not use views do
-not need to apply it. The backend detects the presence of these tables
+``networks`` and ``views`` tables. Installations which do not use views do
+not need to apply it before upgrading to 5.2. However, we advise applying
+the schema addition anyway, before or after upgrading, to stay consistent
+with our published schema. The backend detects the presence of these tables
 automatically (once, at server startup) and only advertises Views support
 when they exist. The MySQL and SQLite3 backends do not support Views yet.
 

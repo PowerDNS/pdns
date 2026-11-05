@@ -266,8 +266,8 @@ void GSQLBackend::detectViews()
   // expected to return a single row whose first column is "1" when both
   // tables exist. Backend objects are created frequently, so the probe runs
   // only once per backend configuration; all instances share the result.
-  const std::string probe = viewsDetectionQuery();
-  if (probe.empty() || !d_db) {
+  const char* probe = viewsDetectionQuery();
+  if (probe[0] == '\0' || !d_db) {
     d_views = false;
     return;
   }
@@ -289,7 +289,7 @@ void GSQLBackend::detectViews()
     // same configuration are harmless, as they yield the same result.
     bool present = false;
     try {
-      auto stmt = d_db->prepare(probe, 0);
+      auto stmt = d_db->prepare(std::string(probe), 0);
       SSqlStatement::result_t result;
       stmt->execute()->getResult(result);
       present = !result.empty() && !result[0].empty() && result[0][0] == "1";
