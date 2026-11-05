@@ -11,8 +11,7 @@ ExecStop=@bindir@/rec_control --socket-dir=%t/pdns-recursor quit-nicely
 User=@service_user@
 Group=@service_group@
 Type=notify
-Restart=on-failure
-StartLimitInterval=0
+Restart=on-abnormal
 RuntimeDirectory=pdns-recursor
 SyslogIdentifier=pdns-recursor
 
