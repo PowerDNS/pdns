@@ -47,7 +47,7 @@ public:
     std::vector<std::string> region;
   };
 
-  GeoIPInterfaceMMDB(Logr::log_t slog, const string& fname, const string& modeStr, GeoIPMMDBQueries& queries) :
+  GeoIPInterfaceMMDB(Logr::log_t slog, const string& fname, const string& modeStr, GeoIPMMDBQueries queries) :
     d_slog(slog), d_queries(std::move(queries))
   {
     int flags = 0;
