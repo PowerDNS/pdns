@@ -1,5 +1,7 @@
 0	unauth.example.com.	120	IN	CNAME	no-idea.example.org.
 0	unauth.example.com.	120	IN	RRSIG	CNAME 13 3 120 [expiry] [inception] [keytag] example.com. ...
+0	unauth.example.com.	86400	IN	NSEC	usa.example.com. CNAME RRSIG NSEC
+0	unauth.example.com.	86400	IN	RRSIG	NSEC 13 3 86400 [expiry] [inception] [keytag] example.com. ...
 2	.	32768	IN	OPT	
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='unauth.example.com.', qtype=ANY
