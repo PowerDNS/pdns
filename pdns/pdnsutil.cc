@@ -18,6 +18,7 @@
 #include <boost/program_options.hpp>
 
 #include "arguments.hh"
+#include "auth-caches.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
 #include "auth-zonecache.hh"
@@ -33,6 +34,7 @@
 #include "dnsrecords.hh"
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
+#include "dynlistener.hh"
 #include "ipcipher.hh"
 #include "iputils.hh"
 #include "json11.hpp"
@@ -6346,6 +6348,12 @@ static void checkCommandSyntax()
 }
 #endif
 
+// NOLINTNEXTLINE(readability-named-parameter)
+static std::string DLdummy(const vector<string> &, pid_t, Logr::log_t)
+{
+  return "";
+}
+
 int main(int argc, char** argv)
 try
 {
@@ -6404,6 +6412,20 @@ try
     cout << desc << endl;
 
     return 0;
+  }
+
+  // This apparently useless block is intended to make sure that these
+  // functions are not omitted from the pdnsutil binary, if building with
+  // meson (which creates an intermediate library with all the pdns common
+  // code and links pdnsutil against it, allowing the linker to discard code
+  // which is not used by pdnsutil itself).
+  // When backend modules are compiled as shared objects, loading them will
+  // reference these symbols and this should not fail.
+  {
+    PC.setMaxEntries(0);
+    QC.setMaxEntries(0);
+    purgeAuthCaches("fnord");
+    DynListener::registerFunc("DUMMY", DLdummy);
   }
 
   loadMainConfig(g_vm["config-dir"].as<string>());
