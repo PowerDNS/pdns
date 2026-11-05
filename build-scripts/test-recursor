@@ -14,7 +14,7 @@ if [ "$0" != "./build-scripts/test-recursor" ]; then
   exit 1
 fi
 
-set -x
+#set -x
 
 EXTRA_ARG=""
 if [ $PWD = /srv/buildbot-worker/test-rec-debian-bookworm/build ]; then
@@ -61,7 +61,16 @@ done
 ./runtests || EXIT=1
 ./stop.sh
 sleep 3
-./clean.sh
+if [ "$EXIT" ]; then
+    ./clean.sh
+else
+    for file in $(find . -name logfile | sort); do
+        echo '=== START OF ' $file ' ==='
+        cat $file
+        echo '=== END OF ' $file ' ==='
+        echo
+    done
+fi
 
 cd ../regression-tests.recursor-dnssec
 
