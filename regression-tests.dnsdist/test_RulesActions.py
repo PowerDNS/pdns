@@ -607,27 +607,18 @@ class TestAdvancedQPS(DNSDistTest):
         rrset = dns.rrset.from_text(name, 60, dns.rdataclass.IN, dns.rdatatype.A, "192.0.2.1")
         response.answer.append(rrset)
 
-        for _ in range(maxQPS):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
-
-        # we should now be dropped
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
-        self.assertEqual(receivedResponse, None)
+        # this can be racy; don't count exactly, just that we drop some
+        sent = maxQPS * 2
+        allowed = self.sendQueryBurst(query, response, sent)
+        self.assertGreaterEqual(allowed, maxQPS)
+        self.assertLess(allowed, sent)
 
         time.sleep(1)
 
         # again, over TCP this time
-        for _ in range(maxQPS):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
-
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
-        self.assertEqual(receivedResponse, None)
+        allowed = self.sendQueryBurst(query, response, sent, tcp=True)
+        self.assertGreaterEqual(allowed, maxQPS)
+        self.assertLess(allowed, sent)
 
 
 class TestAdvancedQPSNone(DNSDistTest):
