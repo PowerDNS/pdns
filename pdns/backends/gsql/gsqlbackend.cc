@@ -266,8 +266,8 @@ void GSQLBackend::detectViews()
   // expected to return a single row whose first column is "1" when both
   // tables exist. Backend objects are created frequently, so the probe runs
   // only once per backend configuration; all instances share the result.
-  const char* probe = viewsDetectionQuery();
-  if (probe[0] == '\0' || !d_db) {
+  std::string_view probe = viewsDetectionQuery();
+  if (probe.empty() || !d_db) {
     d_views = false;
     return;
   }
@@ -469,13 +469,13 @@ void GSQLBackend::freeStatements()
   d_DeleteCommentsQuery_stmt.reset();
   d_SearchRecordsQuery_stmt.reset();
   d_SearchCommentsQuery_stmt.reset();
-  d_ViewListQuery_stmt.reset();
-  d_ViewListZonesQuery_stmt.reset();
-  d_ViewAddZoneQuery_stmt.reset();
-  d_ViewDelZoneQuery_stmt.reset();
-  d_NetworkSetQuery_stmt.reset();
-  d_NetworkUnsetQuery_stmt.reset();
-  d_NetworkListQuery_stmt.reset();
+  d_ViewListQuery_stmt = nullptr;
+  d_ViewListZonesQuery_stmt = nullptr;
+  d_ViewAddZoneQuery_stmt = nullptr;
+  d_ViewDelZoneQuery_stmt = nullptr;
+  d_NetworkSetQuery_stmt = nullptr;
+  d_NetworkUnsetQuery_stmt = nullptr;
+  d_NetworkListQuery_stmt = nullptr;
 }
 
 void GSQLBackend::setNotified(domainid_t domain_id, uint32_t serial)
@@ -1260,7 +1260,7 @@ void GSQLBackend::viewList(vector<string>& result)
       result.push_back(row[0]);
     }
 
-    d_ViewListQuery_stmt->reset();
+    (*d_ViewListQuery_stmt).reset();
   }
   catch (SSqlException& e) {
     throw PDNSException("GSQLBackend unable to list views: " + e.txtReason());
@@ -1302,7 +1302,7 @@ void GSQLBackend::viewListZones(const string& view, vector<ZoneName>& result)
       }
     }
 
-    d_ViewListZonesQuery_stmt->reset();
+    (*d_ViewListZonesQuery_stmt).reset();
   }
   catch (SSqlException& e) {
     throw PDNSException("GSQLBackend unable to list zones for view '" + view + "': " + e.txtReason());
@@ -1420,7 +1420,7 @@ bool GSQLBackend::networkList(vector<pair<Netmask, string>>& networks)
       }
     }
 
-    d_NetworkListQuery_stmt->reset();
+    (*d_NetworkListQuery_stmt).reset();
   }
   catch (SSqlException& e) {
     throw PDNSException("GSQLBackend unable to list networks: " + e.txtReason());

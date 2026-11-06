@@ -21,6 +21,7 @@
  */
 #pragma once
 #include <string>
+#include <string_view>
 #include <map>
 #include "ssql.hh"
 #include "pdns/arguments.hh"
@@ -58,7 +59,7 @@ protected:
   // tables ("views" and "networks"). Returns a query yielding a single row
   // whose first column is "1" when both tables exist, or an empty string if
   // this backend does not implement Views support.
-  virtual const char* viewsDetectionQuery() const { return ""; }
+  virtual std::string_view viewsDetectionQuery() const { return {}; }
   void detectViews();
 
 public:
