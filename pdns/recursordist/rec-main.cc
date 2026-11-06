@@ -3434,7 +3434,12 @@ int main(int argc, char** argv)
     g_negCache = std::make_unique<NegCache>(::arg().asNum<size_t>("record-cache-shards") / 8);
     if (!::arg().mustDo("disable-packetcache")) {
       g_maxPacketCacheEntries = ::arg().asNum<uint32_t>("max-packetcache-entries");
-      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum<size_t>("packetcache-shards"));
+      uint32_t packetcacheShards = ::arg().asNum<uint32_t>("packetcache-shards");
+      if (packetcacheShards == 0) {
+        log->info(Logr::Warning, "Packetcache shards must be greater than 0, raising to 1");
+        packetcacheShards = 1;
+      }
+      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, packetcacheShards);
     }
 
     ret = serviceMain(startupLog);
