@@ -43,6 +43,11 @@ Metric counter name changes
 
 Due to the introduction of Prometheus-style histogram counters for latencies, the existing exponentially weighted moving average couters now have their name suffixed with `-ewma` to tell them apart from the histogram counters.
 
+Lua DNS Update policy script behaviour changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :ref:`Lua DNS Update policy script <dnsupdate-lua-dnsupdate-policy-script>` now honors :ref:`setting-lua-global-include-dir`.
+
 5.0.x to 5.1.x
 --------------
 
