@@ -558,7 +558,6 @@ BOOST_AUTO_TEST_CASE(test_root_nx_trust)
   res = sr->beginResolve(target2, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NXDomain);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
-  // FIXME
   BOOST_CHECK_LE(ret[0].d_ttl, SyncRes::s_maxnegttl);
   /* one for target1 and one for the entire TLD */
   BOOST_CHECK_EQUAL(g_negCache->size(), 2U);
