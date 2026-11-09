@@ -70,6 +70,7 @@ else
         echo '=== END OF ' $file ' ==='
         echo
     done
+    echo You might want to run ./clean.sh aftert inspecting logs
 fi
 
 cd ../regression-tests.recursor-dnssec
