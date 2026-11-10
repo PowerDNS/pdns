@@ -40,7 +40,7 @@ env:
 jobs:
   build-docs:
     name: Build docs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       BRANCH_NAME: ${{ github.ref_name }}
     outputs:
@@ -141,7 +141,7 @@ jobs:
     name: Publish to Web1
     needs: build-docs
     if: ${{ (github.ref_name == 'master' || vars.DOCS_WORKFLOW_BRANCH_OVERRIDE == 'true') && vars.PUBLISH_DOCS_TO_WEB1 == 'true' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       PDNS_VERSION: ${{needs.build-docs.outputs.pdns_version}}
       DOCS_HOST: ${{vars.DOCS_HOST}}
@@ -195,7 +195,7 @@ jobs:
     name: Publish to AWS
     needs: build-docs
     if: ${{ (github.ref_name == 'master' || vars.DOCS_WORKFLOW_BRANCH_OVERRIDE == 'true') && vars.PUBLISH_DOCS_TO_AWS == 'true' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

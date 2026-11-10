@@ -278,7 +278,7 @@ jobs:
 
   check-clang-tidy:
     needs: analyze
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Check whether clang-tidy succeeded
     env:
       ANNOTATIONS_AUTH: ${{ needs.analyze.outputs.clang-tidy-annotations-auth }}
@@ -300,7 +300,7 @@ jobs:
           fi
 
   check-for-binaries:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Force failure in case there are binaries present in a pull request
     if: ${{ github.event_name == 'pull_request' }}
     steps:
@@ -312,7 +312,7 @@ jobs:
     - run: if [[ "$(file -i --dereference $(git diff --name-only HEAD^..HEAD -- . :^fuzzing/corpus) | grep binary | grep -v 'image/' | grep -v 'inode/x-empty' | grep -v 'inode/directory' | grep -v '^modules/lmdbbackend/test-assets/' | grep -v '^website/docs.powerdns.com/website/fonts/' | grep -v '^website/docs.powerdns.com/website/img/' | grep -v '^modules/tinydnsbackend/data.cdb' | tee /dev/stderr)" != "" ]]; then exit 1; fi
 
   check-python-formatting:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     name: Check formatting of Python scripts
     if: ${{ github.event_name == 'pull_request' }}
     steps:
