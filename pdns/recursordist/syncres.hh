@@ -133,7 +133,7 @@ public:
     [[nodiscard]] std::string print(const std::string& indent = "",
                                     const std::string& indentLevel = "  ") const;
 
-    int getRecords(const DNSName& qname, QType qtype, std::vector<DNSRecord>& records) const;
+    uint8_t getRecords(const DNSName& qname, QType qtype, std::vector<DNSRecord>& records) const;
     [[nodiscard]] bool isAuth() const
     {
       return d_servers.empty();
@@ -635,6 +635,31 @@ public:
   // Initialized only once, as opposed to d_now which gets updated after outgoing requests
   const struct timeval d_fixednow;
 
+  struct CacheEntry
+  {
+    vector<DNSRecord> records;
+    MemRecursorCache::SigRecsVec signatures;
+    // for wildcard records, we need the real owner name for the aggressive cache
+    DNSName realOwner;
+    time_t d_ttl_time{0};
+    uint32_t signaturesTTL{std::numeric_limits<uint32_t>::max()};
+    vState validationState{vState::Indeterminate};
+    bool inserted{false};
+    bool isAuth{false};
+    bool expectSignature{false};
+  };
+  struct CacheKey
+  {
+    DNSName name;
+    QType type;
+    DNSResourceRecord::Place place;
+    bool operator<(const CacheKey& rhs) const
+    {
+      return std::tie(type, place, name) < std::tie(rhs.type, rhs.place, rhs.name);
+    }
+  };
+  using tcache_t = map<CacheKey, CacheEntry>;
+
 private:
   ComboAddress d_requestor;
   ComboAddress d_cacheRemote;
@@ -712,8 +737,8 @@ private:
      This is unfortunately needed to deal with very crappy so-called DNS servers */
   void fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
   void rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSRecord>& newRecords, unsigned int depth, const string& prefix);
-  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, const std::optional<Netmask>&, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool sendRDQuery, const ComboAddress& remoteIP, bool overTCP);
-  bool processRecords(const std::string& prefix, const DNSName& qname, QType qtype, const DNSName& auth, LWResult& lwr, bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, bool needWildcardProof, bool gatherwildcardProof, unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth);
+  RCode::rcodes_ updateCacheFromRecords(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, const std::optional<Netmask>&, bool sendRDQuery, const ComboAddress& remoteIP, bool overTCP, tcache_t& tcache, vState state);
+  bool processRecords(const std::string& prefix, const DNSName& qname, QType qtype, const DNSName& auth, LWResult& lwr, bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, int& rcode, unsigned int depth);
 
   bool doSpecialNamesResolve(const DNSName& qname, QType qtype, QClass qclass, vector<DNSRecord>& ret);
 
@@ -741,7 +766,10 @@ private:
   void handlePolicyHit(const std::string& prefix, const DNSName& qname, QType qtype, vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth);
   unsigned int getAdjustedRecursionBound() const;
 
-  void checkWildcardProof(const DNSName& qname, const QType& qtype, DNSRecord& rec, const LWResult& lwr, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount);
+  vState checkWildcardProof(const DNSName& name, const QType& type, const std::vector<DNSRecord>& records, bool isAA, vState& state, unsigned int depth, const std::string& prefix, unsigned int wildcardLabelsCount);
+
+  tcache_t validateSignatures(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwardRecurse, vState& state, unsigned int depth);
+  void checkDenialOfExistence(unsigned int depth, const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, tcache_t& tcache, vState& state);
 
   void setUpdatingRootNS()
   {

@@ -2004,7 +2004,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
 BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
 {
   std::unique_ptr<SyncRes> sr;
-  initSR(sr, true, false);
+  initSR(sr, true);
 
   setDNSSECValidation(sr, DNSSECMode::ValidateAll);
 

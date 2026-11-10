@@ -65,18 +65,66 @@ public:
     BindError = 8,
   };
 
+  enum class AnswerType : uint8_t
+  {
+    Unknown = 0,
+    PositiveAnswer,
+    Referral,
+    NoData,
+    NXDomain,
+  };
+
+  class ExpandedWildcardData
+  {
+  public:
+    // wildcards expanded onto themselves (*.powerdns.com. returned as a query
+    // for *.powerdns.com., for example) DO exist, so trying to prove that they
+    // don't would fail.
+    bool shouldDenialOfExistenceBeValidated() const
+    {
+      return !d_expandedOntoItself;
+    }
+
+    // The number of labels of the wildcard (from the RRSIG)
+    // so that we can reconstruct it. Remember to check if this is a
+    // wildcard expanded onto itself (shouldDenialOfExistenceBeValidated)
+    // when consuming this.
+    uint8_t d_labelsCount{0};
+    bool d_expandedOntoItself{false};
+  };
+
   [[nodiscard]] static bool isLimitError(Result res)
   {
     return res == Result::OSLimitError || res == Result::ChainLimitError;
   }
 
-  vector<DNSRecord> d_records;
+  std::vector<DNSRecord> d_records;
+  // The names have been expanded from a wildcard, so we need to
+  // 1/ check that the initial name did not exist (denial of existence) so
+  //    that the wildcard could have been applied
+  // 2/ gather the corresponding NSEC/NSEC3 records and their RRSIGs to allow
+  //    downstream validators to do their thing
+  std::unordered_map<DNSName, ExpandedWildcardData> d_synthesizedFromWildcard;
+  std::optional<DNSName> d_seenSOA{std::nullopt};
+  // if this a referral, the new (more specific) auth
+  std::optional<DNSName> d_newAuth{std::nullopt};
   uint32_t d_usec{0};
   uint32_t d_bytesReceived{0};
+  // this needs to be a signed integer because the Lua policies
+  // use negative values to stop processing of queries
   int d_rcode{0};
+  AnswerType d_answerType{AnswerType::Unknown};
   bool d_validpacket{false};
-  bool d_aabit{false}, d_tcbit{false};
+  bool d_aabit{false};
+  bool d_tcbit{false};
   bool d_haveEDNS{false};
+  bool d_isCNAMEAnswer{false};
+  bool d_isDNAMEAnswer{false};
+  // whether we have seen at least one NSEC(3) record in AUTHORITY.
+  // This might indicate a denial of the DS in referrals
+  bool d_seenNSEC{false};
+  // whether the answer denies the existence of a DS (referrals)
+  bool d_deniesDS{false};
 };
 
 class EDNSSubnetOpts;

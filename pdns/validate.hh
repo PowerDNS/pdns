@@ -130,7 +130,7 @@ bool isCoveredByNSEC3Hash(const DNSName& name, const DNSName& beginHash, const D
 bool getTrustAnchor(const map<DNSName, dsset_t>& anchors, const DNSName& zone, dsset_t& res);
 bool haveNegativeTrustAnchor(const map<DNSName, std::string>& negAnchors, const DNSName& zone, std::string& reason);
 vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsset_t& dsset, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent>>& sigs, skeyset_t& validkeys, const OptLog&, pdns::validation::ValidationContext& context);
-dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, const OptLog& log = std::nullopt, bool needWildcardProof = true, unsigned int wildcardLabelsCount = 0);
+dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, const OptLog& log = std::nullopt, bool needWildcardProof = true, std::optional<unsigned int> wildcardLabelsCount = std::nullopt);
 bool isSupportedDS(const DSRecordContent& dsRecordContent, const OptLog&);
 DNSName getSigner(const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures);
 bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords, pdns::validation::ValidationContext& context);

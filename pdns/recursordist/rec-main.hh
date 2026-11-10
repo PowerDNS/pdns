@@ -120,6 +120,8 @@ struct DNSComboWriter
   shared_ptr<TCPConnection> d_tcpConnection;
   std::optional<uint16_t> d_extendedErrorCode{std::nullopt};
   string d_extendedErrorExtra;
+  // this needs to be a signed integer because the Lua policies
+  // use negative values to stop processing of queries
   std::optional<int> d_rcode{std::nullopt};
   int d_socket{-1};
   unsigned int d_tag{0};
