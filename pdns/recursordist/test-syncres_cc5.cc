@@ -729,10 +729,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec)
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_missing_dnssec_validation_disabled)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
+  std::unique_ptr<SyncRes> syncResInstance;
+  initSR(syncResInstance, true);
 
-  setDNSSECValidation(sr, DNSSECMode::Process);
+  setDNSSECValidation(syncResInstance, DNSSECMode::Process);
 
   primeHints();
   const DNSName target("powerdns.com.");
@@ -748,7 +748,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_missing_dnssec_validation_disab
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  syncResInstance->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
@@ -805,19 +805,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_missing_dnssec_validation_disab
 
   vector<DNSRecord> ret;
   /* we do NOT validate */
-  sr->setDNSSECValidationRequested(false);
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(false);
+  int res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* again, to test the cache, this time we DO validate */
-  sr->setDNSSECValidationRequested(true);
+  syncResInstance->setDNSSECValidationRequested(true);
   ret.clear();
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK_EQUAL(queriesCount, 6U);
 }
@@ -1049,10 +1049,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard)
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_dnssec_validation_disabled)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
+  std::unique_ptr<SyncRes> syncResInstance;
+  initSR(syncResInstance, true);
 
-  setDNSSECValidation(sr, DNSSECMode::Process);
+  setDNSSECValidation(syncResInstance, DNSSECMode::Process);
 
   primeHints();
   const DNSName target("www.powerdns.com.");
@@ -1068,7 +1068,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_dnssec_validation_disa
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  syncResInstance->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
@@ -1140,19 +1140,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_dnssec_validation_disa
 
   vector<DNSRecord> ret;
   /* we do NOT validate */
-  sr->setDNSSECValidationRequested(false);
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(false);
+  int res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* again, to test the cache and this time we DO validate */
   ret.clear();
-  sr->setDNSSECValidationRequested(true);
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(true);
+  res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   for (const auto& rec : ret) {
     /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
@@ -1163,10 +1163,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_dnssec_validation_disa
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_nodata_dnssec_validation_disabled)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
+  std::unique_ptr<SyncRes> syncResInstance;
+  initSR(syncResInstance, true);
 
-  setDNSSECValidation(sr, DNSSECMode::Process);
+  setDNSSECValidation(syncResInstance, DNSSECMode::Process);
 
   primeHints();
   const DNSName target("www.powerdns.com.");
@@ -1182,7 +1182,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_nodata_dnssec_validati
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  syncResInstance->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
@@ -1257,19 +1257,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_nodata_dnssec_validati
 
   vector<DNSRecord> ret;
   /* we do NOT validate */
-  sr->setDNSSECValidationRequested(false);
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(false);
+  int res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* again, to test the cache and this time we DO validate */
   ret.clear();
-  sr->setDNSSECValidationRequested(true);
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(true);
+  res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::Secure);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   for (const auto& rec : ret) {
     /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
@@ -1391,10 +1391,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_does_not_deny_next_clo
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing_dnssec_validation_disabled)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
+  std::unique_ptr<SyncRes> syncResInstance;
+  initSR(syncResInstance, true);
 
-  setDNSSECValidation(sr, DNSSECMode::Process);
+  setDNSSECValidation(syncResInstance, DNSSECMode::Process);
 
   primeHints();
   const DNSName target("a.b.powerdns.com.");
@@ -1410,7 +1410,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing_dnssec_validat
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  syncResInstance->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
@@ -1480,19 +1480,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing_dnssec_validat
 
   vector<DNSRecord> ret;
   /* we DO NOT validate */
-  sr->setDNSSECValidationRequested(false);
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(false);
+  int res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   BOOST_CHECK_EQUAL(queriesCount, 3U);
 
   /* again, to test the cache but this time we DO validate */
   ret.clear();
-  sr->setDNSSECValidationRequested(true);
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(true);
+  res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 4U);
   for (const auto& rec : ret) {
     /* check that we applied the lowest TTL, here this is from the NSEC proving that the exact name did not exist */
@@ -1503,10 +1503,10 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_missing_dnssec_validat
 
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_cname_missing_dnssec_validation_disabled)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
+  std::unique_ptr<SyncRes> syncResInstance;
+  initSR(syncResInstance, true);
 
-  setDNSSECValidation(sr, DNSSECMode::Process);
+  setDNSSECValidation(syncResInstance, DNSSECMode::Process);
 
   primeHints();
   const DNSName target("a.b.powerdns.com.");
@@ -1523,7 +1523,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_cname_missing_dnssec_v
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  syncResInstance->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (type == QType::DS || type == QType::DNSKEY) {
@@ -1601,19 +1601,19 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec_wildcard_cname_missing_dnssec_v
 
   vector<DNSRecord> ret;
   /* we DO NOT validate */
-  sr->setDNSSECValidationRequested(false);
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(false);
+  int res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::Indeterminate);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache but this time we DO validate */
   ret.clear();
-  sr->setDNSSECValidationRequested(true);
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  syncResInstance->setDNSSECValidationRequested(true);
+  res = syncResInstance->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
+  BOOST_CHECK_EQUAL(syncResInstance->getValidationState(), vState::BogusInvalidDenial);
   BOOST_REQUIRE_EQUAL(ret.size(), 6U);
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }

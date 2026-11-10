@@ -550,7 +550,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   useful when we have a positive answer synthesized from a wildcard and we only need to prove that the next closer
   does not exist.
 */
-dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, const OptLog& log, bool needWildcardProof, std::optional<unsigned int> wildcardLabelsCount) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
+dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, const OptLog& log, bool needWildcardProof, std::optional<unsigned int> wildcardLabelsCount) // NOLINT(readability-function-cognitive-complexity,readability-function-size): https://github.com/PowerDNS/pdns/issues/12791
 {
   bool nsec3Seen = false;
   if ((!needWildcardProof && !wildcardLabelsCount.has_value()) || (wildcardLabelsCount.has_value() && *wildcardLabelsCount > qname.countLabels())) {

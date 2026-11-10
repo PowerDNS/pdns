@@ -4343,7 +4343,7 @@ static std::unordered_set<DNSName> sanitizeCNAMEChain(const DNSName& qname, std:
 
 static void processCNAMEChain(LWResult& lwr, const DNSName& qname, std::unordered_map<DNSName, DNSName>& cnameChain, std::unordered_set<DNSName>& allowedAnswerNames, bool cnameSeen, bool rdQuery)
 {
-  if (cnameChain.size() > 0) {
+  if (!cnameChain.empty()) {
     auto allowed = sanitizeCNAMEChain(qname, cnameChain);
     allowedAnswerNames.insert(allowed.begin(), allowed.end());
     if (cnameSeen && !lwr.d_isDNAMEAnswer) {
@@ -4471,12 +4471,10 @@ SyncRes::tcache_t SyncRes::validateSignatures(const std::string& prefix, LWResul
           are required, the client should query again, using the canonical name
           associated with the alias.
         */
-        isAA = false;
         expectSignature = false;
       }
       if (lwr.d_isDNAMEAnswer && (tCacheEntry.first.place != DNSResourceRecord::ANSWER || tCacheEntry.first.type != QType::DNAME || !qname.isPartOf(tCacheEntry.first.name))) {
         /* see above */
-        isAA = false;
         expectSignature = false;
       }
     }
@@ -4539,6 +4537,7 @@ SyncRes::tcache_t SyncRes::validateSignatures(const std::string& prefix, LWResul
   return tcache;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
 {
   const bool wasForwardRecurse = wasForwarded && rdQuery;
@@ -5901,6 +5900,7 @@ static void normalizeTTLs(const LWResult::AnswerType answerType, std::vector<DNS
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, tcache_t& tcache, vState& state)
 {
   if (!vStateIsBogus(state) && !lwr.d_synthesizedFromWildcard.empty()) {
@@ -5978,6 +5978,7 @@ void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& pref
     }
     return;
   }
+
   if (lwr.d_isCNAMEAnswer || lwr.d_isDNAMEAnswer) {
     // the current qname is not NXDOMAIN or NODATA, the target is,
     // and we will come back to it later.
@@ -5991,7 +5992,7 @@ void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& pref
   }
 
   for (const auto& rec : lwr.d_records) {
-    if (rec.d_class != QClass::IN || rec.d_type != QType::SOA || rec.d_place != DNSResourceRecord::AUTHORITY || rec.d_name != *lwr.d_seenSOA || !qname.isPartOf(rec.d_name) || !rec.d_name.isPartOf(auth)) {
+    if (rec.d_class != QClass::IN || rec.d_type != QType::SOA || rec.d_place != DNSResourceRecord::AUTHORITY || rec.d_name != (lwr.d_seenSOA.has_value() ? lwr.d_seenSOA.value() : auth) || !qname.isPartOf(rec.d_name) || !rec.d_name.isPartOf(auth)) {
       continue;
     }
 
@@ -6001,7 +6002,7 @@ void SyncRes::checkDenialOfExistence(unsigned int depth, const std::string& pref
        does exist but the target does not */
     negEntry.d_name = qname;
     negEntry.d_qtype = lwr.d_answerType == LWResult::AnswerType::NoData ? qtype : QType::ENT; // ENT encodes 'whole record'
-    negEntry.d_auth = *lwr.d_seenSOA;
+    negEntry.d_auth = lwr.d_seenSOA.has_value() ? lwr.d_seenSOA.value() : auth;
     harvestNXRecords(lwr.d_records, negEntry, d_now.tv_sec, &lowestTTL);
 
     if (vStateIsBogus(state)) {
