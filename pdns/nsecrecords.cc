@@ -138,8 +138,8 @@ void NSECBitmap::fromPacket(PacketReader& pr)
     for (unsigned int k = 0; k < blen; k++) {
       uint8_t val = bitmap[position++];
       for (int bit = 0; bit < 8 ; ++bit , val>>=1) {
-        if (val & 1) {
-          set((7-bit) + 8*(k) + 256*window);
+        if ((val & 1) != 0) {
+          set((7 - bit) + (8 * k) + (256 * window));
         }
       }
     }
