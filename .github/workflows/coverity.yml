@@ -25,7 +25,7 @@ jobs:
   coverity-auth:
     name: coverity scan of the auth
     if: ${{ inputs.product == 'authoritative' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
       FUZZING_TARGETS: no
@@ -55,7 +55,7 @@ jobs:
   coverity-dnsdist:
     name: coverity scan of dnsdist
     if: ${{ inputs.product == 'dnsdist' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
       SANITIZERS:
@@ -103,7 +103,7 @@ jobs:
   coverity-rec:
     name: coverity scan of the rec
     if: ${{ inputs.product == 'recursor' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
       SANITIZERS:

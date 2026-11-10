@@ -31,7 +31,7 @@ jobs:
 
   list-pip-requirement-files:
     if: ${{ !github.event.schedule || vars.SCHEDULED_VERIFY_PINNING }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       req-files: ${{ steps.get-list-requirements.outputs.files }}
     steps:
@@ -46,7 +46,7 @@ jobs:
   validate-pip-hashes:
     if: ${{ !github.event.schedule || vars.SCHEDULED_VERIFY_PINNING }}
     name: ${{ matrix.requirements-file }} - Validate list of packages and hashes
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: list-pip-requirement-files
     services:
       database:
