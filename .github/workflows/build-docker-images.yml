@@ -39,6 +39,11 @@ on:
         description: push image to DockerHub
         type: boolean
         required: true
+      upload-image-artifacts:
+        description: upload per-arch OCI image tar as workflow artifact
+        type: boolean
+        required: false
+        default: false
     secrets:
       DOCKERHUB_ORGANIZATION_NAME:
         required: true
@@ -135,7 +140,9 @@ jobs:
           sbom: true
           tags: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME || 'powerdns' }}/${{ inputs.image-name }}
           build-args: ${{ inputs.build-args }}
-          outputs: type=image,push-by-digest=true,name-canonical=true
+          outputs: |
+            type=image,push-by-digest=true,name-canonical=true
+            type=oci,dest=${{ runner.temp }}/image.tar
       - name: Update repo description
         if: ${{ inputs.push }}
         uses: peter-evans/dockerhub-description@v5
@@ -160,6 +167,23 @@ jobs:
           path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
+      - name: Upload image artifact
+        if: ${{ inputs.upload-image-artifacts }}
+        uses: actions/upload-artifact@v7
+        with:
+          # Usage:
+          # mkdir -p $DEST_DIR/amd64/layout/ && unzip -p $SRC_DIR/image-${PRODUCT}-linux-amd64.zip| tar -zx -C $DEST_DIR/amd64/layout/
+          # mkdir -p $DEST_DIR/arm64/layout/ && unzip -p $SRC_DIR/image-${PRODUCT}-linux-arm64.zip| tar -zx -C $DEST_DIR/arm64/layout/
+          # DIGEST_AMD64=$(jq -r '.manifests[].digest' $DEST_DIR/amd64/layout/index.json)
+          # DIGEST_ARM64=$(jq -r '.manifests[].digest' $DEST_DIR/arm64/layout/index.json)
+          # docker buildx imagetools create --tag ${OUTPUT_NAME}:${OUTPUT_TAG} \
+          #   "oci-layout://${DEST_DIR}/amd64/layout@${DIGEST_AMD64}" \
+          #   "oci-layout://${DEST_DIR}/arm64/layout@${DIGEST_ARM64}"
+          name: image-${{ inputs.product }}-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/image.tar
+          if-no-files-found: error
+          retention-days: 10
+          compression-level: 0
 
   publish-tag:
     name: Generate and publish tag for multi-platform image
