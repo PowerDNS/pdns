@@ -81,15 +81,14 @@ jobs:
     outputs:
       runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
     steps:
-      - run: sudo apt-get update && sudo apt-get -y install jo
       - id: get-runnerlist
         env:
           INPUT_PLATFORMS: ${{ inputs.platforms }}"
         run: |
           runner_os_arch=()
-          echo $INPUT_PLATFORMS | grep -qq arm64 && runner_os_arch+=($(jo arch=linux/amd64 runner=ubuntu-24.04))
-          echo $INPUT_PLATFORMS | grep -qq arm64 && runner_os_arch+=($(jo arch=linux/arm64 runner=ubuntu-24.04-arm))
-          echo "runnerlist=$(jo -a ${runner_os_arch[@]})" >> "$GITHUB_OUTPUT"
+          echo $INPUT_PLATFORMS | grep -qq amd64 && runner_os_arch+=(linux/amd64,ubuntu-24.04)
+          echo $INPUT_PLATFORMS | grep -qq arm64 && runner_os_arch+=(linux/arm64,ubuntu-24.04-arm)
+          echo "runnerlist=$(echo ${runner_os_arch[@]} | jq -Rc 'split(" ") | map(split(",") | {arch: .[0], runner: .[1]})')" >> "$GITHUB_OUTPUT"
 
   build:
     name: build ${{ matrix.platform.arch }} docker image for a product
