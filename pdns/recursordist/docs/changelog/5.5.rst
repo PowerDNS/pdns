@@ -4,6 +4,70 @@ Changelogs for 5.5.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.5.0-beta1
+  :released: 11th of November 2026
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18195
+
+    Report unknown root key signing keys seen in log and as a metric.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18244
+
+    Update cargo dependencies, fixing a couple of minor security issues.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18246
+
+    Handle redundant SOAs in ZoneMD processing.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18247
+
+    Determine re-use TLS connection based on more parameters.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18248
+
+    Sysconf can return -1 for _SC_GETGR_R_SIZE_MAX and _SC_GETPW_R_SIZE_MAX, use sane default.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18260
+
+    Do not flush cache on initial (synchronous) RPZ load from seed or file.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18268
+
+    Dnsparser: Yet another hardening PR.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18270
+
+    Two very minor Coverity fixes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18277
+
+    Dnsname: Fix length check for DNS name lacking the final dot.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18305
+
+    Refactor processing of answers received from authoritative servers.
+
+.. changelog::
   :version: 5.5.0-alpha2
   :released: 27th of October 2026
 
