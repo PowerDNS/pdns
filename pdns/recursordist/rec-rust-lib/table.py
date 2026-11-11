@@ -1506,6 +1506,7 @@ The default value 0 means no DoT probes are scheduled.
 
 DoT probes are used to check if an authoritative server's IP address supports DoT.
 If the probe determines an IP address supports DoT, the Recursor will use DoT to contact it for subsequent queries until a failure occurs.
+Only transport failures count; an answer with an error rcode such as REFUSED does not.
 After a failure, the Recursor will stop using DoT for that specific IP address for a while.
 The results of probes are remembered and can be viewed by the ``rec_control dump-dot-probe-map`` command.
 If the maximum number of pending probes is reached, no probes will be scheduled, even if no DoT status is known for an address.

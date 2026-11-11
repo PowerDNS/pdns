@@ -1523,6 +1523,8 @@ LWResult::Result SyncRes::asyncresolveWrapper(const OptLog& log, const ComboAddr
       sendQname.makeUsLowerCase();
     }
 
+    // Clear the flag left by a previous answer
+    res->d_validpacket = false;
     if (d_asyncResolve) {
       ret = d_asyncResolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
@@ -5533,8 +5535,9 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsN
   bool isOK = false;
   try {
     std::optional<EDNSExtendedError> extendedError;
-    isOK = doResolveAtThisIP("", qname, qtype, lwr, netmask, qname, false, false, nsName, address, true, true, truncated, spoofed, extendedError, true);
-    isOK = isOK && lwr.d_rcode == RCode::NoError && !lwr.d_records.empty();
+    doResolveAtThisIP("", qname, qtype, lwr, netmask, qname, false, false, nsName, address, true, true, truncated, spoofed, extendedError, true);
+    // Any answer (including REFUSED) means that DoT works
+    isOK = lwr.d_validpacket;
   }
   catch (const PDNSException& e) {
     logHelper2(e.reason, "PDNSException");
@@ -6348,8 +6351,8 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           }
 
           if (!gotAnswer) {
-            if (doDoT && s_max_busy_dot_probes > 0) {
-              // This is quite pessimistic...
+            // Only counting transport failures
+            if (doDoT && s_max_busy_dot_probes > 0 && !lwr.d_validpacket) {
               updateDoTStatus(*remoteIP, DoTStatus::Bad, d_now.tv_sec + dotFailWait);
             }
             continue;
