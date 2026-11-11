@@ -3,7 +3,7 @@
 
 wheel>=0.47.0
 Pdns-Remotebackend==0.8.0
-pyzmq==25.1.2
+pyzmq==27.3.0
 cython>=3.0.0
 setuptools-scm>=10
 setuptools<82
