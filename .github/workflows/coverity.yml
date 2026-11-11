@@ -18,7 +18,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
   contents: read
 
 env:
-  CLANG_VERSION: '12'
+  CLANG_VERSION: '18' # default clang for ubuntu24-04
   BUILDER_VERSION: '0.0.0-git1'
 
 jobs:
