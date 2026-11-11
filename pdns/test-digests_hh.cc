@@ -8,6 +8,7 @@
 #endif
 #include <boost/test/unit_test.hpp>
 #include <boost/assign/list_of.hpp>
+#include <openssl/err.h>
 
 #include "digests.hh"
 #include "misc.hh"
@@ -31,5 +32,20 @@ BOOST_AUTO_TEST_CASE(test_pdns_sha1sum)
 
   BOOST_CHECK_EQUAL(makeHexDump(sum), result);
 }
+
+#if OPENSSL_VERSION_MAJOR >= 3
+BOOST_AUTO_TEST_CASE(test_pdns_hash_failure_clears_error_queue)
+{
+  /* make the digest fetch fail, as MD5 does when only the FIPS provider is available */
+  BOOST_REQUIRE_EQUAL(EVP_set_default_properties(nullptr, "provider=pdns-test-none"), 1);
+  ERR_clear_error();
+  BOOST_CHECK_THROW(pdns::md5("a quick brown fox jumped over the lazy dog"), std::runtime_error);
+  const auto pending = ERR_peek_error();
+  BOOST_REQUIRE_EQUAL(EVP_set_default_properties(nullptr, ""), 1);
+
+  /* an error left on the queue breaks the next OpenSSL user on this thread, e.g. libmysqlclient */
+  BOOST_CHECK_EQUAL(pending, 0UL);
+}
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
