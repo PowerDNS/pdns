@@ -48,6 +48,10 @@ This is the case for the following domains:
 * resolver.arpa, specified in :rfc:`9462`
 * service.arpa, specified in :rfc:`9665`
 
+New Metric
+^^^^^^^^^^
+- A new metric ``unknown-root-keys`` has been added, signalling a root key signing key was seen that is not present as a root trust anchor. See :doc:`metrics`.
+
 5.1.10, 5.2.8, 5.3.5 and 5.5.0
 ------------------------------
 
