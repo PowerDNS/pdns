@@ -729,7 +729,7 @@ bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal, con
 {
   if (!config.enabled) {
     if (serverInfos.servers) {
-      // dt's take care of cleanup
+      // dtors take care of cleanup
       asyncFrameStreamLoggersCleanup(std::move(serverInfos.servers));
       serverInfos.config = config;
     }
@@ -742,7 +742,7 @@ bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal, con
    */
   if (serverInfos.generation < luaconfsLocal->generation && serverInfos.config != config) {
     if (serverInfos.servers) {
-      // dt's take care of cleanup
+      // dtors take care of cleanup
       asyncFrameStreamLoggersCleanup(std::move(serverInfos.servers));
     }
 
@@ -3457,7 +3457,14 @@ int main(int argc, char** argv)
     g_slog->withName("config")->info(Logr::Critical, "Fatal error");
     ret = EXIT_FAILURE;
   }
-
+  if (ret != EXIT_SUCCESS) {
+    // An exception was thrown in the middle of initing. This means we could have half-inited state,
+    // so don't bother trying to clean up through dtors of static objects etc.  One known case is if
+    // we cannot allocate a listening socket, in that case some threads are still joinable on exit,
+    // and some runtimes do not like that, e.g. g++'s std_thread.hh: ~thread() { if (joinable())
+    // std::__terminate(); }
+    _exit(ret);
+  }
   return ret;
 }
 
