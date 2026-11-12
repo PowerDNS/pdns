@@ -101,40 +101,54 @@ void NSECBitmap::fromPacket(PacketReader& pr)
   pr.xfrBlob(bitmap);
 
   // 00 06 20 00 00 00 00 03  -> NS RRSIG NSEC  ( 2, 46, 47 ) counts from left
-  if(bitmap.empty()) {
+  if (bitmap.empty()) {
     return;
   }
 
-  if(bitmap.size() < 2) {
+  if (bitmap.size() < 2) {
     throw MOADNSException("NSEC record with impossibly small bitmap");
   }
 
-  for(unsigned int n = 0; n+1 < bitmap.size();) {
-    uint8_t window=static_cast<uint8_t>(bitmap[n++]);
-    uint8_t blen=static_cast<uint8_t>(bitmap[n++]);
+  size_t position = 0;
+  std::optional<uint8_t> lastWindowSeen{std::nullopt};
+  while (position + 1 < bitmap.size()) {
+    const auto window = static_cast<uint8_t>(bitmap.at(position++));
+    const auto blen = static_cast<uint8_t>(bitmap.at(position++));
 
     // end if zero padding and ensure packet length
     if (window == 0 && blen == 0) {
       break;
     }
 
+    // rfc4034: "Blocks are present in the NSEC RR RDATA in increasing numerical order."
+    if (lastWindowSeen.has_value() && lastWindowSeen.value() >= window) {
+      throw MOADNSException("NSEC record with out of order blocks");
+    }
+
     if (blen > 32) {
       throw MOADNSException("NSEC record with invalid bitmap length");
     }
 
-    if (n + blen > bitmap.size()) {
+    if (position + blen > bitmap.size()) {
       throw MOADNSException("NSEC record with bitmap length > packet length");
     }
 
-    for(unsigned int k=0; k < blen; k++) {
-      uint8_t val=bitmap[n++];
-      for(int bit = 0; bit < 8 ; ++bit , val>>=1) {
-        if(val & 1) {
-          set((7-bit) + 8*(k) + 256*window);
+    lastWindowSeen = window;
+
+    for (unsigned int k = 0; k < blen; k++) {
+      uint8_t val = bitmap.at(position++);
+      for (int bit = 0; bit < 8 ; ++bit , val >>= 1U) {
+        if ((val & 1U) != 0) {
+          set((7 - bit) + (8 * k) + (256 * window));
         }
       }
     }
   }
+
+  if (position != bitmap.size()) {
+    throw MOADNSException("NSEC record does not use all the record bytes");
+  }
+
 }
 
 string NSECBitmap::getZoneRepresentation() const

@@ -858,6 +858,62 @@ BOOST_AUTO_TEST_CASE(test_record_content_crosses_record_boundary)
 
   BOOST_CHECK_THROW(MOADNSParser(false, std::string(response.begin(), response.end())), MOADNSException);
 }
+
+static bool check(uint16_t qtype, const std::string& rdata)
+{
+  static const DNSName qname("example.com.");
+  std::shared_ptr<DNSRecordContent> content;
+  try {
+    content = DNSRecordContent::deserialize(qname, qtype, rdata);
+  }
+  catch (const std::exception& e) {
+    return false;
+  }
+  const auto out = content->serialize(qname, true, false);
+  BOOST_CHECK_EQUAL(out, rdata);
+  return true;
+}
+
+BOOST_AUTO_TEST_CASE(test_nsec_bitmap_useless_bytes)
+{
+  static const std::string NAME = std::string("\7example\3com", 12) + '\0';
+  // NSEC3: alg=1 flags=0 iterations=10 saltlen=4 salt=aabbccdd hashlen=20 hash=0*20
+  static const std::string NSEC3_PREFIX = std::string("\x01\x00\x00\x0a\x04\xaa\xbb\xcc\xdd\x14", 10) + std::string(20, '\0');
+  const std::string CSYNC_PREFIX = std::string("\x00\x00\x00\x01\x00\x03", 6);
+
+  // one valid window (control)
+  BOOST_CHECK(check(QType::NSEC, NAME + std::string("\x00\x06\x40\x01\x40\x00\x00\x03", 8)));
+  // trailing byte after a window
+  BOOST_CHECK(!check(QType::NSEC, NAME + std::string("\x00\x06\x40\x01\x40\x00\x00\x03\x2d", 9)));
+  // zero window, then a real one
+  BOOST_CHECK(!check(QType::NSEC, NAME + std::string("\x00\x01\x40\x00\x00\x01\x01\x80", 8)));
+  // duplicate window 0
+  BOOST_CHECK(!check(QType::NSEC, NAME + std::string("\x00\x01\x40\x00\x01\x20", 6)));
+  // out-of-order windows (1,0)
+  BOOST_CHECK(!check(QType::NSEC, NAME + std::string("\x01\x01\x80\x00\x01\x40", 6)));
+  // window with blen=0
+  BOOST_CHECK(!check(QType::NSEC, NAME + std::string("\x01\x00\x00\x01\x40", 5)));
+  // blen=33 (>32)
+  BOOST_CHECK(!check(QType::NSEC, NAME + std::string("\x00\x21", 2) + std::string(33, '\0')));
+  // blen beyond remaining bytes
+  BOOST_CHECK(!check(QType::NSEC, NAME + std::string("\x00\x20", 2) + std::string(4, '\0')));
+  // zero window, then a real one
+  BOOST_CHECK(!check(QType::NSEC3, NSEC3_PREFIX + std::string("\x00\x01\x40\x00\x00\x01\x01\x80", 8)));
+  // duplicate window 0
+  BOOST_CHECK(!check(QType::NSEC3, NSEC3_PREFIX + std::string("\x00\x01\x40\x00\x01\x20", 6)));
+  // trailing byte after a window
+  BOOST_CHECK(!check(QType::NSEC3, NSEC3_PREFIX + std::string("\x00\x01\x40\x2d", 4)));
+
+  // one valid window (control)
+  BOOST_CHECK(check(QType::CSYNC, CSYNC_PREFIX + std::string("\x00\x01\x40", 3)));
+  // zero window, then a real one
+  BOOST_CHECK(!check(QType::CSYNC, CSYNC_PREFIX + std::string("\x00\x01\x40\x00\x00\x01\x01\x80", 8)));
+  // duplicate window 0
+  BOOST_CHECK(!check(QType::CSYNC, CSYNC_PREFIX + std::string("\x00\x01\x40\x00\x01\x20", 6)));
+  // trailing byte after a window
+  BOOST_CHECK(!check(QType::CSYNC, CSYNC_PREFIX + std::string("\x00\x01\x40\x2d", 4)));
+}
+
 #endif /* DNSDIST */
 
 BOOST_AUTO_TEST_SUITE_END()
