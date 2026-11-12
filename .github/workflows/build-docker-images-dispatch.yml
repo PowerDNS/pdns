@@ -31,6 +31,11 @@ on:
         description: push image to DockerHub
         type: boolean
         required: true
+      upload-image-artifacts:
+        description: upload per-arch OCI image tar as workflow artifact
+        type: boolean
+        required: false
+        default: false
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
@@ -94,6 +99,7 @@ jobs:
       platforms: ${{ inputs.platforms }}
       build-args: ${{ inputs.build-args }}
       push: ${{ inputs.push }}
+      upload-image-artifacts: ${{ inputs.upload-image-artifacts }}
     secrets:
       DOCKERHUB_ORGANIZATION_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
