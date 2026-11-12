@@ -2341,6 +2341,12 @@ bool matchOTConditions(RecEventTrace& eventTrace, const std::unique_ptr<OpenTele
 // mappedSource: the address we assume the query is coming from. Differs from source if table based mapping has been applied
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, const ComboAddress& mappedSource, struct timeval tval, int fileDesc, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace, pdns::trace::InitialSpanInfo& otTrace) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
+  ++t_Counters.at(rec::Counter::qcounter);
+
+  if (fromaddr.sin4.sin_family == AF_INET6) {
+    t_Counters.at(rec::Counter::ipv6qcounter)++;
+  }
+
   auto newParent = eventTrace.add(RecEventTrace::ProcessUDP);
   auto oldParent = eventTrace.setParent(newParent);
   RecEventTrace::EventScope traceScope(oldParent, eventTrace);
@@ -2354,12 +2360,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       t_Counters.at(rec::Counter::tooOldDrops)++;
       return nullptr;
     }
-  }
-
-  ++t_Counters.at(rec::Counter::qcounter);
-
-  if (fromaddr.sin4.sin_family == AF_INET6) {
-    t_Counters.at(rec::Counter::ipv6qcounter)++;
   }
 
   string response;
