@@ -112,8 +112,8 @@ void NSECBitmap::fromPacket(PacketReader& pr)
   size_t position = 0;
   std::optional<uint8_t> lastWindowSeen{std::nullopt};
   while (position + 1 < bitmap.size()) {
-    const auto window = static_cast<uint8_t>(bitmap[position++]);
-    const auto blen = static_cast<uint8_t>(bitmap[position++]);
+    const auto window = static_cast<uint8_t>(bitmap.at(position++));
+    const auto blen = static_cast<uint8_t>(bitmap.at(position++));
 
     // end if zero padding and ensure packet length
     if (window == 0 && blen == 0) {
@@ -136,9 +136,9 @@ void NSECBitmap::fromPacket(PacketReader& pr)
     lastWindowSeen = window;
 
     for (unsigned int k = 0; k < blen; k++) {
-      uint8_t val = bitmap[position++];
-      for (int bit = 0; bit < 8 ; ++bit , val>>=1) {
-        if ((val & 1) != 0) {
+      uint8_t val = bitmap.at(position++);
+      for (int bit = 0; bit < 8 ; ++bit , val >>= 1U) {
+        if ((val & 1U) != 0) {
           set((7 - bit) + (8 * k) + (256 * window));
         }
       }
