@@ -49,7 +49,7 @@ OTLPLogger::OTLPLogger(std::string address, const size_t interval, const size_t 
     loggerType = LoggerType::gRPC;
   }
   else {
-    throw std::runtime_error("Can not determine OTLP logger type from address " + address);
+    throw std::runtime_error("Can not determine OTLP logger type from address " + d_address);
   }
   d_type = loggerType;
 
