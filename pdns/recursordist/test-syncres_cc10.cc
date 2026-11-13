@@ -2314,4 +2314,149 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_with_oob)
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
+// <lame> is a lame delegation to ns.<good>
+static void setDoTLameCallback(std::unique_ptr<SyncRes>& resolver, const ComboAddress& authIP, const DNSName& good, const DNSName& lame, uint16_t& lastPort)
+{
+  resolver->setAsyncCallback([authIP, &lastPort, good = DNSName(good), lame = DNSName(lame), nsName = DNSName("ns") + good, timeoutName = DNSName("timeout") + good](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain.isPartOf(lame) ? lame : good, QType::NS, nsName.toString(), DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, nsName, QType::A, authIP.toString(), DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    lastPort = address.getPort();
+    if (domain.isPartOf(timeoutName)) {
+      return LWResult::Result::Timeout;
+    }
+    if (domain.isPartOf(lame)) {
+      setLWResult(res, RCode::Refused, false, false, true);
+    }
+    else if (type == QType::SOA) {
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, domain, QType::SOA, nsName.toString() + " hostmaster." + good.toString() + " 1 3600 600 86400 60");
+    }
+    else {
+      setLWResult(res, 0, true, false, true);
+      addRecordToLW(res, domain, QType::A, "192.0.2.1");
+    }
+    return LWResult::Result::Success;
+  });
+}
+
+static void runDoTProbes(std::unique_ptr<SyncRes>& resolver)
+{
+  while (getTaskSize() > 0) {
+    auto task = taskQueuePop();
+    resolver->tryDoT(task.d_qname, QType(task.d_qtype), task.d_nsname, task.d_ip, resolver->getNow().tv_sec);
+  }
+}
+
+static int resolveA(std::unique_ptr<SyncRes>& resolver, const std::string& name)
+{
+  vector<DNSRecord> ret;
+  return resolver->beginResolve(DNSName(name), QType(QType::A), QClass::IN, ret);
+}
+
+BOOST_AUTO_TEST_CASE(test_dot_refused_answer_keeps_dot)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
+  primeHints();
+  SyncRes::s_max_busy_dot_probes = 100;
+  SyncRes::s_dot_to_port_853 = true;
+
+  uint16_t lastPort = 0;
+  setDoTLameCallback(resolver, ComboAddress("192.0.2.10"), DNSName("good."), DNSName("lame."), lastPort);
+
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www1.good."), RCode::NoError);
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www2.good."), RCode::NoError);
+  BOOST_CHECK_EQUAL(lastPort, 53);
+  runDoTProbes(resolver);
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www3.good."), RCode::NoError);
+  BOOST_CHECK_EQUAL(lastPort, 853);
+
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www.lame."), RCode::ServFail);
+  BOOST_CHECK_EQUAL(lastPort, 853);
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www4.good."), RCode::NoError);
+  BOOST_CHECK_EQUAL(lastPort, 853);
+
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www.timeout.good."), RCode::ServFail);
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www5.good."), RCode::NoError);
+  BOOST_CHECK_EQUAL(lastPort, 53);
+}
+
+BOOST_AUTO_TEST_CASE(test_dot_probe_refused_answer_is_success)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
+  primeHints();
+  SyncRes::s_max_busy_dot_probes = 100;
+  SyncRes::s_dot_to_port_853 = true;
+
+  uint16_t lastPort = 0;
+  setDoTLameCallback(resolver, ComboAddress("192.0.2.20"), DNSName("good2."), DNSName("lame2."), lastPort);
+
+  // The probe gets REFUSED for the SOA of lame2.
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www1.lame2."), RCode::ServFail);
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www2.lame2."), RCode::ServFail);
+  BOOST_CHECK_EQUAL(lastPort, 53);
+  runDoTProbes(resolver);
+  BOOST_CHECK_EQUAL(lastPort, 853);
+
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www.good2."), RCode::NoError);
+  BOOST_CHECK_EQUAL(lastPort, 853);
+}
+
+BOOST_AUTO_TEST_CASE(test_dot_timeout_after_sibling_answer)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
+  primeHints();
+  SyncRes::s_max_busy_dot_probes = 100;
+  SyncRes::s_dot_to_port_853 = true;
+
+  // Route viaa. to first and viab. to second
+  const ComboAddress first("192.0.2.31");
+  const ComboAddress second("192.0.2.32");
+  std::map<ComboAddress, uint16_t, ComboAddress::addressOnlyLessThan> lastPort;
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "good3.", QType::NS, "ns.good3.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "ns.good3.", QType::A, first.toString(), DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "ns.good3.", QType::A, second.toString(), DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    lastPort[address] = address.getPort();
+    const bool isFirst = ComboAddress::addressOnlyEqual()(address, first);
+    if (!isFirst && domain.isPartOf(DNSName("flaky.good3."))) {
+      return LWResult::Result::Timeout;
+    }
+    if (domain.isPartOf(DNSName(isFirst ? "viab.good3." : "viaa.good3.")) || domain.isPartOf(DNSName("flaky.good3."))) {
+      setLWResult(res, RCode::Refused, false, false, true);
+      return LWResult::Result::Success;
+    }
+    setLWResult(res, 0, true, false, true);
+    addRecordToLW(res, domain, type == QType::SOA ? QType::SOA : QType::A, type == QType::SOA ? "ns.good3. hostmaster.good3. 1 3600 600 86400 60" : "192.0.2.1");
+    return LWResult::Result::Success;
+  });
+
+  for (const auto* name : {"w1.viaa.good3.", "w2.viaa.good3.", "w1.viab.good3.", "w2.viab.good3."}) {
+    BOOST_CHECK_EQUAL(resolveA(resolver, name), RCode::NoError);
+  }
+  runDoTProbes(resolver);
+
+  // Try first, then second, in one resolution
+  const auto now = resolver->getNow();
+  SyncRes::submitNSSpeed(DNSName("ns.good3."), ComboAddress(first.toString(), 853), 100, now);
+  SyncRes::submitNSSpeed(DNSName("ns.good3."), ComboAddress(second.toString(), 853), 10000, now);
+  BOOST_CHECK_EQUAL(resolveA(resolver, "x.flaky.good3."), RCode::ServFail);
+  BOOST_CHECK_EQUAL(lastPort[first], 853);
+  BOOST_CHECK_EQUAL(lastPort[second], 853);
+
+  // The timeout still marks second Bad despite first's answer
+  BOOST_CHECK_EQUAL(resolveA(resolver, "w3.viab.good3."), RCode::NoError);
+  BOOST_CHECK_EQUAL(lastPort[second], 53);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -185,6 +185,8 @@ void initSR(bool debug)
   SyncRes::s_minimize_one_label = 4;
   SyncRes::s_max_minimize_count = 10;
   SyncRes::s_max_CNAMES_followed = 10;
+  SyncRes::s_max_busy_dot_probes = 0;
+  SyncRes::s_dot_to_port_853 = false;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
