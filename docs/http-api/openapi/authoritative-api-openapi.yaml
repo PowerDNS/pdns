@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: "0.0.22"
+  version: "0.0.23"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -605,6 +605,12 @@ paths:
           schema:
             type: boolean
             default: true
+        - name: relaxed_contents_parsing
+          in: query
+          description: "“true” or “false” (default), whether to allow RRSet contents which do not exactly match their normalized representation."
+          schema:
+            type: boolean
+            default: true
       requestBody:
         required: true
         description: The zone struct to patch with
@@ -690,7 +696,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Zone"
+              $ref: "#/components/schemas/Zone2"
       responses:
         "204":
           description: "Returns 204 No Content on success."
@@ -711,7 +717,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Zone"
+              $ref: "#/components/schemas/Zone2"
       responses:
         "204":
           description: "Returns 204 No Content on success."
@@ -1155,6 +1161,27 @@ components:
         - type: object
           additionalProperties: false
           properties:
+            record_count:
+              type: integer
+              description: "The number of records in this zone"
+            rrsets:
+              type: array
+              items:
+                $ref: "#/components/schemas/RRSet"
+              description: "RRSets in this zone"
+
+    Zone2:
+      title: Zone
+      description: This represents an authoritative DNS Zone.
+      allOf:
+        - $ref: "#/components/schemas/Zone"
+        - type: object
+          additionalProperties: false
+          properties:
+            relaxed_contents_parsing:
+              type: boolean
+              default: false
+              description: "“true” or “false” (default), whether to allow RRSet contents which do not exactly match their normalized representation."
             record_count:
               type: integer
               description: "The number of records in this zone"
