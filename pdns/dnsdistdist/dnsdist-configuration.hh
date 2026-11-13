@@ -38,6 +38,7 @@
 #include "dnsdist-server-pool.hh"
 #include "iputils.hh"
 #include "remote_logger.hh"
+#include "redis-stats.hh"
 
 class ServerPolicy;
 struct ServerPool;
@@ -134,6 +135,9 @@ struct RuntimeConfiguration
   std::vector<dnsdist::Carbon::Endpoint> d_carbonEndpoints;
 #endif /* DISABLE_CARBON */
   std::unordered_map<std::string, ServerPool> d_pools;
+#ifdef HAVE_REDIS
+  std::unordered_map<std::string, std::shared_ptr<RedisStats>> d_redisStats;
+#endif /* HAVE_REDIS */
   std::shared_ptr<const CredentialsHolder> d_webPassword;
   std::shared_ptr<const CredentialsHolder> d_webAPIKey;
   std::optional<std::unordered_map<std::string, std::string>> d_webCustomHeaders;

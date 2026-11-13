@@ -262,3 +262,22 @@ private:
   const MMDBQueryParams d_queryParams;
 };
 #endif // HAVE_MMDB
+
+#ifdef HAVE_REDIS
+
+#include "redis.hh"
+
+class RedisKVStore : public KeyValueStore
+{
+public:
+  RedisKVStore(const std::shared_ptr<RedisClient>& redisClient, std::optional<std::string> lookupAction, std::optional<std::string> dataName, std::shared_ptr<RedisStats> stats);
+
+  bool keyExists(const std::string& key) override;
+  bool getValue(const std::string& key, std::string& value) override;
+  bool reload() override;
+
+private:
+  std::unique_ptr<RedisKVClientInterface> d_redis{nullptr};
+  std::shared_ptr<RedisStats> d_stats;
+};
+#endif // HAVE_REDIS
