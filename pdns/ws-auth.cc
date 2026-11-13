@@ -2321,6 +2321,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   // Flags = 0, as new zones do not have RFC1123-CONFORMANCE metadata yet, and
   // all records use the same default ttl value.
+  // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
   if (!checkNewRecords(resp, new_records, zonename, static_cast<Check::RRSetFlags>(0))) {
     return;
   }
