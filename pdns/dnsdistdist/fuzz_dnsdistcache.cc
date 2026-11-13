@@ -27,6 +27,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
 
+  const DNSDistPacketCache::Time now;
+
   if (size > std::numeric_limits<uint16_t>::max()) {
     return 0;
   }
@@ -37,7 +39,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     .d_maxEntries = 10000,
     .d_parseECS = true,
   };
-  DNSDistPacketCache pcSkipCookies(skipCookieSettings);
+  DNSDistPacketCache pcSkipCookies(skipCookieSettings, now);
 
   // Do not skip cookies
   DNSDistPacketCache::CacheSettings parseCookieSettings{
@@ -46,7 +48,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     .d_parseECS = true,
 
   };
-  DNSDistPacketCache pcHashCookies(parseCookieSettings);
+  DNSDistPacketCache pcHashCookies(parseCookieSettings, now);
 
   try {
     uint16_t qtype;
