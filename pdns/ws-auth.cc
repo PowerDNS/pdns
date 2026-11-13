@@ -155,7 +155,7 @@ void ApiWebServer::registerApiHandler(const string& url, const HandlerFunction& 
   registerBareHandler(url, func, method);
 }
 
-static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp);
+static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp, bool strict);
 static void parseRecordNameAndType(const Json& rrset, DNSName& qname, QType& qtype);
 
 AuthWebServer::AuthWebServer(StatBag& stats) :
@@ -833,7 +833,7 @@ static std::string normalizeJsonString(const std::string& jsonContent)
   return ret.str();
 }
 
-static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const uint32_t ttl, vector<DNSResourceRecord>& new_records, std::vector<std::string>& warnings)
+static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const uint32_t ttl, vector<DNSResourceRecord>& new_records, std::vector<std::string>& warnings, bool strict)
 {
   DNSResourceRecord resourceRecord;
   resourceRecord.qname = qname;
@@ -871,6 +871,9 @@ static void gatherRecords(const Json& container, const DNSName& qname, const QTy
         // parsed correctly. However, doing so, they have also been normalized
         // and may be different from what the user submitted.
         if (!pdns_iequals(tmp, content)) {
+          if (strict) {
+            throw std::runtime_error("Not in expected format (parsed as '" + tmp + "')");
+          }
           std::string warning{"Record contents '"};
           warning.append(content);
           warning.append("' have been normalized as '");
@@ -2227,6 +2230,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   vector<Comment> new_comments;
   std::vector<std::string> warnings;
 
+  bool strict = !boolFromJson(document, "relaxed_contents_parsing", false);
   try {
     if (rrsets.is_array()) {
       for (const auto& rrset : rrsets.array_items()) {
@@ -2235,7 +2239,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
         parseRecordNameAndType(rrset, qname, qtype);
         if (rrset["records"].is_array()) {
           uint32_t ttl = uintFromJson(rrset, "ttl");
-          gatherRecords(rrset, qname, qtype, ttl, new_records, warnings);
+          gatherRecords(rrset, qname, qtype, ttl, new_records, warnings, strict);
         }
         if (rrset["comments"].is_array()) {
           gatherComments(rrset, qname, qtype, new_comments);
@@ -2474,6 +2478,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
 
+    bool strict = !boolFromJson(document, "relaxed_contents_parsing", false);
     try {
       for (const auto& rrset : rrsets.array_items()) {
         DNSName qname;
@@ -2481,7 +2486,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
         parseRecordNameAndType(rrset, qname, qtype);
         if (rrset["records"].is_array()) {
           uint32_t ttl = uintFromJson(rrset, "ttl");
-          gatherRecords(rrset, qname, qtype, ttl, new_records, warnings);
+          gatherRecords(rrset, qname, qtype, ttl, new_records, warnings, strict);
         }
         if (rrset["comments"].is_array()) {
           gatherComments(rrset, qname, qtype, new_comments);
@@ -2604,7 +2609,8 @@ static void apiServerZoneDetailPATCH(HttpRequest* req, HttpResponse* resp)
     throw ApiException("No rrsets given in update request");
   }
 
-  patchZone(zoneData.backend, zoneData.zoneName, zoneData.domainInfo, rrsets.array_items(), resp);
+  bool strict = !boolFromJson(document, "relaxed_contents_parsing", false);
+  patchZone(zoneData.backend, zoneData.zoneName, zoneData.domainInfo, rrsets.array_items(), resp, strict);
 }
 
 static void apiServerZoneDetailGET(HttpRequest* req, HttpResponse* resp)
@@ -2834,7 +2840,7 @@ struct soaEditSettings
 };
 
 // Apply a REPLACE changetype.
-static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zonename, const Json& container, DNSName& qname, QType& qtype, bool allowUnderscores, soaEditSettings& soa, HttpResponse* resp, bool returnRRset, std::vector<DNSResourceRecord>& rrset, std::vector<std::string>& warnings)
+static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zonename, const Json& container, DNSName& qname, QType& qtype, bool allowUnderscores, soaEditSettings& soa, HttpResponse* resp, bool returnRRset, std::vector<DNSResourceRecord>& rrset, std::vector<std::string>& warnings, bool strict)
 {
   bool replace_records = container["records"].is_array();
   bool replace_comments = container["comments"].is_array();
@@ -2850,7 +2856,7 @@ static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zo
     if (replace_records) {
       // ttl shouldn't be required if we don't get new records.
       uint32_t ttl = uintFromJson(container, "ttl");
-      gatherRecords(container, qname, qtype, ttl, new_records, warnings);
+      gatherRecords(container, qname, qtype, ttl, new_records, warnings, strict);
 
       for (DNSResourceRecord& resourceRecord : new_records) {
         resourceRecord.domain_id = static_cast<int>(domainInfo.id);
@@ -2897,7 +2903,7 @@ static applyResult applyReplace(const DomainInfo& domainInfo, const ZoneName& zo
 }
 
 // Apply a PRUNE or EXTEND changetype.
-static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneName& zonename, const Json& container, DNSName& qname, QType& qtype, bool allowUnderscores, soaEditSettings& soa, HttpResponse* resp, changeType operationType, std::vector<DNSResourceRecord>& rrset, std::vector<std::string>& warnings)
+static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneName& zonename, const Json& container, DNSName& qname, QType& qtype, bool allowUnderscores, soaEditSettings& soa, HttpResponse* resp, changeType operationType, std::vector<DNSResourceRecord>& rrset, std::vector<std::string>& warnings, bool strict)
 {
   if (!container["records"].is_array()) {
     throw ApiException("No record provided for PRUNE or EXTEND operation");
@@ -2906,7 +2912,7 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
   try {
     vector<DNSResourceRecord> new_records;
     uint32_t ttl = uintFromJson(container, "ttl");
-    gatherRecords(container, qname, qtype, ttl, new_records, warnings);
+    gatherRecords(container, qname, qtype, ttl, new_records, warnings, strict);
     if (new_records.size() != 1) {
       throw ApiException("Exactly one record should be provided for PRUNE or EXTEND operation");
     }
@@ -2976,7 +2982,7 @@ static applyResult applyPruneOrExtend(const DomainInfo& domainInfo, const ZoneNa
   return SUCCESS;
 }
 
-static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp)
+static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp, bool strict)
 {
   std::vector<std::string> warnings;
   bool madeAnyChanges{false};
@@ -3066,7 +3072,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
         result = applyDelete(domainInfo, qname, qtype, cacheNeeded, rrset);
         break;
       case REPLACE:
-        result = applyReplace(domainInfo, zonename, container, qname, qtype, allowUnderscores, soa, resp, cacheNeeded, rrset, warnings);
+        result = applyReplace(domainInfo, zonename, container, qname, qtype, allowUnderscores, soa, resp, cacheNeeded, rrset, warnings, strict);
         break;
       case PRUNE:
       case EXTEND:
@@ -3082,7 +3088,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
             rrset.emplace_back(record);
           }
         }
-        result = applyPruneOrExtend(domainInfo, zonename, container, qname, qtype, allowUnderscores, soa, resp, operationType, rrset, warnings);
+        result = applyPruneOrExtend(domainInfo, zonename, container, qname, qtype, allowUnderscores, soa, resp, operationType, rrset, warnings, strict);
         break;
       }
       if (result == ABORT) {

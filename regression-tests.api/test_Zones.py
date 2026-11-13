@@ -1677,6 +1677,15 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={"content-type": "application/json"},
         )
+        self.assertEqual(r.status_code, 422)
+        self.assertIn("Not in expected format (parsed as", r.json()["error"])
+        # try again with relaxed parsing
+        payload = {"rrsets": [rrset], "relaxed_contents_parsing": True}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/" + name),
+            data=json.dumps(payload),
+            headers={"content-type": "application/json"},
+        )
         self.assertEqual(r.status_code, 200)
         self.assertIn("have been normalized", r.json()["warnings"][0])
 
