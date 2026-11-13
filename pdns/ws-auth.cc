@@ -1919,7 +1919,7 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
   if (!::arg().mustDo("enable-lua-record-updates")) {
     for (const auto& rec : records) {
       if (rec.qtype == QType::LUA) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string("update of Lua records is not allowed")));
+        diagnostics.emplace_back(Logr::Error, rec.qname, rec.qtype, std::string("update of Lua records is not allowed"));
       }
     }
   }
@@ -1937,6 +1937,7 @@ static bool checkNewRecords(HttpResponse* resp, vector<DNSResourceRecord>& recor
 
   Json::array errs;
   for (const auto& error : diagnostics) {
+    // NOLINTNEXTLINE(readability-identifier-length): clang-tidy does not understand _ is special
     const auto& [_, qname, type, why] = error; // we report everything as errors
     errs.emplace_back(std::string{"RRset "} + qname.toString() + " IN " + type.toString() + ": " + why);
   }
@@ -2313,6 +2314,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   // Flags = 0, as new zones do not have RFC1123-CONFORMANCE metadata yet, and
   // all records use the same default ttl value.
+  // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): go home, clang-tidy, you're drunk
   if (!checkNewRecords(resp, new_records, zonename, zonekind, static_cast<Check::RRSetFlags>(0), true)) {
     return;
   }

@@ -87,10 +87,10 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, "only one such record allowed"));
+          diagnostics.emplace_back(Logr::Error, rec.qname, rec.qtype, "only one such record allowed");
         }
         if (previous.content == contentstr) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string{"duplicate record with content \""} + rec.content + "\""));
+          diagnostics.emplace_back(Logr::Error, rec.qname, rec.qtype, std::string{"duplicate record with content \""} + rec.content + "\"");
         }
         // Enforce identical TTLs for all records with the same name and type,
         // if required. This is optional because some callers are able to
@@ -101,7 +101,7 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
             // This error message may be misleading if a TTL discrepancy already
             // exists in the RRset, as it might blame an existing record rather
             // than those being added. ¯\_(ツ)_/¯
-            diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string{"uses a different TTL value than the remainder of the RRset"}));
+            diagnostics.emplace_back(Logr::Error, rec.qname, rec.qtype, std::string{"uses a different TTL value than the remainder of the RRset"});
           }
         }
       }
@@ -115,10 +115,10 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
           // order to decide which record to blame in order to make the error
           // message as less confusing as possible.
           if (std::find(oldrrs.begin(), oldrrs.end(), rec) != oldrrs.end()) {
-            diagnostics.emplace_back(std::make_tuple(Logr::Error, previous.qname, previous.qtype, std::string{"conflicts with existing "} + rec.qtype.toString() + " RRset of the same name"));
+            diagnostics.emplace_back(Logr::Error, previous.qname, previous.qtype, std::string{"conflicts with existing "} + rec.qtype.toString() + " RRset of the same name");
           }
           else {
-            diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, std::string{"conflicts with existing "} + previous.qtype.toString() + " RRset of the same name"));
+            diagnostics.emplace_back(Logr::Error, rec.qname, rec.qtype, std::string{"conflicts with existing "} + previous.qtype.toString() + " RRset of the same name");
           }
         }
       }
@@ -126,11 +126,11 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
 
     if (rec.qname == zone.operator const DNSName&()) {
       if (nonApexTypes.count(rec.qtype.getCode()) != 0) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, "is not allowed at apex"));
+        diagnostics.emplace_back(Logr::Warning, rec.qname, rec.qtype, "is not allowed at apex");
       }
     }
     else if (atApexTypes.count(rec.qtype.getCode()) != 0) {
-      diagnostics.emplace_back(std::make_tuple(rec.qtype == QType::SOA ? Logr::Error : Logr::Warning, rec.qname, rec.qtype, "is only allowed at apex"));
+      diagnostics.emplace_back(rec.qtype == QType::SOA ? Logr::Error : Logr::Warning, rec.qname, rec.qtype, "is only allowed at apex");
     }
 
     // Check if the DNSNames that should be hostnames, are hostnames
@@ -139,7 +139,7 @@ void checkRRSet(const std::vector<DNSResourceRecord>& oldrrs, std::vector<DNSRes
       checkHostnameCorrectness(rec, allowUnderscores);
     }
     catch (const std::exception& e) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, e.what()));
+      diagnostics.emplace_back(Logr::Warning, rec.qname, rec.qtype, e.what());
     }
 
     previous = rec;
@@ -166,7 +166,7 @@ static void checkZoneTLSA(const set<DNSName>& tlsas, const set<DNSName>& cnames,
         message += "a wildcard record exists for '" + wcname.toString() + "' and ";
       }
       message += std::string("a TLSA record exists for '") + origname.toString() + "'";
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, name, QType::TLSA, message));
+      diagnostics.emplace_back(Logr::Warning, name, QType::TLSA, message);
     }
   }
 }
@@ -178,16 +178,16 @@ static void checkZoneSVCB(QType type, const ZoneName& zone, const svcbset_t& tar
 {
   for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : targets) {
     if (name == target) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Error, name, type, "has itself as target"));
+      diagnostics.emplace_back(Logr::Error, name, type, "has itself as target");
     }
 
     if (prio == 0) {
       if (target.isPartOf(zone)) {
         if (aliases.find(target) != aliases.end()) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Warning, name, type, std::string("has an aliasform target (") + target.toString() + ") this is in aliasform itself"));
+          diagnostics.emplace_back(Logr::Warning, name, type, std::string("has an aliasform target (") + target.toString() + ") this is in aliasform itself");
         }
         if (addresses.find(target) == addresses.end() && records.find(target) == records.end()) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, name, type, std::string("has a target ") + target.toString() + " that has neither address nor " + type.toString() + " records"));
+          diagnostics.emplace_back(Logr::Error, name, type, std::string("has a target ") + target.toString() + " that has neither address nor " + type.toString() + " records");
         }
       }
     }
@@ -195,10 +195,10 @@ static void checkZoneSVCB(QType type, const ZoneName& zone, const svcbset_t& tar
     const auto& trueTarget = target.isRoot() ? name : target;
     if (prio > 0) {
       if (v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Warning, name, type, std::string("has automatic IPv4 hints, but no A record for the target at ") + trueTarget.toString() + " exists"));
+        diagnostics.emplace_back(Logr::Warning, name, type, std::string("has automatic IPv4 hints, but no A record for the target at ") + trueTarget.toString() + " exists");
       }
       if (v6hintsAuto && aaaarecords.find(trueTarget) == aaaarecords.end()) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Warning, name, type, std::string("has automatic IPv6 hints, but no AAAA record for the target at ") + trueTarget.toString() + " exists"));
+        diagnostics.emplace_back(Logr::Warning, name, type, std::string("has automatic IPv6 hints, but no AAAA record for the target at ") + trueTarget.toString() + " exists");
       }
     }
   }
@@ -210,12 +210,12 @@ static void normalizeSOARecord(DNSResourceRecord& drr, std::vector<diag>& diagno
   stringtok(parts, drr.content);
 
   if (parts.size() < 7) {
-    diagnostics.emplace_back(std::make_tuple(Logr::Info, drr.qname, drr.qtype, "SOA autocomplete is deprecated, missing field(s) in SOA content"));
+    diagnostics.emplace_back(Logr::Info, drr.qname, drr.qtype, "SOA autocomplete is deprecated, missing field(s) in SOA content");
   }
 
   if (parts.size() >= 2) {
     if (parts[1].find('@') != string::npos) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "found @-sign in SOA RNAME, should probably be a dot (.)"));
+      diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, "found @-sign in SOA RNAME, should probably be a dot (.)");
     }
   }
 
@@ -244,20 +244,20 @@ static bool checkRecordContents(DNSResourceRecord& drr, std::vector<diag>& diagn
           tmp = drc->getZoneRepresentation(false);
         }
         if (!pdns_iequals(tmp, drr.content)) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("parsed record contents (" + tmp + ") do not match original content (" + drr.content + ")")));
+          diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, std::string("parsed record contents (" + tmp + ") do not match original content (" + drr.content + ")"));
         }
       }
     }
     else {
       struct in6_addr tmpbuf{};
       if (inet_pton(AF_INET6, drr.content.c_str(), &tmpbuf) != 1) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("not a valid IPv6 address: ") + drr.content));
+        diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, std::string("not a valid IPv6 address: ") + drr.content);
       }
     }
     return true;
   }
   catch (std::exception& e) {
-    diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, std::string("error processing record: ") + e.what()));
+    diagnostics.emplace_back(Logr::Error, drr.qname, drr.qtype, std::string("error processing record: ") + e.what());
     return false;
   }
 }
@@ -270,15 +270,15 @@ static void checkNSEC3Params(Logr::log_t slog, UeberBackend& ueber, DNSSECKeeper
   if (haveNSEC3) {
     auto wirelength = zone.operator const DNSName&().wirelength();
     if (isSecure && wirelength > 222) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("zone has NSEC3 semantics but its name is too long to have the hash prepended (") + std::to_string(wirelength) + " bytes long, whereas the maximum is 222 bytes)"));
+      diagnostics.emplace_back(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("zone has NSEC3 semantics but its name is too long to have the hash prepended (") + std::to_string(wirelength) + " bytes long, whereas the maximum is 222 bytes)");
     }
 
     if (ns3pr.d_iterations > 0) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, zone.operator const DNSName&(), QType::SOA, std::string("zone has ") + std::to_string(ns3pr.d_iterations) + " iterations configured for its NSEC3 parameter, 0 is the recommended value in RFC 9276"));
+      diagnostics.emplace_back(Logr::Warning, zone.operator const DNSName&(), QType::SOA, std::string("zone has ") + std::to_string(ns3pr.d_iterations) + " iterations configured for its NSEC3 parameter, 0 is the recommended value in RFC 9276");
     }
 
     if (!ns3pr.d_salt.empty()) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, zone.operator const DNSName&(), QType::SOA, "zone has a salt configured for its NSEC3 parameter, no salt ('-') is the recommended value in RFC 9276"));
+      diagnostics.emplace_back(Logr::Warning, zone.operator const DNSName&(), QType::SOA, "zone has a salt configured for its NSEC3 parameter, no salt ('-') is the recommended value in RFC 9276");
     }
 
     vector<DNSBackend::KeyData> dbkeyset;
@@ -290,9 +290,10 @@ static void checkNSEC3Params(Logr::log_t slog, UeberBackend& ueber, DNSSECKeeper
         DNSCryptoKeyEngine::makeFromISCString(slog, dkrc, keydata.content);
 
         if (dkrc.d_algorithm == DNSSECKeeper::RSASHA1) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("zone has NSEC3 semantics, but the ") + (keydata.active ? "active" : "inactive") + " key with id " + std::to_string(keydata.id) + " has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database, or NSEC3 should be disabled"));
+          diagnostics.emplace_back(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("zone has NSEC3 semantics, but the ") + (keydata.active ? "active" : "inactive") + " key with id " + std::to_string(keydata.id) + " has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database, or NSEC3 should be disabled");
         }
       }
+      // NOLINTNEXTLINE(bugprone-empty-catch): I think having this diagnostic enabled by default is unwise
       catch (const std::exception& err) {
         // Nothing. A proper diagnostic has already been fed to checkKeyErrors
         // by the dsk.checkKeys() call above.
@@ -301,9 +302,9 @@ static void checkNSEC3Params(Logr::log_t slog, UeberBackend& ueber, DNSSECKeeper
   }
 
   if (!validKeys) {
-    diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, "zone has at least one invalid DNS Private Key"));
+    diagnostics.emplace_back(Logr::Error, zone.operator const DNSName&(), QType::SOA, "zone has at least one invalid DNS Private Key");
     for (const auto& msg : checkKeyErrors) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, msg));
+      diagnostics.emplace_back(Logr::Error, zone.operator const DNSName&(), QType::SOA, msg);
     }
   }
 }
@@ -325,7 +326,7 @@ static void checkParentDelegation(UeberBackend& ueber, const ZoneName& zone, std
         }
       }
       if (!seen_ns) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("no delegation in parent zone '") + parent.toString() + "'"));
+        diagnostics.emplace_back(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("no delegation in parent zone '") + parent.toString() + "'");
       }
       break;
     }
@@ -394,6 +395,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                       fillSOAData(drr.content, soadata);
                       minimumTTL = soadata.minimum;
                     }
+                    // NOLINTNEXTLINE(bugprone-empty-catch): I think having this diagnostic enabled by default is unwise
                     catch (const PDNSException&) {
                       // ignored
                     }
@@ -405,7 +407,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                 }
 
                 if (!drr.qname.isPartOf(zone)) {
-                  diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "out-of-zone record"));
+                  diagnostics.emplace_back(Logr::Error, drr.qname, drr.qtype, "out-of-zone record");
                   continue;
                 }
 
@@ -414,7 +416,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                   // I, too, like to live dangerously
                   auto svcbrc = std::dynamic_pointer_cast<SVCBBaseRecordContent>(drc);
                   if (svcbrc->getPriority() == 0 && svcbrc->hasParams()) {
-                    diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "aliasform has service parameters"));
+                    diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, "aliasform has service parameters");
                   }
 
                   if (svcbrc->getPriority() != 0) {
@@ -425,13 +427,13 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                        *  also be specified in order for the RR to be "self-consistent"
                        *  (Section 2.4.3).
                        */
-                      diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "not self-consistent due to 'no-default-alpn' parameter without 'alpn' parameter"));
+                      diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, "not self-consistent due to 'no-default-alpn' parameter without 'alpn' parameter");
                     }
                     if (svcbrc->hasParam(SvcParam::mandatory)) {
                       auto keys = svcbrc->getParam(SvcParam::mandatory).getMandatory();
                       for (auto const& key : keys) {
                         if (!svcbrc->hasParam(key)) {
-                          diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("not self-consistent due to missing '") + SvcParam::keyToString(key) + "' parameter listed in 'mandatory'"));
+                          diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, std::string("not self-consistent due to missing '") + SvcParam::keyToString(key) + "' parameter listed in 'mandatory'");
                         }
                       }
                     }
@@ -444,7 +446,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
 
                   if (svcbrc->getPriority() == 0) {
                     if (aliases.find(drr.qname) != aliases.end()) {
-                      diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "more than one aliasform to this name"));
+                      diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, "more than one aliasform to this name");
                     }
                     aliases.insert(drr.qname);
                   }
@@ -453,7 +455,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                 }
 
                 if (isSecure && isOptOut && (drr.qname.hasLabels() && drr.qname.getRawLabel(0) == "*")) {
-                  diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "wildcard records in opt-out zones are insecure, consider disabling the opt-out flag for this zone to avoid this warning"));
+                  diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, "wildcard records in opt-out zones are insecure, consider disabling the opt-out flag for this zone to avoid this warning");
                 }
 
                 if (drr.qname == zone.operator const DNSName&()) {
@@ -481,7 +483,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                 }
 
                 if ((drr.qtype.getCode() == QType::A || drr.qtype.getCode() == QType::AAAA) && !drr.qname.isWildcard() && !drr.qname.isHostname()) {
-                  diagnostics.emplace_back(std::make_tuple(Logr::Info, drr.qname, drr.qtype, "not a valid hostname"));
+                  diagnostics.emplace_back(Logr::Info, drr.qname, drr.qtype, "not a valid hostname");
                 }
 
                 if (drr.qtype.getCode() == QType::CNAME) {
@@ -492,7 +494,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                 else {
                   if (drr.qtype.getCode() == QType::RRSIG) {
                     if (!presigned) {
-                      diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "RRSIG in non-presigned zone do not belong in the database"));
+                      diagnostics.emplace_back(Logr::Error, drr.qname, drr.qtype, "RRSIG in non-presigned zone do not belong in the database");
                       continue;
                     }
                   }
@@ -506,25 +508,25 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
                 }
 
                 if (drr.qtype.getCode() == QType::NSEC || drr.qtype.getCode() == QType::NSEC3) {
-                  diagnostics.emplace_back(std::make_tuple(Logr::Error, drr.qname, drr.qtype, "NSEC or NSEC3 records do not belong in the database"));
+                  diagnostics.emplace_back(Logr::Error, drr.qname, drr.qtype, "NSEC or NSEC3 records do not belong in the database");
                   continue;
                 }
 
                 if (!presigned && drr.qtype.getCode() == QType::DNSKEY) {
                   if (::arg().mustDo("direct-dnskey")) {
                     if (drr.ttl != minimumTTL) {
-                      diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("DNSKEY TTL of ") + std::to_string(drr.ttl) + " differs from SOA minimum of " + std::to_string(minimumTTL)));
+                      diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, std::string("DNSKEY TTL of ") + std::to_string(drr.ttl) + " differs from SOA minimum of " + std::to_string(minimumTTL));
                     }
                   }
                   else {
-                    diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, "DNSKEY in non-presigned zone will mostly be ignored and can cause problems"));
+                    diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, "DNSKEY in non-presigned zone will mostly be ignored and can cause problems");
                   }
                 }
               } // end of complete records loop
 
               for (const auto& name : cnames) {
                 if (noncnames.find(name) != noncnames.end()) {
-                  diagnostics.emplace_back(std::make_tuple(Logr::Error, name, QType::CNAME, "other non-CNAME records with same label exist"));
+                  diagnostics.emplace_back(Logr::Error, name, QType::CNAME, "other non-CNAME records with same label exist");
                 }
               }
 
@@ -543,12 +545,12 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
       bool isCatalogType = (kind == DomainInfo::Producer || kind == DomainInfo::Consumer);
       bool isSecondaryType = (kind == DomainInfo::Secondary || kind == DomainInfo::Consumer);
       if (!hasNsAtApex && !(isSecondaryType || isCatalogType)) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, "no NS record at zone apex"));
+        diagnostics.emplace_back(Logr::Error, zone.operator const DNSName&(), QType::SOA, "no NS record at zone apex");
       }
 
       for (const auto& qname : checkglue) {
         if (glue.count(qname) == 0) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Warning, qname, QType::NS, "missing glue"));
+          diagnostics.emplace_back(Logr::Warning, qname, QType::NS, "missing glue");
         }
       }
 
@@ -592,7 +594,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
           // occluded by a DNAME, or
           // occluded by a delegation, and is not glue or ENTs leading towards that glue
           if (qname.second == QType::DNAME || (drr.qtype != QType::ENT && drr.qtype.getCode() != QType::A && drr.qtype.getCode() != QType::AAAA)) {
-            diagnostics.emplace_back(std::make_tuple(Logr::Warning, drr.qname, drr.qtype, std::string("is occluded by a ") + (qname.second == QType::NS ? "delegation" : "DNAME") + " at '" + qname.first.toString() + "'"));
+            diagnostics.emplace_back(Logr::Warning, drr.qname, drr.qtype, std::string("is occluded by a ") + (qname.second == QType::NS ? "delegation" : "DNAME") + " at '" + qname.first.toString() + "'");
           }
         }
       }
@@ -616,7 +618,7 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
         break;
       }
       if (target.isPartOf(zone) && cnames.count(target) != 0) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, std::string("has a target (") + target.toString() + ") that is a CNAME"));
+        diagnostics.emplace_back(Logr::Warning, rec.qname, rec.qtype, std::string("has a target (") + target.toString() + ") that is a CNAME");
       }
     }
 
@@ -654,15 +656,15 @@ static void checkZoneRecords(std::vector<DNSResourceRecord>& records, const Zone
       }
     }
     if (!ds_ns && rec.qtype.getCode() == QType::DS && rec.qname != zone.operator const DNSName&()) {
-      diagnostics.emplace_back(std::make_tuple(Logr::Warning, rec.qname, rec.qtype, "DS record without a delegation"));
+      diagnostics.emplace_back(Logr::Warning, rec.qname, rec.qtype, "DS record without a delegation");
     }
     // Make sure we don't suggest rectifying the zone unless it exists.
     if (report && isExistingZone) {
       if (rec.auth) {
-        diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, "occluded until empty non-terminals are added, consider rectifying zone"));
+        diagnostics.emplace_back(Logr::Error, rec.qname, rec.qtype, "occluded until empty non-terminals are added, consider rectifying zone");
       }
       else {
-        diagnostics.emplace_back(std::make_tuple(Logr::Error, rec.qname, rec.qtype, "not authoritative, consider rectifying zone"));
+        diagnostics.emplace_back(Logr::Error, rec.qname, rec.qtype, "not authoritative, consider rectifying zone");
       }
     }
   }
@@ -682,7 +684,7 @@ void checkZoneMetadata(const ZoneName& zone, std::vector<diag>& diagnostics)
           seen.insert(value);
         }
         else if (messaged.count(value) == 0) {
-          diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("duplicate metadata key value pair with key '") + metadata.first + "' and value '" + value + "'"));
+          diagnostics.emplace_back(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("duplicate metadata key value pair with key '") + metadata.first + "' and value '" + value + "'");
           messaged.insert(value);
         }
       }
@@ -710,7 +712,7 @@ void checkZone(Logr::log_t slog, std::vector<DNSResourceRecord>& allrrs, const Z
     }
   }
   catch (const PDNSException& e) {
-    diagnostics.emplace_back(std::make_tuple(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("error attempting to get zone information from the backend: ") + e.reason));
+    diagnostics.emplace_back(Logr::Error, zone.operator const DNSName&(), QType::SOA, std::string("error attempting to get zone information from the backend: ") + e.reason);
   }
 
   NSEC3PARAMRecordContent ns3pr;
