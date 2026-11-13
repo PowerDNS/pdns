@@ -73,6 +73,11 @@ Installations using custom versions of these queries can keep them
 unchanged: when the trailing column is absent, the apex check is simply
 skipped, matching the old behaviour.
 
+Lua record serialization changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When serializing large Lua records for AXFR, instead of splitting them in 255-byte chunks, and hoping the other end will reassemble the result into something which is still valid Lua code, PowerDNS will now try to split the contents on whitespace boundaries, which ought to be less error-prone at reassembly time, regardless of the value of :ref:`setting-lua-records-insert-whitespace`. Note that it is still possible to split Lua code on a non-whitespace boundary, if there are more than 255 contiguous characters without any form of whitespace in the code.
+
 5.0.x to 5.1.x
 --------------
 
