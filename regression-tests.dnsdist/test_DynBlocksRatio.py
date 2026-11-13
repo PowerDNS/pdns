@@ -697,8 +697,6 @@ class TestDynBlockGroupServFailsRatioProxyProtocol(DynBlocksTest):
         expectedResponse.set_rcode(dns.rcode.SERVFAIL)
 
         rcodecount = 20
-        sent = 0
-        allowed = 0
 
         destAddr = "2001:db8::9"
         destPort = 9999
@@ -706,24 +704,12 @@ class TestDynBlockGroupServFailsRatioProxyProtocol(DynBlocksTest):
         srcPort = 8888
         udpPayload = ProxyProtocol.getPayload(False, False, True, srcAddr, destAddr, srcPort, destPort, [])
 
-        for _ in range(rcodecount):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(
-                udpPayload + rcodeQuery.to_wire(), response=expectedResponse, rawQuery=True
-            )
-
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = rcodeQuery.id
-                self.assertEqual(rcodeQuery, receivedQuery)
-                self.assertEqual(expectedResponse, receivedResponse)
-                allowed = allowed + 1
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        allowed = self.sendQueryBurst(rcodeQuery, expectedResponse, rcodecount, prependPayload=udpPayload)
 
         # we should have been able to send all our queries since the minimum number of queries is set to noerrorcount + rcodecount
         self.assertGreaterEqual(allowed, rcodecount)
+
+        sent = rcodecount
 
         waitForMaintenanceToRun()
 
@@ -744,33 +730,18 @@ class TestDynBlockGroupServFailsRatioProxyProtocol(DynBlocksTest):
         )
 
         # TCP now (with different addresses!)
-        sent = 0
-        allowed = 0
-
         destAddr = "192.0.2.1"
         destPort = 9999
         srcAddr = "192.0.2.2"
         srcPort = 8888
         tcpPayload = ProxyProtocol.getPayload(False, True, False, srcAddr, destAddr, srcPort, destPort, [])
 
-        for _ in range(rcodecount):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(
-                rcodeQuery, response=expectedResponse, prependPayload=tcpPayload
-            )
-
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = rcodeQuery.id
-                self.assertEqual(rcodeQuery, receivedQuery)
-                self.assertEqual(expectedResponse, receivedResponse)
-                allowed = allowed + 1
-            else:
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        allowed = self.sendQueryBurst(rcodeQuery, expectedResponse, rcodecount, tcp=True, prependPayload=tcpPayload)
 
         # we should have been able to send all our queries since the minimum number of queries is set to noerrorcount + rcodecount
         self.assertGreaterEqual(allowed, rcodecount)
+
+        sent = rcodecount
 
         waitForMaintenanceToRun()
 
