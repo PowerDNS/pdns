@@ -36,6 +36,9 @@ When the authoritative server receives a query for the A-record for
 with that A record.
 If the ALIAS target cannot be resolved (SERVFAIL) or does not exist (NXDOMAIN) the authoritative server will answer SERVFAIL.
 
+An ANY query for a name with an ALIAS record returns the A and AAAA records of the ALIAS target, together with the other records at that name (for example MX, TXT, and at the zone apex the SOA and NS records). The ALIAS record itself is not included.
+If the zone also has its own A or AAAA records at that name, both those and the ALIAS target's A and AAAA records are returned, as with :ref:`setting-outgoing-axfr-expand-alias`.
+
 .. warning::
   You should make sure that the :ref:`setting-resolver` does not point to
   PowerDNS itself, to prevent infinite query loops.
