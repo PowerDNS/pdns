@@ -17,7 +17,7 @@ The first step is to define a cache and to assign that cache to the chosen pool,
             max_ttl: 86400
             min_ttl: 0
             temporary_failure_ttl: 60
-            state_ttl: 60
+            stale_ttl: 60
             dont_age: false
             shuffle: false
         pools:
