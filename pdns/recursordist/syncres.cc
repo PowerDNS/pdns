@@ -2922,9 +2922,6 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
 {
   bool giveNegative = false;
 
-  // sqname and sqtype are used contain 'higher' names if we have them (e.g. powerdns.com|SOA when we find a negative entry for doesnotexist.powerdns.com|A)
-  DNSName sqname(qname);
-  QType sqt(qtype);
   uint32_t sttl = 0;
   //  cout<<"Lookup for '"<<qname<<"|"<<qtype.toString()<<"' -> "<<getLastLabel(qname)<<endl;
   vState cachedState{};
@@ -3051,10 +3048,10 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   bool needWildcardProof = false;
   std::optional<unsigned int> labelsCount{std::nullopt};
   MemRecursorCache::Extra extra;
-  if (g_recCache->get(d_now.tv_sec, sqname, sqt, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &extra) > 0) {
+  if (g_recCache->get(d_now.tv_sec, qname, qtype, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &cachedState, &wasCachedAuth, nullptr, &extra) > 0) {
     d_fromAuthIP = extra.d_address;
 
-    LOG(prefix << sqname << ": Found cache hit for " << sqt.toString() << ": ");
+    LOG(prefix << qname << ": Found cache hit for " << qtype.toString() << ": ");
 
     if (!wasAuthZone && shouldValidate() && (wasCachedAuth || wasForwardRecurse) && cachedState == vState::Indeterminate && d_requireAuthData) {
 
@@ -3062,31 +3059,31 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
       auto recordState = getValidationStatus(qname, !signatures->empty(), qtype == QType::DS, depth, prefix);
 
       if (recordState == vState::Secure) {
-        LOG(prefix << sqname << ": Got vState::Indeterminate state from the cache, validating.." << endl);
-        if (sqt == QType::DNSKEY && sqname == getSigner(*signatures)) {
-          cachedState = validateDNSKeys(sqname, cset, *signatures, depth, prefix);
+        LOG(prefix << qname << ": Got vState::Indeterminate state from the cache, validating.." << endl);
+        if (qtype == QType::DNSKEY && qname == getSigner(*signatures)) {
+          cachedState = validateDNSKeys(qname, cset, *signatures, depth, prefix);
         }
         else {
-          if (sqt == QType::ANY) {
+          if (qtype == QType::ANY) {
             std::map<QType, CacheEntry> types;
             reapRecordsForValidation(types, cset);
             reapSignaturesForValidation(types, signatures);
 
             for (const auto& type : types) {
               vState cachedRecordState{};
-              if (type.first == QType::DNSKEY && sqname == getSigner(type.second.signatures)) {
-                cachedRecordState = validateDNSKeys(sqname, type.second.records, type.second.signatures, depth, prefix);
+              if (type.first == QType::DNSKEY && qname == getSigner(type.second.signatures)) {
+                cachedRecordState = validateDNSKeys(qname, type.second.records, type.second.signatures, depth, prefix);
               }
               else {
-                cachedRecordState = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, sqname, type.first, type.second.records, type.second.signatures);
+                cachedRecordState = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, qname, type.first, type.second.records, type.second.signatures);
               }
               updateDNSSECValidationState(cachedState, cachedRecordState);
             }
           }
           else {
-            cachedState = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, sqname, sqt, cset, *signatures);
+            cachedState = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, qname, qtype, cset, *signatures);
           }
-          needWildcardProof = cachedEntryContainsRecordsExpandedFromAWildcard(sqname, *signatures, labelsCount);
+          needWildcardProof = cachedEntryContainsRecordsExpandedFromAWildcard(qname, *signatures, labelsCount);
         }
       }
       else {
@@ -3098,8 +3095,8 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
         if (vStateIsBogus(cachedState)) {
           capTTL = s_maxbogusttl;
         }
-        if (sqt != QType::ANY && sqt != QType::ADDR) {
-          updateValidationStatusInCache(sqname, sqt, wasCachedAuth, cachedState);
+        if (qtype != QType::ANY && qtype != QType::ADDR) {
+          updateValidationStatusInCache(qname, qtype, wasCachedAuth, cachedState);
         }
       }
     }
@@ -3132,7 +3129,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     for (const auto& signature : *signatures) {
       DNSRecord dnsRecord;
       dnsRecord.d_type = QType::RRSIG;
-      dnsRecord.d_name = sqname;
+      dnsRecord.d_name = qname;
       dnsRecord.d_ttl = ttl;
       dnsRecord.setContent(signature);
       dnsRecord.d_place = DNSResourceRecord::ANSWER;
@@ -3149,9 +3146,9 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     LOG(endl);
     if (found && !expired) {
       if (needWildcardProof) {
-        auto recordState = checkWildcardProof(sqname, sqt, ret, wasCachedAuth, cachedState, depth, prefix, *labelsCount);
+        auto recordState = checkWildcardProof(qname, qtype, ret, wasCachedAuth, cachedState, depth, prefix, *labelsCount);
         if (recordState != cachedState) {
-          updateValidationStatusInCache(sqname, sqt, wasCachedAuth, recordState);
+          updateValidationStatusInCache(qname, qtype, wasCachedAuth, recordState);
           cachedState = recordState;
         }
       }
