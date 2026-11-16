@@ -2,7 +2,7 @@
 #  pip-compile --allow-unsafe --generate-hashes -U requirements.in
 
 wheel==0.46.3
-dnspython>=2.2.0
+dnspython>=2.9.2
 pytest
 pytest-xdist
 libnacl>=1.4.3,<1.7
