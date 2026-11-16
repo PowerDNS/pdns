@@ -191,6 +191,7 @@ pdns_server_SOURCES = \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
 	auth-catalogzone.cc auth-catalogzone.hh \
+	auth-logging.cc auth-logging.hh \
 	auth-main.cc auth-main.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-primarycommunicator.cc \
