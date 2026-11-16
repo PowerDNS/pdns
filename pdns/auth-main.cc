@@ -156,6 +156,7 @@ ArgvMap& arg()
 
 static void declareArguments()
 {
+  registerLoggingSettings();
   ::arg().set("config-dir", "Location of configuration directory (pdns.conf)") = SYSCONFDIR;
   ::arg().set("config-name", "Name of this virtual configuration - will rename the binary image") = "";
   ::arg().set("socket-dir", string("Where the controlsocket will live, ") + LOCALSTATEDIR + "/pdns when unset and not chrooted"
@@ -172,7 +173,6 @@ static void declareArguments()
 #endif
   ::arg().set("module-dir", "Default directory for modules") = PKGLIBDIR;
   ::arg().set("chroot", "If set, chroot to this directory for more security") = "";
-  ::arg().set("logging-facility", "Log under a specific facility") = "";
   ::arg().set("daemon", "Operate as a daemon") = "no";
 
   ::arg().set("local-port", "The port on which we listen") = "53";
@@ -210,12 +210,6 @@ static void declareArguments()
 
   ::arg().set("version-string", "PowerDNS version in packets - full, anonymous, powerdns or custom") = "full";
   ::arg().set("control-console", "Debugging switch - don't use") = "no"; // but I know you will!
-  ::arg().setSwitch("logging-structured", "Produce structured log messages") = "no";
-  ::arg().set("structured-logging-backend", "Backend to use when structured logging is enabled") = "default";
-  ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "4";
-  ::arg().setSwitch("loglevel-show", "Include log level indicator in log output") = "no";
-  ::arg().set("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stderr") = "no";
-  ::arg().set("log-timestamp", "Print timestamps in log lines") = "yes";
   ::arg().set("distributor-threads", "Default number of Distributor (backend) threads to start") = "3";
   ::arg().set("signing-threads", "Default number of signer threads to start") = "3";
   ::arg().setSwitch("workaround-11804", "Workaround for issue 11804: send single RR per AXFR chunk") = "no";
@@ -1579,7 +1573,7 @@ int main(int argc, char** argv)
                 << "and will be removed in a future version" << std::endl;
     }
 
-    setupLogging(::arg()["structured-logging-backend"]);
+    setupLogging();
     if (g_slogStructured) {
       Communicator.setSLog(g_slog->withName("communicator"));
     }

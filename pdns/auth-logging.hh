@@ -25,4 +25,5 @@
 
 extern bool g_slogStructured;
 
-void setupLogging(const std::string& loggingBackend);
+void registerLoggingSettings();
+void setupLogging();
