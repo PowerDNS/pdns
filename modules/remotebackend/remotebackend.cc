@@ -75,6 +75,9 @@ bool Connector::recv(Json& value)
  */
 RemoteBackend::RemoteBackend(const std::string& suffix)
 {
+  if (g_slogStructured) {
+    d_slog = g_slog->withName("remote" + suffix);
+  }
   setArgPrefix("remote" + suffix);
 
   this->d_connstr = getArg("connection-string");
