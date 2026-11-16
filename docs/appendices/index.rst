@@ -6,6 +6,7 @@ Appendices
     :glob:
 
     internals
+    structuredlogging
     compiling
     backend-writers-guide
     crypto-export
