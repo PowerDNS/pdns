@@ -510,6 +510,8 @@ common_sources += files(
   src_dir / 'auth-carbon.cc',
   src_dir / 'auth-catalogzone.cc',
   src_dir / 'auth-catalogzone.hh',
+  src_dir / 'auth-logging.cc',
+  src_dir / 'auth-logging.hh',
   src_dir / 'auth-main.hh',
   src_dir / 'auth-packetcache.cc',
   src_dir / 'auth-packetcache.hh',

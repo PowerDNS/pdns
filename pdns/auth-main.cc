@@ -40,7 +40,6 @@
 #include <cerrno>
 #include <pthread.h>
 #include <thread>
-#include <unistd.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <fstream>
@@ -53,6 +52,7 @@
 #include <systemd/sd-daemon.h>
 #endif
 
+#include "auth-logging.hh"
 #include "auth-main.hh"
 #include "coverage.hh"
 #include "secpoll-auth.hh"
@@ -119,8 +119,6 @@ time_t g_luaConsistentHashesCleanupInterval{3600};
 bool g_doGssTSIG;
 #endif
 bool g_views;
-bool g_slogStructured{false};
-static Logger::Urgency s_logUrgency;
 std::string g_memberCatalogGroup;
 typedef Distributor<DNSPacket, DNSPacket, PacketHandler> DNSDistributor;
 
@@ -213,6 +211,7 @@ static void declareArguments()
   ::arg().set("version-string", "PowerDNS version in packets - full, anonymous, powerdns or custom") = "full";
   ::arg().set("control-console", "Debugging switch - don't use") = "no"; // but I know you will!
   ::arg().setSwitch("logging-structured", "Produce structured log messages") = "no";
+  ::arg().set("structured-logging-backend", "Backend to use when structured logging is enabled") = "default";
   ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "4";
   ::arg().setSwitch("loglevel-show", "Include log level indicator in log output") = "no";
   ::arg().set("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stderr") = "no";
@@ -1524,72 +1523,6 @@ static void sigTermHandler([[maybe_unused]] int signal)
 }
 #endif /* COVERAGE */
 
-static void loggerBackend(const Logging::Entry& entry)
-{
-  static thread_local std::stringstream buf;
-
-  // First map SL priority to syslog's Urgency
-  Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
-  if (urg > s_logUrgency) {
-    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
-    // Not that lower Urgency means higher number.
-    return;
-  }
-  buf.str("");
-  buf << "msg=" << std::quoted(entry.message);
-  if (entry.error) {
-    buf << " error=" << std::quoted(entry.error.value());
-  }
-
-  if (entry.name) {
-    buf << " subsystem=" << std::quoted(entry.name.value());
-  }
-#ifndef PDNS_AUTH
-  buf << " level=" << std::quoted(std::to_string(entry.level));
-#endif
-  if (entry.d_priority != 0) {
-    buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
-  }
-
-  std::array<char, 64> timebuf{};
-  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
-  for (auto const& value : entry.values) {
-    buf << " ";
-    buf << value.first << "=" << std::quoted(value.second);
-  }
-
-  g_log << urg << buf.str() << endl;
-}
-
-static void setupLogging()
-{
-  s_logUrgency = (Logger::Urgency)(::arg().asNum("loglevel"));
-
-  if (!::arg()["logging-facility"].empty()) {
-    int val = logFacilityToLOG(::arg().asNum("logging-facility"));
-    if (val >= 0)
-      g_log.setFacility(val);
-    else
-      g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl;
-  }
-  g_log.setLoglevel(s_logUrgency);
-  g_log.toConsole(s_logUrgency);
-  g_log.disableSyslog(::arg().mustDo("disable-syslog"));
-  g_log.setTimestamps(::arg().mustDo("log-timestamp"));
-
-  g_slogStructured = ::arg().mustDo("logging-structured");
-  if (g_slogStructured) {
-    g_slog = Logging::Logger::create(loggerBackend);
-  }
-  else {
-    g_log.setPrefixed(::arg().mustDo("loglevel-show"));
-  }
-
-  if (g_slogStructured) {
-    Communicator.setSLog(g_slog->withName("communicator"));
-  }
-}
-
 //! The main function of pdns, the pdns process
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int main(int argc, char** argv)
@@ -1646,7 +1579,10 @@ int main(int argc, char** argv)
                 << "and will be removed in a future version" << std::endl;
     }
 
-    setupLogging();
+    setupLogging(::arg()["structured-logging-backend"]);
+    if (g_slogStructured) {
+      Communicator.setSLog(g_slog->withName("communicator"));
+    }
   }
   catch (const ArgException& A) {
     // At this point, we do not have a structured logger yet.
