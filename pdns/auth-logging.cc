@@ -184,7 +184,7 @@ static void loggerJSONBackend(const Logging::Entry& entry)
 
 void setupLogging()
 {
-  s_logUrgency = (Logger::Urgency)(::arg().asNum("loglevel"));
+  s_logUrgency = static_cast<Logger::Urgency>(::arg().asNum("loglevel")); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): thank you once again, clang-tidy, for getting in the way
 
   if (!::arg()["logging-facility"].empty()) {
     int val = logFacilityToLOG(::arg().asNum("logging-facility"));
