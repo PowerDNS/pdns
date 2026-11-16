@@ -71,6 +71,7 @@ bool g_logDNSQueries{false};
 bool g_views{false};
 
 string g_programname="pdns";
+std::shared_ptr<Logr::Logger> slog;
 
 // Global option flag values
 namespace {
@@ -706,9 +707,10 @@ static void loadMainConfig(const std::string& configdir)
   if (g_slogStructured) {
     auto log = g_slog->withName("config");
     ::arg().setSLog(log);
+    slog = g_slog->withName("pdnsutil");
   }
 
-  BackendMakers(g_slog).launch(::arg()["launch"]); // vrooooom!
+  BackendMakers(slog).launch(::arg()["launch"]); // vrooooom!
 
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
@@ -1140,7 +1142,7 @@ static int checkZoneRecords(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& z
     for (DNSBackend::KeyData& kd : dbkeyset) {
       DNSKEYRecordContent dkrc;
       try {
-        DNSCryptoKeyEngine::makeFromISCString(nullptr /* no structured logging */, dkrc, kd.content);
+        DNSCryptoKeyEngine::makeFromISCString(slog, dkrc, kd.content);
 
         if(dkrc.d_algorithm == DNSSECKeeper::RSASHA1) {
           cout<<"[Error] zone '"<<zone<<"' has NSEC3 semantics, but the "<< (kd.active ? "" : "in" ) <<"active key with id "<<kd.id<<" has 'Algorithm: 5'. This should be corrected to 'Algorithm: 7' in the database (or NSEC3 should be disabled)."<<endl;
@@ -1680,7 +1682,7 @@ static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dsk)
   dsk.getSoaEdit(zone, soaEditKind);
 
   DNSResourceRecord rr;
-  makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr, nullptr); // no structured logger in pdnsutil yet
+  makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr, slog);
 
   sd.db->startDomainModificationTransaction(zone);
 
@@ -2277,7 +2279,7 @@ static bool increaseZoneSerial(DNSSECKeeper& dsk, DomainInfo& info, std::vector<
   dsk.getSoaEdit(info.zone, soaEditKind);
 
   DNSResourceRecord resrec;
-  makeIncreasedSOARecord(soa, "SOA-EDIT-INCREASE", soaEditKind, resrec, nullptr); // no structured logger in pdnsutil yet
+  makeIncreasedSOARecord(soa, "SOA-EDIT-INCREASE", soaEditKind, resrec, slog);
   DNSRecord rec(resrec);
 
   ostringstream str;
@@ -2295,7 +2297,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col)
 {
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo info;
-  DNSSECKeeper dsk(nullptr /* no structured logging */, &B);
+  DNSSECKeeper dsk(slog, &B);
   SOAData soa;
   int resp{0};
 
@@ -2970,7 +2972,7 @@ static int addOrReplaceRecord(bool isAdd, const std::vector<std::string>& cmds, 
   di.backend->commitTransaction();
 
   if (performRectify) {
-    DNSSECKeeper dsk(nullptr /* no structured logging */, &B);
+    DNSSECKeeper dsk(slog, &B);
     rectifyZone(dsk, zone);
   }
 
@@ -3041,7 +3043,7 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
   di.backend->commitTransaction();
 
   if (performRectify) {
-    DNSSECKeeper dsk(nullptr /* no structured logging */, &B);
+    DNSSECKeeper dsk(slog, &B);
     rectifyZone(dsk, zone);
   }
 
@@ -3136,12 +3138,12 @@ static int listMemberZones(const string& catalog)
 
 static bool testAlgorithm(int algo)
 {
-  return DNSCryptoKeyEngine::testOne(nullptr /* no structured logging */, algo);
+  return DNSCryptoKeyEngine::testOne(slog, algo);
 }
 
 static bool testAlgorithms()
 {
-  return DNSCryptoKeyEngine::testAll(nullptr /* no structured logging */);
+  return DNSCryptoKeyEngine::testAll(slog);
 }
 
 static void testSpeed(const ZoneName& zone, int cores)
@@ -3222,9 +3224,9 @@ static void verifyCrypto(const string& zone)
   }
 
   string msg = getMessageForRRSET(qname, rrc, toSign);
-  cerr<<"Verify: "<<DNSCryptoKeyEngine::makeFromPublicKeyString(nullptr /* no structured logging */, drc.d_algorithm, drc.d_key)->verify(msg, rrc.d_signature)<<endl;
+  cerr<<"Verify: "<<DNSCryptoKeyEngine::makeFromPublicKeyString(slog, drc.d_algorithm, drc.d_key)->verify(msg, rrc.d_signature)<<endl;
   if(dsrc.d_digesttype != 0) {
-    cerr<<"Calculated DS: "<<apex.toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;
+    cerr<<"Calculated DS: "<<apex.toString()<<" IN DS "<<makeDSFromDNSKey(slog, apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;
     cerr<<"Original DS:   "<<apex.toString()<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
   }
 }
@@ -3407,7 +3409,7 @@ static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool 
 
       int bits = -1;
       try {
-        auto engine = DNSCryptoKeyEngine::makeFromPublicKeyString(nullptr /* no structured logging */, key.d_algorithm, key.d_key); // throws on unknown algo or bad key
+        auto engine = DNSCryptoKeyEngine::makeFromPublicKeyString(slog, key.d_algorithm, key.d_key); // throws on unknown algo or bad key
         bits=engine->getBits();
       }
       catch (const std::exception& e) {
@@ -3420,19 +3422,19 @@ static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool 
 
       const std::string prefix(exportDS ? "" : "DS = ");
       if (g_verbose) {
-        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(slog, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
       }
-      cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+      cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(slog, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
       if (g_verbose) {
         try {
-          string output=makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
+          string output=makeDSFromDNSKey(slog, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
           cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
         }
         catch(...)
         {}
       }
       try {
-        string output=makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
+        string output=makeDSFromDNSKey(slog, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
         cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
       }
       catch(...)
@@ -3493,19 +3495,19 @@ static void showZoneKeys(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool 
       const auto &key = value.first.getDNSKEY();
       const std::string prefix(exportDS ? "" : "DS = ");
       if (g_verbose) {
-        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(slog, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
       }
-      cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+      cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(slog, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
       if (g_verbose) {
         try {
-          string output=makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
+          string output=makeDSFromDNSKey(slog, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
           cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
         }
         catch(...)
         {}
       }
       try {
-        string output=makeDSFromDNSKey(nullptr /* no structured logging */, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
+        string output=makeDSFromDNSKey(slog, zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
         cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
       }
       catch(...)
@@ -3960,7 +3962,7 @@ static int listAlgorithms(std::vector<std::string>& cmds, [[maybe_unused]] std::
 
   cout<<"DNSKEY algorithms supported by this installation of PowerDNS:"<<endl;
 
-  auto algosWithBackend = DNSCryptoKeyEngine::listAllAlgosWithBackend(nullptr /* no structured logging */);
+  auto algosWithBackend = DNSCryptoKeyEngine::listAllAlgosWithBackend(slog);
   for (const auto& algoWithBackend : algosWithBackend){
     string algoName = DNSSECKeeper::algorithm2name(algoWithBackend.first);
     cout<<std::to_string(algoWithBackend.first)<<" - "<<algoName;
@@ -3981,7 +3983,7 @@ static int createBindDb([[maybe_unused]] std::vector<std::string>& cmds, [[maybe
     return usage(synopsis);
   }
   try {
-    SSQLite3 db(g_slog, cmds.at(0), "", true); // create=ok //NOLINT(readability-identifier-length)
+    SSQLite3 db(slog, cmds.at(0), "", true); // create=ok //NOLINT(readability-identifier-length)
     vector<string> statements;
     stringtok(statements, static_cast<char *>(sqlCreate), ";");
     for(const string& statement :  statements) {
@@ -4057,7 +4059,7 @@ static int testSchema(std::vector<std::string>& cmds, [[maybe_unused]] std::vect
   if(cmds.size() != 1) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   return testSchema(dk, ZoneName(cmds.at(0)));
 }
 
@@ -4066,7 +4068,7 @@ static int rectifyZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vec
   if(cmds.empty()) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   int exitCode = 0;
   for (const auto& name: cmds) {
     if (!rectifyZone(dk, ZoneName(name))) {
@@ -4079,7 +4081,7 @@ static int rectifyZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vec
 static int rectifyAllZones(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   bool quiet = !cmds.empty() && cmds.at(0) == "quiet";
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!rectifyAllZones(dk, quiet || g_quiet)) {
     return 1;
   }
@@ -4091,7 +4093,7 @@ static int checkZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vecto
   if(cmds.size() != 1) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   UtilBackend B("default"); // NOLINT(readability-identifier-length)
   return checkZoneRecords(dk, B, ZoneName(cmds.at(0)));
 }
@@ -4105,7 +4107,7 @@ static int benchDb(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<
 static int checkAllZones(std::vector<std::string>& cmds, [[maybe_unused]] std::vector<std::string>& options, [[maybe_unused]] const std::string_view synopsis)
 {
   bool exitOnError = !cmds.empty() && cmds.at(0) == "exit-on-error";
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   return checkAllZones(dk, exitOnError);
 }
 
@@ -4151,7 +4153,7 @@ static int showZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vector
   if(cmds.size() != 1) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!showZone(dk, ZoneName(cmds.at(0)))) {
     return 1;
   }
@@ -4163,7 +4165,7 @@ static int exportZoneDS(std::vector<std::string>& cmds, [[maybe_unused]] std::ve
   if(cmds.size() != 1) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!showZone(dk, ZoneName(cmds.at(0)), true)) {
     return 1;
   }
@@ -4175,7 +4177,7 @@ static int disableDNSSEC(std::vector<std::string>& cmds, [[maybe_unused]] std::v
   if(cmds.size() != 1) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));
   if(!disableDNSSECOnZone(dk, zone)) {
     cerr << "Cannot disable DNSSEC on " << zone << endl;
@@ -4197,7 +4199,7 @@ static int activateZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std:
     cerr << "Invalid KEY-ID '" << cmds.at(1) << "'" << endl;
     return 1;
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   try {
     dk.getKeyById(zone, id);
   } catch (std::exception& e) {
@@ -4223,7 +4225,7 @@ static int deactivateZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] st
     cerr<<"Invalid KEY-ID"<<endl;
     return 1;
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   try {
     dk.getKeyById(zone, id);
   } catch (std::exception& e) {
@@ -4250,7 +4252,7 @@ static int publishZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::
     cerr << "Invalid KEY-ID '" << cmds.at(1) << "'" << endl;
     return 1;
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   try {
     dk.getKeyById(zone, id);
   } catch (std::exception& e) {
@@ -4277,7 +4279,7 @@ static int unpublishZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std
     cerr << "Invalid KEY-ID '" << cmds.at(1) << "'" << endl;
     return 1;
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   try {
     dk.getKeyById(zone, id);
   } catch (std::exception& e) {
@@ -4316,7 +4318,7 @@ static int addZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::vect
   if(cmds.size() < 2 ) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));
 
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
@@ -4415,7 +4417,7 @@ static int removeZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::v
   if(cmds.size() < 2) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));
   auto id = pdns::checked_stoi<unsigned int>(cmds.at(1)); // NOLINT(readability-identifier-length)
   if (!dk.removeKey(zone, id)) {
@@ -4644,7 +4646,7 @@ static int listKeys(std::vector<std::string>& cmds, [[maybe_unused]] std::vector
   if(cmds.size() > 1) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   string zname;
   if (cmds.size() == 1) {
     zname = cmds.at(0);
@@ -4675,7 +4677,7 @@ static int secureZone(std::vector<std::string>& cmds, [[maybe_unused]] std::vect
   if(cmds.empty()) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   vector<ZoneName> mustRectify;
   unsigned int zoneErrors=0;
   for (const auto& name : cmds) {
@@ -4705,7 +4707,7 @@ static int secureAllZones(std::vector<std::string>& cmds, [[maybe_unused]] std::
     return usage(synopsis);
   }
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   UtilBackend B("default"); // NOLINT(readability-identifier-length)
 
   vector<DomainInfo> domainInfo;
@@ -4828,7 +4830,7 @@ static int setNsec3(std::vector<std::string>& cmds, [[maybe_unused]] std::vector
     return 1;
   }
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));
 
   if (ns3pr.d_iterations > 0) {
@@ -4872,7 +4874,7 @@ static int setPresigned(std::vector<std::string>& cmds, [[maybe_unused]] std::ve
   if(cmds.empty()) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!dk.setPresigned(ZoneName(cmds.at(0)))) {
     cerr << "Could not set presigned for " << cmds.at(0) << " (is DNSSEC enabled in your backend?)" << endl;
     return 1;
@@ -4885,7 +4887,7 @@ static int setPublishCDNSKey(std::vector<std::string>& cmds, [[maybe_unused]] st
   if (cmds.empty() || (cmds.size() == 2 && cmds.at(1) != "delete")) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!dk.setPublishCDNSKEY(ZoneName(cmds.at(0)), (cmds.size() == 2 && cmds.at(1) == "delete"))) {
     cerr << "Could not set publishing for CDNSKEY records for " << cmds.at(0) << endl;
     return 1;
@@ -4904,7 +4906,7 @@ static int setPublishCDs(std::vector<std::string>& cmds, [[maybe_unused]] std::v
     cmds.emplace_back("2");
   }
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!dk.setPublishCDS(ZoneName(cmds.at(0)), cmds.at(1))) {
     cerr << "Could not set publishing for CDS records for " << cmds.at(0) << endl;
     return 1;
@@ -4930,7 +4932,7 @@ static int setSignalingZone(std::vector<std::string>& cmds, [[maybe_unused]] std
     return 1;
   }
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
 
   // pdnsutil zone secure $zone
   if(!dk.isSecuredZone(zone)) {
@@ -4975,7 +4977,7 @@ static int unsetPresigned(std::vector<std::string>& cmds, [[maybe_unused]] std::
   if(cmds.empty()) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!dk.unsetPresigned(ZoneName(cmds.at(0)))) {
     cerr << "Could not unset presigned on for " << cmds.at(0) << endl;
     return 1;
@@ -4988,7 +4990,7 @@ static int unsetPublishCDNSKey(std::vector<std::string>& cmds, [[maybe_unused]] 
   if(cmds.empty()) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!dk.unsetPublishCDNSKEY(ZoneName(cmds.at(0)))) {
     cerr << "Could not unset publishing for CDNSKEY records for " << cmds.at(0) << endl;
     return 1;
@@ -5001,7 +5003,7 @@ static int unsetPublishCDs(std::vector<std::string>& cmds, [[maybe_unused]] std:
   if(cmds.empty()) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!dk.unsetPublishCDS(ZoneName(cmds.at(0)))) {
     cerr << "Could not unset publishing for CDS records for " << cmds.at(0) << endl;
     return 1;
@@ -5014,7 +5016,7 @@ static int hashZoneRecord(std::vector<std::string>& cmds, [[maybe_unused]] std::
   if(cmds.size() < 2) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));
   DNSName record(cmds.at(1));
   NSEC3PARAMRecordContent ns3pr;
@@ -5036,7 +5038,7 @@ static int unsetNSec3(std::vector<std::string>& cmds, [[maybe_unused]] std::vect
   if(cmds.empty()) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!dk.unsetNSEC3PARAM(ZoneName(cmds.at(0)))) {
     cerr << "Cannot unset NSEC3 param for " << cmds.at(0) << endl;
     return 1;
@@ -5052,7 +5054,7 @@ static int exportZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::v
     return usage(synopsis);
   }
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   string zone = cmds.at(0);
   auto id = pdns::checked_stoi<unsigned int>(cmds.at(1)); // NOLINT(readability-identifier-length)
   DNSSECPrivateKey dpk = dk.getKeyById(ZoneName(zone), id);
@@ -5066,7 +5068,7 @@ static int exportZoneKeyPEM(std::vector<std::string>& cmds, [[maybe_unused]] std
     return usage(synopsis);
   }
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   string zone = cmds.at(0);
   auto id = pdns::checked_stoi<unsigned int>(cmds.at(1)); // NOLINT(readability-identifier-length)
   DNSSECPrivateKey dpk = dk.getKeyById(ZoneName(zone), id);
@@ -5079,7 +5081,7 @@ static int increaseSerial(std::vector<std::string>& cmds, [[maybe_unused]] std::
   if (cmds.empty()) {
     return usage(synopsis);
   }
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   return increaseSerial(ZoneName(cmds.at(0)), dk);
 }
 
@@ -5101,7 +5103,7 @@ static int importZoneKeyPEM(std::vector<std::string>& cmds, [[maybe_unused]] std
   }
 
   DNSKEYRecordContent drc;
-  shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(nullptr /* no structured logging */, drc, algorithm, *filePtr, filename)};
+  shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(slog, drc, algorithm, *filePtr, filename)};
   if (!key) {
     cerr << "Could not convert key from PEM to internal format" << endl;
     return 1;
@@ -5135,7 +5137,7 @@ static int importZoneKeyPEM(std::vector<std::string>& cmds, [[maybe_unused]] std
   }
   dpk.setKey(key, flags, algo);
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   int64_t id{-1}; // NOLINT(readability-identifier-length)
   if (!dk.addKey(zone, dpk, id)) {
     cerr << "Adding key failed, perhaps DNSSEC not enabled in configuration?" << endl;
@@ -5152,7 +5154,7 @@ static int importZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::v
   ZoneName zone(cmds.at(0));
   string fname = cmds.at(1);
   DNSKEYRecordContent drc;
-  shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromISCFile(nullptr /* no structured logging */, drc, fname.c_str()));
+  shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromISCFile(slog, drc, fname.c_str()));
 
   uint16_t flags = DNSKEYFlag::ZONE | DNSKEYFlag::SEP;
   bool active=true;
@@ -5190,7 +5192,7 @@ static int importZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std::v
   }
   dpk.setKey(key, flags, algo);
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   int64_t id{-1}; // NOLINT(readability-identifier-length)
   if (!dk.addKey(zone, dpk, id, active, published)) {
     cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
@@ -5205,7 +5207,7 @@ static int exportZoneDNSKey(std::vector<std::string>& cmds, [[maybe_unused]] std
     return usage(synopsis);
   }
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(0));
   auto id = pdns::checked_stoi<unsigned int>(cmds.at(1)); // NOLINT(readability-identifier-length)
   DNSSECPrivateKey dpk=dk.getKeyById(zone, id);
@@ -5246,7 +5248,7 @@ static int generateZoneKey(std::vector<std::string>& cmds, [[maybe_unused]] std:
     cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
   }
 
-  shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(nullptr /* no structured logging */, algorithm));
+  shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(slog, algorithm));
   if(bits == 0) {
     if(algorithm <= 10) {
       bits = keyOrZone ? 2048 : 1024;
@@ -5590,7 +5592,7 @@ static int HSMAssign(std::vector<std::string>& cmds, [[maybe_unused]] std::vecto
 
   DNSKEYRecordContent drc;
 
-  shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(nullptr /* no structured logging */, drc, iscString.str()));
+  shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(slog, drc, iscString.str()));
   if(!dke->checkKey()) {
     cerr << "Invalid DNS Private Key in engine " << module << " slot " << slot << std::endl;
     return 1;
@@ -5616,7 +5618,7 @@ static int HSMAssign(std::vector<std::string>& cmds, [[maybe_unused]] std::vecto
     return 1;
   }
 
-  DNSSECKeeper dk(nullptr /* no structured logging */); //NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(slog); //NOLINT(readability-identifier-length)
   if (!dk.addKey(zone, dpk, id)) {
     cerr << "Unable to assign module slot to zone" << std::endl;
     return 1;
@@ -5656,7 +5658,7 @@ static int HSMCreateKey(std::vector<std::string>& cmds, [[maybe_unused]] std::ve
     if (kd.id == id) {
       // found our key.
       DNSKEYRecordContent dkrc;
-      dke = DNSCryptoKeyEngine::makeFromISCString(nullptr /* no structured logging */, dkrc, kd.content);
+      dke = DNSCryptoKeyEngine::makeFromISCString(slog, dkrc, kd.content);
     }
   }
 
@@ -5867,7 +5869,7 @@ static int backendLookup(std::vector<std::string>& cmds, [[maybe_unused]] std::v
     }
   }
 
-  DNSPacket queryPacket(nullptr, true); // no structured logging in pdnsutil yet
+  DNSPacket queryPacket(slog, true);
   Netmask clientNetmask;
   if (cmds.size() > 3) {
     clientNetmask = cmds.at(3);
