@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 {
   string programname="pdns";
 
-  registerLoggingSettings();
+  registerLoggingSettings(Logger::Warning);
   ::arg().set("config-dir","Location of configuration directory (pdns.conf)")=SYSCONFDIR;
   ::arg().set("socket-dir",string("Where the controlsocket will live, ")+LOCALSTATEDIR+"/pdns when unset and not chrooted" )="";
   ::arg().set("remote-address","Remote address to query");

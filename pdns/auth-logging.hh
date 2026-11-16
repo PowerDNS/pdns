@@ -25,5 +25,5 @@
 
 extern bool g_slogStructured;
 
-void registerLoggingSettings();
+void registerLoggingSettings(Logger::Urgency defaultLoglevel);
 void setupLogging();
