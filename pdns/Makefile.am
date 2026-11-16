@@ -1553,6 +1553,7 @@ endif
 
 pdns_control_SOURCES = \
 	arguments.cc \
+	auth-logging.cc auth-logging.hh \
 	dnslabeltext.cc \
 	dnsname.cc \
 	dynloader.cc \
@@ -1567,6 +1568,10 @@ pdns_control_SOURCES = \
 pdns_control_LDFLAGS = \
        $(AM_LDFLAGS) \
        $(LIBCRYPTO_LDFLAGS)
+
+pdns_control_LDADD = \
+	$(JSON11_LIBS) \
+	$(SYSTEMD_LIBS)
 
 noinst_PROGRAMS = speedtest tsig_tests
 

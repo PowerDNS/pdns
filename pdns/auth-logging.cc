@@ -182,7 +182,7 @@ static void loggerJSONBackend(const Logging::Entry& entry)
   cerr << out << endl;
 }
 
-void setupLogging(const std::string& loggingBackend)
+void setupLogging()
 {
   s_logUrgency = (Logger::Urgency)(::arg().asNum("loglevel"));
 
@@ -202,6 +202,7 @@ void setupLogging(const std::string& loggingBackend)
 
   g_slogStructured = ::arg().mustDo("logging-structured");
   if (g_slogStructured) {
+    const auto& loggingBackend = ::arg()["structured-logging-backend"];
     if (loggingBackend == "systemd-journal") {
 #ifdef HAVE_SYSTEMD
       if (int fileDesc = sd_journal_stream_fd("pdns-authoritative", LOG_DEBUG, 0); fileDesc >= 0) {
@@ -224,4 +225,16 @@ void setupLogging(const std::string& loggingBackend)
   else {
     g_log.setPrefixed(::arg().mustDo("loglevel-show"));
   }
+}
+
+void registerLoggingSettings()
+{
+  ::arg().set("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stderr") = "no";
+  ::arg().set("log-timestamp", "Print timestamps in log lines") = "yes";
+  ::arg().set("logging-facility", "Log under a specific facility") = "";
+  ::arg().setSwitch("logging-structured", "Produce structured log messages") = "no";
+  // Note pdns_server defaults to 4, but pdnsutil defaults to 3.
+  ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "4";
+  ::arg().setSwitch("loglevel-show", "Include log level indicator in log output") = "no";
+  ::arg().set("structured-logging-backend", "Backend to use when structured logging is enabled") = "default";
 }
