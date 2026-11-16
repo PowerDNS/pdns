@@ -346,6 +346,7 @@ pdnsutil_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
 	auth-catalogzone.cc auth-catalogzone.hh \
+	auth-logging.cc auth-logging.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	auth-zonecache.cc auth-zonecache.hh \
@@ -419,6 +420,7 @@ pdnsutil_LDADD = \
 	@modulelibs@ \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
+	$(SYSTEMD_LIBS) \
 	$(LIBDL) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(LIBCRYPTO_LIBS) \

@@ -18,6 +18,7 @@
 #include <boost/program_options.hpp>
 
 #include "arguments.hh"
+#include "auth-logging.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
 #include "auth-zonecache.hh"
@@ -66,9 +67,7 @@ std::string g_memberCatalogGroup;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
-bool g_slogStructured{false};
 bool g_logDNSQueries{false};
-static Logger::Urgency s_logUrgency;
 bool g_views{false};
 
 string g_programname="pdns";
@@ -632,40 +631,6 @@ static std::string comboAddressVecToString(const std::vector<ComboAddress>& vec)
   return boost::join(strs, ",");
 }
 
-static void pdnsutilLoggerBackend(const Logging::Entry& entry)
-{
-  static thread_local std::stringstream buf;
-
-  // First map SL priority to syslog's Urgency
-  Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
-  if (urg > s_logUrgency) {
-    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
-    // Not that lower Urgency means higher number.
-    return;
-  }
-  buf.str("");
-  buf << "msg=" << std::quoted(entry.message);
-  if (entry.error) {
-    buf << " error=" << std::quoted(entry.error.value());
-  }
-
-  if (entry.name) {
-    buf << " subsystem=" << std::quoted(entry.name.value());
-  }
-  buf << " level=" << std::quoted(std::to_string(entry.level));
-  if (entry.d_priority != 0) {
-    buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
-  }
-  std::array<char, 64> timebuf{};
-  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
-  for (auto const& value : entry.values) {
-    buf << " ";
-    buf << value.first << "=" << std::quoted(value.second);
-  }
-
-  g_log << urg << buf.str() << endl;
-}
-
 static void loadMainConfig(const std::string& configdir)
 {
   // FIXME520: remove when branching 5.2
@@ -693,6 +658,8 @@ static void loadMainConfig(const std::string& configdir)
   string configname=::arg()["config-dir"]+"/"+g_programname+".conf";
   cleanSlashes(configname);
 
+  // Note pdns_server and pdns_control default to Warning here.
+  registerLoggingSettings(Logger::Error);
   ::arg().set("resolver","Use this resolver for ALIAS and the internal stub resolver")="no";
   ::arg().set("default-ksk-algorithm","Default KSK algorithm")="ecdsa256";
   ::arg().set("default-ksk-size","Default KSK size (0 means default)")="0";
@@ -703,7 +670,6 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("max-ent-entries", "Maximum number of empty non-terminals in a zone")="100000";
   ::arg().set("module-dir","Default directory for modules")=PKGLIBDIR;
   ::arg().setSwitch("query-logging","Hint backends that queries should be logged")="no";
-  ::arg().set("loglevel","Amount of logging. Higher is more.")="3";
   ::arg().setSwitch("direct-dnskey","Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis")="no";
   ::arg().set("max-nsec3-iterations","Limit the number of NSEC3 hash iterations")="500"; // RFC5155 10.3
   ::arg().set("max-signature-cache-entries", "Maximum number of signatures cache entries")="";
@@ -736,18 +702,13 @@ static void loadMainConfig(const std::string& configdir)
 
   g_log.toConsole(Logger::Error);   // so we print any errors
 
-  s_logUrgency = (Logger::Urgency)(::arg().asNum("loglevel"));
-
+  setupLogging();
   if (g_slogStructured) {
-    g_slog = Logging::Logger::create(pdnsutilLoggerBackend);
     auto log = g_slog->withName("config");
     ::arg().setSLog(log);
   }
 
   BackendMakers(g_slog).launch(::arg()["launch"]); // vrooooom!
-  if(s_logUrgency >= LOG_ERR) { // so you can't kill our errors
-    g_log.toConsole(s_logUrgency);
-  }
 
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 

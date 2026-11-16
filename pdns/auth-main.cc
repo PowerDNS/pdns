@@ -156,7 +156,7 @@ ArgvMap& arg()
 
 static void declareArguments()
 {
-  registerLoggingSettings();
+  registerLoggingSettings(Logger::Warning);
   ::arg().set("config-dir", "Location of configuration directory (pdns.conf)") = SYSCONFDIR;
   ::arg().set("config-name", "Name of this virtual configuration - will rename the binary image") = "";
   ::arg().set("socket-dir", string("Where the controlsocket will live, ") + LOCALSTATEDIR + "/pdns when unset and not chrooted"
