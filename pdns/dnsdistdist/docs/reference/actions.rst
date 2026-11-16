@@ -139,7 +139,7 @@ The following actions exist.
 
   Does a lookup into the key value store referenced by 'kvs' using the key returned by 'lookupKey',
   and storing the result if any into the tag named 'destinationTag'.
-  The store can be a CDB (:func:`newCDBKVStore`), a LMDB database (:func:`newLMDBKVStore`), or a MMDB database (:func: `newMMDBKVStore`).
+  The store can be a CDB (:func:`newCDBKVStore`), a LMDB database (:func:`newLMDBKVStore`), a MMDB database (:func: `newMMDBKVStore`), or a Redis instance (:func:`newRedisKVStore`).
   The key can be based on the qname (:func:`KeyValueLookupKeyQName` and :func:`KeyValueLookupKeySuffix`),
   source IP (:func:`KeyValueLookupKeySourceIP`) or the value of an existing tag (:func:`KeyValueLookupKeyTag`).
   Subsequent rules are processed after this action.
