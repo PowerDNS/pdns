@@ -1427,6 +1427,15 @@ int main(int argc, char** argv)
 
     dnsdist::webserver::registerBuiltInWebHandlers();
 
+    {
+      cerr<<"loading plugin "<<endl;
+      auto pluginError = dnsdist::plugins::loadPlugin("build/plugins/", "demo");
+      if (pluginError.has_value()) {
+        cerr<<"ERROR loading plugin "<<endl;
+        cerr<<pluginError.value()<<endl;
+      }
+    }
+
     if (cmdLine.checkConfig) {
       if (!loadConfigurationFromFile(cmdLine.config, false, true, false, setupLogger)) {
 #ifdef COVERAGE
@@ -1481,6 +1490,22 @@ int main(int argc, char** argv)
       }
       else {
         ++tcpBindsCount;
+      }
+    }
+
+    {
+      const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
+      for (const auto& plugin : immutable.d_plugins) {
+        const auto& func = plugin.second.d_description.d_configurationDone;
+        if (!func) {
+          cerr<<"no config done callback for "<<plugin.first<<endl;
+          continue;
+        }
+        cerr<<"calling config done callback for "<<plugin.first<<endl;
+        auto error = func();
+        if (error.has_value()) {
+          cerr<<error.value()<<endl;
+        }
       }
     }
 

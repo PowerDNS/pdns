@@ -87,6 +87,7 @@ subdir('meson' / 'doh3')                    # DNS over HTTP/3
 subdir('meson' / 'yaml-configuration')      # YAML configuration
 subdir('meson' / 'catch2')                  # Microbenchmark
 subdir('meson' / 'mmdb')                    # MMDB (MaxmindDB)
+subdir('meson' / 'plugins')
 
 if get_option('otlp').enabled() and not dep_libcurl.found()
   # OTLP is explicitly requested, but curl is not available
@@ -117,6 +118,8 @@ else
 endif
 
 subdir('dnsdist-rust-lib')
+
+subdir('plugins')
 
 common_sources += files(
   src_dir / 'bpf-filter.cc',
@@ -488,6 +491,7 @@ tools = {
       src_dir / 'dnsdist-lua-inspection-ffi.cc',
       # different build options for the unit tests
       src_dir / 'dnsdist-packet-processing.cc',
+      src_dir / 'dnsdist-plugins.cc',
       mplexer_sources,
       selectors_actions_sources,
     ],
