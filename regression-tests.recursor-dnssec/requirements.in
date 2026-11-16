@@ -1,7 +1,7 @@
 # To generate requirements.txt, install pip-tools and run:
 #  pip-compile --allow-unsafe --generate-hashes-U requirements.in
 
-dnspython>=1.11
+dnspython>=2.9.2
 pytest
 protobuf>=3.0
 pyasn1>=0.6.5
