@@ -2661,7 +2661,9 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
 
       if (!wasAuthZone && shouldValidate() && (wasAuth || wasForwardRecurse) && context.state == vState::Indeterminate && d_requireAuthData) {
         /* This means we couldn't figure out the state when this entry was cached */
-        vState recordState = getValidationStatus(foundName, !signatures->empty(), qtype == QType::DS, depth, prefix);
+        /* if we were looking for a DS, found none then arrived here and found a CNAME, we _know_ there is no cut, so we need to look for the status of the parent zone*/
+        bool isDSQuery = qtype == QType::DS;
+        vState recordState = getValidationStatus(foundName, !signatures->empty(), isDSQuery, depth, prefix);
         if (recordState == vState::Secure) {
           LOG(prefix << qname << ": Got vState::Indeterminate state from the " << foundQT.toString() << " cache, validating.." << endl);
           context.state = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, foundName, foundQT, cset, *signatures);
@@ -2883,7 +2885,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& neg
     }
 
     const DNSName& owner = entry.first.name;
-    vState recordState = getValidationStatus(owner, !entry.second.signatures.empty(), qtype == QType::DS, depth, prefix);
+    vState recordState = getValidationStatus(owner, !entry.second.signatures.empty(), QType(entry.first.type) == QType::DS, depth, prefix);
     if (state == vState::Indeterminate) {
       state = recordState;
     }
