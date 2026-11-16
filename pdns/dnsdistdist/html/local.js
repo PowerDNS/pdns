@@ -49,7 +49,7 @@ $(document).ready(function() {
     {
         var cell = $('<td/>');
         if (align) {
-            cell =  $('<td align=' + align + '/>');
+            cell =  $('<td align="' + align + '"/>');
         }
         cell.text(untrusted);
         row.append(cell);
@@ -114,9 +114,9 @@ $(document).ready(function() {
                      $("#version").text(data["daemon_type"]+" "+data["version"]);
                      $("#acl").text(data["acl"]);
                      $("#local").text(data["local"]);
-                     var tableElement = $('<table width="100%"><tr align=right><th>#</th><th align=left>Name</th><th align=left>Address</th><th>Status</th><th>UDP Latency</th><th>TCP Latency</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align=left>Pools</th></tr></table>');
+                     var tableElement = $('<table width="100%"><tr align="right"><th>#</th><th align="left">Name</th><th align="left">Address</th><th>Status</th><th>UDP Latency</th><th>TCP Latency</th><th>Queries</th><th>Drops</th><th>QPS</th><th>Out</th><th>Weight</th><th>Order</th><th align="left">Pools</th></tr></table>');
                      $.each(data["servers"], function(a,b) {
-                         var row = $('<tr align=right/>');
+                         var row = $('<tr align="right"/>');
                          var latency = (b["latency"] === null || b["latency"] === 0.0) ? "-" : b["latency"].toFixed(2);
                          var tcpLatency = (b["tcpLatency"] === null || b["tcpLatency"] === 0.0) ? "-" : b["tcpLatency"].toFixed(2);
                          appendCellToRow(row, b["id"]);
@@ -136,10 +136,10 @@ $(document).ready(function() {
                      });
                      $("#downstreams").html(tableElement);
 
-                     tableElement = $('<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Rule</th><th>Action</th><th>Matches</th></tr></table>');
+                     tableElement = $('<table width="100%"><tr align="left"><th>#</th><th align="left">Name</th><th align="left">Rule</th><th>Action</th><th>Matches</th></tr></table>');
                      if (data["rules"].length) {
                          $.each(data["rules"], function(a,b) {
-                             var row = $('<tr align=left />');
+                             var row = $('<tr align="left" />');
                              appendCellToRow(row, b["id"]);
                              appendCellToRow(row, b["name"], 'left');
                              appendCellToRow(row, b["rule"], 'left');
@@ -153,10 +153,10 @@ $(document).ready(function() {
                      }
                      $("#rules").html(tableElement);
 
-                     tableElement = $('<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Response Rule</th><th>Action</th><th>Matches</th></tr></table>');
+                     tableElement = $('<table width="100%"><tr align="left"><th>#</th><th align="left">Name</th><th align="left">Response Rule</th><th>Action</th><th>Matches</th></tr></table>');
                      if (data["response-rules"].length) {
                          $.each(data["response-rules"], function(a,b) {
-                             var row = $('<tr align=left />');
+                             var row = $('<tr align="left" />');
                              appendCellToRow(row, b["id"]);
                              appendCellToRow(row, b["name"], 'left');
                              appendCellToRow(row, b["rule"], 'left');
@@ -174,7 +174,7 @@ $(document).ready(function() {
 
         $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
-                     var tableElement = $('<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th>eBPF</th><th align=left>Reason</th></tr></table>');
+                     var tableElement = $('<table width="100%"><tr align="left"><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th>eBPF</th><th align="left">Reason</th></tr></table>');
                      var gotsome = false;
                      $.each(data, function(a,b) {
                          var row = $('<tr/>');
@@ -196,7 +196,7 @@ $(document).ready(function() {
 
         $.ajax({ url: 'jsonstat?command=ebpfblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
-                     var tableElement = $('<table width="100%"><tr align=left><th>Kernel-based dyn blocked netmask</th><th>Seconds</th></th><th>Blocks</th></tr>');
+                     var tableElement = $('<table width="100%"><tr align="left"><th>Kernel-based dyn blocked netmask</th><th>Seconds</th></th><th>Blocks</th></tr>');
                      var gotsome = false;
                      $.each(data, function(a,b) {
                          var row = $('<tr/>');
