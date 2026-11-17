@@ -4631,7 +4631,11 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         continue;
       }
 
-      haveAnswers = true;
+      /* RRSIG records alone are useless */
+      if (rec->d_type != QType::RRSIG) {
+        haveAnswers = true;
+      }
+
       if (rec->d_type == QType::CNAME) {
         if (auto cnametarget = getRR<CNAMERecordContent>(*rec); cnametarget != nullptr) {
           cnameChain.emplace(rec->d_name, cnametarget->getTarget());
