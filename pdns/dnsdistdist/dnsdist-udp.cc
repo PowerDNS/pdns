@@ -198,7 +198,7 @@ void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response,
     ++ids.cs->responses;
   }
 
-  if (!ids.isXSK()) {
+  if (!ids.isXSK() && ids.cs != nullptr) {
     sendUDPResponse(ids.cs->udpFD, response, dnsResponse.ids.delayMsec, ids.hopLocal, ids.hopRemote);
   }
 
