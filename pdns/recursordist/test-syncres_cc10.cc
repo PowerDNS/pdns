@@ -2379,9 +2379,35 @@ BOOST_AUTO_TEST_CASE(test_dot_refused_answer_keeps_dot)
   BOOST_CHECK_EQUAL(lastPort, 853);
   BOOST_CHECK_EQUAL(resolveA(resolver, "www4.good."), RCode::NoError);
   BOOST_CHECK_EQUAL(lastPort, 853);
+}
 
-  BOOST_CHECK_EQUAL(resolveA(resolver, "www.timeout.good."), RCode::ServFail);
-  BOOST_CHECK_EQUAL(resolveA(resolver, "www5.good."), RCode::NoError);
+BOOST_AUTO_TEST_CASE(test_dot_bad_after_three_failures)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
+  primeHints();
+  SyncRes::s_max_busy_dot_probes = 100;
+  SyncRes::s_dot_to_port_853 = true;
+
+  uint16_t lastPort = 0;
+  setDoTLameCallback(resolver, ComboAddress("192.0.2.40"), DNSName("good4."), DNSName("lame4."), lastPort);
+
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www1.good4."), RCode::NoError);
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www2.good4."), RCode::NoError);
+  runDoTProbes(resolver);
+
+  // The REFUSED answer for www.lame4 resets the count
+  for (const auto* name : {"w1.timeout.good4.", "w2.timeout.good4.", "www.lame4.", "w3.timeout.good4.", "w4.timeout.good4.", "w5.timeout.good4."}) {
+    lastPort = 0;
+    resolveA(resolver, name);
+    BOOST_CHECK_EQUAL(lastPort, 853);
+  }
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www4.good4."), RCode::NoError);
+  BOOST_CHECK_EQUAL(lastPort, 53);
+
+  // A Bad entry gets no new probe
+  runDoTProbes(resolver);
+  BOOST_CHECK_EQUAL(resolveA(resolver, "www5.good4."), RCode::NoError);
   BOOST_CHECK_EQUAL(lastPort, 53);
 }
 
@@ -2450,11 +2476,14 @@ BOOST_AUTO_TEST_CASE(test_dot_timeout_after_sibling_answer)
   const auto now = resolver->getNow();
   SyncRes::submitNSSpeed(DNSName("ns.good3."), ComboAddress(first.toString(), 853), 100, now);
   SyncRes::submitNSSpeed(DNSName("ns.good3."), ComboAddress(second.toString(), 853), 10000, now);
-  BOOST_CHECK_EQUAL(resolveA(resolver, "x.flaky.good3."), RCode::ServFail);
-  BOOST_CHECK_EQUAL(lastPort[first], 853);
-  BOOST_CHECK_EQUAL(lastPort[second], 853);
+  for (const auto* name : {"x1.flaky.good3.", "x2.flaky.good3.", "x3.flaky.good3."}) {
+    lastPort.clear();
+    BOOST_CHECK_EQUAL(resolveA(resolver, name), RCode::ServFail);
+    BOOST_CHECK_EQUAL(lastPort[first], 853);
+    BOOST_CHECK_EQUAL(lastPort[second], 853);
+  }
 
-  // The timeout still marks second Bad despite first's answer
+  // The timeouts still mark second Bad despite first's answers
   BOOST_CHECK_EQUAL(resolveA(resolver, "w3.viab.good3."), RCode::NoError);
   BOOST_CHECK_EQUAL(lastPort[second], 53);
 }

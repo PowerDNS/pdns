@@ -316,6 +316,7 @@ struct DoTStatus
   DNSName d_auth;
   time_t d_ttd;
   mutable uint64_t d_count{0};
+  mutable uint8_t d_failures{0};
   mutable Status d_status{Unknown};
   std::string toString() const
   {
@@ -345,6 +346,7 @@ static LockGuarded<DoTMap> s_dotMap;
 
 static const time_t dotFailWait = static_cast<time_t>(24) * 3600;
 static const time_t dotSuccessWait = static_cast<time_t>(3) * 24 * 3600;
+static const uint8_t dotFailLimit = 3;
 static bool shouldDoDoT(ComboAddress address, time_t now);
 
 unsigned int SyncRes::s_maxnegttl;
@@ -5509,10 +5511,23 @@ static void updateDoTStatus(ComboAddress address, DoTStatus::Status status, time
   auto iter = lock->d_map.find(address);
   if (iter != lock->d_map.end()) {
     iter->d_status = status;
+    iter->d_failures = 0;
     lock->d_map.modify(iter, [=](DoTStatus& statusToModify) { statusToModify.d_ttd = time; });
     if (updateBusy) {
       --lock->d_numBusy;
     }
+  }
+}
+
+static void countDoTFailure(ComboAddress address, time_t now)
+{
+  address.setPort(853);
+  auto lock = s_dotMap.lock();
+  auto iter = lock->d_map.find(address);
+  if (iter != lock->d_map.end() && ++iter->d_failures >= dotFailLimit) {
+    iter->d_status = DoTStatus::Bad;
+    iter->d_failures = 0;
+    lock->d_map.modify(iter, [=](DoTStatus& statusToModify) { statusToModify.d_ttd = now + dotFailWait; });
   }
 }
 
@@ -6351,9 +6366,14 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           }
 
           if (!gotAnswer) {
-            // Only counting transport failures
-            if (doDoT && s_max_busy_dot_probes > 0 && !lwr.d_validpacket) {
-              updateDoTStatus(*remoteIP, DoTStatus::Bad, d_now.tv_sec + dotFailWait);
+            // An error answer still shows that DoT works
+            if (doDoT && s_max_busy_dot_probes > 0) {
+              if (lwr.d_validpacket) {
+                updateDoTStatus(*remoteIP, DoTStatus::Good, d_now.tv_sec + dotSuccessWait);
+              }
+              else {
+                countDoTFailure(*remoteIP, d_now.tv_sec);
+              }
             }
             continue;
           }
