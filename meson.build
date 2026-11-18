@@ -461,10 +461,16 @@ endif
 # Needs link_whole, so the symbols are put into pdns_server and pdnsutil, and
 # dynamically loaded backends can use the symbols from their host program (uses
 # export_dynamic).
-libpdns_sqlbackend = declare_dependency(
+libpdns_dynamicbackend = declare_dependency(
   link_whole: static_library(
-    'pdns-sqlbackend',
+    'pdns-dynamicbackend',
     sources: files(
+      # needed by bindbackend
+      src_dir / 'auth-caches.cc',
+      src_dir / 'auth-caches.hh',
+      src_dir / 'dynlistener.cc',
+      src_dir / 'dynlistener.hh',
+      # needed by gmysqlbackend, godbcbackend, gpgsqlbackend and gsqlite3backend
       src_dir / 'backends' / 'gsql' / 'gsqlbackend.cc',
       src_dir / 'backends' / 'gsql' / 'gsqlbackend.hh',
       src_dir / 'backends' / 'gsql' / 'ssql.hh',
@@ -496,8 +502,6 @@ libpdns_signers_openssl = declare_dependency(
 common_sources += files(
   src_dir / 'arguments.cc',
   src_dir / 'arguments.hh',
-  src_dir / 'auth-caches.cc',
-  src_dir / 'auth-caches.hh',
   src_dir / 'auth-carbon.cc',
   src_dir / 'auth-catalogzone.cc',
   src_dir / 'auth-catalogzone.hh',
@@ -555,8 +559,6 @@ common_sources += files(
   src_dir / 'dnswriter.hh',
   src_dir / 'dynhandler.cc',
   src_dir / 'dynhandler.hh',
-  src_dir / 'dynlistener.cc',
-  src_dir / 'dynlistener.hh',
   src_dir / 'dynmessenger.cc',
   src_dir / 'dynmessenger.hh',
   src_dir / 'ednscookies.cc',
@@ -709,7 +711,7 @@ tools = {
       libpdns_gettime,
       libpdns_signers_openssl,
       libpdns_signers_sodium,
-      libpdns_sqlbackend,
+      libpdns_dynamicbackend,
     ],
     'manpages': ['pdns_server.1'],
     'install_dir': get_option('sbindir'),
@@ -723,7 +725,7 @@ tools = {
       libpdns_ssqlite3,
       libpdns_signers_openssl,
       libpdns_signers_sodium,
-      libpdns_sqlbackend,
+      libpdns_dynamicbackend,
     ],
     'manpages': ['pdnsutil.1'],
   },
