@@ -637,7 +637,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
       return;
     }
 
-    if (received > std::numeric_limits<uint16_t>::max() || (std::numeric_limits<uint16_t>::max() - existingLength) < static_cast<size_t>(received)) {
+    if (static_cast<size_t>(received) > static_cast<size_t>(std::numeric_limits<uint16_t>::max()) || (static_cast<size_t>(std::numeric_limits<uint16_t>::max()) - existingLength) < static_cast<size_t>(received)) {
       VERBOSESLOG(infolog("DoQ data frame of size %d is too large for a DNS query (we already have %d)", received, existingLength),
                   frontend.d_logger->info(Logr::Info, "DoQ data frame is too large for a DNS query", "stream_id", Logging::Loggable(streamID), "frame_size", Logging::Loggable(received), "existing_payload_size", Logging::Loggable(existingLength)));
       conn.d_streamBuffers.erase(streamID);
