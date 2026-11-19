@@ -1,1 +1,1 @@
-../../src_js/rickshaw.js
+../../../../../pdns/dnsdistdist/src_js/rickshaw.js
