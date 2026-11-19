@@ -1,0 +1,23 @@
+name: Check that we have no dangling symbolic links in the repository
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    name: Dangling symbolic links check
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install symlinks
+        run: "sudo apt-get update && sudo apt-get install symlinks"
+
+      - run: "! symlinks -vr . | grep -vF regression-tests | grep dangling"
