@@ -51,10 +51,18 @@ To fix: how to remove the stale entries that will surely accumulate
 class DNSProxy
 {
 public:
+  struct AddressRRsetTTL
+  {
+    uint32_t ttl;
+    bool combined{false};
+  };
+
+  using AddressTTLs = std::map<uint16_t, AddressRRsetTTL>;
+
   DNSProxy(Logr::log_t slog, const string& remote, const string& udpPortRange); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  bool completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, uint8_t scopeMask);
+  bool completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, uint8_t scopeMask, AddressTTLs localAddressTTLs);
 
   void mainloop(); //!< this is the main loop that receives reply packets and sends them out again
 private:
@@ -64,6 +72,7 @@ private:
     boost::optional<ComboAddress> anyLocal;
     DNSName qname;
     std::unique_ptr<DNSPacket> complete;
+    AddressTTLs localAddressTTLs;
     DNSName aname;
     uint8_t anameScopeMask;
     ComboAddress remote;

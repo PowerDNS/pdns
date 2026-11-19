@@ -6,6 +6,7 @@ import threading
 import clientsubnetoption
 
 import dns
+import dns.query
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 
@@ -57,6 +58,12 @@ oversized.example.org.       3600 IN TXT  "oversized text record 8, padded to si
 withrealaddress.example.org. 3600 IN ALIAS noerror.example.com.
 withrealaddress.example.org. 3600 IN A    192.0.2.100
 withrealaddress.example.org. 3600 IN AAAA 2001:DB8::100
+
+mixedttl.example.org.        3600 IN ALIAS mixedttl.example.com.
+mixedttl.example.org.         600 IN A    192.0.2.1
+mixedttl.example.org.         600 IN A    192.0.2.100
+mixedttl.example.org.         120 IN AAAA 2001:DB8::100
+mixedttl.example.org.         900 IN TXT  "mixed TTLs"
         """,
         "example.net": """
 example.net.                 3600 IN SOA  {soa}
@@ -412,6 +419,35 @@ ns2.example.net.             3600 IN A    {prefix}.11
         self.assertRRsetInAnswer(res, expected_zone_a)
         self.assertEqual(len(res.answer), 1)
 
+    def testANYWithMixedTTLs(self):
+        name = dns.name.from_text("mixedttl.example.org.")
+        expected = {
+            "ANY": [
+                (dns.rdatatype.A, 60, "192.0.2.1"),
+                (dns.rdatatype.A, 60, "192.0.2.100"),
+                (dns.rdatatype.AAAA, 120, "2001:db8::1"),
+                (dns.rdatatype.AAAA, 120, "2001:db8::100"),
+                (dns.rdatatype.TXT, 900, '"mixed TTLs"'),
+            ],
+            "A": [(dns.rdatatype.A, 600, "192.0.2.1"), (dns.rdatatype.A, 600, "192.0.2.100")],
+            "AAAA": [(dns.rdatatype.AAAA, 120, "2001:db8::100")],
+        }
+
+        for transport in (dns.query.udp, dns.query.tcp):
+            for qtype, records in expected.items():
+                with self.subTest(transport=transport.__name__, qtype=qtype):
+                    query = dns.message.make_query(name, qtype)
+                    # Keep the TTL of each wire record instead of letting dnspython merge the RRsets.
+                    res = transport(query, self._PREFIX + ".1", port=self._authPort, timeout=2, one_rr_per_rrset=True)
+                    self.assertRcodeEqual(res, dns.rcode.NOERROR)
+                    actual = []
+                    for rrset in res.answer:
+                        self.assertEqual(rrset.name, name)
+                        self.assertEqual(rrset.rdclass, dns.rdataclass.IN)
+                        self.assertEqual(len(rrset), 1)
+                        actual.append((rrset.rdtype, rrset.ttl, rrset[0].to_text()))
+                    self.assertCountEqual(actual, records)
+
 
 class AliasUDPResponder(DatagramProtocol):
     def datagramReceived(self, datagram, address):
@@ -448,6 +484,13 @@ class AliasUDPResponder(DatagramProtocol):
                         "2600::" if do_ecs_wrong else "2001:db8:db6:db5::", 64, 48
                     )
                 response.use_edns(edns=True, options=[ecso])
+
+        if name_text == "mixedttl.example.com.":
+            if question.rdtype in (dns.rdatatype.A, dns.rdatatype.ANY):
+                # The only resolved A duplicates a local address and supplies the lowest A TTL.
+                response.answer.append(dns.rrset.from_text(name, 60, dns.rdataclass.IN, "A", "192.0.2.1"))
+            if question.rdtype in (dns.rdatatype.AAAA, dns.rdatatype.ANY):
+                response.answer.append(dns.rrset.from_text(name, 300, dns.rdataclass.IN, "AAAA", "2001:DB8::1"))
 
         if name_text == "nxd.example.com.":
             response.set_rcode(dns.rcode.NXDOMAIN)
