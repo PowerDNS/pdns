@@ -25,8 +25,8 @@ level redirect. Additionally, the GeoIP backend can be used to provide
 service over several clusters, any of which can be taken out of use
 easily, for example for maintenance purposes, by using :doc:`Lua records <../lua-records/index>`.
 This backend can utilize EDNS Client Subnet extension for decision
-making, if provided in a query and you have turned on
-:ref:`setting-edns-subnet-processing`.
+making, if provided in a query and you have turned on EDNS Client Subnet
+processing (see :ref:`setting-edns-subnet-from`).
 
 Prerequisites
 --------------

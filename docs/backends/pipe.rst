@@ -64,8 +64,8 @@ co-process (:ref:`setting-pipe-command`) for the pipe backend.
 If not set the default :ref:`setting-pipe-abi-version` is 1. When set to 2, the
 local-ip-address field is added after the remote-ip-address, the
 local-ip-address refers to the IP address the question was received on.
-When set to 3, the real remote IP/subnet is added based on edns-subnet
-support (this also requires enabling :ref:`setting-edns-subnet-processing`).
+When set to 3, the real remote IP/subnet is added based on EDNS Client Subnet
+support (this also requires configuring :ref:`setting-edns-subnet-from`).
 When set to 4, it will also send the zone name in AXFR requests.
 See also :ref:`PipeBackend Protocol <pipebackend-protocol>` below.
 

@@ -767,15 +767,30 @@ Each secret MUST be 32 hexadecimal characters, as the siphash algorithm's key us
 Alternatively, starting with version 5.0.0, the first secret can be set to
 ``random``, in which case a random cookie value will be generated upon startup.
 
+.. _setting-edns-subnet-from:
+
+``edns-subnet-from``
+--------------------
+
+.. versionadded:: 5.2.0
+
+-  IP addresses or netmasks, separated by commas
+-  Default: empty
+
+Enables EDNS subnet processing on packets received on the given list of IP ranges.
+Setting any non-empty value here automatically sets :ref:`setting-edns-subnet-processing` to ``true``.
+
 .. _setting-edns-subnet-processing:
 
 ``edns-subnet-processing``
 --------------------------
+.. deprecated:: 5.2.0
+   use :ref:`setting-edns-subnet-from` instead.
 
 -  Boolean
 -  Default: no
 
-Enables EDNS subnet processing, for backends that support it.
+Enables EDNS subnet processing. If enabled, and :ref:`setting-edns-subnet-from` is empty, all addresses are allowed.
 
 .. _setting-enable-gss-tsig:
 
