@@ -461,10 +461,21 @@ endif
 # Needs link_whole, so the symbols are put into pdns_server and pdnsutil, and
 # dynamically loaded backends can use the symbols from their host program (uses
 # export_dynamic).
-libpdns_sqlbackend = declare_dependency(
+libpdns_dynamicbackend = declare_dependency(
   link_whole: static_library(
-    'pdns-sqlbackend',
+    'pdns-dynamicbackend',
     sources: files(
+      # needed by bindbackend
+      src_dir / 'auth-caches.cc',
+      src_dir / 'auth-caches.hh',
+      src_dir / 'dynlistener.cc',
+      src_dir / 'dynlistener.hh',
+      # needed by lua2backend
+      src_dir / 'lua-auth4.cc',
+      src_dir / 'lua-auth4.hh',
+      src_dir / 'lua-base4.cc',
+      src_dir / 'lua-base4.hh',
+      # needed by gmysqlbackend, godbcbackend, gpgsqlbackend and gsqlite3backend
       src_dir / 'backends' / 'gsql' / 'gsqlbackend.cc',
       src_dir / 'backends' / 'gsql' / 'gsqlbackend.hh',
       src_dir / 'backends' / 'gsql' / 'ssql.hh',
@@ -496,8 +507,6 @@ libpdns_signers_openssl = declare_dependency(
 common_sources += files(
   src_dir / 'arguments.cc',
   src_dir / 'arguments.hh',
-  src_dir / 'auth-caches.cc',
-  src_dir / 'auth-caches.hh',
   src_dir / 'auth-carbon.cc',
   src_dir / 'auth-catalogzone.cc',
   src_dir / 'auth-catalogzone.hh',
@@ -555,8 +564,6 @@ common_sources += files(
   src_dir / 'dnswriter.hh',
   src_dir / 'dynhandler.cc',
   src_dir / 'dynhandler.hh',
-  src_dir / 'dynlistener.cc',
-  src_dir / 'dynlistener.hh',
   src_dir / 'dynmessenger.cc',
   src_dir / 'dynmessenger.hh',
   src_dir / 'ednscookies.cc',
@@ -582,10 +589,6 @@ common_sources += files(
   src_dir / 'logging.cc',
   src_dir / 'logging.hh',
   src_dir / 'logr.hh',
-  src_dir / 'lua-auth4.cc',
-  src_dir / 'lua-auth4.hh',
-  src_dir / 'lua-base4.cc',
-  src_dir / 'lua-base4.hh',
   src_dir / 'misc.cc',
   src_dir / 'misc.hh',
   src_dir / 'nameserver.cc',
@@ -709,7 +712,7 @@ tools = {
       libpdns_gettime,
       libpdns_signers_openssl,
       libpdns_signers_sodium,
-      libpdns_sqlbackend,
+      libpdns_dynamicbackend,
     ],
     'manpages': ['pdns_server.1'],
     'install_dir': get_option('sbindir'),
@@ -723,7 +726,7 @@ tools = {
       libpdns_ssqlite3,
       libpdns_signers_openssl,
       libpdns_signers_sodium,
-      libpdns_sqlbackend,
+      libpdns_dynamicbackend,
     ],
     'manpages': ['pdnsutil.1'],
   },
@@ -891,6 +894,10 @@ if get_option('unit-tests')
       config_h,
       src_dir / 'channel.cc',
       src_dir / 'channel.hh',
+      src_dir / 'lua-auth4.cc',
+      src_dir / 'lua-auth4.hh',
+      src_dir / 'lua-base4.cc',
+      src_dir / 'lua-base4.hh',
       src_dir / 'pollmplexer.cc',
       src_dir / 'test-arguments_cc.cc',
       src_dir / 'test-auth-zonecache_cc.cc',
