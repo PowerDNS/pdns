@@ -1,1 +1,1 @@
-../../src_js/jquery.js
+../../../../../pdns/dnsdistdist/src_js/jquery.js
