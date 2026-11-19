@@ -1391,4 +1391,83 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_referral_on_ds_query_secure)
   BOOST_CHECK_EQUAL(queriesCount, 7U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_cached_ds_denial_from_insecure)
+{
+  /*
+    Validation is optional, and the first query does not ask for it,
+    so the answer is cached as Indeterminate.
+    The second query asks for validation.
+  */
+  std::unique_ptr<SyncRes> resolutionContext;
+  initSR(resolutionContext, true);
+
+  setDNSSECValidation(resolutionContext, DNSSECMode::Process);
+
+  primeHints();
+  const DNSName target("unsigned.powerdns.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSEC::ECDSA256, DNSSEC::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  resolutionContext->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, std::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys, true);
+    }
+
+    if (isRootServer(address)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+      addDS(DNSName("com."), 300, res->d_records, keys);
+      addRRSIG(keys, res->d_records, DNSName("."), 300);
+      addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+
+    if (address == ComboAddress("192.0.2.1:53")) {
+      if (domain == DNSName("com.")) {
+        setLWResult(res, 0, true, false, true);
+        addRecordToLW(res, domain, QType::NS, "a.gtld-servers.com.");
+        addRRSIG(keys, res->d_records, domain, 300);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        addRRSIG(keys, res->d_records, domain, 300);
+      }
+      else {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, DNSName("powerdns.com."), QType::NS, "ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, 3600);
+      }
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  /* first query does not require validation */
+  resolutionContext->setDNSSECValidationRequested(false);
+  int res = resolutionContext->beginResolve(target, QType(QType::DS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(resolutionContext->getValidationState(), vState::Indeterminate);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret.at(0).d_type == QType::SOA);
+  BOOST_CHECK_EQUAL(queriesCount, 1U);
+
+  ret.clear();
+  /* second one _does_ require validation */
+  resolutionContext->setDNSSECValidationRequested(true);
+  res = resolutionContext->beginResolve(target, QType(QType::DS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(resolutionContext->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 1U);
+  BOOST_CHECK(ret.at(0).d_type == QType::SOA);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
