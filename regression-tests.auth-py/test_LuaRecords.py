@@ -52,7 +52,7 @@ class FakeHTTPServer(BaseHTTPRequestHandler):
 class BaseLuaTest(AuthTest):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
-edns-subnet-processing=yes
+edns-subnet-from=127.0.0.1/32,::1/128
 launch={backend} geoip
 any-to-tcp=no
 enable-lua-records

@@ -289,6 +289,7 @@ void DNSProxy::mainloop()
         memcpy(&buffer[0], &dHead, sizeof(dHead)); // commit spoofed id
 
         DNSPacket packet(d_slog, false);
+        packet.setRemote(&d_remote);
         packet.parse(&buffer[0], (size_t)len);
 
         if (packet.qtype.getCode() != iter->second.qtype || packet.qdomain != iter->second.qname) {

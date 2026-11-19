@@ -20,7 +20,7 @@ expand-alias=yes
 resolver=%s.1:5301
 any-to-tcp=no
 launch={backend}
-edns-subnet-processing=yes
+edns-subnet-from=127.0.0.1/32,::1/128
 logging-structured
 """
 

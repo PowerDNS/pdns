@@ -56,6 +56,7 @@
 
 bool DNSPacket::s_doEDNSSubnetProcessing;
 bool DNSPacket::s_doEDNSCookieProcessing;
+NetmaskGroup DNSPacket::s_ECS_ACL;
 LockGuarded<string> DNSPacket::s_EDNSCookieKey;
 LockGuarded<std::vector<std::string>> DNSPacket::s_OldEDNSCookieKeys;
 uint16_t DNSPacket::s_udpTruncationThreshold;
@@ -622,7 +623,7 @@ try
       if(option.first == EDNSOptionCode::NSID) {
         d_wantsnsid=true;
       }
-      else if(s_doEDNSSubnetProcessing && (option.first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
+      else if(s_doEDNSSubnetProcessing && s_ECS_ACL.match(getInnerRemote()) && option.first == EDNSOptionCode::ECS) { // 'EDNS SUBNET'
         if (EDNSSubnetOpts::getFromString(option.second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;

@@ -251,6 +251,7 @@ static void declareArguments()
   ::arg().setSwitch("prevent-self-notification", "Don't send notifications to what we think is ourself") = "yes";
   ::arg().setSwitch("any-to-tcp", "Answer ANY queries with tc=1, shunting to TCP") = "yes";
   ::arg().setSwitch("edns-subnet-processing", "If we should act on EDNS Subnet options") = "no";
+  ::arg().set("edns-subnet-from", "The list of subnets for which EDNS Subnet is allowed, if edns-subnet-processing is enabled.") = "";
   ::arg().set("delay-notifications", "Configure a delay to send out notifications, no delay by default") = "0";
 
   ::arg().set("edns-cookie-secret", "When set, set a server cookie when responding to a query with a Client cookie (in hex)", true) = "";
@@ -880,6 +881,23 @@ static void mainthread()
 
     DNSPacket::s_udpTruncationThreshold = std::max(static_cast<uint16_t>(512), ::arg().asNum<uint16_t>("udp-truncation-threshold"));
     DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
+    DNSPacket::s_ECS_ACL.toMasks(::arg()["edns-subnet-from"]);
+    // For backwards compatibility purposes:
+    // - if edns-subnet-processing is set but edns-subnet-from isn't, assume
+    //   edns-subnet-from=0.0.0.0/0,::/0
+    // - if edns-subnet-processing is not set but edns-subnet-from is, assume
+    //   edns-subnet-processing=true
+    if (DNSPacket::s_doEDNSSubnetProcessing) {
+      if (DNSPacket::s_ECS_ACL.empty()) {
+        DNSPacket::s_ECS_ACL.addMask("0.0.0.0/0");
+        DNSPacket::s_ECS_ACL.addMask("::/0");
+      }
+    }
+    else {
+      if (!DNSPacket::s_ECS_ACL.empty()) {
+        DNSPacket::s_doEDNSSubnetProcessing = true;
+      }
+    }
     PacketHandler::s_SVCAutohints = ::arg().mustDo("svc-autohints");
     PacketHandler::s_NAPTRprocessing = ::arg().mustDo("naptr-additional-processing");
 

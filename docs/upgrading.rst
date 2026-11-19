@@ -73,6 +73,11 @@ Installations using custom versions of these queries can keep them
 unchanged: when the trailing column is absent, the apex check is simply
 skipped, matching the old behaviour.
 
+Finer EDNS Client Subnet processing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The new :ref:`setting-edns-subnet-from` setting allows EDNS Client Subnet processing to be limited to a specific set of networks.
+
 5.0.x to 5.1.x
 --------------
 
