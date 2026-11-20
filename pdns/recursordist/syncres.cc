@@ -316,6 +316,7 @@ struct DoTStatus
   DNSName d_auth;
   time_t d_ttd;
   mutable uint64_t d_count{0};
+  mutable uint8_t d_failures{0};
   mutable Status d_status{Unknown};
   std::string toString() const
   {
@@ -345,6 +346,7 @@ static LockGuarded<DoTMap> s_dotMap;
 
 static const time_t dotFailWait = static_cast<time_t>(24) * 3600;
 static const time_t dotSuccessWait = static_cast<time_t>(3) * 24 * 3600;
+static const uint8_t dotFailLimit = 3;
 static bool shouldDoDoT(ComboAddress address, time_t now);
 
 unsigned int SyncRes::s_maxnegttl;
@@ -1523,6 +1525,8 @@ LWResult::Result SyncRes::asyncresolveWrapper(const OptLog& log, const ComboAddr
       sendQname.makeUsLowerCase();
     }
 
+    // Clear the flag left by a previous answer
+    res->d_validpacket = false;
     if (d_asyncResolve) {
       ret = d_asyncResolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
@@ -5510,10 +5514,23 @@ static void updateDoTStatus(ComboAddress address, DoTStatus::Status status, time
   auto iter = lock->d_map.find(address);
   if (iter != lock->d_map.end()) {
     iter->d_status = status;
+    iter->d_failures = 0;
     lock->d_map.modify(iter, [=](DoTStatus& statusToModify) { statusToModify.d_ttd = time; });
     if (updateBusy) {
       --lock->d_numBusy;
     }
+  }
+}
+
+static void countDoTFailure(ComboAddress address, time_t now)
+{
+  address.setPort(853);
+  auto lock = s_dotMap.lock();
+  auto iter = lock->d_map.find(address);
+  if (iter != lock->d_map.end() && ++iter->d_failures >= dotFailLimit) {
+    iter->d_status = DoTStatus::Bad;
+    iter->d_failures = 0;
+    lock->d_map.modify(iter, [=](DoTStatus& statusToModify) { statusToModify.d_ttd = now + dotFailWait; });
   }
 }
 
@@ -5536,8 +5553,9 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsN
   bool isOK = false;
   try {
     std::optional<EDNSExtendedError> extendedError;
-    isOK = doResolveAtThisIP("", qname, qtype, lwr, netmask, qname, false, false, nsName, address, true, true, truncated, spoofed, extendedError, true);
-    isOK = isOK && lwr.d_rcode == RCode::NoError && !lwr.d_records.empty();
+    doResolveAtThisIP("", qname, qtype, lwr, netmask, qname, false, false, nsName, address, true, true, truncated, spoofed, extendedError, true);
+    // Any answer (including REFUSED) means that DoT works
+    isOK = lwr.d_validpacket;
   }
   catch (const PDNSException& e) {
     logHelper2(e.reason, "PDNSException");
@@ -6351,9 +6369,14 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           }
 
           if (!gotAnswer) {
+            // An error answer still shows that DoT works
             if (doDoT && s_max_busy_dot_probes > 0) {
-              // This is quite pessimistic...
-              updateDoTStatus(*remoteIP, DoTStatus::Bad, d_now.tv_sec + dotFailWait);
+              if (lwr.d_validpacket) {
+                updateDoTStatus(*remoteIP, DoTStatus::Good, d_now.tv_sec + dotSuccessWait);
+              }
+              else {
+                countDoTFailure(*remoteIP, d_now.tv_sec);
+              }
             }
             continue;
           }

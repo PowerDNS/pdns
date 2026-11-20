@@ -1505,8 +1505,9 @@ Limit the maximum number of simultaneous DoT probes the Recursor will schedule.
 The default value 0 means no DoT probes are scheduled.
 
 DoT probes are used to check if an authoritative server's IP address supports DoT.
-If the probe determines an IP address supports DoT, the Recursor will use DoT to contact it for subsequent queries until a failure occurs.
-After a failure, the Recursor will stop using DoT for that specific IP address for a while.
+If the probe determines an IP address supports DoT, the Recursor will use DoT to contact it for subsequent queries.
+After three consecutive transport failures, the Recursor will stop using DoT for that specific IP address for a while.
+Any answer, including one with an error rcode such as REFUSED, resets the count.
 The results of probes are remembered and can be viewed by the ``rec_control dump-dot-probe-map`` command.
 If the maximum number of pending probes is reached, no probes will be scheduled, even if no DoT status is known for an address.
 If the result of a probe is not yet available, the Recursor will contact the authoritative server in the regular way, unless an authoritative server is configured to be contacted over DoT always using :ref:`setting-dot-to-auth-names`.
