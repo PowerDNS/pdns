@@ -81,7 +81,7 @@ The new :ref:`setting-edns-subnet-from` setting allows EDNS Client Subnet proces
 Lua record serialization changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When serializing large Lua records for AXFR, instead of splitting them in 255-byte chunks, and hoping the other end will reassemble the result into something which is still valid Lua code, PowerDNS will now try to split the contents on whitespace boundaries, which ought to be less error-prone at reassembly time, regardless of the value of :ref:`setting-lua-records-insert-whitespace`. Note that it is still possible to split Lua code on a non-whitespace boundary, if there are more than 255 contiguous characters without any form of whitespace in the code.
+When serializing large Lua records for AXFR, instead of splitting them in 255-byte chunks, and hoping the other end will reassemble the result into something which is still valid Lua code, PowerDNS will now try to split the contents on whitespace boundaries, which ought to be less error-prone at reassembly time, regardless of the value of :ref:`setting-lua-records-insert-whitespace`. Note that a split on a non-whitespace boundary can still happen, if there are more than 255 contiguous characters without any form of whitespace in the code.
 
 5.0.x to 5.1.x
 --------------
