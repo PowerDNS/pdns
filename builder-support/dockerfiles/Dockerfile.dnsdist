@@ -1,7 +1,7 @@
 FROM alpine:3.23 AS dnsdist
 ARG BUILDER_CACHE_BUSTER=
 
-RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
+RUN apk add --no-cache gcc g++ make tar autoconf automake lua-dev \
                        libtool file boost-dev ragel python3 py3-yaml git libedit-dev \
                        bash meson cargo
 
