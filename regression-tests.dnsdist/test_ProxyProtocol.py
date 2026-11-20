@@ -30,18 +30,125 @@ udpResponder = threading.Thread(
     name="UDP Proxy Protocol Responder",
     target=ProxyProtocolUDPResponder,
     args=[proxyResponderPort, toProxyQueue, fromProxyQueue],
+    daemon=True,
 )
-udpResponder.daemon = True
 udpResponder.start()
 tcpResponder = threading.Thread(
     name="TCP Proxy Protocol Responder",
     target=ProxyProtocolTCPResponder,
     args=[proxyResponderPort, toProxyQueue, fromProxyQueue],
+    daemon=True,
 )
-tcpResponder.daemon = True
 tcpResponder.start()
 
 backgroundThreads = {}
+
+
+def MockTCPReverseProxyAddingProxyProtocolConnectionHandler(
+    listeningPort, forwardingPort, deferFirstWrite, sslCtx, ca, sni, remote, incoming
+):
+    incoming.setblocking(False)
+
+    payload = ProxyProtocol.getPayload(
+        False,
+        True,
+        False,
+        "127.0.0.1",
+        "127.0.0.1",
+        incoming.getpeername()[1],
+        listeningPort,
+        [[2, b"foo"], [3, b"proxy"]],
+    )
+
+    outgoing = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    outgoing.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    if sni:
+        if sslCtx:
+            outgoing = sslCtx.wrap_socket(outgoing, server_hostname=sni)
+        else:
+            outgoing = ssl.wrap_socket(outgoing, ca_certs=ca, cert_reqs=ssl.CERT_REQUIRED)
+
+    outgoing.settimeout(2.0)
+
+    print(
+        f"Mock TCP reverse proxy listening on {listeningPort} connecting to {forwardingPort} to forward a connection from {remote}"
+    )
+    outgoing.connect(("127.0.0.1", forwardingPort))
+
+    # deferFirstWrite needs to do several things to simulate DoH bug
+    # * open connection
+    # * sleep
+    # * send proxy protocol header together with the first data
+    # * hold all the data, until dnsdist writes back something
+    # * then send all the data and start forwarding normally
+
+    if deferFirstWrite:
+        time.sleep(0.5)
+        incoming.settimeout(2)
+        data = incoming.recv(512)
+        incoming.settimeout(0.1)
+        try:
+            while True:
+                data += incoming.recv(512)
+        except socket.timeout:
+            pass
+        incoming.setblocking(False)
+        outgoing.sendall(payload + data)
+    else:
+        outgoing.sendall(payload)
+
+    sel = selectors.DefaultSelector()
+    hold = deferFirstWrite
+    held = []
+
+    def readFromClient(conn):
+        nonlocal hold
+        nonlocal held
+        nonlocal outgoing
+        data = conn.recv(512)
+        if not data or len(data) == 0:
+            return False
+        if hold:
+            held.append(data)
+            return True
+        outgoing.sendall(data)
+        return True
+
+    def readFromBackend(conn):
+        nonlocal hold
+        nonlocal held
+        nonlocal incoming
+        data = conn.recv(512)
+        if not data or len(data) == 0:
+            return False
+        incoming.sendall(data)
+        if hold:
+            hold = False
+            for chunk in held:
+                outgoing.sendall(chunk)
+            held.clear()
+        return True
+
+    sel.register(incoming, selectors.EVENT_READ, readFromClient)
+    sel.register(outgoing, selectors.EVENT_READ, readFromBackend)
+    done = False
+    while not done:
+        try:
+            events = sel.select()
+            for key, mask in events:
+                if not (key.data)(key.fileobj):
+                    done = True
+                    break
+        except socket.timeout as exp:
+            print(exp)
+            break
+        except Exception as exp:
+            print(exp)
+            break
+
+    sel.close()
+    incoming.close()
+    outgoing.close()
 
 
 def MockTCPReverseProxyAddingProxyProtocol(
@@ -66,17 +173,26 @@ def MockTCPReverseProxyAddingProxyProtocol(
     if serverCtx is not None:
         sock = serverCtx.wrap_socket(sock, server_side=True)
 
+    sslCtx = None
+    if sni:
+        sslCtx = ssl.create_default_context(cafile=ca)
+        if hasattr(sslCtx, "set_alpn_protocols"):
+            sslCtx.set_alpn_protocols(["h2"])
+
     try:
         sock.bind(("127.0.0.1", listeningPort))
     except socket.error as e:
         print("Error binding in the Mock TCP reverse proxy: %s" % str(e))
         sys.exit(1)
+    # setting the timeout so that accept() is regularly interrupted so
+    # we can check if the thread has been asked to go away
     sock.settimeout(0.5)
     sock.listen(100)
 
     while True:
         try:
-            (incoming, _) = sock.accept()
+            (incoming, remote) = sock.accept()
+            print(f"Mock TCP reverse proxy listening on {listeningPort} accepted a connection from {remote}")
         except socket.timeout:
             if backgroundThreads.get(threading.get_native_id(), False) == False:
                 del backgroundThreads[threading.get_native_id()]
@@ -84,103 +200,13 @@ def MockTCPReverseProxyAddingProxyProtocol(
             else:
                 continue
 
-        incoming.setblocking(False)
-
-        payload = ProxyProtocol.getPayload(
-            False,
-            True,
-            False,
-            "127.0.0.1",
-            "127.0.0.1",
-            incoming.getpeername()[1],
-            listeningPort,
-            [[2, b"foo"], [3, b"proxy"]],
+        connectionThread = threading.Thread(
+            name=f"Mock Proxy Protocol Reverse Proxy - {remote}",
+            target=MockTCPReverseProxyAddingProxyProtocolConnectionHandler,
+            args=[listeningPort, forwardingPort, deferFirstWrite, sslCtx, ca, sni, remote, incoming],
+            daemon=True,
         )
-
-        outgoing = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        outgoing.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        if sni:
-            if hasattr(ssl, "create_default_context"):
-                sslctx = ssl.create_default_context(cafile=ca)
-                if hasattr(sslctx, "set_alpn_protocols"):
-                    sslctx.set_alpn_protocols(["h2"])
-                outgoing = sslctx.wrap_socket(outgoing, server_hostname=sni)
-            else:
-                outgoing = ssl.wrap_socket(outgoing, ca_certs=ca, cert_reqs=ssl.CERT_REQUIRED)
-
-        outgoing.settimeout(2.0)
-
-        outgoing.connect(("127.0.0.1", forwardingPort))
-
-        # deferFirstWrite needs to do several things to simulate DoH bug
-        # * open connection
-        # * sleep
-        # * send proxy protocol header together with the first data
-        # * hold all the data, until dnsdist writes back something
-        # * then send all the data and start forwarding normally
-
-        if deferFirstWrite:
-            time.sleep(0.5)
-            incoming.settimeout(2)
-            data = incoming.recv(512)
-            incoming.settimeout(0.1)
-            try:
-                while True:
-                    data += incoming.recv(512)
-            except socket.timeout:
-                pass
-            incoming.setblocking(False)
-            outgoing.sendall(payload + data)
-        else:
-            outgoing.sendall(payload)
-
-        sel = selectors.DefaultSelector()
-        hold = deferFirstWrite
-        held = []
-
-        def readFromClient(conn):
-            data = conn.recv(512)
-            if not data or len(data) == 0:
-                return False
-            if hold:
-                held.append(data)
-                return True
-            outgoing.sendall(data)
-            return True
-
-        def readFromBackend(conn):
-            nonlocal hold
-            data = conn.recv(512)
-            if not data or len(data) == 0:
-                return False
-            incoming.sendall(data)
-            if hold:
-                hold = False
-                for chunk in held:
-                    outgoing.sendall(chunk)
-                held.clear()
-            return True
-
-        sel.register(incoming, selectors.EVENT_READ, readFromClient)
-        sel.register(outgoing, selectors.EVENT_READ, readFromBackend)
-        done = False
-        while not done:
-            try:
-                events = sel.select()
-                for key, mask in events:
-                    if not (key.data)(key.fileobj):
-                        done = True
-                        break
-            except socket.timeout as exp:
-                print(exp)
-                break
-            except Exception as exp:
-                print(exp)
-                break
-
-        sel.close()
-        incoming.close()
-        outgoing.close()
+        connectionThread.start()
 
     sock.close()
 
@@ -966,6 +992,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
             name="Mock Proxy Protocol Reverse Proxy",
             target=MockTCPReverseProxyAddingProxyProtocol,
             args=[reverseProxyPort, self._dohServerPPOutsidePort, deferFirstWrite],
+            daemon=True,
         )
         reverseProxy.start()
         time.sleep(1)
@@ -1089,6 +1116,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
                 self._caCert,
                 self._serverName,
             ],
+            daemon=True,
         )
         reverseProxy.start()
 
@@ -1202,6 +1230,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
             name="Mock Proxy Protocol Reverse Proxy",
             target=MockTCPReverseProxyAddingProxyProtocol,
             args=[reverseProxyPort, self._dotServerPPOutsidePort, deferFirstWrite],
+            daemon=True,
         )
         reverseProxy.start()
         time.sleep(1)
@@ -1310,6 +1339,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
                 self._caCert,
                 self._serverName,
             ],
+            daemon=True,
         )
         reverseProxy.start()
 
