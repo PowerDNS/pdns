@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
 #include <sys/types.h>
 #include <thread>
 
@@ -110,8 +111,32 @@ void DNSProxy::go()
   proxythread.detach();
 }
 
+static void addAliasRecord(DNSPacket& reply, DNSZoneRecord&& record, DNSProxy::AddressTTLs& localAddressTTLs)
+{
+  const auto ttl = localAddressTTLs.find(record.dr.d_type);
+  if (ttl != localAddressTTLs.end() && record.dr.d_class == QClass::IN && record.dr.d_place == DNSResourceRecord::ANSWER) {
+    // Include the resolved TTL even when addRecord() discards a duplicate address.
+    ttl->second.ttl = std::min(ttl->second.ttl, record.dr.d_ttl);
+    ttl->second.combined = true;
+  }
+  reply.addRecord(std::move(record));
+}
+
+static void applyAliasTTLs(DNSPacket& reply, const DNSName& aname, const DNSProxy::AddressTTLs& localAddressTTLs)
+{
+  if (localAddressTTLs.empty()) {
+    return;
+  }
+  for (auto& record : reply.getRRS()) {
+    const auto ttl = localAddressTTLs.find(record.dr.d_type);
+    if (ttl != localAddressTTLs.end() && ttl->second.combined && record.dr.d_name == aname && record.dr.d_class == QClass::IN && record.dr.d_place == DNSResourceRecord::ANSWER) {
+      record.dr.d_ttl = ttl->second.ttl;
+    }
+  }
+}
+
 //! look up qname 'target' with reply->qtype, plonk it in the answer section of 'reply' with name 'aname'
-bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, const uint8_t scopeMask)
+bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, const uint8_t scopeMask, AddressTTLs localAddressTTLs)
 {
   string ECSOptionStr;
 
@@ -155,8 +180,9 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
     else {
       for (auto& ip : ips) { // NOLINT(readability-identifier-length)
         ip.dr.d_name = aname;
-        reply->addRecord(std::move(ip));
+        addAliasRecord(*reply, std::move(ip), localAddressTTLs);
       }
+      applyAliasTTLs(*reply, aname, localAddressTTLs);
     }
 
     uint16_t len = htons(reply->getString().length());
@@ -182,6 +208,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
     ce.qname = target;
     ce.anyLocal = reply->d_anyLocal;
     ce.complete = std::move(reply);
+    ce.localAddressTTLs = std::move(localAddressTTLs);
     ce.aname = aname;
     ce.anameScopeMask = scopeMask;
     (*conntrack)[id] = std::move(ce);
@@ -308,6 +335,7 @@ void DNSProxy::mainloop()
         DLOG(SLOG(g_log << "from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: " << iter->second.complete->d_eso.getSource().toString() << " EDNS scope: " << iter->second.complete->d_eso.getScope().toString() << endl,
                   d_slog->info(Logr::Debug, "DNSProxy::mainloop: updated EDNS options from resolver EDNS", "source", Logging::Loggable(iter->second.complete->d_eso.getSource()), "scope", Logging::Loggable(iter->second.complete->d_eso.getScope()))));
 
+        auto localAddressTTLs = std::move(iter->second.localAddressTTLs);
         if (mdp.d_header.rcode == RCode::NoError) {
           for (const auto& answer : mdp.d_answers) {
             if (answer.d_place == DNSResourceRecord::ANSWER || (answer.d_place == DNSResourceRecord::AUTHORITY && answer.d_type == QType::SOA)) {
@@ -320,11 +348,12 @@ void DNSProxy::mainloop()
                 dzr.dr.d_place = answer.d_place;
                 dzr.dr.setContent(answer.getContent());
                 // NOTE dzr.domain_id == UnknownDomainID
-                iter->second.complete->addRecord(std::move(dzr));
+                addAliasRecord(*iter->second.complete, std::move(dzr), localAddressTTLs);
               }
             }
           }
 
+          applyAliasTTLs(*iter->second.complete, iter->second.aname, localAddressTTLs);
           iter->second.complete->setRcode(mdp.d_header.rcode);
         }
         else {
