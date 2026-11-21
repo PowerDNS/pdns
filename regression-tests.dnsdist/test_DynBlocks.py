@@ -111,21 +111,8 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         truncatedResponse = dns.message.make_response(query)
         truncatedResponse.flags |= dns.flags.TC
 
-        allowed = 0
-        sent = 0
-        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
-            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
-            sent = sent + 1
-            if receivedQuery:
-                receivedQuery.id = query.id
-                self.assertEqual(query, receivedQuery)
-                self.assertEqual(receivedResponse, response)
-                allowed = allowed + 1
-            else:
-                self.assertEqual(receivedResponse, truncatedResponse)
-                # the query has not reached the responder,
-                # let's clear the response queue
-                self.clearToResponderQueue()
+        sent = (self._dynBlockQPS * self._dynBlockPeriod) + 1
+        allowed = self.sendQueryBurst(query, response, sent, blockedResponse=truncatedResponse)
 
         # we might be already truncated, but we should have been able to send
         # at least self._dynBlockQPS queries
@@ -154,18 +141,9 @@ class TestDynBlockQPSActionTruncated(DNSDistTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        allowed = 0
-        sent = 0
         # again, over TCP this time, we should never get truncated!
-        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
-            sent = sent + 1
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(receivedResponse, response)
-            receivedQuery.id = query.id
-            allowed = allowed + 1
-
+        sent = (self._dynBlockQPS * self._dynBlockPeriod) + 1
+        allowed = self.sendQueryBurst(query, response, sent, tcp=True)
         self.assertEqual(allowed, sent)
 
 
