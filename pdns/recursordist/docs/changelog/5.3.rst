@@ -4,6 +4,24 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.15
+  :released: 24th of November 2026
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18340
+    :tickets: 17978
+
+    Followup to 17897, repair replace call.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18299
+    :tickets: 18295
+
+    Update the two crates that depend on pin-utils (http-body-util and futures-util).
+
+.. changelog::
   :version: 5.3.14
   :released: 26th of October 2026
 
