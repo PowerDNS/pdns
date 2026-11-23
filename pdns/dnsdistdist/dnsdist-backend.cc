@@ -88,6 +88,110 @@ void DownstreamState::removeXSKDestination(int fd)
 }
 #endif /* HAVE_XSK */
 
+void DownstreamState::disconnectSocket(int& socketDescriptor)
+{
+  if (socketDescriptor == -1) {
+    return;
+  }
+
+  try {
+    if (sockets.size() > 1) {
+      (*mplexer.lock())->removeReadFD(socketDescriptor);
+    }
+  }
+  catch (const FDMultiplexerException&) {
+    /* some sockets might not have been added to the multiplexer
+       yet, that's fine */
+  }
+#ifdef HAVE_XSK
+  try {
+    if (!d_xskInfos.empty()) {
+      removeXSKDestination(socketDescriptor);
+    }
+  }
+  catch (const std::exception& exp) {
+    SLOG(infolog("Error removing XSK destination while closing backend socket '%s': %s", d_config.remote.toStringWithPort(), exp.what()),
+         getLogger()->error(Logr::Info, exp.what(), "Error removing XSK destination while closing backend socket", "source.interface", Logging::Loggable(d_config.sourceItfName)));
+  }
+#endif /* HAVE_XSK */
+
+  /* shutdown() is needed to wake up recv() in the responderThread */
+  shutdown(socketDescriptor, SHUT_RDWR);
+  close(socketDescriptor);
+  socketDescriptor = -1;
+}
+
+bool DownstreamState::connectSocket(int& socketDescriptor, bool initialAttempt)
+{
+  try {
+    socketDescriptor = SSocket(d_config.remote.sin4.sin_family, SOCK_DGRAM, 0);
+
+#ifdef SO_BINDTODEVICE
+    if (!d_config.sourceItfName.empty()) {
+      int res = setsockopt(socketDescriptor, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
+      if (res != 0) {
+        int saved = errno;
+        SLOG(infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror(saved)),
+             getLogger()->error(Logr::Info, saved, "Error setting up the interface on backend socket", "source.interface", Logging::Loggable(d_config.sourceItfName)));
+      }
+    }
+#endif
+
+    dnsdist::udp::setUDPSocketBufferSizes(socketDescriptor, *getLogger(), dnsdist::udp::Context::Backend, d_config.remote);
+
+    try {
+      if (!IsAnyAddress(d_config.sourceAddr)) {
+#ifdef IP_BIND_ADDRESS_NO_PORT
+        if (d_config.ipBindAddrNoPort) {
+          SSetsockopt(socketDescriptor, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
+        }
+#endif
+        SBind(socketDescriptor, d_config.sourceAddr);
+      }
+    }
+    catch (const std::exception& exp) {
+      SLOG(infolog("Error binding backend socket '%s': %s", d_config.remote.toStringWithPort(), exp.what()),
+           getLogger()->error(Logr::Info, exp.what(), "Error binding backend socket", "source.interface", Logging::Loggable(d_config.sourceItfName)));
+      return false;
+    }
+
+    try {
+      setDscp(socketDescriptor, d_config.remote.sin4.sin_family, d_config.dscp);
+      SConnect(socketDescriptor, d_config.tcpFastOpen, d_config.remote);
+      if (sockets.size() > 1) {
+        (*mplexer.lock())->addReadFD(socketDescriptor, [](int, boost::any) {});
+      }
+#ifdef HAVE_XSK
+      if (!d_xskInfos.empty()) {
+        addXSKDestination(socketDescriptor);
+      }
+#endif /* HAVE_XSK */
+      connected = true;
+    }
+    catch (const std::exception& error) {
+      if (initialAttempt || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
+        if (!IsAnyAddress(d_config.sourceAddr) || !d_config.sourceItfName.empty()) {
+          SLOG(infolog("Error connecting to new server with address %s (source address: %s, source interface: %s): %s", d_config.remote.toStringWithPort(), IsAnyAddress(d_config.sourceAddr) ? "not set" : d_config.sourceAddr.toString(), d_config.sourceItfName.empty() ? "not set" : d_config.sourceItfName, error.what()),
+               getLogger()->error(Logr::Info, error.what(), "Error connecting to server", "source.address", Logging::Loggable(d_config.sourceAddr), "source.interface", Logging::Loggable(d_config.sourceItfName)));
+        }
+        else {
+          SLOG(infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what()),
+               getLogger()->error(Logr::Info, error.what(), "Error connecting to server"));
+        }
+      }
+      return false;
+    }
+
+    return true;
+  }
+  catch (const std::exception& exp) {
+    SLOG(infolog("Error connecting backend socket '%s': %s", d_config.remote.toStringWithPort(), exp.what()),
+         getLogger()->error(Logr::Info, exp.what(), "Error connecting backend socket", "source.interface", Logging::Loggable(d_config.sourceItfName)));
+    return false;
+  }
+  return false;
+}
+
 bool DownstreamState::reconnect(bool initialAttempt)
 {
   std::unique_lock<std::mutex> lock(connectLock, std::try_to_lock);
@@ -108,107 +212,29 @@ bool DownstreamState::reconnect(bool initialAttempt)
   }
 #endif /* HAVE_XSK */
 
-  for (auto& fd : sockets) {
-    if (fd != -1) {
-      if (sockets.size() > 1) {
-        (*mplexer.lock())->removeReadFD(fd);
-      }
-#ifdef HAVE_XSK
-      if (!d_xskInfos.empty()) {
-        removeXSKDestination(fd);
-      }
-#endif /* HAVE_XSK */
-      /* shutdown() is needed to wake up recv() in the responderThread */
-      shutdown(fd, SHUT_RDWR);
-      close(fd);
-      fd = -1;
-    }
-    fd = SSocket(d_config.remote.sin4.sin_family, SOCK_DGRAM, 0);
-
-#ifdef SO_BINDTODEVICE
-    if (!d_config.sourceItfName.empty()) {
-      int res = setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, d_config.sourceItfName.c_str(), d_config.sourceItfName.length());
-      if (res != 0) {
-        int saved = errno;
-        SLOG(infolog("Error setting up the interface on backend socket '%s': %s", d_config.remote.toStringWithPort(), stringerror(saved)),
-             getLogger()->error(Logr::Info, saved, "Error setting up the interface on backend socket", "source.interface", Logging::Loggable(d_config.sourceItfName)));
-      }
-    }
-#endif
-
-    dnsdist::udp::setUDPSocketBufferSizes(fd, *getLogger(), dnsdist::udp::Context::Backend, d_config.remote);
-
-    if (!IsAnyAddress(d_config.sourceAddr)) {
-#ifdef IP_BIND_ADDRESS_NO_PORT
-      if (d_config.ipBindAddrNoPort) {
-        SSetsockopt(fd, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
-      }
-#endif
-      SBind(fd, d_config.sourceAddr);
-    }
-
-    try {
-      setDscp(fd, d_config.remote.sin4.sin_family, d_config.dscp);
-      SConnect(fd, d_config.tcpFastOpen, d_config.remote);
-      if (sockets.size() > 1) {
-        (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
-      }
-#ifdef HAVE_XSK
-      if (!d_xskInfos.empty()) {
-        addXSKDestination(fd);
-      }
-#endif /* HAVE_XSK */
-      connected = true;
-    }
-    catch (const std::runtime_error& error) {
-      if (initialAttempt || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
-        if (!IsAnyAddress(d_config.sourceAddr) || !d_config.sourceItfName.empty()) {
-          SLOG(infolog("Error connecting to new server with address %s (source address: %s, source interface: %s): %s", d_config.remote.toStringWithPort(), IsAnyAddress(d_config.sourceAddr) ? "not set" : d_config.sourceAddr.toString(), d_config.sourceItfName.empty() ? "not set" : d_config.sourceItfName, error.what()),
-               getLogger()->error(Logr::Info, error.what(), "Error connecting to server", "source.address", Logging::Loggable(d_config.sourceAddr), "source.interface", Logging::Loggable(d_config.sourceItfName)));
-        }
-        else {
-          SLOG(infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what()),
-               getLogger()->error(Logr::Info, error.what(), "Error connecting to server"));
-        }
-      }
-      connected = false;
+  bool success = true;
+  for (auto& socketFD : sockets) {
+    disconnectSocket(socketFD);
+    if (!connectSocket(socketFD, initialAttempt)) {
+      success = false;
       break;
     }
   }
 
   /* if at least one (re-)connection failed, close all sockets */
-  if (!connected) {
+  if (!success) {
 #ifdef HAVE_XSK
     if (!d_xskInfos.empty()) {
       auto addresses = d_socketSourceAddresses.write_lock();
       addresses->clear();
     }
 #endif /* HAVE_XSK */
-    for (auto& fd : sockets) {
-      if (fd != -1) {
-#ifdef HAVE_XSK
-        if (!d_xskInfos.empty()) {
-          removeXSKDestination(fd);
-        }
-#endif /* HAVE_XSK */
-        if (sockets.size() > 1) {
-          try {
-            (*mplexer.lock())->removeReadFD(fd);
-          }
-          catch (const FDMultiplexerException& e) {
-            /* some sockets might not have been added to the multiplexer
-               yet, that's fine */
-          }
-        }
-        /* shutdown() is needed to wake up recv() in the responderThread */
-        shutdown(fd, SHUT_RDWR);
-        close(fd);
-        fd = -1;
-      }
+    for (auto& socketFD : sockets) {
+      disconnectSocket(socketFD);
     }
   }
-
-  if (connected) {
+  else {
+    connected = true;
     lock.unlock();
     d_connectedWait.notify_all();
     if (!initialAttempt) {
