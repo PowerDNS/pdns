@@ -99,6 +99,7 @@ void DownstreamState::disconnectSocket(int& socketDescriptor)
       (*mplexer.lock())->removeReadFD(socketDescriptor);
     }
   }
+  // NOLINTNEXTLINE(bugprone-empty-catch)
   catch (const FDMultiplexerException&) {
     /* some sockets might not have been added to the multiplexer
        yet, that's fine */
@@ -159,6 +160,7 @@ bool DownstreamState::connectSocket(int& socketDescriptor, bool initialAttempt)
       setDscp(socketDescriptor, d_config.remote.sin4.sin_family, d_config.dscp);
       SConnect(socketDescriptor, d_config.tcpFastOpen, d_config.remote);
       if (sockets.size() > 1) {
+        // NOLINTNEXTLINE(performance-unnecessary-value-param): we do not control the callback's signature
         (*mplexer.lock())->addReadFD(socketDescriptor, [](int, boost::any) {});
       }
 #ifdef HAVE_XSK
