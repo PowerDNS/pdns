@@ -767,6 +767,8 @@ private:
   void handleUDPTimeout(IDState& ids);
   void updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled, std::optional<time_t> currentTime = std::nullopt);
   void connectUDPSockets();
+  bool connectSocket(int& socketDescriptor, bool initialAttempt);
+  void disconnectSocket(int& socketDescriptor);
 #ifdef HAVE_XSK
   void addXSKDestination(int fd);
   void removeXSKDestination(int fd);
