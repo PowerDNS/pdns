@@ -168,7 +168,6 @@ bool DownstreamState::connectSocket(int& socketDescriptor, bool initialAttempt)
         addXSKDestination(socketDescriptor);
       }
 #endif /* HAVE_XSK */
-      connected = true;
     }
     catch (const std::exception& error) {
       if (initialAttempt || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
