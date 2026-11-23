@@ -10,9 +10,9 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
   .. change::
     :tags: Bug Fixes
     :pullreq: 18340
-    :tickets: 17978
+    :tickets: 17974
 
-    Followup to 17897, repair replace call.
+    Fix malformed DNS replies when rewriting cached ECS data.
 
   .. change::
     :tags: Improvements
