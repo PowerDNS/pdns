@@ -104,10 +104,11 @@ signed by valid TSIG signature for the zone.
 ``also-notify``
 ---------------
 
--  IP addresses, separated by commas
+-  IP addresses or domains, separated by commas
 
 When notifying a zone, also notify these nameservers. Example:
-``also-notify=192.0.2.1, 203.0.113.167``. The IP addresses listed in
+``also-notify=192.0.2.1, 203.0.113.167, ns.example.com``. Domains are resolved
+and a notify is sent to all their A and AAAA records. The entries listed in
 ``also-notify`` always receive a notification. Even if they do not match
 the list in :ref:`setting-only-notify`.
 
