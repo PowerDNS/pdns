@@ -464,14 +464,11 @@ static size_t getMaxHostNameSize()
   return HOST_NAME_MAX;
 #endif
 
+  const size_t maxHostNameSize = 255;
 #if defined(_SC_HOST_NAME_MAX)
-  auto tmp = sysconf(_SC_HOST_NAME_MAX);
-  if (tmp != -1) {
-    return tmp;
-  }
+  return pdns::sysconf(_SC_HOST_NAME_MAX, maxHostNameSize);
 #endif
 
-  const size_t maxHostNameSize = 255;
   return maxHostNameSize;
 }
 
@@ -1577,10 +1574,7 @@ uid_t strToUID(const string& str)
 {
   uid_t result = 0;
   const char* cstr = str.c_str();
-  auto bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
-  if (bufsize == -1) {
-    bufsize = 1024; // e.g. musl does not implement the sysconf, so we guess
-  }
+  auto bufsize = pdns::sysconf(_SC_GETPW_R_SIZE_MAX, 1024);
   std::string buffer;
   buffer.resize(bufsize);
   struct passwd pwd{};
@@ -1616,10 +1610,7 @@ gid_t strToGID(const string& str)
 {
   gid_t result = 0;
   const char* cstr = str.c_str();
-  auto bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
-  if (bufsize == -1) {
-    bufsize = 1024; // e.g. musl does not implement the sysconf, so we guess
-  }
+  auto bufsize = pdns::sysconf(_SC_GETGR_R_SIZE_MAX, 1024);
   std::string buffer;
   buffer.resize(bufsize);
   struct group grp{};
@@ -1970,3 +1961,12 @@ const char* timestamp(time_t arg, timebuf_t& buf)
   return buf.data();
 }
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
+
+long pdns::sysconf(int key, long default_value)
+{
+  auto ret = ::sysconf(key);
+  if (ret == -1) {
+    ret = default_value;
+  }
+  return ret;
+}

@@ -130,10 +130,7 @@ void Utility::dropGroupPrivs(uid_t uid, gid_t gid)
       SLOG(g_log << Logger::Info << "Set effective group id to " << gid << endl,
            g_slog->withName("runtime")->info(Logr::Info, "Set effective group id", "gid", Logging::Loggable(gid)));
     }
-    auto size = sysconf(_SC_GETPW_R_SIZE_MAX);
-    if (size == -1) {
-      size = 1024; // e.g. musl and FreeBSD do not implement the sysconf, so we guess
-    }
+    auto size = pdns::sysconf(_SC_GETPW_R_SIZE_MAX, 1024);
     std::vector<char> buf;
     buf.resize(size);
     struct passwd pwd{};

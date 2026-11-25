@@ -872,6 +872,8 @@ private:
   Func d_func;
   std::tuple<Args...> d_args;
 };
+
+long sysconf(int key, long default_value);
 }
 
 bool isSettingThreadCPUAffinitySupported();
