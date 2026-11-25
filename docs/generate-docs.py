@@ -21,7 +21,7 @@ def main():
     venv.create(
         venv_directory,
         with_pip=True,
-        clear=True,
+        clear=False,
         upgrade_deps=True,
         prompt=args.venv_name,
     )
