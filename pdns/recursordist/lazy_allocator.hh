@@ -27,6 +27,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include "misc.hh"
+
 // On OpenBSD and NetBSD mem used as stack should be marked MAP_STACK
 #if defined(__OpenBSD__) || defined(__NetBSD__)
 #define PDNS_MAP_STACK MAP_STACK
@@ -76,7 +78,7 @@ struct lazy_allocator
        and the runtime CPU overhead is one call to mprotect() for every
        stack allocation.
     */
-    static const size_type pageSize = sysconf(_SC_PAGESIZE);
+    static const size_type pageSize = pdns::sysconf(_SC_PAGESIZE, 4096);
 
     const size_type requestedSize = n * sizeof(value_type);
     const auto padding = getAlignmentPadding(requestedSize, pageSize);
@@ -125,7 +127,7 @@ struct lazy_allocator
     ::operator delete(ptr);
 #endif
 #else /* LAZY_ALLOCATOR_USES_NEW */
-    static const size_type pageSize = sysconf(_SC_PAGESIZE);
+    static const size_type pageSize = pdns::sysconf(_SC_PAGESIZE, 4096);
 
     const size_type requestedSize = n * sizeof(value_type);
     const auto padding = getAlignmentPadding(requestedSize, pageSize);

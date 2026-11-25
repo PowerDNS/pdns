@@ -200,10 +200,7 @@ static size_t getArgMax()
 #endif
 
 #if defined(_SC_ARG_MAX)
-  auto tmp = sysconf(_SC_ARG_MAX);
-  if (tmp != -1) {
-    return tmp;
-  }
+  return pdns::sysconf(_SC_ARG_MAX, 4096);
 #endif
   /* _POSIX_ARG_MAX */
   return 4096;
