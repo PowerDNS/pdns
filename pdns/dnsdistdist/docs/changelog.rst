@@ -3,6 +3,190 @@ Changelog
 
 .. changelog::
 
+  :version: 2.1.4
+  :released: 26th of November 2026
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    Do not reuse Proxy Protocol-enabled outgoing TCP connections when incoming DoH's Forwarded-For headers are trusted
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    Keep the last X-Forwarded-For DoH header
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    Do not process the HTTP body on GET queries
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC, DNS over HTTP/3
+    :pullreq: TBD
+
+    Properly handle dead QUIC streams
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    Drop oversized DNS over HTTPS payloads
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    Prevent record smuggling when adding EDNS Client Subnet to incoming queries
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: TBD
+
+    An empty API key disables access to the API
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    Better handling of crafted zone transfers
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: TBD
+
+    Fix potential denial of service (CPU consumption) in the internal webserver
+
+  .. change::
+    :tags: Bug Fixes, Open Telemetry
+    :pullreq: 18271
+
+    test-dnsdist-opentelemetry_cc: lower min sizes (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18284
+
+    Limit pointer to pointer chains in DNS names
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18285
+
+    Enforce EDNS option record has root as its name
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 18286
+
+    Fix healthcheck validator updates stats (Karel Bilek)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18287
+
+    NetBSD does not have ``explicit_bzero()`` (Tom Ivar Helbekkmo)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18288
+
+    Fix ``version_compare`` in ``meson.build`` file
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18289
+
+    Add ``adduser`` as a dependency for Debian (Karel Bilek)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 18290
+
+    Fix bug in incoming DoH and Proxy Protocol (Karel Bilek)
+
+.. changelog::
+
+  :version: 2.0.12
+  :released: 26th of November 2026
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    Do not reuse Proxy Protocol-enabled outgoing TCP connections when incoming DoH's Forwarded-For headers are trusted
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    Keep the last X-Forwarded-For DoH header
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    Do not process the HTTP body on GET queries
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over QUIC, DNS over HTTP/3
+    :pullreq: TBD
+
+    Properly handle dead QUIC streams
+
+  .. change::
+    :tags: Bug Fixes, Security, DNS over HTTPS
+    :pullreq: TBD
+
+    Drop oversized DNS over HTTPS payloads
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    Prevent record smuggling when adding EDNS Client Subnet to incoming queries
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: TBD
+
+    An empty API key disables access to the API
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: TBD
+
+    Better handling of crafted zone transfers
+
+  .. change::
+    :tags: Bug Fixes, Security, Webserver
+    :pullreq: TBD
+
+    Fix potential denial of service (CPU consumption) in the internal webserver
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18285
+
+    Enforce EDNS option record has root as its name
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18289
+
+    Add ``adduser`` as a dependency for Debian (Karel Bilek)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18290
+
+    Fix OPT rdlen computation when adding ECS
+
+.. changelog::
+
   :version: 2.1.3
   :released: 12th of October 2026
 
