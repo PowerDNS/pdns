@@ -27,8 +27,6 @@
 #include "geoipinterface.hh"
 #include "pdns/dns_random.hh"
 #include <sstream>
-#include <regex.h>
-#include <glob.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/format.hpp>
 #include <fstream>
@@ -1028,44 +1026,98 @@ bool GeoIPBackend::getDomainMetadata(const ZoneName& name, const std::string& ki
   return false;
 }
 
+// Gather the list of valid key files for [domain] (with trailing dot), stored
+// in the [basedir] directory.
+static std::list<std::tuple<std::string, unsigned int, unsigned int, bool>> getDomainKeyFiles(const std::string& basedir, const ZoneName& domain)
+{
+  std::list<std::tuple<std::string, unsigned int, unsigned int, bool>> filenames;
+  std::string domainprefix = domain.toString();
+  std::filesystem::path keydir(basedir);
+  if (is_directory(keydir)) {
+    for (const auto& file : std::filesystem::directory_iterator(keydir)) {
+      try {
+        // Skip non-regular files, and symlinks which do not point to regular
+        // files.
+        if (!std::filesystem::is_regular_file(file.status())) {
+          continue;
+        }
+        const auto& path = file.path();
+        // We are only interested in files matching these names:
+        // <domain with trailing dot><flags>.<id>.<active>.key
+        // where flags and id are decimal numbers, and active is either 0 or 1.
+        if (path.extension() != ".key") {
+          continue;
+        }
+        if (!boost::starts_with(path.filename().string(), domainprefix)) {
+          continue;
+        }
+        auto numericpart = path.stem().string().substr(domainprefix.length());
+        unsigned int flags{0};
+        unsigned int keyid{0};
+        bool active{false};
+        size_t pos{0};
+        flags = pdns::checked_stoi<unsigned int>(numericpart, &pos);
+        if (numericpart.at(pos) != '.') {
+          continue;
+        }
+        numericpart = numericpart.substr(pos + 1); // also skips the dot
+        pos = 0;
+        keyid = pdns::checked_stoi<unsigned int>(numericpart, &pos);
+        if (numericpart.at(pos) != '.') {
+          continue;
+        }
+        numericpart = numericpart.substr(pos + 1); // also skips the dot
+        if (numericpart.length() != 1) {
+          // Trailing characters after the active flag
+          continue;
+        }
+        auto chr = numericpart.at(0);
+        if (chr == '1') {
+          active = true;
+        }
+        else if (chr != '0') {
+          continue;
+        }
+        filenames.emplace_back(path.string(), flags, keyid, active);
+      }
+      catch (std::exception&) {
+        // Obviously not a valid candidate filename.
+        continue;
+      }
+    }
+  }
+  return filenames;
+}
+
 bool GeoIPBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys)
 {
-  if (!d_dnssec)
+  if (!d_dnssec) {
     return false;
+  }
   auto state = s_state.read_lock();
   for (const GeoIPDomain& dom : state->domains) {
     if (dom.domain == name) {
-      regex_t reg;
-      regmatch_t regm[5];
-      regcomp(&reg, "(.*)[.]([0-9]+)[.]([0-9]+)[.]([01])[.]key$", REG_ICASE | REG_EXTENDED);
-      ostringstream pathname;
-      pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
-      glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
-        for (size_t i = 0; i < glob_result.gl_pathc; i++) {
-          if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            DNSBackend::KeyData kd;
-            pdns::checked_stoi_into(kd.id, glob_result.gl_pathv[i] + regm[3].rm_so);
-            kd.active = !strncmp(glob_result.gl_pathv[i] + regm[4].rm_so, "1", 1);
-            kd.published = true;
-            pdns::checked_stoi_into(kd.flags, glob_result.gl_pathv[i] + regm[2].rm_so);
-            ifstream ifs(glob_result.gl_pathv[i]);
-            ostringstream content;
-            char buffer[1024];
-            while (ifs.good()) {
-              ifs.read(buffer, sizeof buffer);
-              if (ifs.gcount() > 0) {
-                content << string(buffer, ifs.gcount());
-              }
-            }
-            ifs.close();
-            kd.content = content.str();
-            keys.emplace_back(std::move(kd));
+      auto filelist = getDomainKeyFiles(getArg("dnssec-keydir"), dom.domain);
+      for (auto& entry : filelist) {
+        auto& [filename, flags, kid, active] = entry;
+        DNSBackend::KeyData kd; //NOLINT(readability-identifier-length)
+        kd.flags = flags;
+        kd.id = kid;
+        kd.active = active;
+        kd.published = true;
+        ifstream ifs(filename);
+        ostringstream content;
+        std::array<char, 1024> buffer{};
+        while (ifs.good()) {
+          ifs.read(buffer.data(), buffer.size());
+          if (ifs.gcount() > 0) {
+            content << string(buffer.data(), ifs.gcount());
           }
         }
+        ifs.close();
+        kd.content = content.str();
+        keys.emplace_back(std::move(kd));
       }
-      regfree(&reg);
-      globfree(&glob_result);
       return true;
     }
   }
@@ -1074,33 +1126,25 @@ bool GeoIPBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::K
 
 bool GeoIPBackend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
-  if (!d_dnssec)
+  if (!d_dnssec) {
     return false;
+  }
   auto state = s_state.write_lock();
 
   for (const GeoIPDomain& dom : state->domains) {
     if (dom.domain == name) {
-      regex_t reg;
-      regmatch_t regm[5];
-      regcomp(&reg, "(.*)[.]([0-9]+)[.]([0-9]+)[.]([01])[.]key$", REG_ICASE | REG_EXTENDED);
-      ostringstream pathname;
-      pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
-      glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
-        for (size_t i = 0; i < glob_result.gl_pathc; i++) {
-          if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid == keyId) {
-              if (unlink(glob_result.gl_pathv[i])) {
-                cerr << "Cannot delete key:" << strerror(errno) << endl;
-              }
-              break;
-            }
-          }
+      auto filelist = getDomainKeyFiles(getArg("dnssec-keydir"), dom.domain);
+      for (auto& entry : filelist) {
+        auto& [filename, _flags, kid, _active] = entry;
+        if (kid != keyId) {
+          continue;
         }
+        if (unlink(filename.c_str()) != 0) {
+          SLOG(g_log << Logger::Error << "Cannot delete key file " << filename << ": " << stringerror() << endl,
+               d_slog->error(Logr::Error, errno, "GeoIP could not delete key file", "filename", Logging::Loggable(filename)));
+        }
+        break;
       }
-      regfree(&reg);
-      globfree(&glob_result);
       return true;
     }
   }
@@ -1109,32 +1153,26 @@ bool GeoIPBackend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 
 bool GeoIPBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId)
 {
-  if (!d_dnssec)
+  if (!d_dnssec) {
     return false;
+  }
   auto state = s_state.write_lock();
   unsigned int nextid = 1;
 
   for (const GeoIPDomain& dom : state->domains) {
     if (dom.domain == name) {
-      regex_t reg;
-      regmatch_t regm[5];
-      regcomp(&reg, "(.*)[.]([0-9]+)[.]([0-9]+)[.]([01])[.]key$", REG_ICASE | REG_EXTENDED);
-      ostringstream pathname;
-      pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
-      glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
-        for (size_t i = 0; i < glob_result.gl_pathc; i++) {
-          if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid >= nextid)
-              nextid = kid + 1;
-          }
+      auto filelist = getDomainKeyFiles(getArg("dnssec-keydir"), dom.domain);
+      for (auto& entry : filelist) {
+        auto& [_filename, _flags, kid, _active] = entry;
+        if (kid >= nextid) {
+          // Ok, this can wraparound if you have 4G keys. Somehow I'm not worried.
+          nextid = kid + 1;
         }
       }
-      regfree(&reg);
-      globfree(&glob_result);
+      filelist.clear();
+      ostringstream pathname;
       pathname.str("");
-      pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << key.flags << "." << nextid << "." << (key.active ? "1" : "0") << ".key";
+      pathname << getArg("dnssec-keydir") << "/" << dom.domain.toString() << key.flags << "." << nextid << "." << (key.active ? "1" : "0") << ".key";
       auto keyFile = pdns::openFileForWriting(pathname.str(), 0600, true, false);
       if (!keyFile) {
         int error = errno;
@@ -1160,33 +1198,28 @@ bool GeoIPBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_
 
 bool GeoIPBackend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 {
-  if (!d_dnssec)
+  if (!d_dnssec) {
     return false;
+  }
   auto state = s_state.write_lock();
   for (const GeoIPDomain& dom : state->domains) {
     if (dom.domain == name) {
-      regex_t reg;
-      regmatch_t regm[5];
-      regcomp(&reg, "(.*)[.]([0-9]+)[.]([0-9]+)[.]([01])[.]key$", REG_ICASE | REG_EXTENDED);
-      ostringstream pathname;
-      pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
-      glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
-        for (size_t i = 0; i < glob_result.gl_pathc; i++) {
-          if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid == keyId && strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "0") == 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-              ostringstream newpath;
-              newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".1.key";
-              if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
-                cerr << "Cannot activate key: " << strerror(errno) << endl;
-              }
-            }
+      auto filelist = getDomainKeyFiles(getArg("dnssec-keydir"), dom.domain);
+      for (auto& entry : filelist) {
+        auto& [filename, flags, kid, active] = entry;
+        if (kid != keyId) {
+          continue;
+        }
+        if (!active) {
+          ostringstream newpath;
+          newpath << getArg("dnssec-keydir") << "/" << dom.domain.toString() << flags << "." << kid << ".1.key";
+          if (rename(filename.c_str(), newpath.str().c_str()) != 0) {
+            SLOG(g_log << Logger::Error << "Cannot activate key by renaming file " << filename << " to " << newpath.str() << ": " << stringerror() << endl,
+                 d_slog->error(Logr::Error, errno, "Cannot activate key file by renaming it", "from", Logging::Loggable(filename), "to", Logging::Loggable(newpath.str())));
           }
         }
+        break;
       }
-      globfree(&glob_result);
-      regfree(&reg);
       return true;
     }
   }
@@ -1195,33 +1228,28 @@ bool GeoIPBackend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 
 bool GeoIPBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
 {
-  if (!d_dnssec)
+  if (!d_dnssec) {
     return false;
+  }
   auto state = s_state.write_lock();
   for (const GeoIPDomain& dom : state->domains) {
     if (dom.domain == name) {
-      regex_t reg;
-      regmatch_t regm[5];
-      regcomp(&reg, "(.*)[.]([0-9]+)[.]([0-9]+)[.]([01])[.]key$", REG_ICASE | REG_EXTENDED);
-      ostringstream pathname;
-      pathname << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "*.key";
-      glob_t glob_result;
-      if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
-        for (size_t i = 0; i < glob_result.gl_pathc; i++) {
-          if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
-            auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid == keyId && strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "1") == 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-              ostringstream newpath;
-              newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".0.key";
-              if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
-                cerr << "Cannot deactivate key: " << strerror(errno) << endl;
-              }
-            }
+      auto filelist = getDomainKeyFiles(getArg("dnssec-keydir"), dom.domain);
+      for (auto& entry : filelist) {
+        auto& [filename, flags, kid, active] = entry;
+        if (kid != keyId) {
+          continue;
+        }
+        if (active) {
+          ostringstream newpath;
+          newpath << getArg("dnssec-keydir") << "/" << dom.domain.toString() << flags << "." << kid << ".0.key";
+          if (rename(filename.c_str(), newpath.str().c_str()) != 0) {
+            SLOG(g_log << Logger::Error << "Cannot deactivate key by renaming file " << filename << " to " << newpath.str() << ": " << stringerror() << endl,
+                 d_slog->error(Logr::Error, errno, "Cannot deactivate key file by renaming it", "from", Logging::Loggable(filename), "to", Logging::Loggable(newpath.str())));
           }
         }
+        break;
       }
-      globfree(&glob_result);
-      regfree(&reg);
       return true;
     }
   }
@@ -1240,14 +1268,8 @@ bool GeoIPBackend::unpublishDomainKey(const ZoneName& /* name */, unsigned int /
 
 bool GeoIPBackend::hasDNSSECkey(const ZoneName& name)
 {
-  ostringstream pathname;
-  pathname << getArg("dnssec-keydir") << "/" << name.toStringNoDot() << "*.key";
-  glob_t glob_result;
-  if (glob(pathname.str().c_str(), GLOB_ERR, nullptr, &glob_result) == 0) {
-    globfree(&glob_result);
-    return true;
-  }
-  return false;
+  auto filelist = getDomainKeyFiles(getArg("dnssec-keydir"), name);
+  return !filelist.empty();
 }
 
 class GeoIPFactory : public BackendFactory
