@@ -2347,10 +2347,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   RecThreadInfo::self().incNumberOfDistributedQueries();
   gettimeofday(&g_now, nullptr);
   if (tval.tv_sec != 0) {
-    struct timeval diff = g_now - tval;
-    double delta = (static_cast<double>(diff.tv_sec) * 1000 + static_cast<double>(diff.tv_usec) / 1000.0);
-
-    if (delta > 1000.0) {
+    struct timeval diff = g_now - tval; // gets us a normalized value
+    if (diff.tv_sec >= 1) {
       t_Counters.at(rec::Counter::tooOldDrops)++;
       return nullptr;
     }

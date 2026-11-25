@@ -118,11 +118,12 @@ For the details of all values that can be retrieved using SNMP, see the `SNMP MI
 Gathered Information
 --------------------
 
-These statistics are gathered.
+The statistics in the table below are gathered.
 
-It should be noted that answers0-1 + answers1-10 + answers10-100 + answers100-1000 + answers-slow + packetcache-hits + over-capacity-drops + policy-drops = questions.
+It should be noted that ``answers0-1 + answers1-10 + answers10-100 + answers100-1000 + answers-slow + packetcache-hits + over-capacity-drops + policy-drops = questions``.
 
-Also note that unauthorized-tcp and unauthorized-udp packets do not end up in the 'questions' count.
+``unauthorized-tcp`` and ``unauthorized-udp`` packets do not end up in the ``questions`` count.
+This is also true for packets counted by the ``too-old-drops`` metric.
 
 .. include:: rec-metrics-gen.rst
 

@@ -29,14 +29,14 @@ table = [
         "name": "questions",
         "lambda": "[] { return g_Counters.sum(rec::Counter::qcounter); }",
         "desc": "Number of questions",
-        "longdesc": "Counts all end-user initiated queries with the RD bit set",
+        "longdesc": "Counts all end-user initiated queries",
         "snmp": 1,
     },
     {
         "name": "ipv6-questions",
         "lambda": "[] { return g_Counters.sum(rec::Counter::ipv6qcounter); }",
         "desc": "Number of IPv6 questions",
-        "longdesc": "Counts all end-user initiated queries with the RD bit set, received over IPv6 UDP",
+        "longdesc": "Counts all end-user initiated queries, received over IPv6",
         "snmp": 2,
     },
     {
@@ -174,7 +174,7 @@ table = [
     {
         "name": "too-old-drops",
         "lambda": "[] { return g_Counters.sum(rec::Counter::tooOldDrops); }",
-        "desc": "Number of queries dropped because of a timeout",
+        "desc": "Number of queries dropped because they have been waiting to be processed for more than 1 sec",
         "snmp": 21,
     },
     {
