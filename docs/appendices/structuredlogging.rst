@@ -6,7 +6,7 @@ Structured Logging Dictionary
 This page describes the common entries of the Structured Logging component.
 Currently :ref:`setting-structured-logging-backend` can have these values:
 
-- The ``default`` text based backend
+- The ``default`` text based backend.
 - The ``systemd-journal`` backend (added in version 5.2.0).
 - The ``json`` backend (added in version 5.2.0).
 
@@ -45,11 +45,11 @@ The following keys are always present:
 |             |                  |                                      |:ref:`setting-loglevel`.               |
 |             |                  |                                      |Not actively used currently.           |
 +-------------+------------------+--------------------------------------+---------------------------------------+
-| ``prio``    |``enum``          |``"Notice"``                          |One of ``Alert=1``, ``Critical=2``,    |
-|             |                  |                                      |``Error=3``, ``Warning=4``,            |
-|             |                  |                                      |``Notice=5``, ``Info=6``,              |
-|             |                  |                                      |``Debug=7``. A log entry will only     |
-|             |                  |                                      |produced if its ``prio`` is equal or   |
+| ``prio``    |``enum``          |``"Notice"``                          |One of ``Alert`` (1), ``Critical`` (2),|
+|             |                  |                                      |``Error`` (3), ``Warning`` (4),        |
+|             |                  |                                      |``Notice`` (5), ``Info`` (6),          |
+|             |                  |                                      |``Debug`` (7). A log entry will only be|
+|             |                  |                                      |produced if its ``prio`` is equal to or|
 |             |                  |                                      |lower than                             |
 |             |                  |                                      |:ref:`setting-loglevel`.               |
 +-------------+------------------+--------------------------------------+---------------------------------------+
@@ -64,9 +64,7 @@ A log entry can also have zero or more additional key-value pairs. Common keys a
 +-------------+---------------------+----------------------------------+---------------------------------------+
 |``error``    |``string``           |``"No such file or directory"``   |An error cause.                        |
 +-------------+---------------------+----------------------------------+---------------------------------------+
-|``address``  |``ip address:port``  |``"[::]:5301"``                   |An IP: port combination.               |
-+-------------+---------------------+----------------------------------+---------------------------------------+
-|``addresses``|``list of subnets``  |``"127.0.0.0/8 ::ffff:0:0/96"``   |A list of subnets, space separated.    |
+|``address``  |``ip address:port``  |``"[::]:5301"``                   |An IP:port combination.                |
 +-------------+---------------------+----------------------------------+---------------------------------------+
 |``path``     |``filesystem path``  |``"/usr/local/lib/pdns"``         |                                       |
 +-------------+---------------------+----------------------------------+---------------------------------------+
@@ -94,7 +92,7 @@ The ``systemd-journal`` structured logging backend uses mostly the same keys and
 
 To query the log, use a command similar to::
 
-  # journalctl -r -n 1 -o json-pretty -u pdns-authoritative.service
+  # journalctl -r -n 1 -o json-pretty -u pdns.service
 
 The ``json`` backend
 --------------------
@@ -105,4 +103,4 @@ An example of a log object::
 
 All values are represented as strings.
 
-The JSON log objects are written to the standard error stream.
+The JSON log objects are written to the standard error stream, each object on its own line.

@@ -2064,7 +2064,7 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
 .. versionadded:: 5.2.0
 
-When structured logging is enabled (using :ref:`setting-logging-structured`), this selects the appropriate backend. Possible values are ``"default"``, ``"json"`` and ``"systemd-journal"``.
+When structured logging is enabled (using :ref:`setting-logging-structured`), this selects the appropriate backend. Possible values are ``default``, ``json`` and ``systemd-journal"``.
 See :ref:`structured-logging-dictionary` for more information.
 
 .. _setting-superslave:

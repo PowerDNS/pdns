@@ -48,7 +48,7 @@ static void loggerBackend(const Logging::Entry& entry)
   Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
   if (urg > s_logUrgency) {
     // We do not log anything if the Urgency of the message is lower than the requested loglevel.
-    // Not that lower Urgency means higher number.
+    // Note that lower Urgency means higher number.
     return;
   }
   buf.str("");
