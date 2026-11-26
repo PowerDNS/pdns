@@ -191,6 +191,7 @@ pdns_server_SOURCES = \
 	auth-caches.cc auth-caches.hh \
 	auth-carbon.cc \
 	auth-catalogzone.cc auth-catalogzone.hh \
+	auth-logging.cc auth-logging.hh \
 	auth-main.cc auth-main.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-primarycommunicator.cc \
@@ -345,6 +346,7 @@ pdnsutil_SOURCES = \
 	arguments.cc \
 	auth-caches.cc auth-caches.hh \
 	auth-catalogzone.cc auth-catalogzone.hh \
+	auth-logging.cc auth-logging.hh \
 	auth-packetcache.cc auth-packetcache.hh \
 	auth-querycache.cc auth-querycache.hh \
 	auth-zonecache.cc auth-zonecache.hh \
@@ -418,6 +420,7 @@ pdnsutil_LDADD = \
 	@modulelibs@ \
 	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
+	$(SYSTEMD_LIBS) \
 	$(LIBDL) \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(LIBCRYPTO_LIBS) \
@@ -1552,6 +1555,7 @@ endif
 
 pdns_control_SOURCES = \
 	arguments.cc \
+	auth-logging.cc auth-logging.hh \
 	dnslabeltext.cc \
 	dnsname.cc \
 	dynloader.cc \
@@ -1566,6 +1570,10 @@ pdns_control_SOURCES = \
 pdns_control_LDFLAGS = \
        $(AM_LDFLAGS) \
        $(LIBCRYPTO_LDFLAGS)
+
+pdns_control_LDADD = \
+	$(JSON11_LIBS) \
+	$(SYSTEMD_LIBS)
 
 noinst_PROGRAMS = speedtest tsig_tests
 

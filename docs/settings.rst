@@ -2054,6 +2054,19 @@ This path will also contain the pidfile for this instance of PowerDNS
 called ``pdns.pid`` by default. See :ref:`setting-config-name`
 and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
+.. _setting-structured-logging-backend:
+
+``structured-logging-backend``
+------------------------------
+
+-  String
+-  Default: "default"
+
+.. versionadded:: 5.2.0
+
+When structured logging is enabled (using :ref:`setting-logging-structured`), this selects the appropriate backend. Possible values are ``default``, ``json`` and ``systemd-journal"``.
+See :ref:`structured-logging-dictionary` for more information.
+
 .. _setting-superslave:
 
 ``superslave``
