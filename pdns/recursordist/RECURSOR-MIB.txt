@@ -250,7 +250,7 @@ tooOldDrops OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of queries dropped because of a timeout"
+        "Number of queries dropped because they have been waiting to be processed for more than 1 sec"
     ::= { stats 21 }
 
 answers01 OBJECT-TYPE
