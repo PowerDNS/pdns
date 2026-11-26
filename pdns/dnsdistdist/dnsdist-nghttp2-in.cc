@@ -989,15 +989,18 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
     }
   }
 
-  if (query.d_buffer.empty() && query.d_method == PendingQuery::Method::Get && !query.d_queryString.empty()) {
-    auto payload = dnsdist::doh::getPayloadFromPath(query.d_queryString);
-    if (payload) {
-      query.d_buffer = std::move(*payload);
-    }
-    else {
-      ++d_ci.cs->dohFrontend->d_badrequests;
-      handleImmediateResponse(400, "DoH unable to decode BASE64-URL");
-      return;
+  if (query.d_method == PendingQuery::Method::Get) {
+    query.d_buffer.clear();
+    if (!query.d_queryString.empty()) {
+      auto payload = dnsdist::doh::getPayloadFromPath(query.d_queryString);
+      if (payload) {
+        query.d_buffer = std::move(*payload);
+      }
+      else {
+        ++d_ci.cs->dohFrontend->d_badrequests;
+        handleImmediateResponse(400, "DoH unable to decode BASE64-URL");
+        return;
+      }
     }
   }
 
@@ -1214,7 +1217,10 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
         return NGHTTP2_ERR_CALLBACK_FAILURE;
       }
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
-      query.d_headers->insert({std::string(reinterpret_cast<const char*>(name), nameLen), std::string(valueView)});
+      auto headerName = std::string(reinterpret_cast<const char*>(name), nameLen);
+      // keep the last version in case of duplicated headers (allowed by the RFCs, at least for some headers)
+      // which mostly matters for the Forwarded-For header
+      query.d_headers->insert_or_assign(std::move(headerName), std::string(valueView));
     }
   }
   return 0;

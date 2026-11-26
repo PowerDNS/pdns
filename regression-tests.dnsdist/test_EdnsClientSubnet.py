@@ -659,6 +659,33 @@ class TestEdnsClientSubnetOverride(DNSDistTest):
             self.checkQueryEDNSWithECS(expectedQuery, receivedQuery, 1)
             self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, 2)
 
+    def testECSWithTrailingData(self):
+        """
+        ECS Override: Existing EDNS with ECS plus trailing data
+        """
+        name = "ecs-trailing-data.overridden.ecs.tests.powerdns.com."
+        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 8)
+        rewrittenEcso = clientsubnetoption.ClientSubnetOption("127.0.0.1", 24)
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[ecso])
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096, options=[rewrittenEcso])
+        response = dns.message.make_response(query)
+        response.use_edns(edns=True, payload=4096, options=[rewrittenEcso])
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        # add 10 "A"s as trailing data
+        query = query.to_wire() + b"A" * 10
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response, rawQuery=True)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.checkQueryEDNSWithECS(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithECS(response, receivedResponse)
+
+
 class TestECSDisabledByRuleOrLua(DNSDistTest):
     """
     dnsdist is configured to add the EDNS0 Client Subnet

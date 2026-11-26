@@ -234,7 +234,9 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
       packetReader.xfrBlob(blob);
 
       std::vector<std::pair<uint16_t, std::string>> options;
-      getEDNSOptionsFromContent(blob, options);
+      if (!getEDNSOptionsFromContent(blob, options)) {
+        return false;
+      }
 
       /* getDnsrecordheader() has helpfully converted the TTL for us, which we do not want in that case */
       uint32_t ttl = htonl(recordHeader.d_ttl);
@@ -397,6 +399,13 @@ void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPref
   generateEDNSOption(EDNSOptionCode::ECS, payload, res);
 }
 
+static void removeTrailingDataFromPacketIfAny(PacketBuffer& packet)
+{
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  auto realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(packet.data()), packet.size());
+  packet.resize(realPacketLen);
+}
+
 bool generateOptRR(const std::string& optRData, PacketBuffer& res, size_t maximumSize, uint16_t udpPayloadSize, uint8_t ednsrcode, bool dnssecOK)
 {
   const uint8_t name = 0;
@@ -406,7 +415,9 @@ bool generateOptRR(const std::string& optRData, PacketBuffer& res, size_t maximu
   edns0.version = 0;
   edns0.extFlags = dnssecOK ? htons(EDNS_HEADER_FLAG_DO) : 0;
 
-  if ((maximumSize - res.size()) < (sizeof(name) + sizeof(dnsHeader) + optRData.length())) {
+  removeTrailingDataFromPacketIfAny(res);
+
+  if (res.size() >= maximumSize || (maximumSize - res.size()) < (sizeof(name) + sizeof(dnsHeader) + optRData.length())) {
     return false;
   }
 
@@ -508,10 +519,7 @@ static bool addECSToExistingOPT(PacketBuffer& packet, size_t maximumSize, const 
      no NS and no AN */
   uint16_t oldRDLen = (packet.at(optRDLenPosition) * 256) + packet.at(optRDLenPosition + 1);
   if (packet.size() != (optRDLenPosition + sizeof(uint16_t) + oldRDLen)) {
-    /* we are supposed to be the last record, do we have some trailing data to remove? */
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    uint32_t realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(packet.data()), packet.size());
-    packet.resize(realPacketLen);
+    removeTrailingDataFromPacketIfAny(packet);
   }
 
   if ((maximumSize - packet.size()) < newECSOption.size()) {
@@ -591,9 +599,7 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
         packet.resize(minimumPacketSize);
       }
       else {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        uint32_t realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(packet.data()), packet.size());
-        packet.resize(realPacketLen);
+        removeTrailingDataFromPacketIfAny(packet);
       }
     }
 
@@ -610,6 +616,8 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
     if (!overrideExisting) {
       return true;
     }
+
+    removeTrailingDataFromPacketIfAny(packet);
 
     return replaceEDNSClientSubnetOption(packet, maximumSize, optRDPosition + ecsOptionStartPosition, ecsOptionSize, optRDPosition, newECSOption);
   }

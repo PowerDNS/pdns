@@ -155,7 +155,7 @@ static void validateQuery(const PacketBuffer& packet, bool hasEdns = true, uint1
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, expectedARCount);
 }
 
-static void validateECS(const PacketBuffer& packet, const ComboAddress& expected)
+static void validateECS(const PacketBuffer& packet, const ComboAddress& expected, size_t numberOfOptions = 1U)
 {
   InternalQueryState ids;
   ids.protocol = dnsdist::Protocol::DoUDP;
@@ -166,7 +166,7 @@ static void validateECS(const PacketBuffer& packet, const ComboAddress& expected
   DNSQuestion dnsQuestion(ids, const_cast<PacketBuffer&>(packet));
   auto ednsOptions = parseEDNSOptions(dnsQuestion);
   BOOST_REQUIRE(ednsOptions);
-  BOOST_CHECK_EQUAL(ednsOptions->size(), 1U);
+  BOOST_CHECK_EQUAL(ednsOptions->size(), numberOfOptions);
   const auto& ecsOption = ednsOptions->find(EDNSOptionCode::ECS);
   BOOST_REQUIRE(ecsOption != ednsOptions->cend());
 
@@ -707,6 +707,51 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger)
   validateQuery(packet);
 }
 
+BOOST_AUTO_TEST_CASE(replaceECSWithLargerInPresenceOfTrailingData)
+{
+  bool ednsAdded = false;
+  bool ecsAdded = false;
+  ComboAddress remote("192.168.1.25");
+  DNSName name("www.powerdns.com.");
+  ComboAddress origRemote("127.0.0.1");
+  string newECSOption;
+  generateECSOption(remote, newECSOption, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
+
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(query, name, QType::A, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 1;
+  EDNSSubnetOpts ecsOpts;
+  // smaller (less specific so less bits) option
+  static_assert(8U < ECSSourcePrefixV4, "The ECS scope should be smaller");
+  size_t sizeDifference = (ECSSourcePrefixV4 - 8U) / 8U;
+  ecsOpts.setSource(Netmask(origRemote, 8));
+  string origECSOption = ecsOpts.makeOptString();
+  GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
+  opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
+  packetWriter.addOpt(512, 0, 0, opts);
+  packetWriter.commit();
+
+  /* large enough packet */
+  auto packet = query;
+  /* with trailing data matching the difference in size between the existing and new option!! */
+  packet.resize(query.size() + sizeDifference);
+
+  unsigned int consumed = 0;
+  uint16_t qtype = 0;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+  BOOST_CHECK_EQUAL(qname, name);
+  BOOST_CHECK(qtype == QType::A);
+
+  BOOST_CHECK(handleEDNSClientSubnet(packet, 4096, consumed, ednsAdded, ecsAdded, true, newECSOption));
+  /* trailing data should be done */
+  BOOST_CHECK_EQUAL(packet.size(), query.size() + sizeDifference);
+  BOOST_CHECK_EQUAL(ednsAdded, false);
+  BOOST_CHECK_EQUAL(ecsAdded, false);
+  validateQuery(packet);
+  validateECS(packet, remote);
+}
+
 BOOST_AUTO_TEST_CASE(replaceECSFollowedByTSIG)
 {
   bool ednsAdded = false;
@@ -1043,6 +1088,53 @@ BOOST_AUTO_TEST_CASE(insertECSAfterTSIG)
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
   validateQuery(packet, true);
+}
+
+BOOST_AUTO_TEST_CASE(insertECSAfterTrailingDataInOPT)
+{
+  bool ednsAdded = false;
+  bool ecsAdded = false;
+  ComboAddress remote("192.168.1.25");
+  DNSName name("www.powerdns.com.");
+  ComboAddress origRemote("127.0.0.1");
+  string newECSOption;
+  generateECSOption(remote, newECSOption, remote.sin4.sin_family == AF_INET ? ECSSourcePrefixV4 : ECSSourcePrefixV6);
+
+  EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
+  string cookiesOptionStr = cookiesOpt.makeOptString();
+  GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
+  opts.emplace_back(EDNSOptionCode::COOKIE, cookiesOptionStr);
+
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(query, name, QType::A, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 1;
+  packetWriter.addOpt(512, 0, 0, opts);
+  packetWriter.commit();
+
+  /* large enough packet */
+  auto packet = query;
+
+  /* insert to trailing bytes in the OPT record, after the cookie option */
+  packet.push_back(0xFD);
+  packet.push_back(0xE9);
+
+  uint16_t optRDLenPosition{};
+  size_t remaining{};
+  auto res = dnsdist::getEDNSOptionsStart(packet, name.wirelength(), &optRDLenPosition, &remaining);
+  BOOST_CHECK_EQUAL(res, 0);
+  uint16_t oldRDLen = (packet.at(optRDLenPosition) * 256) + packet.at(optRDLenPosition + 1);
+  auto newRDLen = oldRDLen + 2U;
+  packet.at(optRDLenPosition) = newRDLen / 256;
+  packet.at(optRDLenPosition + 1) = newRDLen % 256;
+
+  unsigned int consumed = 0;
+  uint16_t qtype = 0;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  DNSName qname(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &qtype, nullptr, &consumed);
+  BOOST_CHECK_EQUAL(qname, name);
+  BOOST_CHECK(qtype == QType::A);
+
+  BOOST_CHECK(!handleEDNSClientSubnet(packet, 4096, consumed, ednsAdded, ecsAdded, true, newECSOption));
 }
 
 BOOST_AUTO_TEST_CASE(removeEDNSWhenFirst)

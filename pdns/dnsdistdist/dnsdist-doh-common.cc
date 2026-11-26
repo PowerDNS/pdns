@@ -130,6 +130,10 @@ std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& path)
       return result;
     }
 
+    if (decoded.size() > std::numeric_limits<uint16_t>::max()) {
+      return result;
+    }
+
     result = std::move(decoded);
     return result;
   }

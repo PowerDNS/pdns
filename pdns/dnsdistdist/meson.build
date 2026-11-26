@@ -552,6 +552,7 @@ test_sources += files(
   src_dir / 'test-dnsdisttcp_cc.cc',
   src_dir / 'test-dnsdist-xsk.cc',
   src_dir / 'test-dnsparser_cc.cc',
+  src_dir / 'test-ednsoptions_cc.cc',
   src_dir / 'test-iputils_hh.cc',
   src_dir / 'test-luawrapper.cc',
   src_dir / 'test-mplexer.cc',

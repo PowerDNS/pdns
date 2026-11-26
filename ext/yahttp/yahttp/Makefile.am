@@ -1,7 +1,6 @@
 noinst_LTLIBRARIES = libyahttp.la
 
 libyahttp_la_SOURCES = \
-	cookie.hpp \
 	exception.hpp \
 	reqresp.cpp \
 	reqresp.hpp \
