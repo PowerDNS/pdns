@@ -18,10 +18,15 @@ Changelogs for 5.0.x
 
 .. changelog::
   :version: 5.0.9
-  :released: never
+  :released: 12th of November 2026
 
-  This version has never been released publicly. It is however identical
-  to the 5.0.10 version.
+  This version has never been released publicly. It is however identical to the 5.0.10 version.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18346
+
+    Fix PowerDNS Security Advisory 2026-14 for PowerDNS Authoritative Server
 
 .. changelog::
   :version: 5.0.8
