@@ -268,6 +268,7 @@ daemonizing
 daemontools
 Daganoto
 Danerklint
+Dangi
 Darilion
 darix
 Darron
@@ -436,7 +437,7 @@ Eriksson
 errlog
 errorlevels
 Ersin
-Ethicxz
+ethicxz
 EUips
 evanjones
 evildomain
@@ -716,6 +717,7 @@ Kushwaha
 kvs
 KVTo
 kxdpgun
+kylekkkk
 Ladot
 Lafon
 Lakkas
@@ -730,6 +732,7 @@ latlonloc
 latomic
 Laurient
 Laursen
+lazarux
 LCUP
 LDA
 ldapbackend
@@ -888,6 +891,7 @@ nameserving
 Nankai
 Naoki
 naptr
+Naseeb
 Nauck
 Navarrete
 nearmiss
@@ -992,6 +996,7 @@ oftc
 ohttp
 Olafur
 Omroep
+onevilx
 openapis
 opendbx
 openpgpkey
@@ -1153,8 +1158,10 @@ querycache
 querycount
 querytime
 qytpe
+Raghav
 ragel
 raii
+Rajat
 Rak
 Ramsanker
 randombackend
@@ -1419,6 +1426,7 @@ superslaving
 supervacuus
 supervisord
 Surfnet
+swaley
 swapcontext
 swoga
 syncer
