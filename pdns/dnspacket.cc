@@ -66,6 +66,25 @@ DNSPacket::DNSPacket(Logr::log_t slog, bool isQuery): d_isQuery(isQuery), d_slog
   memset(&d, 0, sizeof(d));
 }
 
+bool DNSPacket::preparePayload(std::string& error, bool throwsOnTruncation)
+{
+  if (!d_wrapped) {
+    try {
+      wrapup(throwsOnTruncation);
+    }
+    catch (const PDNSException& exc) {
+      error = exc.reason;
+      return false;
+    }
+    catch (const std::exception& exc) {
+      error = exc.what();
+      return false;
+    }
+  }
+  error.clear();
+  return true;
+}
+
 const string& DNSPacket::getString(bool throwsOnTruncation)
 {
   if(!d_wrapped)
@@ -316,6 +335,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection || d_haveednscookie) {
     try {
       uint8_t maxScopeMask=0;
+      bool shallCommit{true};
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
 
@@ -328,15 +348,13 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
           pw.rollback();
           pw.truncate();
           pw.getHeader()->tc=1;
-          goto noCommit;
+          shallCommit = false;
+          break;
         }
       }
-
-      // if(!pw.getHeader()->tc) // protect against double commit from addSignature
-
-      if(!d_rrs.empty()) pw.commit();
-
-      noCommit:;
+      if (shallCommit && !d_rrs.empty()) {
+        pw.commit();
+      }
 
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
@@ -372,7 +390,8 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     }
   }
 
-  if(d_trc.d_algoName.hasLabels()) {
+  if (!d_tsigkeyname.empty() && d_trc.d_algoName.hasLabels()) {
+    // may throw PDNSException if signing fails
     addTSIG(d_slog, pw, d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
   }
 
@@ -490,6 +509,14 @@ int DNSPacket::noparse(const char *mesg, size_t length)
   d_wantsnsid=false;
   d_maxreplylen=512;
   return 0;
+}
+
+void DNSPacket::clearTSIGDetails()
+{
+  d_trc = {}; // resets d_algoName
+  d_tsigkeyname.clear();
+  d_tsigsecret.clear();
+  d_tsigprevious.clear();
 }
 
 void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly)

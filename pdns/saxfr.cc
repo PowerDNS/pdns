@@ -176,13 +176,14 @@ try
 
   pw.getHeader()->id = dns_random_uint16();
 
-  if (tsig) {
+  if (tsig && !tsig_key.empty()) {
     TSIGRecordContent trc;
     trc.d_algoName = getTSIGAlgoName(tsig_algo);
     trc.d_time = time((time_t*)NULL);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
+    // may throw PDNSException if signing fails
     addTSIG(nullptr /* no structured logging */, pw, trc, tsig_key, tsig_secret, "", false);
   }
 
