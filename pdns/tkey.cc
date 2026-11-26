@@ -60,7 +60,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
             tkey_out->d_error = ERCode::BADMODE;
           }
           else {
-            sign = true;
+            sign = ctx.valid();
           }
         }
       } else {
@@ -130,6 +130,9 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     trc.d_otherData = "";
     // this should cause it to lookup name context
     r->setTSIGDetails(trc, name, name.toStringNoDot(), "", false);
+  }
+  else {
+    r->clearTSIGDetails();
   }
 #endif
 

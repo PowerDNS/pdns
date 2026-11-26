@@ -7,10 +7,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <exception>
 #include <boost/test/unit_test.hpp>
 #include "rcpgenerator.hh"
 #include "misc.hh"
-#include <utility>
 
 using std::string;
 
@@ -744,6 +745,33 @@ BOOST_AUTO_TEST_CASE(test_xfrNodeOrLocatorID) {
   RecordTextWriter rtw(target);
   rtw.xfrNodeOrLocatorID(v);
   BOOST_CHECK_EQUAL(source, target);
+}
+
+BOOST_AUTO_TEST_CASE(test_xfrUnquotedText)
+{
+  std::vector<std::tuple<std::string, std::string, std::string, std::string, bool>> tests = {
+    // {input, value after reader, value after writer, validChars, throws}
+    {"aString", "aString", "aString", "", false},
+    {"validstring", "validstring", "validstring", "validstrng", false},
+    {"notvalidstring", "", "", "validstrng", true}, // "o" is not the list of valid chars
+  };
+
+  for (auto& [source, expectedAfterReader, expectedAfterWriter, validChars, throws] : tests) {
+    RecordTextReader rtr(source);
+    string recordValue;
+    if (throws) {
+      BOOST_CHECK_THROW(rtr.xfrUnquotedText(recordValue, false, validChars), std::exception);
+      continue;
+    } else {
+      BOOST_CHECK_NO_THROW(rtr.xfrUnquotedText(recordValue, false, validChars));
+    }
+    BOOST_CHECK_EQUAL(recordValue, expectedAfterReader);
+
+    string target;
+    RecordTextWriter rtw(target);
+    rtw.xfrUnquotedText(recordValue);
+    BOOST_CHECK_EQUAL(target, expectedAfterWriter);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

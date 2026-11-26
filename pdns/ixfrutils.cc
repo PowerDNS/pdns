@@ -35,14 +35,19 @@ uint32_t getSerialFromPrimary(Logr::log_t slog, const ComboAddress& primary, con
 {
   vector<uint8_t> packet;
   DNSPacketWriter pwriter(packet, zone.operator const DNSName&(), QType::SOA);
-  if(!tsig.algo.empty()) {
+  if (!tsig.name.empty() && !tsig.algo.empty()) {
     TSIGRecordContent trc;
     trc.d_algoName = tsig.algo;
     trc.d_time = time(nullptr);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pwriter.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(slog, pwriter, trc, tsig.name, tsig.secret, "", false);
+    try {
+      addTSIG(slog, pwriter, trc, tsig.name, tsig.secret, "", false);
+    }
+    catch (const PDNSException& exc) {
+      throw std::runtime_error(exc.reason);
+    }
   }
 
   Socket s(primary.sin4.sin_family, SOCK_DGRAM);
