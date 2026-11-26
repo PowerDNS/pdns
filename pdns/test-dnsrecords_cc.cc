@@ -410,6 +410,8 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
      (ZONE_CASE(QType::TXT, "\\384excessive")) // incorrect escape
      (ZONE_CASE(QType::HTTPS, "1 . port=443 port=8080")) // repeated SvcParamKey
      (ZONE_CASE(QType::SVCB, "1 foo.powerdns.org. alpn=h2 alpn=h3")) // repeated SvcParamKey
+     (ZONE_CASE(QType::CAA, "256 issue example.com")) // flags is > 255
+     (ZONE_CASE(QType::CAA, "0 issue_ example.com")) // tag contains forbidden character
      (ZONE_CASE((QType::typeenum)65226,"\\# 3 4142")) // truncated record
      (ZONE_CASE((QType::typeenum)65226,"\\# 3 4142  ")) // truncated record with extra whitespace
      (ZONE_CASE((QType::typeenum)65226,"\\# 3 4142 4344")) // too much data

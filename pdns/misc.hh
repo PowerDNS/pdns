@@ -431,7 +431,23 @@ pair<string, string> splitField(const string& inp, char sepa);
 
 inline bool isCanonical(std::string_view qname)
 {
-  return boost::ends_with(qname, ".");
+  if (qname.empty()) {
+    return false;
+  }
+  auto iter = qname.rbegin();
+  if (*iter == '.') {
+    iter++;
+    size_t backslashCount = 0;
+    while (iter != qname.rend()) {
+      if (*iter != '\\') {
+        break;
+      }
+      backslashCount++;
+      iter++;
+    }
+    return (backslashCount % 2) == 0;
+  }
+  return false;
 }
 
 inline DNSName toCanonic(const ZoneName& zone, const string& qname)

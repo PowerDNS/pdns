@@ -160,8 +160,8 @@ public:
   }
 #endif
 
-  void xfrUnquotedText(string &text, bool lenField){
-    text=getUnquotedText(lenField);
+  void xfrUnquotedText(string &text, bool lenField, const std::string& validChars=""){
+    text=getUnquotedText(lenField, validChars);
   }
 
   void xfrBlob(string& blob);
@@ -176,7 +176,7 @@ public:
 
   DNSName getName();
   string getText(bool multi, bool lenField);
-  string getUnquotedText(bool lenField);
+  string getUnquotedText(bool lenField, const std::string& validChar);
 
   /* Whether the current position is at (or after, which would indicate a problem
      and should have been detected earlier) the end of wire data corresponding to

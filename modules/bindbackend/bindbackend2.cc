@@ -425,12 +425,31 @@ static const std::string bindEscape(const std::string& name)
     case ';':
     case '(':
     case ')':
+    case '\n':
+    case '\r':
       snprintf(ebuf.data(), ebuf.size(), "\\%03u", static_cast<unsigned char>(letter));
       ret += ebuf.data();
       break;
     default:
       ret += letter;
       break;
+    }
+  }
+  return ret;
+}
+
+static std::string bindEscapeContent(const std::string& content)
+{
+  std::string ret;
+  std::array<char, 5> ebuf{};
+  for (char letter : content) {
+    // any non-printables or brackets
+    if (letter < ' ' || letter == '(' || letter == ')' || letter >= '\x7f') {
+      snprintf(ebuf.data(), ebuf.size(), "\\%03u", static_cast<unsigned char>(letter));
+      ret += ebuf.data();
+    }
+    else {
+      ret += letter;
     }
   }
   return ret;
@@ -473,7 +492,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
     [[fallthrough]];
   default:
     if (d_of && *d_of) {
-      *d_of << qname << "\t" << rr.ttl << "\t" << rr.qtype.toString() << "\t" << content << endl;
+      *d_of << qname << "\t" << rr.ttl << "\t" << rr.qtype.toString() << "\t" << bindEscapeContent(content) << endl;
     }
   }
   return true;
