@@ -204,8 +204,9 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrText(co
   }
 }
 
-template <typename Container> void GenericDNSPacketWriter<Container>::xfrUnquotedText(const string& text, bool lenField)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrUnquotedText(const string& text, bool lenField, const std::string& /* validChars */)
 {
+  // We're not checking validChars, we expect that either the RecordTextReader or the PacketReader did this
   if(text.empty()) {
     d_content.push_back(0);
     return;

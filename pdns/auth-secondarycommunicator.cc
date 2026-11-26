@@ -87,7 +87,8 @@ struct ZoneStatus
   int numDeltas{0};
 };
 
-static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vector<CatalogInfo>& fromDB, const string& logPrefix)
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+static bool catalogDiff(UeberBackend& B, const DomainInfo& di, vector<CatalogInfo>& fromXFR, vector<CatalogInfo>& fromDB, const string& logPrefix)
 {
   extern CommunicatorClass Communicator;
 
@@ -182,7 +183,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
       if (create && remove) {
         g_log << Logger::Warning << logPrefix << "zone '" << ciCreate.d_zone << "' state reset" << endl;
       }
-      else if (create && di.backend->getDomainInfo(ciCreate.d_zone, d)) { // detect clash
+      else if (create && B.getDomainInfo(ciCreate.d_zone, d)) { // detect clash
         CatalogInfo ci;
         ci.fromJson(d.options, CatalogInfo::CatalogType::Consumer);
 
@@ -258,7 +259,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
     for (const auto& zone : clearCache) {
       if (g_zoneCache.isEnabled()) {
         if (zone.second) {
-          if (di.backend->getDomainInfo(zone.first, d)) {
+          if (B.getDomainInfo(zone.first, d)) {
             g_zoneCache.add(zone.first, d.id);
           }
           else {
@@ -304,7 +305,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
   return false;
 }
 
-static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs, string logPrefix)
+static bool catalogProcess(UeberBackend& B, const DomainInfo& di, vector<DNSResourceRecord>& rrs, string logPrefix)
 {
   logPrefix += "Catalog-Zone ";
 
@@ -380,8 +381,12 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
         ci.d_zone = DNSName(rr.content);
         ci.d_unique = unique;
 
+        if (ci.d_zone.isRoot()) {
+          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', invalid member zone '" << ci.d_zone << "'" << endl;
+          zoneInvalid = true;
+        }
         if (!dupcheck.insert(ci.d_zone).second) {
-          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate member zone'" << ci.d_zone << "'" << endl;
+          g_log << Logger::Warning << logPrefix << "zone '" << di.zone << "', duplicate member zone '" << ci.d_zone << "'" << endl;
           zoneInvalid = true;
         }
       }
@@ -422,7 +427,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   }
 
   // Process
-  return catalogDiff(di, fromXFR, fromDB, logPrefix);
+  return catalogDiff(B, di, fromXFR, fromDB, logPrefix);
 }
 
 void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr)
@@ -790,7 +795,7 @@ void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, 
     }
 
     if (di.kind == DomainInfo::Consumer) {
-      if (!catalogProcess(di, rrs, logPrefix)) {
+      if (!catalogProcess(B, di, rrs, logPrefix)) {
         g_log << Logger::Warning << logPrefix << "Catalog-Zone update failed, only import records" << endl;
       }
     }

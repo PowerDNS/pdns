@@ -63,6 +63,25 @@ DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
   memset(&d, 0, sizeof(d));
 }
 
+bool DNSPacket::preparePayload(std::string& error, bool throwsOnTruncation)
+{
+  if (!d_wrapped) {
+    try {
+      wrapup(throwsOnTruncation);
+    }
+    catch (const PDNSException& exc) {
+      error = exc.reason;
+      return false;
+    }
+    catch (const std::exception& exc) {
+      error = exc.what();
+      return false;
+    }
+  }
+  error.clear();
+  return true;
+}
+
 const string& DNSPacket::getString(bool throwsOnTruncation)
 {
   if(!d_wrapped)
@@ -348,6 +367,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection || d_haveednscookie) {
     try {
       uint8_t maxScopeMask=0;
+      bool shallCommit{true};
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
 
@@ -360,16 +380,14 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
           pw.rollback();
           pw.truncate();
           pw.getHeader()->tc=1;
-          goto noCommit;
+          shallCommit = false;
+          break;
         }
       }
+      if (shallCommit && !d_rrs.empty()) {
+        pw.commit();
+      }
 
-      // if(!pw.getHeader()->tc) // protect against double commit from addSignature
-
-      if(!d_rrs.empty()) pw.commit();
-
-      noCommit:;
-      
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
         // use the scopeMask from the resolver, if it is greater - issue #5469
@@ -396,10 +414,12 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
       throw;
     }
   }
-  
-  if(d_trc.d_algoName.countLabels())
+
+  if (!d_tsigkeyname.empty() && d_trc.d_algoName.countLabels()) {
+    // may throw PDNSException if signing fails
     addTSIG(pw, d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
-  
+  }
+
   d_rawpacket.assign((char*)&packet[0], packet.size()); // XXX we could do this natively on a vector..
 
   // copy RR counts so they can be read later
@@ -481,7 +501,7 @@ void DNSPacket::spoofQuestion(const DNSPacket& qd)
   }
 }
 
-int DNSPacket::noparse(const char *mesg, size_t length)
+int DNSPacket::reinit(const char *mesg, size_t length)
 {
   d_rawpacket.assign(mesg,length); 
   if(length < 12) { 
@@ -489,10 +509,34 @@ int DNSPacket::noparse(const char *mesg, size_t length)
       << getRemoteStringWithPort();
     return -1;
   }
+  memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
+
+  d_havetsig = false;
+  d_tsig_algo = TSIG_MD5;
+  d_tsigkeyname.clear();
+  d_tsigsecret.clear();
+  d_tsigprevious.clear();
+  d_tsigtimersonly = false;
+
+  return 0;
+}
+
+int DNSPacket::noparse(const char *mesg, size_t length)
+{
+  if (reinit(mesg, length) != 0) {
+    return -1;
+  }
   d_wantsnsid=false;
   d_maxreplylen=512;
-  memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   return 0;
+}
+
+void DNSPacket::clearTSIGDetails()
+{
+  d_trc = {}; // resets d_algoName
+  d_tsigkeyname.clear();
+  d_tsigsecret.clear();
+  d_tsigprevious.clear();
 }
 
 void DNSPacket::setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly)
@@ -587,14 +631,11 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 int DNSPacket::parse(const char *mesg, size_t length)
 try
 {
-  d_rawpacket.assign(mesg,length); 
-  d_wrapped=true;
-  if(length < 12) { 
-    g_log << Logger::Debug << "Ignoring packet: too short from "
-      << getRemoteString() << endl;
+  if (reinit(mesg, length) != 0) {
     return -1;
   }
 
+  d_wrapped=true;
   MOADNSParser mdp(d_isQuery, d_rawpacket);
   EDNSOpts edo;
 
@@ -646,7 +687,6 @@ try
     d_ednsRawPacketSizeLimit=-1;
   }
 
-  memcpy((void *)&d,(const void *)d_rawpacket.c_str(),12);
   qdomain=mdp.d_qname;
   // if(!qdomain.empty()) // strip dot
   //   boost::erase_tail(qdomain, 1);

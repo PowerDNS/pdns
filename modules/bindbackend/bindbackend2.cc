@@ -293,12 +293,31 @@ static const std::string bindEscape(const std::string& name)
     case ';':
     case '(':
     case ')':
+    case '\n':
+    case '\r':
       snprintf(ebuf.data(), ebuf.size(), "\\%03u", static_cast<unsigned char>(letter));
       ret += ebuf.data();
       break;
     default:
       ret += letter;
       break;
+    }
+  }
+  return ret;
+}
+
+static const std::string bindEscapeContent(const std::string& content)
+{
+  std::string ret;
+  std::array<char, 5> ebuf{};
+  for (char letter : content) {
+    // any non-printables or brackets
+    if (letter < ' ' || letter == '(' || letter == ')' || letter >= '\x7f') {
+      snprintf(ebuf.data(), ebuf.size(), "\\%03u", static_cast<unsigned char>(letter));
+      ret += ebuf.data();
+    }
+    else {
+      ret += letter;
     }
   }
   return ret;
@@ -341,7 +360,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
     [[fallthrough]];
   default:
     if (d_of && *d_of) {
-      *d_of << qname << "\t" << rr.ttl << "\t" << rr.qtype.toString() << "\t" << content << endl;
+      *d_of << qname << "\t" << rr.ttl << "\t" << rr.qtype.toString() << "\t" << bindEscapeContent(content) << endl;
     }
   }
   return true;
@@ -1459,13 +1478,16 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const DNSName&
     throw PDNSException("Unauthorized characters in domain name for bind configuration file");
   }
 
-  string filename = getArg("autoprimary-destdir") + '/';
+  std::string filename = getArg("autoprimary-destdir") + '/';
+  std::string configname{};
   if (domainname.empty()) {
     filename.append("rootzone.");
+    configname = ".";
   }
   else {
     // Make sure the zone file name does not contain path separators.
     filename.append(boost::replace_all_copy(domainname, "/", "\\047"));
+    configname = domainname;
   }
 
   g_log << Logger::Warning << d_logprefix
@@ -1482,8 +1504,8 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const DNSName&
     }
 
     c_of << endl;
-    c_of << "# AutoSecondary zone '" << domainname << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
-    c_of << "zone \"" << domainname << "\" {" << endl;
+    c_of << "# AutoSecondary zone '" << configname << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
+    c_of << "zone \"" << configname << "\" {" << endl;
     c_of << "\ttype secondary;" << endl;
     c_of << "\tfile \"" << filename << "\";" << endl;
     c_of << "\tprimaries { " << ipAddress << "; };" << endl;

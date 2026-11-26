@@ -529,13 +529,16 @@ string PacketReader::getText(bool multi, bool lenField)
   return ret;
 }
 
-string PacketReader::getUnquotedText(bool lenField)
+string PacketReader::getUnquotedText(bool lenField, const std::string& validChars)
 {
   uint16_t stop_at;
-  if(lenField)
+  if (lenField) {
     stop_at = static_cast<uint8_t>(d_content.at(d_pos)) + d_pos + 1;
-  else
+    d_pos++; // d_pos now points at the start of the text
+  }
+  else {
     stop_at = d_recordlen;
+  }
 
   /* think unsigned overflow */
   if (stop_at < d_pos) {
@@ -545,8 +548,10 @@ string PacketReader::getUnquotedText(bool lenField)
   if(stop_at == d_pos)
     return "";
 
-  d_pos++;
   string ret(d_content.substr(d_pos, stop_at-d_pos));
+  if (!validChars.empty() && ret.find_first_not_of(validChars) != string::npos) {
+    throw std::out_of_range("getUnquotedText: invalid character found in record content");
+  }
   d_pos = stop_at;
   return ret;
 }

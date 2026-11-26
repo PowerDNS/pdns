@@ -24,6 +24,10 @@ namespace funcptr = boost;
 #define YAHTTP_MAX_HEADER_SIZE (100 * 1024)
 #endif
 
+#ifndef YAHTTP_MAX_HEADER_LINES
+#define YAHTTP_MAX_HEADER_LINES 1000
+#endif
+
 #ifndef YAHTTP_MAX_REQUEST_SIZE
 #define YAHTTP_MAX_REQUEST_SIZE 2097152
 #endif
@@ -36,8 +40,6 @@ namespace funcptr = boost;
 #define YAHTTP_TYPE_RESPONSE 2
 
 namespace YaHTTP {
-  typedef std::map<std::string,Cookie,ASCIICINullSafeComparator> strcookie_map_t; //<! String to Cookie map
-
   typedef enum {
     urlencoded,
     multipart
@@ -115,7 +117,6 @@ namespace YaHTTP {
       url = "";
       method = "";
       statusText = "";
-      jar.clear();
       headers.clear();
       parameters.clear();
       getvars.clear();
@@ -130,7 +131,7 @@ protected:
       this->url = rhs.url; this->kind = rhs.kind;
       this->status = rhs.status; this->statusText = rhs.statusText;
       this->method = rhs.method; this->headers = rhs.headers;
-      this->jar = rhs.jar; this->postvars = rhs.postvars;
+      this->postvars = rhs.postvars;
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
       this->body = rhs.body; this->max_request_size = rhs.max_request_size;
       this->max_response_size = rhs.max_response_size; this->version = rhs.version;
@@ -144,7 +145,7 @@ protected:
       this->url = rhs.url; this->kind = rhs.kind;
       this->status = rhs.status; this->statusText = rhs.statusText;
       this->method = rhs.method; this->headers = rhs.headers;
-      this->jar = rhs.jar; this->postvars = rhs.postvars;
+      this->postvars = rhs.postvars;
       this->parameters = rhs.parameters; this->getvars = rhs.getvars;
       this->body = rhs.body; this->max_request_size = rhs.max_request_size;
       this->max_response_size = rhs.max_response_size; this->version = rhs.version;
@@ -163,7 +164,6 @@ public:
     std::string statusText; //<! textual representation of status code
     std::string method; //<! http verb
     strstr_map_t headers; //<! map of header(s)
-    CookieJar jar; //<! cookies 
     strstr_map_t postvars; //<! map of POST variables (from POST body)
     strstr_map_t getvars; //<! map of GET variables (from URL)
 // these two are for Router
@@ -183,7 +183,6 @@ public:
 
     strstr_map_t& GET() { return getvars; }; //<! acccessor for getvars
     strstr_map_t& POST() { return postvars; }; //<! accessor for postvars
-    strcookie_map_t& COOKIES() { return jar.cookies; }; //<! accessor for cookies
 
     std::string versionStr(int version_) const {
       switch(version_) {
@@ -223,7 +222,6 @@ public:
       // copy SOME attributes
       this->url = rhs.url;
       this->method = rhs.method;
-      this->jar = rhs.jar;
       this->version = rhs.version;
     }
     friend std::ostream& operator<<(std::ostream& os, const Response &resp);
@@ -252,7 +250,6 @@ public:
       // copy SOME attributes
       this->url = rhs.url;
       this->method = rhs.method;
-      this->jar = rhs.jar;
       this->version = rhs.version;
     }
     void setup(const std::string& method_, const std::string& url_) {
@@ -304,7 +301,6 @@ public:
   public:
     T* target; //<! target to populate
     int state; //<! reader state
-    size_t pos; //<! reader position
     
     std::string buffer; //<! read buffer 
     bool chunked; //<! whether we are parsing chunked data
@@ -313,6 +309,7 @@ public:
     size_t maxbody; //<! maximum size of body
     size_t minbody; //<! minimum size of body
     size_t headersize;
+    size_t headerlines;
     size_t bodysize;
     bool hasBody; //<! are we expecting body
 
@@ -321,10 +318,11 @@ public:
     void initialize(T* target_) {
       chunked = false; chunk_size = 0;
       bodybuf.str(""); minbody = 0; maxbody = 0;
-      pos = 0; state = 0; this->target = target_;
+      state = 0; this->target = target_;
       hasBody = false;
       buffer = "";
       headersize = 0;
+      headerlines = 0;
       bodysize = 0;
       this->target->initialize();
     }; //<! Initialize the parser for target and clear state

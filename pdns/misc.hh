@@ -459,9 +459,23 @@ pair<string, string> splitField(const string& inp, char sepa);
 
 inline bool isCanonical(const string& qname)
 {
-  if(qname.empty())
+  if (qname.empty()) {
     return false;
-  return qname[qname.size()-1]=='.';
+  }
+  auto iter = qname.rbegin();
+  if (*iter == '.') {
+    iter++;
+    size_t backslashCount = 0;
+    while (iter != qname.rend()) {
+      if (*iter != '\\') {
+        break;
+      }
+      backslashCount++;
+      iter++;
+    }
+    return (backslashCount % 2) == 0;
+  }
+  return false;
 }
 
 inline DNSName toCanonic(const DNSName& zone, const string& qname)

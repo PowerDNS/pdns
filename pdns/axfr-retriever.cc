@@ -69,7 +69,12 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
       d_trc.d_fudge = 300;
       d_trc.d_origID=ntohs(pw.getHeader()->id);
       d_trc.d_eRcode=0;
-      addTSIG(pw, d_trc, tt.name, tt.secret, "", false);
+      try {
+        addTSIG(pw, d_trc, tt.name, tt.secret, "", false);
+      }
+      catch (const PDNSException& exc) {
+        throw ResolverException(exc.reason);
+      }
     }
   
     uint16_t replen=htons(packet.size());

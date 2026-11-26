@@ -852,7 +852,12 @@ boilerplate_conv(URI,
 
 boilerplate_conv(CAA,
                  conv.xfr8BitInt(d_flags);
-                 conv.xfrUnquotedText(d_tag, true);
+                 // RFC 8659 section 4.1:
+                 //   Tags MAY contain ASCII characters "a" through "z", "A" through "Z", and the numbers 0 through 9.
+                 //   Tags MUST NOT contain any other characters.
+                 conv.xfrUnquotedText(d_tag, true, "abcdefghijklmnopqrstuvwxyz"
+                                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                                   "0123456789");
                  conv.xfrText(d_value, true, false); /* no lenField */
                 )
 
