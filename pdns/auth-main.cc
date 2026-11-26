@@ -549,6 +549,12 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
     diff = a->d_dt.udiff();
     update_latencies(start, diff);
   }
+  catch (const PDNSException& exc) {
+    // UDPNameserver::send can throw a PDNSException if signing the packet
+    // fails.
+    SLOG(g_log << Logger::Error << "Caught unhandled exception while sending a response: " << exc.reason << endl,
+         slog->error(Logr::Error, exc.reason, "Caught unhandled exception while sending a response"));
+  }
   catch (const std::exception& e) {
     g_log << Logger::Error << "Caught unhandled exception while sending a response: " << e.what() << endl;
   }

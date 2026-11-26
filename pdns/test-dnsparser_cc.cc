@@ -730,4 +730,29 @@ BOOST_AUTO_TEST_CASE(test_compressionBudget)
   BOOST_CHECK_THROW(MOADNSParser(false, packet.data(), packet.size(), 22U), MOADNSException);
 }
 
+BOOST_AUTO_TEST_CASE(test_xfrUnquotedText)
+{
+  std::vector<std::tuple<std::string, std::string, std::string, bool, bool>> tests = {
+    // {input, value after reader, validChars, lengthfield, throws}
+    {"aString", "aString", "", false, false},
+    {"validstring", "validstring", "validstrng", false, false},
+    {"notvalidstring", "", "validstrng", false, true}, // "o" is not the list of valid chars
+    {"with\r\nnewlines", "", "withnewlnes", false, true}, // Invalid characters
+    {"\x0Awithlength", "withlength", "", true, false},
+    {"\x0Bwithlength", "", "", true, true}, // length is too long by 1
+  };
+
+  for (auto& [source, expectedAfterReader, validChars, lengthField, throws] : tests) {
+    PacketReader pr(source, 0);
+    string recordValue;
+    if (throws) {
+      BOOST_CHECK_THROW(pr.xfrUnquotedText(recordValue, lengthField, validChars), std::exception);
+      return;
+    } else {
+      BOOST_CHECK_NO_THROW(pr.xfrUnquotedText(recordValue, lengthField, validChars));
+    }
+    BOOST_CHECK_EQUAL(recordValue, expectedAfterReader);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

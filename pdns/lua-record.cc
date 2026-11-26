@@ -671,13 +671,13 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, do
   return ret;
 }
 
-static bool getAuth(const ZoneName& name, uint16_t qtype, SOAData* soaData, Netmask remote)
+static bool getAuth(const ZoneName& name, uint16_t qtype, SOAData* soaData, DNSPacket *packet)
 {
   static LockGuarded<UeberBackend> s_ub;
 
   {
     auto ueback = s_ub.lock();
-    return ueback->getAuth(name, qtype, soaData, remote);
+    return ueback->getAuth(name, qtype, soaData, true, packet);
   }
 }
 
@@ -790,7 +790,7 @@ typedef struct AuthLuaRecordContext
   DNSName               qname;
   DNSZoneRecord         zone_record;
   DNSName               zone;
-  Netmask               remote;
+  DNSPacket            *packet;
 } lua_record_ctx_t;
 
 static thread_local unique_ptr<lua_record_ctx_t> s_lua_record_ctx;
@@ -1628,7 +1628,7 @@ static vector<string> lua_dblookup(const string& record, uint16_t qtype)
   try {
     SOAData soaData;
 
-    if (!getAuth(rec, qtype, &soaData, s_lua_record_ctx->remote)) {
+    if (!getAuth(rec, qtype, &soaData, s_lua_record_ctx->packet)) {
       return ret;
     }
 
@@ -1807,7 +1807,7 @@ static void setupLuaRecords(LuaContext& lua)
   lua.writeVariable("GeoIPQueryAttribute", lua_variables);
 }
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
 {
   if(!LUA ||                  // we don't have a Lua state yet
      !g_LuaRecordSharedState) { // or we want a new one even if we had one
@@ -1823,7 +1823,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   s_lua_record_ctx->qname = query;
   s_lua_record_ctx->zone_record = zone_record;
   s_lua_record_ctx->zone = zone;
-  s_lua_record_ctx->remote = dnsp.getRealRemote();
+  s_lua_record_ctx->packet = &dnsp;
 
   lua.writeVariable("qname", query);
   lua.writeVariable("zone", zone);

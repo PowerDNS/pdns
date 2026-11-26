@@ -393,7 +393,7 @@ void TCPNameserver::doConnection(int fd)
         if (packet->couldBeCached()) {
           std::string view{};
           if (g_views) {
-            Netmask netmask(packet->getInnerRemote());
+            Netmask netmask(packet->getRealRemote());
             view = g_zoneCache.getViewFromNetwork(&netmask);
           }
           if (PC.get(*packet, *cached, view)) { // short circuit - does the PacketCache recognize this question?
