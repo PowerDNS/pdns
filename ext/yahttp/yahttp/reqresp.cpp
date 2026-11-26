@@ -41,7 +41,7 @@ namespace YaHTTP {
   }
 
   template <class T>
-  bool AsyncLoader<T>::feed(const std::string& somedata)
+  bool AsyncLoader<T>::feed(const std::string& somedata) // NOLINT(readability-function-cognitive-complexity)
   {
     if (state < 2) {
       headersize += somedata.length(); // maybe include some body data, we don't know yet...
@@ -58,19 +58,19 @@ namespace YaHTTP {
     size_t cursor = 0;
     while(state < 2) {
       int cr=0;
-      size_t pos = buffer.find_first_of("\n", cursor);
+      size_t pos = buffer.find_first_of("\n", cursor); // NOLINT(performance-faster-string-find)
       // need to find CRLF in buffer
       if (pos == std::string::npos) {
         // Remove all the data which has been consumed as header.
         if (cursor != 0) {
-          buffer.erase(buffer.begin(), buffer.begin() + cursor);
+          buffer.erase(buffer.begin(), buffer.begin() + cursor); // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions)
         }
         return false;
       }
       if (pos>0 && buffer[pos-1]=='\r') {
         cr=1;
       }
-      std::string_view line(buffer.data() + cursor, (pos - cr) - cursor); // exclude CRLF
+      std::string_view line(buffer.data() + cursor, (pos - cr) - cursor); // exclude CRLF // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       cursor = pos + 1; // skip line, including CRLF
       // Release memory as soon as we can
       if (cursor == buffer.length()) {
@@ -174,7 +174,7 @@ namespace YaHTTP {
     }
     // Remove all the data which has been consumed as header, if we haven't been able to do so earlier.
     if (cursor != 0) {
-      buffer.erase(buffer.begin(), buffer.begin() + cursor);
+      buffer.erase(buffer.begin(), buffer.begin() + cursor); // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions)
     }
 
     minbody = 0;
