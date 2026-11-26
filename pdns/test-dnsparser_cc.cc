@@ -929,14 +929,13 @@ BOOST_AUTO_TEST_CASE(test_xfrUnquotedText)
   };
 
   for (auto& [source, expectedAfterReader, validChars, lengthField, throws] : tests) {
-    PacketReader pr(source, 0);
+    PacketReader pr(source, 0); // NOLINT(readability-identifier-length)
     string recordValue;
     if (throws) {
       BOOST_CHECK_THROW(pr.xfrUnquotedText(recordValue, lengthField, validChars), std::exception);
       return;
-    } else {
-      BOOST_CHECK_NO_THROW(pr.xfrUnquotedText(recordValue, lengthField, validChars));
     }
+    BOOST_CHECK_NO_THROW(pr.xfrUnquotedText(recordValue, lengthField, validChars));
     BOOST_CHECK_EQUAL(recordValue, expectedAfterReader);
   }
 }

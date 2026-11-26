@@ -438,7 +438,7 @@ static const std::string bindEscape(const std::string& name)
   return ret;
 }
 
-static const std::string bindEscapeContent(const std::string& content)
+static std::string bindEscapeContent(const std::string& content)
 {
   std::string ret;
   std::array<char, 5> ebuf{};

@@ -762,9 +762,8 @@ BOOST_AUTO_TEST_CASE(test_xfrUnquotedText)
     if (throws) {
       BOOST_CHECK_THROW(rtr.xfrUnquotedText(recordValue, false, validChars), std::exception);
       continue;
-    } else {
-      BOOST_CHECK_NO_THROW(rtr.xfrUnquotedText(recordValue, false, validChars));
     }
+    BOOST_CHECK_NO_THROW(rtr.xfrUnquotedText(recordValue, false, validChars));
     BOOST_CHECK_EQUAL(recordValue, expectedAfterReader);
 
     string target;
