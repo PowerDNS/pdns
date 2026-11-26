@@ -725,7 +725,7 @@ static void qthread(unsigned int num)
               g_log << endl;
               logAtNewline = true; // because of getViewFromNetwork below
             }
-            Netmask netmask(accountremote);
+            Netmask netmask(question.getRealRemote());
             view = g_zoneCache.getViewFromNetwork(&netmask);
           }
           bool haveSomething = PC.get(question, cached, view); // does the PacketCache recognize this question?
