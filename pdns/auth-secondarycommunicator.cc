@@ -102,7 +102,7 @@ struct XFRContext
 };
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vector<CatalogInfo>& fromDB)
+static bool catalogDiff(UeberBackend& B, const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vector<CatalogInfo>& fromDB) // NOLINT(readability-identifier-length)
 {
   bool doTransaction{true};
   bool inTransaction{false};
@@ -219,7 +219,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
         SLOG(g_log << Logger::Warning << ctx.logPrefix << "zone '" << ciCreate.d_zone << "' state reset" << endl,
              ctx.slog->info(Logr::Warning, "Catalog-Zone: state reset", "zone", Logging::Loggable(ciCreate.d_zone)));
       }
-      else if (create && ctx.domain.backend->getDomainInfo(ciCreate.d_zone, d)) { // detect clash
+      else if (create && B.getDomainInfo(ciCreate.d_zone, d)) { // detect clash
         CatalogInfo ci; // NOLINT(readability-identifier-length)
         ci.fromJson(d.options, CatalogInfo::CatalogType::Consumer);
 
@@ -315,7 +315,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
     for (const auto& zone : clearCache) {
       if (g_zoneCache.isEnabled()) {
         if (zone.second) {
-          if (ctx.domain.backend->getDomainInfo(zone.first, d)) {
+          if (B.getDomainInfo(zone.first, d)) {
             g_zoneCache.add(zone.first, d.id);
           }
           else {
@@ -366,7 +366,7 @@ static bool catalogDiff(const XFRContext& ctx, vector<CatalogInfo>& fromXFR, vec
   return false;
 }
 
-static bool catalogProcess(const XFRContext& ctx, vector<DNSResourceRecord>& rrs)
+static bool catalogProcess(UeberBackend& B, const XFRContext& ctx, vector<DNSResourceRecord>& rrs) // NOLINT(readability-identifier-length)
 {
   if (!g_slogStructured) {
     ctx.logPrefix.append("Catalog-Zone ");
@@ -499,7 +499,7 @@ static bool catalogProcess(const XFRContext& ctx, vector<DNSResourceRecord>& rrs
   }
 
   // Process
-  return catalogDiff(ctx, fromXFR, fromDB);
+  return catalogDiff(B, ctx, fromXFR, fromDB);
 }
 
 void CommunicatorClass::ixfrSuck(const TSIGTriplet& tsig, const ComboAddress& laddr, XFRContext& ctx, vector<DNSRecord>* axfr)
@@ -933,7 +933,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
     }
 
     if (ctx.domain.kind == DomainInfo::Consumer) {
-      if (!catalogProcess(ctx, rrs)) {
+      if (!catalogProcess(B, ctx, rrs)) {
         SLOG(g_log << Logger::Warning << ctx.logPrefix << "Catalog-Zone update failed, only import records" << endl,
              ctx.slog->info(Logr::Warning, "AXFR: Catalog-Zone update failed, only records will be imported"));
       }
