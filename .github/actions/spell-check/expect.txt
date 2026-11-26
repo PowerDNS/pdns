@@ -890,7 +890,7 @@ nameserving
 Nankai
 Naoki
 naptr
-naseeb
+Naseeb
 Nauck
 Navarrete
 nearmiss
