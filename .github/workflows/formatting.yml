@@ -3,7 +3,19 @@ name: 'Verify source code formatting; check Makefile.am sort order'
 
 on:
   push:
+    paths:
+      - '**.c'
+      - '**.cc'
+      - '**.h'
+      - '**.hh'
+      - '**/Makefile.am'
   pull_request:
+    paths:
+      - '**.c'
+      - '**.cc'
+      - '**.h'
+      - '**.hh'
+      - '**/Makefile.am'
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read

@@ -3,7 +3,11 @@ name: 'Verify secpoll zone syntax'
 
 on:
   push:
+    paths:
+      - docs/secpoll.zone
   pull_request:
+    paths:
+      - docs/secpoll.zone
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read

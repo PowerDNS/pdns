@@ -2,7 +2,29 @@ name: "CodeQL and clang-tidy"
 
 on:
   push:
+    paths:
+      - '**.c'
+      - '**.cc'
+      - '**.h'
+      - '**.hh'
+      - '**.rs'
+      - '**.py'
+      - '**.yml'
+      - '**/configure.ac'
+      - '**/Makefile.am'
+      - '**/meson**'
   pull_request:
+    paths:
+      - '**.c'
+      - '**.cc'
+      - '**.h'
+      - '**.hh'
+      - '**.rs'
+      - '**.py'
+      - '**.yml'
+      - '**/configure.ac'
+      - '**/Makefile.am'
+      - '**/meson**'
   schedule:
     - cron: '0 22 * * 2'
 

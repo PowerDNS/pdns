@@ -3,7 +3,29 @@ name: 'Build and test everything'
 
 on:
   push:
+    paths:
+      - '**.c'
+      - '**.cc'
+      - '**.h'
+      - '**.hh'
+      - '**.rs'
+      - '**.py'
+      - '**.yml'
+      - '**/configure.ac'
+      - '**/Makefile.am'
+      - '**/meson**'
   pull_request:
+    paths:
+      - '**.c'
+      - '**.cc'
+      - '**.h'
+      - '**.hh'
+      - '**.rs'
+      - '**.py'
+      - '**.yml'
+      - '**/configure.ac'
+      - '**/Makefile.am'
+      - '**/meson**'
   workflow_call:
     inputs:
       branch-name:
