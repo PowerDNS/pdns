@@ -703,7 +703,7 @@ static void loadMainConfig(const std::string& configdir)
 
   g_log.toConsole(Logger::Error);   // so we print any errors
 
-  setupLogging();
+  setupLogging(true); // no JSON or systemd backends
   if (g_slogStructured) {
     auto log = g_slog->withName("config");
     ::arg().setSLog(log);

@@ -1573,7 +1573,7 @@ int main(int argc, char** argv)
                 << "and will be removed in a future version" << std::endl;
     }
 
-    setupLogging();
+    setupLogging(false);
     if (g_slogStructured) {
       Communicator.setSLog(g_slog->withName("communicator"));
     }

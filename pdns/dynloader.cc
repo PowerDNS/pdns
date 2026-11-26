@@ -72,7 +72,7 @@ int main(int argc, char **argv)
   ::arg().setCmd("help","Provide a helpful message");
   ::arg().laxParse(argc,argv);
 
-  setupLogging();
+  setupLogging(true); // no JSON or systemd backends
 
   if (g_slogStructured) {
     auto log = g_slog->withName("config");

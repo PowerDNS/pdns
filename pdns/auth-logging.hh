@@ -26,4 +26,4 @@
 extern bool g_slogStructured;
 
 void registerLoggingSettings(Logger::Urgency defaultLoglevel);
-void setupLogging();
+void setupLogging(bool bareOnly);

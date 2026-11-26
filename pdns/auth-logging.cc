@@ -182,7 +182,7 @@ static void loggerJSONBackend(const Logging::Entry& entry)
   cerr << out << endl;
 }
 
-void setupLogging()
+void setupLogging(bool bareOnly)
 {
   s_logUrgency = static_cast<Logger::Urgency>(::arg().asNum("loglevel")); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): thank you once again, clang-tidy, for getting in the way
 
@@ -202,22 +202,24 @@ void setupLogging()
 
   g_slogStructured = ::arg().mustDo("logging-structured");
   if (g_slogStructured) {
-    const auto& loggingBackend = ::arg()["structured-logging-backend"];
-    if (loggingBackend == "systemd-journal") {
+    if (!bareOnly) {
+      const auto& loggingBackend = ::arg()["structured-logging-backend"];
+      if (loggingBackend == "systemd-journal") {
 #ifdef HAVE_SYSTEMD
-      if (int fileDesc = sd_journal_stream_fd("pdns-authoritative", LOG_DEBUG, 0); fileDesc >= 0) {
-        g_slog = Logging::Logger::create(loggerSDBackend);
-        close(fileDesc);
-      }
+        if (int fileDesc = sd_journal_stream_fd("pdns-authoritative", LOG_DEBUG, 0); fileDesc >= 0) {
+          g_slog = Logging::Logger::create(loggerSDBackend);
+          close(fileDesc);
+        }
 #endif
-      if (g_slog == nullptr) {
-        g_log << Logger::Error << "Requested structured logging to systemd-journal, but it is not available" << endl;
+        if (g_slog == nullptr) {
+          g_log << Logger::Error << "Requested structured logging to systemd-journal, but it is not available" << endl;
+        }
       }
-    }
-    else if (loggingBackend == "json") {
-      g_slog = Logging::Logger::create(loggerJSONBackend);
-      if (g_slog == nullptr) {
-        g_log << Logger::Error << "JSON logging requested but it is not available" << endl;
+      else if (loggingBackend == "json") {
+        g_slog = Logging::Logger::create(loggerJSONBackend);
+        if (g_slog == nullptr) {
+          g_log << Logger::Error << "JSON logging requested but it is not available" << endl;
+        }
       }
     }
     if (g_slog == nullptr) {
