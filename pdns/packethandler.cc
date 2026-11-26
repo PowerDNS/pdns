@@ -26,6 +26,7 @@
 #include "utility.hh"
 #include "base32.hh"
 #include "base64.hh"
+#include <algorithm>
 #include <string>
 #include <sys/types.h>
 #include <boost/algorithm/string.hpp>
@@ -1988,7 +1989,34 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   if(!haveAlias.empty() && (!weDone || pkt.qtype.getCode() == QType::ANY)) {
     DLOG(SLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<state.target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl,
               d_slog->info(Logr::Warning, "Found nothing that matched, but got alias, referring", "query", Logging::Loggable(state.target), "alias", Logging::Loggable(haveAlias))));
-    DP->completePacket(state.r, haveAlias, state.target, aliasScopeMask);
+    // completePacket() only adds the target's A/AAAA, so for ANY add the other records too.
+    // haveAlias implies expand-alias is on and the zone is not presigned, so skip unconditionally.
+    DNSProxy::AddressTTLs localAddressTTLs;
+    if (pkt.qtype.getCode() == QType::ANY) {
+      for (const auto& loopRR : rrset) {
+        if (loopRR.dr.d_type == QType::ENT) {
+          continue;
+        }
+        if (loopRR.dr.d_type == QType::ALIAS) {
+          continue;
+        }
+#ifdef HAVE_LUA_RECORDS
+        if (loopRR.dr.d_type == QType::LUA) {
+          continue;
+        }
+#endif
+        if (loopRR.auth) {
+          const auto& record = loopRR.dr;
+          if ((record.d_type == QType::A || record.d_type == QType::AAAA) && record.d_name == state.target && record.d_class == QClass::IN && record.d_place == DNSResourceRecord::ANSWER) {
+            // A duplicate can have a lower TTL even if addRecord() drops it.
+            const auto ttl = localAddressTTLs.try_emplace(record.d_type, DNSProxy::AddressRRsetTTL{record.d_ttl}).first;
+            ttl->second.ttl = std::min(ttl->second.ttl, record.d_ttl);
+          }
+          state.r->addRecord(DNSZoneRecord(loopRR));
+        }
+      }
+    }
+    DP->completePacket(state.r, haveAlias, state.target, aliasScopeMask, std::move(localAddressTTLs));
     state.r = nullptr;
     return false;
   }
