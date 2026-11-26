@@ -61,11 +61,11 @@ int getEDNSOption(const char* optRR, const size_t len, uint16_t wantedOption, si
     return EINVAL;
   }
 
-  while(len >= (pos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE) &&
-        rdLen >= (rdPos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
-    uint16_t optionCode;
-    uint16_t optionLen;
-    if (!getNextEDNSOption(optRR + pos, len-pos, optionCode, optionLen)) {
+  bool found = false;
+  while (len >= (pos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE) && rdLen >= (rdPos + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE)) {
+    uint16_t optionCode{};
+    uint16_t optionLen{};
+    if (!getNextEDNSOption(optRR + pos, len - pos, optionCode, optionLen)) {
       break;
     }
 
@@ -78,19 +78,23 @@ int getEDNSOption(const char* optRR, const size_t len, uint16_t wantedOption, si
       return EINVAL;
     }
 
-    if (optionCode == wantedOption) {
+    if (!found && optionCode == wantedOption) {
       *optionValuePosition = pos - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE);
       *optionValueSize = optionLen + EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE;
-      return 0;
+      /* we have found what we were looking for, but let's make sure there
+         is no malformed option or trailing bytes in this RR */
+      found = true;
     }
-    else {
-      /* skip this option */
-      pos += optionLen;
-      rdPos += optionLen;
-    }
+    /* skip this option */
+    pos += optionLen;
+    rdPos += optionLen;
   }
 
-  return ENOENT;
+  if (rdPos != rdLen) {
+    return EINVAL;
+  }
+
+  return found ? 0 : ENOENT;
 }
 
 /* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */
@@ -129,7 +133,7 @@ int getEDNSOptions(const char* optRR, const size_t len, EDNSOptionViewMap& optio
     rdPos += optionLen;
   }
 
-  return 0;
+  return rdPos == rdLen ? 0 : EINVAL;
 }
 
 bool getEDNSOptionsFromContent(const std::string& content, std::vector<std::pair<uint16_t, std::string>>& options)
@@ -152,7 +156,7 @@ bool getEDNSOptionsFromContent(const std::string& content, std::vector<std::pair
     pos += len;
   }
 
-  return true;
+  return pos == contentLength;
 }
 
 void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res)

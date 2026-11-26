@@ -1581,6 +1581,36 @@ class DOHForwardedFor(object):
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
+    def testDOHAllowedForwardedSeveral(self):
+        """
+        DOH with several X-Forwarded-For allowed
+        """
+        name = "allowed.forwarded.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(
+            self._dohServerPort,
+            self._serverName,
+            self._dohBaseURL,
+            query,
+            response=response,
+            caFile=self._caCert,
+            customHeaders=["x-forwarded-for: 127.0.0.1:42, 127.0.0.1",
+                           "x-forwarded-for: 127.0.0.1:42, 192.0.2.1:4200"],
+        )
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.assertEqual(expectedQuery, receivedQuery)
+        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
     def testDOHDeniedForwarded(self):
         """
         DOH with X-Forwarded-For not allowed
@@ -2066,3 +2096,58 @@ class TestDOHXFRNGHTTP2(DOHXFR, DNSDistDOHTest):
 
 class TestDOHXFRH2O(DOHXFR, DNSDistDOHTest):
     _dohLibrary = 'h2o'
+
+
+class TestDOHGetWithBody(DNSDistTest):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = "https://%s:%d/dns-query" % (_serverName, _dohServerPort)
+
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/dns-query" })
+    """
+    _config_params = [
+        "_testServerPort",
+        "_dohServerPort",
+        "_serverCert",
+        "_serverKey",
+    ]
+
+    def testSimple(self):
+        """
+        DoH: GET query with body
+        """
+        name = "get-with-body.doh.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN")
+        badName = "get-with-body-post.doh.tests.powerdns.com."
+        badQuery = dns.message.make_query(badName, "A", "IN")
+        response = dns.message.make_response(query)
+        conn = self.openDOHConnection(self._dohServerPort, caFile=self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, self.getDOHGetURL(self._dohBaseURL, query))
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:%s" % (self._serverName, self._dohServerPort, self._dnsDistListeningAddr)])
+        # this means "really do HTTP/2, not HTTP/1 with Upgrade headers"
+        conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+
+        badData = badQuery.to_wire()
+        conn.setopt(pycurl.POSTFIELDS, badData)
+        conn.setopt(pycurl.CUSTOMREQUEST, "GET")
+
+        self._toResponderQueue.put(response, True, timeout=2.0)
+
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 200)
+        receivedResponse = dns.message.from_wire(data)
+        receivedQuery = self._fromResponderQueue.get(True, timeout=2.0)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)

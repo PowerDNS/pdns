@@ -674,6 +674,12 @@ class TestAPIAuth(APITestsBase):
         r = requests.get(url, headers=headers, timeout=self._webTimeout)
         self.assertEqual(r.status_code, 401)
 
+        # check that an empty key does NOT work
+        headers = {"x-api-key": ""}
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertEqual(r.status_code, 401)
+
+
 class TestAPIACL(APITestsBase):
     __test__ = True
     _consoleKey = DNSDistTest.generateConsoleKey()

@@ -156,6 +156,7 @@ struct TCPResponse : public TCPQuery
   std::shared_ptr<DownstreamState> d_ds{nullptr};
   dnsheader d_cleartextDH;
   bool d_async{false};
+  bool d_xfrFinished{false};
 };
 
 class TCPQuerySender

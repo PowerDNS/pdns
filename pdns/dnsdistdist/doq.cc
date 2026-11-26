@@ -611,21 +611,6 @@ static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
   }
 }
 
-static void flushStalledResponses(Connection& conn)
-{
-  for (auto streamIt = conn.d_streamOutBuffers.begin(); streamIt != conn.d_streamOutBuffers.end();) {
-    const auto& streamID = streamIt->first;
-    auto& response = streamIt->second;
-    if (quiche_conn_stream_writable(conn.d_conn.get(), streamID, response.size()) == 1) {
-      if (tryWriteResponse(conn, streamID, response)) {
-        streamIt = conn.d_streamOutBuffers.erase(streamIt);
-        continue;
-      }
-    }
-    ++streamIt;
-  }
-}
-
 static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState, Connection& conn, uint64_t streamID, const ComboAddress& client, const PacketBuffer& serverConnID)
 {
   auto& streamBuffer = conn.d_streamBuffers[streamID];

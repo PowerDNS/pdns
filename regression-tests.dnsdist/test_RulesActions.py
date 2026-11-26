@@ -1805,6 +1805,36 @@ class TestAdvancedSetEDNSOptionAction(DNSDistTest):
             self.checkResponseEDNSWithoutECS(response, receivedResponse)
             self.checkQueryEDNS(expectedQuery, receivedQuery)
 
+    def testAdvancedSetEDNSOptionTrailingData(self):
+        """
+        Advanced: Set EDNS Option (trailing data)
+        """
+        name = "setednsoption-trailing.advanced.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=True, want_dnssec=True, payload=4096)
+
+        eco = cookiesoption.CookiesOption(b"deadbeef", b"deadc0de")
+        expectedQuery = dns.message.make_query(
+            name, "A", "IN", use_edns=True, payload=4096, options=[eco], want_dnssec=True
+        )
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        # add 10 "A"s as trailing data
+        query = query.to_wire() + b"A" * 10
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response, rawQuery=True)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = expectedQuery.id
+            self.assertEqual(expectedQuery, receivedQuery)
+            self.checkResponseEDNSWithoutECS(response, receivedResponse)
+            self.checkQueryEDNS(expectedQuery, receivedQuery)
+
+
 class TestAdvancedLuaGetContent(DNSDistTest):
 
     _config_template = """

@@ -102,7 +102,7 @@ size_t IncomingTCPConnectionState::clearAllDownstreamConnections()
   return t_downstreamTCPConnectionsManager.clear();
 }
 
-static std::pair<std::shared_ptr<TCPConnectionToBackend>, bool> getOwnedDownstreamConnection(std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>>& ownedConnectionsToBackend, const std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs)
+static std::pair<std::shared_ptr<TCPConnectionToBackend>, bool> getOwnedDownstreamConnection(std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>>& ownedConnectionsToBackend, const std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, bool sameClient)
 {
   bool tlvsMismatch = false;
   auto connIt = ownedConnectionsToBackend.find(backend);
@@ -112,7 +112,7 @@ static std::pair<std::shared_ptr<TCPConnectionToBackend>, bool> getOwnedDownstre
   }
 
   for (auto& conn : connIt->second) {
-    if (conn->canBeReused(true)) {
+    if (conn->canBeReused(sameClient)) {
       if (conn->matchesTLVs(tlvs)) {
         DEBUGLOG("Got one owned connection accepting more for " << backend->getName());
         conn->setReused();
@@ -153,7 +153,7 @@ bool IncomingTCPConnectionState::isNearTCPLimits() const
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)
 {
-  auto [downstream, tlvsMismatch] = getOwnedDownstreamConnection(d_ownedConnectionsToBackend, backend, tlvs);
+  auto [downstream, tlvsMismatch] = getOwnedDownstreamConnection(d_ownedConnectionsToBackend, backend, tlvs, d_ci.cs == nullptr || d_ci.cs->dohFrontend == nullptr || !d_ci.cs->dohFrontend->d_trustForwardedForHeader);
 
   if (!downstream) {
     if (backend->d_config.useProxyProtocol && tlvsMismatch) {
@@ -243,7 +243,9 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
 void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse, size_t sentBytes)
 {
   if (currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
-    return;
+    if (!currentResponse.d_xfrFinished) {
+      return;
+    }
   }
 
   --d_currentQueriesCount;
@@ -273,6 +275,9 @@ static void prependSizeToTCPQuery(PacketBuffer& buffer, size_t proxyProtocolPayl
 {
   if (buffer.size() <= proxyProtocolPayloadSize) {
     throw std::runtime_error("The payload size is smaller or equal to the buffer size");
+  }
+  if ((buffer.size() - proxyProtocolPayloadSize) > std::numeric_limits<uint16_t>::max()) {
+    throw std::runtime_error("Payload too large (" + std::to_string(buffer.size() - proxyProtocolPayloadSize) + ") for DNS-over-TCP framing");
   }
 
   uint16_t queryLen = proxyProtocolPayloadSize > 0 ? (buffer.size() - proxyProtocolPayloadSize) : buffer.size();

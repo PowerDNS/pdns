@@ -1,6 +1,7 @@
 #include "yahttp.hpp"
 
 #include <limits>
+#include <string_view>
 
 namespace YaHTTP {
 
@@ -43,7 +44,7 @@ namespace YaHTTP {
   bool AsyncLoader<T>::feed(const std::string& somedata)
   {
     if (state < 2) {
-      headersize += somedata.length(); // maye include some body data, we don't know yet...
+      headersize += somedata.length(); // maybe include some body data, we don't know yet...
       if (headersize > target->max_header_size) {
         if (target->kind == YAHTTP_TYPE_REQUEST) {
           throw ParseError("Request header too large");
@@ -54,21 +55,34 @@ namespace YaHTTP {
       }
     }
     buffer.append(somedata);
+    size_t cursor = 0;
     while(state < 2) {
       int cr=0;
-      pos = buffer.find_first_of("\n");
+      size_t pos = buffer.find_first_of("\n", cursor);
       // need to find CRLF in buffer
-      if (pos == std::string::npos) return false;
-      if (pos>0 && buffer[pos-1]=='\r')
+      if (pos == std::string::npos) {
+        // Remove all the data which has been consumed as header.
+        if (cursor != 0) {
+          buffer.erase(buffer.begin(), buffer.begin() + cursor);
+        }
+        return false;
+      }
+      if (pos>0 && buffer[pos-1]=='\r') {
         cr=1;
-      std::string line(buffer.begin(), buffer.begin()+pos-cr); // exclude CRLF
-      buffer.erase(buffer.begin(), buffer.begin()+pos+1); // remove line from buffer including CRLF
+      }
+      std::string_view line(buffer.data() + cursor, (pos - cr) - cursor); // exclude CRLF
+      cursor = pos + 1; // skip line, including CRLF
+      // Release memory as soon as we can
+      if (cursor == buffer.length()) {
+        buffer.clear();
+        cursor = 0;
+      }
 
       if (state == 0) { // startup line
         if (target->kind == YAHTTP_TYPE_REQUEST) {
           std::string ver;
           std::string tmpurl;
-          std::istringstream iss(line);
+          std::istringstream iss{std::string(line)};
           iss >> target->method >> tmpurl >> ver;
           if (ver.size() == 0)
             target->version = 9;
@@ -87,7 +101,7 @@ namespace YaHTTP {
           state = 1;
         } else if(target->kind == YAHTTP_TYPE_RESPONSE) {
           std::string ver;
-          std::istringstream iss(line);
+          std::istringstream iss{std::string(line)};
           std::string::size_type pos1;
           iss >> ver >> target->status;
           std::getline(iss, target->statusText);
@@ -117,6 +131,11 @@ namespace YaHTTP {
           state = 2;
           break;
         }
+        // give up if there are too many header lines - this shouldn't happen in legitimate traffic
+        ++headerlines;
+        if (headerlines > YAHTTP_MAX_HEADER_LINES) {
+          throw ParseError("Too many headers");
+        }
         // split headers
         if ((pos1 = line.find(":")) == std::string::npos) {
           throw ParseError("Malformed header line");
@@ -132,9 +151,9 @@ namespace YaHTTP {
         // is it already defined
 
         if (key == "set-cookie" && target->kind == YAHTTP_TYPE_RESPONSE) {
-          target->jar.parseSetCookieHeader(value);
+          // Nothing (intentional).
         } else if (key == "cookie" && target->kind == YAHTTP_TYPE_REQUEST) {
-          target->jar.parseCookieHeader(value);
+          // Nothing (intentional).
         } else {
           if (key == "host" && target->kind == YAHTTP_TYPE_REQUEST) {
             // maybe it contains port?
@@ -152,6 +171,10 @@ namespace YaHTTP {
           }
         }
       }
+    }
+    // Remove all the data which has been consumed as header, if we haven't been able to do so earlier.
+    if (cursor != 0) {
+      buffer.erase(buffer.begin(), buffer.begin() + cursor);
     }
 
     minbody = 0;
@@ -181,7 +204,8 @@ namespace YaHTTP {
         if (chunk_size == 0) {
           char buf[100];
           // read chunk length
-          if ((pos = buffer.find('\n')) == std::string::npos) {
+          size_t pos = buffer.find('\n');
+          if (pos == std::string::npos) {
             if (buffer.size() > 99) {
               throw ParseError("Nonsensical chunk_size");
             }
@@ -201,11 +225,25 @@ namespace YaHTTP {
           }
         } else {
           int crlf=1;
-          if (buffer.size() < chunk_size+1) return false; // expect newline
-          if (buffer.at(chunk_size) == '\r') {
-            if (buffer.size() < chunk_size+2 || buffer.at(chunk_size+1) != '\n') return false; // expect newline after carriage return
-            crlf=2;
-          } else if (buffer.at(chunk_size) != '\n') return false;
+          if (buffer.size() < chunk_size + 1) {
+            return false; // expecting \n or \r\n at chunk_size, but we're not there yet.
+          }
+          switch (buffer.at(chunk_size)) {
+          case '\n':
+            // Well-formed chunk
+            break;
+          case '\r':
+            if (buffer.size() < chunk_size + 2) {
+              return false; // expecting \n to follow \r, but we're not there yet.
+            }
+            if (buffer.at(chunk_size+1) == '\n') {
+              crlf=2;
+              break;
+            }
+            [[fallthrough]];
+          default:
+            throw ParseError("Chunked body is not terminated correctly");
+          }
           if (bodysize + chunk_size > maxbody) {
             throw ParseError("Chunked body is too large");
           }
@@ -225,7 +263,7 @@ namespace YaHTTP {
           bodybuf << buffer;
           bodysize += buffer.length();
         }
-        buffer = "";
+        buffer.clear();
       }
     }
 
@@ -258,7 +296,6 @@ namespace YaHTTP {
     }
     os << "\r\n";
 
-    bool cookieSent = false;
     bool sendChunked = false;
 
     if (this->version > 10) { // 1.1 or better
@@ -273,7 +310,7 @@ namespace YaHTTP {
           os << "Transfer-Encoding: chunked\r\n";
         }
       } else {
-	sendChunked = false;
+        sendChunked = false;
       }
     }
 
@@ -283,27 +320,8 @@ namespace YaHTTP {
       if (iter->first == "host" && (kind != YAHTTP_TYPE_REQUEST || version < 10)) { iter++; continue; }
       if (iter->first == "transfer-encoding" && sendChunked) { iter++; continue; }
       std::string header = Utility::camelizeHeader(iter->first);
-      if (header == "Cookie" || header == "Set-Cookie") cookieSent = true;
       os << Utility::camelizeHeader(iter->first) << ": " << iter->second << "\r\n";
       iter++;
-    }
-    if (version > 9 && !cookieSent && jar.cookies.size() > 0) { // write cookies
-     if (kind == YAHTTP_TYPE_REQUEST) {
-        bool first = true;
-        os << "Cookie: ";
-        for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
-          if (first)
-            first = false;
-          else
-            os << "; ";
-          os << Utility::encodeURL(i->second.name) << "=" << Utility::encodeURL(i->second.value);
-        }
-     } else if (kind == YAHTTP_TYPE_RESPONSE) {
-        for(strcookie_map_t::const_iterator i = jar.cookies.begin(); i != jar.cookies.end(); i++) {
-          os << "Set-Cookie: ";
-          os << i->second.str() << "\r\n";
-        }
-      }
     }
     os << "\r\n";
 #ifdef HAVE_CPP_FUNC_PTR
