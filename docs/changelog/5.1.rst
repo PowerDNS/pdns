@@ -2,6 +2,28 @@ Changelogs for 5.1.x
 ====================
 
 .. changelog::
+  :version: 5.1.7
+  :released: 26th of November 2026
+
+  This is release 5.1.7 of the Authoritative Server.
+  It contains security fixes only.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.1.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18347
+
+    Fix PowerDNS Security Advisory 2026-14 for PowerDNS Authoritative Server
+
+.. changelog::
+  :version: 5.1.6
+  :released: never
+
+  This version has never been released publicly. It is however identical
+  to the 5.1.7 version.
+
+.. changelog::
   :version: 5.1.5
   :released: 21st of October 2026
 
