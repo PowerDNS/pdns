@@ -45,7 +45,7 @@ jobs:
 
   call-build-image-auth:
     uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@master
-    if: startsWith(github.ref_name, 'auth')
+    if: ${{ ! vars.HARBOR_HOST && startsWith(github.ref_name, 'auth') }}
     needs: prepare
     with:
       product: auth
@@ -65,9 +65,29 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
+  call-build-image-auth-harbor:
+    uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@master
+    if: ${{ vars.HARBOR_HOST }} && startsWith(github.ref_name, 'auth')
+    needs: prepare
+    with:
+      product: auth
+      ref: ${{ github.ref_name }}
+      image-name: pdns-auth-${{ needs.prepare.outputs.image-name-suffix }}
+      image-tags: |-
+        ${{ needs.prepare.outputs.image-tag }}
+      image-description: 'PowerDNS Authoritative Server ${{ needs.prepare.outputs.image-description-suffix }}'
+      platforms: linux/amd64,linux/arm64/v8
+      build-args: |-
+        DOCKER_FAKE_RELEASE=YES
+      push: true
+    secrets:
+      DOCKERHUB_ORGANIZATION_NAME: ${{ vars.HARBOR_HOST }}
+      DOCKERHUB_USERNAME: ${{ vars.HARBOR_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.HARBOR_PASSWORD }}
+
   call-build-image-recursor:
     uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@master
-    if: startsWith(github.ref_name, 'rec')
+    if: ${{ ! vars.HARBOR_HOST && startsWith(github.ref_name, 'rec') }}
     needs: prepare
     with:
       product: recursor
@@ -87,9 +107,29 @@ jobs:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
+  call-build-image-recursor-harbor:
+    uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@master
+    if: ${{ vars.HARBOR_HOST && startsWith(github.ref_name, 'rec') }}
+    needs: prepare
+    with:
+      product: recursor
+      ref: ${{ github.ref_name }}
+      image-name: pdns-recursor-${{ needs.prepare.outputs.image-name-suffix }}
+      image-tags: |-
+        ${{ needs.prepare.outputs.image-tag }}
+      image-description: 'PowerDNS Recursor ${{ needs.prepare.outputs.image-description-suffix }}'
+      platforms: linux/amd64,linux/arm64/v8
+      build-args: |-
+        DOCKER_FAKE_RELEASE=YES
+      push: true
+    secrets:
+      DOCKERHUB_ORGANIZATION_NAME: ${{ vars.HARBOR_HOST }}
+      DOCKERHUB_USERNAME: ${{ vars.HARBOR_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.HARBOR_PASSWORD }}
+
   call-build-image-dnsdist:
     uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@master
-    if: startsWith(github.ref_name, 'dnsdist')
+    if: ${{ ! vars.HARBOR_HOST && startsWith(github.ref_name, 'dnsdist') }}
     needs: prepare
     with:
       product: dnsdist
@@ -108,3 +148,23 @@ jobs:
       DOCKERHUB_ORGANIZATION_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  call-build-image-dnsdist-harbor:
+    uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@master
+    if: ${{ vars.HARBOR_HOST && startsWith(github.ref_name, 'dnsdist') }}
+    needs: prepare
+    with:
+      product: dnsdist
+      ref: ${{ github.ref_name }}
+      image-name: dnsdist-${{ needs.prepare.outputs.image-name-suffix }}
+      image-tags: |-
+        ${{ needs.prepare.outputs.image-tag }}
+      image-description: 'PowerDNS DNSdist ${{ needs.prepare.outputs.image-description-suffix }}'
+      platforms: linux/amd64,linux/arm64/v8
+      build-args: |-
+        DOCKER_FAKE_RELEASE=YES
+      push: true
+    secrets:
+      DOCKERHUB_ORGANIZATION_NAME: ${{ vars.HARBOR_HOST }}
+      DOCKERHUB_USERNAME: ${{ vars.HARBOR_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.HARBOR_PASSWORD }}
