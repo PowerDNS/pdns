@@ -6,15 +6,32 @@ Upgrade Guide
 
 Queries received from clients that have the truncated bit (TC) set are now dropped.
 
+Webserver changes
+^^^^^^^^^^^^^^^^^
+
 The internal web server now binds listening sockets with ``IPV6_V6ONLY`` set, which means that ``[::]`` no longer accepts IPv4 connections. If you want to listen on both IPv4 and IPv6, you need to add a second line with ``0.0.0.0`` to your existing configuration.
+
+Lua bindings changes
+^^^^^^^^^^^^^^^^^^^^
 
 :attr:`DNSQuestion.dh` has been removed, :meth:`DNSQuestion.getHeader` and :meth:`DNSQuestion.setHeader` should be used instead.
 
+The :attr:`ClientState.muted` attribute has been removed. To drop responses to clients, use a :func:`DropResponseAction` rule.
+
+Lua FFI changes
+^^^^^^^^^^^^^^^
+
 Lua FFI API's ``dnsdist_ffi_dnspacket_parse_a_record``, ``dnsdist_ffi_dnspacket_parse_aaaa_record``, ``dnsdist_ffi_dnspacket_parse_address_record`` and ``dnsdist_ffi_dnspacket_parse_cname_record`` used to rely on the caller providing a large enough buffer, but this was the source of many AI-assisted bogus reports, so their ``addrSize`` and ``cnameSize`` parameters are no longer "out" parameters but "in and out" parameters, meaning they have to be set to the size of the buffer before calling these methods or the call will fail. They will still be updated to hold the number of bytes actually written on success.
+
+AXFR and IXFR changes
+^^^^^^^^^^^^^^^^^^^^^
 
 AXFR and IXFR queries received over UDP are immediately discarded with a "Not Implemented" response instead of being forwarded to the backend, as it could have introduced issues for TCP-only and DoT backends.
 
-The :attr:`ClientState.muted` attribute has been removed. To drop responses to clients, use a :func:`DropResponseAction` rule.
+DoQ and DoH3 changes
+^^^^^^^^^^^^^^^^^^^^
+
+The number of concurrent queries (streams) on a single QUIC connection now defaults to ``100`` instead of ``65535`` to limit the risk of abuse and unintended high memory consumption on small installations.
 
 SVCRecordParameter changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

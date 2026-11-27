@@ -260,7 +260,7 @@ void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHT
 
   // The number of concurrent remotely-initiated bidirectional streams to be open at any given time
   // https://docs.rs/quiche/latest/quiche/struct.Config.html#method.set_initial_max_streams_bidi
-  // 0 means none will get accepted, that's why we have a default value of 65535
+  // 0 means none will get accepted.
   quiche_config_set_initial_max_streams_bidi(config.get(), params.d_maxInFlight);
 
   // The number of bytes of incoming stream data to be buffered for each locally or remotely-initiated bidirectional stream
