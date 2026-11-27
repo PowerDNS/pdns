@@ -1,5 +1,17 @@
 name: CIFuzz
-on: [pull_request]
+on:
+  pull_request:
+    paths:
+      - '**.c'
+      - '**.cc'
+      - '**.h'
+      - '**.hh'
+      - '**.py'
+      - '**.rs'
+      - '**.yml'
+      - '**.l'
+      - '**.rl'
+      - '**.yy'
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
