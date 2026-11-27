@@ -242,6 +242,7 @@ costypetrisor
 coverallsapp
 coverity
 cppcheck
+createreverse
 createslavedomain
 Cremers
 criteo
@@ -1580,6 +1581,7 @@ vla
 Voegeli
 Volker
 Volodymyr
+Voyo
 Vranken
 VRF
 vulns
