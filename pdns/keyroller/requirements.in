@@ -7,4 +7,4 @@ requests
 json_tricks
 nose
 cython>=3.0.0
-setuptools<82
+setuptools<85
