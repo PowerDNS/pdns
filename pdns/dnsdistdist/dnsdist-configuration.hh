@@ -34,6 +34,7 @@
 #include "dnsdist-carbon.hh"
 #include "dnsdist-lua-types.hh"
 #include "dnsdist-query-count.hh"
+#include "dnsdist-plugins.hh"
 #include "dnsdist-rule-chains.hh"
 #include "dnsdist-server-pool.hh"
 #include "iputils.hh"
@@ -67,6 +68,7 @@ enum class TimeFormat : uint8_t
 struct ImmutableConfiguration
 {
   std::set<std::string> d_capabilitiesToRetain;
+  std::map<std::string, dnsdist::plugins::PluginContext> d_plugins;
   std::vector<uint32_t> d_tcpFastOpenKey;
   std::vector<std::shared_ptr<ClientState>> d_frontends;
   std::string d_snmpDaemonSocketPath;
