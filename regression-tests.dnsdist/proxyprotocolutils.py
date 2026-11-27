@@ -4,6 +4,7 @@ import dns
 import socket
 import struct
 import sys
+import threading
 
 from proxyprotocol import ProxyProtocol
 
@@ -52,6 +53,66 @@ def ProxyProtocolUDPResponder(port, fromQueue, toQueue):
         sock.settimeout(None)
 
 
+def ProxyProtocolTCPResponderConnectionHandler(conn, toQueue, fromQueue):
+    # try to read the entire Proxy Protocol header
+    proxy = ProxyProtocol()
+    header = conn.recv(proxy.HEADER_SIZE)
+    if not header:
+        conn.close()
+        return
+
+    if not proxy.parseHeader(header):
+        conn.close()
+        return
+
+    if proxy.local:
+        # likely a healthcheck
+        data = conn.recv(2)
+        (datalen,) = struct.unpack("!H", data)
+        data = conn.recv(datalen)
+        request = dns.message.from_wire(data)
+        response = dns.message.make_response(request)
+        wire = response.to_wire()
+        conn.send(struct.pack("!H", len(wire)))
+        conn.sendall(wire)
+        conn.close()
+        return
+
+    proxyContent = conn.recv(proxy.contentLen)
+    if not proxyContent:
+        conn.close()
+        return
+
+    payload = header + proxyContent
+    while True:
+        try:
+            data = conn.recv(2)
+        except socket.timeout:
+            data = None
+
+        if not data:
+            break
+
+        (datalen,) = struct.unpack("!H", data)
+        data = conn.recv(datalen)
+
+        toQueue.put([payload, data], True, 2.0)
+
+        response = copy.deepcopy(fromQueue.get(True, 2.0))
+        if not response:
+            break
+
+        # computing the correct ID for the response
+        request = dns.message.from_wire(data)
+        response.id = request.id
+
+        wire = response.to_wire()
+        conn.send(struct.pack("!H", len(wire)))
+        conn.send(wire)
+
+    conn.close()
+
+
 def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
     # be aware that this responder will not accept a new connection
     # until the last one has been closed. This is done on purpose to
@@ -70,49 +131,27 @@ def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
     while True:
         (conn, _) = sock.accept()
         conn.settimeout(5.0)
-        # try to read the entire Proxy Protocol header
-        proxy = ProxyProtocol()
-        header = conn.recv(proxy.HEADER_SIZE)
-        if not header:
-            conn.close()
-            continue
+        ProxyProtocolTCPResponderConnectionHandler(conn, toQueue, fromQueue)
 
-        if not proxy.parseHeader(header):
-            conn.close()
-            continue
 
-        proxyContent = conn.recv(proxy.contentLen)
-        if not proxyContent:
-            conn.close()
-            continue
+def ProxyProtocolTCPResponderMultipleConnections(port, fromQueue, toQueue):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    try:
+        sock.bind(("127.0.0.1", port))
+    except socket.error as e:
+        print("Error binding in the TCP responder: %s" % str(e))
+        sys.exit(1)
 
-        payload = header + proxyContent
-        while True:
-            try:
-                data = conn.recv(2)
-            except socket.timeout:
-                data = None
-
-            if not data:
-                conn.close()
-                break
-
-            (datalen,) = struct.unpack("!H", data)
-            data = conn.recv(datalen)
-
-            toQueue.put([payload, data], True, 2.0)
-
-            response = copy.deepcopy(fromQueue.get(True, 2.0))
-            if not response:
-                conn.close()
-                break
-
-            # computing the correct ID for the response
-            request = dns.message.from_wire(data)
-            response.id = request.id
-
-            wire = response.to_wire()
-            conn.send(struct.pack("!H", len(wire)))
-            conn.send(wire)
-
-        conn.close()
+    sock.listen(100)
+    while True:
+        (conn, remote) = sock.accept()
+        conn.settimeout(5.0)
+        thread = threading.Thread(
+            name="Proxy Protocol TCP Responder - Connection Handler",
+            target=ProxyProtocolTCPResponderConnectionHandler,
+            args=[conn, toQueue, fromQueue],
+        )
+        thread.daemon = True
+        thread.start()

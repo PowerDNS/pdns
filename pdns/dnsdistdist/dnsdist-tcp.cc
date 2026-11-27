@@ -104,7 +104,7 @@ size_t IncomingTCPConnectionState::clearAllDownstreamConnections()
   return t_downstreamTCPConnectionsManager.clear();
 }
 
-static std::pair<std::shared_ptr<TCPConnectionToBackend>, bool> getOwnedDownstreamConnection(std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>>& ownedConnectionsToBackend, const std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs)
+static std::pair<std::shared_ptr<TCPConnectionToBackend>, bool> getOwnedDownstreamConnection(std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>>& ownedConnectionsToBackend, const std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, bool sameClient)
 {
   bool tlvsMismatch = false;
   auto connIt = ownedConnectionsToBackend.find(backend);
@@ -114,7 +114,7 @@ static std::pair<std::shared_ptr<TCPConnectionToBackend>, bool> getOwnedDownstre
   }
 
   for (auto& conn : connIt->second) {
-    if (conn->canBeReused(true)) {
+    if (conn->canBeReused(sameClient)) {
       if (conn->matchesTLVs(tlvs)) {
         DEBUGLOG("Got one owned connection accepting more for " << backend->getName());
         conn->setReused();
@@ -155,7 +155,7 @@ bool IncomingTCPConnectionState::isNearTCPLimits() const
 
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)
 {
-  auto [downstream, tlvsMismatch] = getOwnedDownstreamConnection(d_ownedConnectionsToBackend, backend, tlvs);
+  auto [downstream, tlvsMismatch] = getOwnedDownstreamConnection(d_ownedConnectionsToBackend, backend, tlvs, d_ci.cs == nullptr || d_ci.cs->dohFrontend == nullptr || !d_ci.cs->dohFrontend->d_trustForwardedForHeader);
 
   if (!downstream) {
     if (backend->d_config.useProxyProtocol && tlvsMismatch) {

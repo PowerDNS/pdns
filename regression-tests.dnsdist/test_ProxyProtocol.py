@@ -14,7 +14,11 @@ import requests
 from dnsdistdohtests import DNSDistDOHTest
 from dnsdisttests import DNSDistTest, pickAvailablePort
 from proxyprotocol import ProxyProtocol
-from proxyprotocolutils import ProxyProtocolTCPResponder, ProxyProtocolUDPResponder
+from proxyprotocolutils import (
+    ProxyProtocolTCPResponder,
+    ProxyProtocolUDPResponder,
+    ProxyProtocolTCPResponderMultipleConnections,
+)
 
 # Python2/3 compatibility hacks
 try:
@@ -1795,3 +1799,78 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
             self.assertTrue(receivedResponse)
             receivedResponse.id = response.id
             self.assertEqual(response, receivedResponse)
+
+
+tcpProxyResponderMultipleConnectionsPort = pickAvailablePort()
+tcpResponderMultipleConnections = threading.Thread(
+    name="TCP Proxy Protocol Responder Multiple Connections",
+    target=ProxyProtocolTCPResponderMultipleConnections,
+    args=[tcpProxyResponderMultipleConnectionsPort, toProxyQueue, fromProxyQueue],
+)
+tcpResponderMultipleConnections.daemon = True
+tcpResponderMultipleConnections.start()
+
+
+class TestDOHWithOutgoingProxyProtocolTCPOnly(DNSDistDOHTest):
+    _serverKey = "server.key"
+    _serverCert = "server.chain"
+    _serverName = "tls.tests.dnsdist.org"
+    _caCert = "ca.pem"
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithNGHTTP2BaseURL = "https://%s:%d/dns-query" % (_serverName, _dohWithNGHTTP2ServerPort)
+    _proxyResponderPort = tcpProxyResponderMultipleConnectionsPort
+    _config_template = """
+    newServer{address="127.0.0.1:%d", useProxyProtocol=true, tcpOnly=true}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true, library='nghttp2' })
+    setACL( { "127.0.0.1/32", "192.0.2.1/24" } )
+    setVerboseHealthChecks(true)
+    """
+    _config_params = ["_proxyResponderPort", "_dohWithNGHTTP2ServerPort", "_serverCert", "_serverKey"]
+
+    def testDifferentForwardedForHeadersSameConnection(self):
+        """
+        DOH with different X-Forwarded-For to Proxy Protocol-enabled backend
+        """
+        name = "different-x-forwarded-for.doh.outgoing-proxy-protocol.tests.powerdns.com."
+        query = dns.message.make_query(name, "A", "IN", use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, "A", "IN", use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name, 3600, dns.rdataclass.IN, dns.rdatatype.A, "127.0.0.1")
+        response.answer.append(rrset)
+
+        conn = self.openDOHConnection(self._dohWithNGHTTP2ServerPort, self._caCert, timeout=2.0)
+        # let's do it several times to increase the likelihood of reusing a connection to the backend
+        for _ in range(10):
+            # queries have different X-Forwarded-For headers, check that we passed the right value
+            # which does not happen if we wrongly reuse an outgoing connection, since the proxy protocol payload
+            # is at the beginning of the TCP connection
+            for remoteIP in ["192.0.2.1", "192.0.2.2"]:
+                ((receivedProxyPayload, receivedDNSData), receivedResponse) = self.sendDOHQuery(
+                    self._dohWithNGHTTP2ServerPort,
+                    self._serverName,
+                    self._dohWithNGHTTP2BaseURL,
+                    query,
+                    caFile=self._caCert,
+                    customHeaders=[f"x-forwarded-for: {remoteIP}:8080"],
+                    response=response,
+                    fromQueue=fromProxyQueue,
+                    toQueue=toProxyQueue,
+                    conn=conn,
+                )
+
+                self.assertTrue(receivedProxyPayload)
+                self.assertTrue(receivedDNSData)
+                receivedQuery = dns.message.from_wire(receivedDNSData)
+                self.assertTrue(receivedQuery)
+                receivedQuery.id = expectedQuery.id
+                self.assertEqual(expectedQuery, receivedQuery)
+                self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+                self.checkMessageProxyProtocol(
+                    receivedProxyPayload, remoteIP, "127.0.0.1", True, destinationPort=self._dohWithNGHTTP2ServerPort
+                )
+                # check the response
+                self.assertTrue(receivedResponse)
+                receivedResponse.id = response.id
+                self.assertEqual(response, receivedResponse)
