@@ -1,0 +1,497 @@
+Changelogs for 5.2.x
+====================
+
+.. changelog::
+  :version: 5.2.0-alpha1
+  :released: 27th of November 2026
+
+  This is release 5.2.0-alpha1 of the Authoritative Server.
+  It provides many small new features and improvements, as well as the
+  usual truckload of bug fixes.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 5.2.x.
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 16542, 16888, 17300, 17681, 17706, 17744, 18044, 18272, 18275, 18282, 18324
+
+    Many internal code cleanups and refactoring
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 16702, 17533, 17553, 17563, 17569, 18278, 18330
+    :tickets: 13987
+
+    Many fixes to meson build machinery (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17281, 17656
+
+    implement SOA-EDIT spreading + RRSIG expiry extension
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17562
+
+    stricter LOC record parsing
+
+  .. change::
+    :tags: New Features, API
+    :pullreq: 17566
+
+    add some API metrics
+
+  .. change::
+    :tags: New Features, API
+    :pullreq: 17568
+
+    api: get the number of rrsets of a zone
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17573
+
+    minor SVCB record parsing fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17587
+
+    Reject numerical record type values which do not fit in 16 bits
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17588
+
+    fixes for SA 2026-07
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17660
+    :tickets: 7568
+
+    Consider presigned while worrying about occlusion and seeing RRSIG (Josh Soref)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17662
+
+    Lua: stricter checks in createreverse*
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17663
+
+    perform validation of metadata name before querying the backend.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17665
+
+    missing html escaping in webserver
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17666
+    :tickets: 9090
+
+    Better reporting of filesystem errors
+
+  .. change::
+    :tags: New Features, API
+    :pullreq: 17712
+    :tickets: 16403
+
+    api: make cryptokeys endpoint more versatile
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17714, 18066
+    :tickets: 15941
+
+    support multiple EDNS Cookie secrets
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17717
+
+    lmdb: add support for LMDB 1.0
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17718
+
+    lmdb: make the database page size user-configurable
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17721
+    :tickets: 12984
+
+    ignore the closing SOA record in IXFR-turned-AXFR
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 17722
+    :tickets: 12879
+
+    Pdnsutil b2b-migrate: also copy zone options and catalog membership
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17729
+
+    Allow 64K AXFR chunks in ixfrdist
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17731, 17742
+    :tickets: 10657
+
+    Lua2 backend: more robust script results parsing and minor improvements
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17736
+
+    better scalability of Lua health checks
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 17739
+
+    api: relax record contents normalization
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 17741
+    :tickets: 12845
+
+    smarter splitting of large Lua record contents
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17745, 17763
+
+    better RFC3597 conformance
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 17766
+    :tickets: 1466
+
+    finer TSIG key deletion
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17770
+
+    safer error handling in bind parser
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17773, 17898
+
+    DNSSEC: MLDSA44 (Module-Lattice Digital Signature Algorithm for DNSSEC)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17774, 17782, 17787, 18028
+    :tickets: 17292
+
+    more lmdb bugfixes
+
+  .. change::
+    :tags: Improvements, API
+    :pullreq: 17778
+
+    api: allow a primary server address to be passed to the axfr-retrieve endpoint
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17779
+
+    Reject duplicate SvcParamKeys in the SVCB/HTTPS text parser
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17780
+    :tickets: 13952
+
+    sqlite: prevent file descriptor leaks in some conditions
+
+  .. change::
+    :tags: New Features
+    :pullreq: 17783
+    :tickets: 17776, 17776, 63, 17279
+
+    implement CAP_VIEWS (Views) support for PostgreSQL backend (Voyo)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17790
+
+    Dnsname: Properly reject 256-bytes wire-encoded DNS names
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 17794
+
+    Drop support for openssl 1.0 and very old libressl
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 17809
+
+    Implement domain creation transactions in SQL backends
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 17821
+
+    Pdnsutil: let zone edit recreate the whole zone if it contains invalid records
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17822
+
+    better handling of sqlite read-only databases
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17826, 17907
+
+    do not log x-api-key value in 'detailed' log level
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 17830
+
+    Packet parser: allow iterating on subsets of resource records
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17873
+
+    kill processes nicely
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17878, 17911
+
+    better numerical parameter parsing
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17887
+
+    fix pickclosest across the antemeridian
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17961
+
+    reject multiple TKEY records
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17962
+    :tickets: 17960
+
+    improve robustness when facing unmanageable keys
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17966
+
+    stricter wire data parsing
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 17904
+
+    better handling of incorrect Lua view() input
+
+    :tags: Bug Fixes, Internals
+    :pullreq: 17971
+
+    avoid views-related work unless views are enabled
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 17995
+    :tickets: 17994
+
+    tighten socket permission on webserver if using a unix socket
+
+  .. change::
+    :tags: New Features, API
+    :pullreq: 18009
+    :tickets: 18008
+
+    allow record additions to change the disabled flag
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18041
+
+    don't send an unsigned DS record on non-DO queries
+
+  .. change::
+    :tags: New Features
+    :pullreq: 18050
+
+    two new SVCParams
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18055
+
+    ixfrdist: Two serial comparison fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18073
+
+    Ignore out-of-zone data in IXFR
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18089
+
+    GeoIP: IPinfo lite support
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18128
+
+    ixfrdist: Only accept SOA at zone apex
+
+  .. change::
+    :tags: New Features, API
+    :pullreq: 18158
+
+    add Prometheus histogram metrics for latencies
+
+  .. change::
+    :tags: Bug Fixes, API
+    :pullreq: 18176
+    :tickets: 18159
+
+    API: fix handling of \ and " in record contents
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18218
+
+    enforce EDNS option record has root as its name
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 18221
+
+    bind: smarter zone replacement behaviour
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18248, 18348
+
+    Sysconf can return -1 for _SC_GETGR_R_SIZE_MAX and _SC_GETPW_R_SIZE_MAX, use sane default
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18268
+
+    Dnsparser: Yet another hardening PR
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18277
+
+    Dnsname: Fix length check for DNS name lacking the final dot
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18300
+
+    api: validate that tsig keys sent through the API are in array format
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18308, 18082
+
+    Harden NSEC bitmaps (NSEC, NSEC3, CSYNC) parsing
+
+  .. change::
+    :tags: New Features
+    :pullreq: 18333
+
+    allow handling of EDNS Client Subnet option to be restricted
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18338
+
+    geoip: sprinkle some sanity in domain keys processing
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18360
+
+    bind: correctly emit root zone configuration stanzas
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 18361
+
+    Add a lock to the notification queue
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 18362
+
+    Bunch of web server fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18363
+
+    reject the root zone as a member of a catalog zone
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18364
+
+    lmdb: fix infinite loop in ENT removal code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18365
+
+    several views fixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18366
+
+    fix catalog zone update operation in multi-backend configurations
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18367
+
+    various fixes for the BIND backend
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 18368
+
+    remove name knowledge for old records with no parser
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 18369
+
+    TSIG processing fixes
+
