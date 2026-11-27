@@ -295,8 +295,11 @@ static bool checkAPIKey(const YaHTTP::Request& req, const std::shared_ptr<const 
   }
 
   const auto header = req.headers.find("x-api-key");
-  if (header != req.headers.end()) {
-    return apiKey->matches(header->second);
+  // an empty string is NEVER a valid API key
+
+  if (header != req.headers.end() && !header->second.empty()) {
+    auto granted = apiKey->matches(header->second);
+    return granted;
   }
 
   return false;
