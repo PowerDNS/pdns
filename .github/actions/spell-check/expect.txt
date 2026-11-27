@@ -1,6 +1,7 @@
 aaaa
 aaaarecord
 Aaldering
+aar
 Aarush
 Abdulrahman
 aborttransaction
@@ -288,6 +289,7 @@ dcobject
 ddns
 ddos
 deactivatedomainkey
+deadair
 debian
 Deduktiva
 defcontent
@@ -453,6 +455,7 @@ Fallah
 famfo
 Farrokhi
 farsightsec
+fatidone
 fcontext
 fedoraproject
 feedents
@@ -601,6 +604,7 @@ httpapi
 httpcode
 httpdomain
 hubert
+hythyt
 iana
 icann
 idprotect
@@ -836,6 +840,7 @@ Michiel
 Miek
 Miell
 Mieslinger
+mihaimacarie
 Milas
 minbody
 mindex
@@ -1265,6 +1270,7 @@ Samir
 sandboxing
 Sangwhan
 Sanjaya
+sarkaar
 Saunalahti
 saxfr
 SBOMs

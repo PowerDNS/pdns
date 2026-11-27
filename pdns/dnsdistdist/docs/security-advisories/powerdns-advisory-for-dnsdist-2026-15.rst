@@ -78,7 +78,7 @@ CVE-2026-85563: HTTP body should not be processed on DNS over HTTPS GET queries
 - First fixed: 2.1.4,2.0.12
 - Internal ID: 560
 - External ID: YWH-PGM6095-310
-- External Reporter: r0g3
+- External Reporter: r0g
 
 When DNS over HTTPS is enabled and a caching HTTP reverse proxy is used in front of DNSdist, it is possible to pollute the cache of the HTTP reverse proxy by sending DNS over HTTPS GET queries with a body. DNSdist should either refuse the query or ignore the HTTP body, but instead was processing the content of the HTTP body rather than the query present in the HTTP path.
 
@@ -86,7 +86,7 @@ When DNS over HTTPS is enabled and a caching HTTP reverse proxy is used in front
 
 The remedy is: upgrade to a patched version, do not use a caching HTTP reverse proxy in front of DNSdist.
 
-We would like to thank r0g3 for bringing this issue to our attention.
+We would like to thank r0g for bringing this issue to our attention.
 
 CVE-2026-85564: Finished QUIC streams should not linger around
 --------------------------------------------------------------

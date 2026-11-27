@@ -38,7 +38,7 @@ Race condition in forward notification handling
 - Not affected: PowerDNS Authoritative Server 4.9.19, 5.0.9 and 5.1.6
 - Severity: High
 - Impact: Denial of Service
-- Exploit: 
+- Exploit:
 - Risk of system compromise: None
 - Solution: Upgrade to patched version, or disable forward-notify.
 - CWE: CWE-364
@@ -46,12 +46,15 @@ Race condition in forward notification handling
 - Last affected: 4.9.18,5.0.8,5.1.5
 - First fixed: 4.9.19,5.0.9,5.1.6
 - Internal ID: 568
+- External Reporter: ylwango613
 
 A race condition in the handling of the forward notification requests queue can lead to a crash if too many UDP notify packets for a given zone are received in a short time frame.
 
 `CVSS Score: 4.4 <https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:N/AC:H/PR:H/UI:N/S:U/C:N/I:N/A:H>`..
 
 The remedy is: upgrade to a patched version, or disable forward-notify.
+
+We would like to thank ylwango613 for bringing this issue to our attention.
 
 Insufficient input validation of internal webserver
 ---------------------------------------------------
@@ -100,12 +103,15 @@ Catalog zones incorrectly accept the root zone as a member
 - Last affected: 4.9.18,5.0.8,5.1.5
 - First fixed: 4.9.19,5.0.9,5.1.6
 - Internal ID: 581
+- External Reporter: hythyt
 
 A catalog zone provider can add a root zone as member and cause PowerDNS to provision it from the given source.
 
 `CVSS Score: 4.8 <https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:L>`__
 
 The remedy is: upgrade to a patched version, or do not use catalog zones.
+
+We would like to thank hythyt for bringing this issue to our attention.
 
 Logic flaw in LMDB backend can lead to an unresponsive server
 -------------------------------------------------------------
@@ -125,12 +131,15 @@ Logic flaw in LMDB backend can lead to an unresponsive server
 - Last affected: 5.1.5
 - First fixed: 5.1.6
 - Internal ID: 587
+- External Reporter: mihaimacarie98
 
 When using the LMDB backend, performing zone rectification when the number of Empty Non-Terminal entries is larger than the max-ent-entries setting triggers a logic bug and causes the PowerDNS process to spin with the LMDB database locked.
 
 `CVSS Score: 6.5 <https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H>`__
 
 The remedy is: upgrade to a patched version, use a different backend than LMDB, or make sure not to have more empty non-terminals than max-ent-entries.
+
+We would like to thank mihaimacarie98 for bringing this issue to our attention.
 
 Multiple defects in Views processing
 ------------------------------------
@@ -150,12 +159,15 @@ Multiple defects in Views processing
 - Last affected: 5.0.8,5.1.5
 - First fixed: 5.0.9,5.1.6
 - Internal ID: 588
+- External Reporter: fatidone
 
 Various logic errors in view processing can cause incorrect cached results to be returned.
 
 `CVSS Score: 8.2 <https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:L>`__
 
 The remedy is: upgrade to a patched version, disable packet cache or do not use the Views feature.
+
+We would like to thank fatidone for bringing this issue to our attention.
 
 Catalog zone update operation may misbehave in multi-backend configurations
 ---------------------------------------------------------------------------
@@ -175,12 +187,15 @@ Catalog zone update operation may misbehave in multi-backend configurations
 - Last affected: 4.9.18,5.0.8,5.1.5
 - First fixed: 4.9.19,5.0.9,5.1.6
 - Internal ID: 589
+- External Reporter: deadair
 
 A catalog zone update introducing a new zone which already exists, but in a different backend than the one storing the catalog zone, will cause a duplicate zone to be created in that backend, and (depending on the backend load order) may completely hide the existing zone.
 
 `CVSS Score: 7.6 <https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:C/C:N/I:H/A:L>`__
 
 The remedy is: upgrade to a patched version, or do not use catalog zones.
+
+We would like to thank deadair for bringing this issue to our attention.
 
 Injection vulnerabilities in Bind backend
 -----------------------------------------
@@ -200,12 +215,15 @@ Injection vulnerabilities in Bind backend
 - Last affected: 4.9.18,5.0.8,5.1.5
 - First fixed: 4.9.19,5.0.9,5.1.6
 - Internal ID: 593, 597
+- External Reporter: Gh0stIdl3, Harish123
 
 Incorrect sanitization of received data during zone AXFR to Bind backend can cause wrong or invalid data to be serialized.
 
 `CVSS Score: 7.5 <https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:L/A:N>`__
 
 The remedy is: upgrade to a patched version, or do not allow AXFR of zones served by the Bind backend.
+
+We would like to thank Gh0stIdl3 and Harish123 for bringing this issue to our attention.
 
 AXFR of obsolete record types can corrupt zones in the Bind backend
 -------------------------------------------------------------------
@@ -225,12 +243,15 @@ AXFR of obsolete record types can corrupt zones in the Bind backend
 - Last affected: 4.9.18,5.0.8,5.1.5
 - First fixed: 4.9.19,5.0.9,5.1.6
 - Internal ID: 594
+- External Reporter: aar_sarkaar_28
 
 Incorrect handling of obsolete record types during zone AXFR to Bind backend will cause the zone to fail to load afterwards, requiring manual intervention to edit the zone file.
 
 `CVSS Score: 6.5 <https://www.first.org/cvss/calculator/3.1#CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:H>`__
 
 The remedy is: upgrade to a patched version, or do not allow AXFR of zones served by the Bind backend.
+
+We would like to thank aar_sarkaar_28 for bringing this issue to our attention.
 
 TSIG operation logic flaws
 --------------------------
@@ -250,6 +271,7 @@ TSIG operation logic flaws
 - Last affected: 4.9.18,5.0.8,5.1.5
 - First fixed: 4.9.19,5.0.9,5.1.6
 - Internal ID: 596
+- External Reporter: mihaimacarie98
 
 Incomplete GSS negotiation, as well as TKEY context deletion while a pending operation will need to be signed with that key, can lead to a crash.
 
@@ -257,3 +279,4 @@ Incomplete GSS negotiation, as well as TKEY context deletion while a pending ope
 
 The remedy is: upgrade to a patched version.
 
+We would like to thank mihaimacarie98 for bringing this issue to our attention.
