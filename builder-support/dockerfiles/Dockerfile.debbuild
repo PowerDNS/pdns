@@ -22,5 +22,5 @@ RUN mv dnsdist*.deb /dist; mv dnsdist*.ddeb /dist || true
 @ENDIF
 
 # Generate provenance
-RUN apt-get install -y python-apt || apt-get install -y python3-apt
-@EVAL RUN python2 builder/helpers/generate-deb-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-deb-provenance.py /dist/packages-${BUILDER_TARGET}.json
+#RUN apt-get install -y python-apt || apt-get install -y python3-apt
+#@EVAL RUN python2 builder/helpers/generate-deb-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-deb-provenance.py /dist/packages-${BUILDER_TARGET}.json
