@@ -48,6 +48,19 @@ Lua DNS Update policy script behaviour changes
 
 The :ref:`Lua DNS Update policy script <dnsupdate-lua-dnsupdate-policy-script>` now honors :ref:`setting-lua-global-include-dir`.
 
+Changes to SQL queries
+^^^^^^^^^^^^^^^^^^^^^^
+
+The default ``info-all-secondaries-query``, ``info-all-primary-query``,
+``info-producer-members-query`` and ``get-all-domains-query`` queries no
+longer join records and domains on the record name (which never matches for
+variant zones). Instead, they return the SOA record owner name as a new,
+trailing column, and the backend code ignores rows whose SOA record is not
+at the zone apex (which can happen in zones broken by bugs or human error).
+Installations using custom versions of these queries can keep them
+unchanged: when the trailing column is absent, the apex check is simply
+skipped, matching the old behaviour.
+
 Views support for the PostgreSQL backend
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -62,16 +75,6 @@ the schema addition anyway, before or after upgrading, to stay consistent
 with our published schema. The backend detects the presence of these tables
 automatically (once, at server startup) and only advertises Views support
 when they exist. The MySQL and SQLite3 backends do not support Views yet.
-
-The default ``info-all-secondaries-query``, ``info-all-primary-query``,
-``info-producer-members-query`` and ``get-all-domains-query`` queries no
-longer join records and domains on the record name (which never matches for
-variant zones). Instead, they return the SOA record owner name as a new,
-trailing column, and the backend code ignores rows whose SOA record is not
-at the zone apex (which can happen in zones broken by bugs or human error).
-Installations using custom versions of these queries can keep them
-unchanged: when the trailing column is absent, the apex check is simply
-skipped, matching the old behaviour.
 
 Finer EDNS Client Subnet processing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
