@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptions)
 
   EDNSOptionViewMap options;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  int res = getEDNSOptions(reinterpret_cast<char*>(query.data()) + pos + 9, query.size() - pos - 9, options);
+  int res = getEDNSOptions(reinterpret_cast<char*>(&query.at(pos + 9)), query.size() - pos - 9, options);
   BOOST_REQUIRE_EQUAL(res, 0);
 
   /* 3 EDNS options but two of them are EDNS Cookie, so we only have two entries in the map */
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptions)
   {
     // pass truncated OPT data
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto error = getEDNSOptions(reinterpret_cast<char*>(query.data()) + pos + 9, query.size() - pos - 9 - 1, options);
+    auto error = getEDNSOptions(reinterpret_cast<char*>(&query.at(pos + 9)), query.size() - pos - 9 - 1, options);
     BOOST_REQUIRE_EQUAL(error, EINVAL);
   }
 
@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptions)
     mangledQuery.at(pos + 9) = rdLen / 256U;
     mangledQuery.at(pos + 9 + 1) = rdLen % 256U;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto error = getEDNSOptions(reinterpret_cast<char*>(mangledQuery.data()) + pos + 9, mangledQuery.size() - pos - 9, options);
+    auto error = getEDNSOptions(reinterpret_cast<char*>(&mangledQuery.at(pos + 9)), mangledQuery.size() - pos - 9, options);
     BOOST_REQUIRE_EQUAL(error, EINVAL);
   }
 
@@ -231,7 +231,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptions)
     PacketBuffer trailingBytes{0xFD, 0xE9};
     mangledQuery.insert(mangledQuery.end(), trailingBytes.begin(), trailingBytes.end());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto error = getEDNSOptions(reinterpret_cast<char*>(mangledQuery.data()) + pos + 9, mangledQuery.size() - pos - 9, options);
+    auto error = getEDNSOptions(reinterpret_cast<char*>(&mangledQuery.at(pos + 9)), mangledQuery.size() - pos - 9, options);
     BOOST_REQUIRE_EQUAL(error, EINVAL);
   }
 }
@@ -248,10 +248,9 @@ static void checkECSOptionValidity(const std::string& sourceStr, uint8_t sourceM
   const size_t ecsHeaderSize = 4;
   uint8_t sourceBytes = ((sourceMask - 1) >> 3) + 1;
   BOOST_REQUIRE_EQUAL(ecsOptionStr.size(), (ecsHeaderSize + sourceBytes));
-  /* family */
-  uint16_t u;
-  memcpy(&u, ecsOptionStr.c_str(), sizeof(u));
-  BOOST_REQUIRE_EQUAL(ntohs(u), source.isIPv4() ? 1 : 2);
+  uint16_t family{};
+  memcpy(&family, ecsOptionStr.c_str(), sizeof(family));
+  BOOST_REQUIRE_EQUAL(ntohs(family), source.isIPv4() ? 1 : 2);
   /* source mask */
   BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(ecsOptionStr.at(2)), sourceMask);
   BOOST_REQUIRE_EQUAL(static_cast<uint8_t>(ecsOptionStr.at(3)), scopeMask);
@@ -303,9 +302,9 @@ static void checkExtendedErrorOptionValidity(EDNSExtendedError::code code, const
   const auto optionStr = makeEDNSExtendedErrorOptString(eee);
   BOOST_REQUIRE_EQUAL(optionStr.size(), sizeof(code) + extra.size());
 
-  uint16_t u;
-  memcpy(&u, optionStr.c_str(), sizeof(u));
-  BOOST_CHECK_EQUAL(ntohs(u), static_cast<uint16_t>(code));
+  uint16_t family{};
+  memcpy(&family, optionStr.c_str(), sizeof(family));
+  BOOST_CHECK_EQUAL(ntohs(family), static_cast<uint16_t>(code));
   BOOST_CHECK_EQUAL(optionStr.substr(2), extra);
 
   EDNSExtendedError parsed;
@@ -317,6 +316,7 @@ static void checkExtendedErrorOptionValidity(EDNSExtendedError::code code, const
 BOOST_AUTO_TEST_CASE(test_makeEDNSExtendedErrorOptString)
 {
   checkExtendedErrorOptionValidity(EDNSExtendedError::code::Other, "");
+  // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange): this is the point
   checkExtendedErrorOptionValidity(static_cast<EDNSExtendedError::code>(255), "");
 
   checkExtendedErrorOptionValidity(EDNSExtendedError::code::UnsupportedDNSKEYAlgorithm, "");

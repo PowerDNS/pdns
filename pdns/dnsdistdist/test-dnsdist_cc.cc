@@ -72,8 +72,8 @@ static void validateECS(const PacketBuffer& packet, const ComboAddress& expected
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   DNSQuestion dnsQuestion(ids, const_cast<PacketBuffer&>(packet));
   auto ednsOptions = parseEDNSOptions(dnsQuestion);
-  BOOST_REQUIRE(ednsOptions);
-  BOOST_CHECK_EQUAL(ednsOptions->size(), numberOfOptions);
+  BOOST_REQUIRE(ednsOptions.has_value());
+  BOOST_CHECK_EQUAL(ednsOptions.has_value() ? ednsOptions.value().size() : 0U, numberOfOptions);
   const auto& ecsOption = ednsOptions->find(EDNSOptionCode::ECS);
   BOOST_REQUIRE(ecsOption != ednsOptions->cend());
 
