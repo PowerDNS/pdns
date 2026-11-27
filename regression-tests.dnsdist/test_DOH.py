@@ -1730,8 +1730,7 @@ class DOHForwardedFor(object):
             query,
             response=response,
             caFile=self._caCert,
-            customHeaders=["x-forwarded-for: 127.0.0.1:42, 127.0.0.1",
-                           "x-forwarded-for: 127.0.0.1:42, 192.0.2.1:4200"],
+            customHeaders=["x-forwarded-for: 127.0.0.1:42, 127.0.0.1", "x-forwarded-for: 127.0.0.1:42, 192.0.2.1:4200"],
         )
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
