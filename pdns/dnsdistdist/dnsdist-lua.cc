@@ -1192,7 +1192,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
         else {
           auto holder = std::make_shared<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
-          if (!holder->wasHashed() && holder->isHashingAvailable()) {
+          if (!holder->wasHashed() && CredentialsHolder::isHashingAvailable()) {
             SLOG(infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead."),
                  getLogger("setWebserverConfig")->info(Logr::Info, "Passing a plain-text API key via the 'apiKey' parameter is not advised, please consider generating a hashed one using 'hashPassword()' instead."));
           }
