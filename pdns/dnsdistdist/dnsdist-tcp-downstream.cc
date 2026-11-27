@@ -196,6 +196,7 @@ static bool getSerialFromIXFRQuery(TCPQuery& query)
 
     size_t payloadSize = query.d_buffer.size() - sizeof(uint16_t) - proxyPayloadSize;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast
     MOADNSParser parser(true, reinterpret_cast<const char*>(query.d_buffer.data() + sizeof(uint16_t) + proxyPayloadSize), payloadSize);
 
     for (const auto& record : parser.d_answers) {
@@ -710,6 +711,27 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   release(true);
 }
 
+IOState TCPConnectionToBackend::nextStepAfterResponseSent(std::shared_ptr<TCPConnectionToBackend>& conn)
+{
+  if (!d_pendingQueries.empty()) {
+    DEBUGLOG("still have some queries to send");
+    return queueNextQuery(conn);
+  }
+  if (d_state == State::sendingQueryToBackend) {
+    DEBUGLOG("still have a query to send");
+    return IOState::NeedWrite;
+  }
+  if (!d_pendingResponses.empty()) {
+    DEBUGLOG("still have some responses to read");
+    return IOState::NeedRead;
+  }
+
+  DEBUGLOG("nothing to do, waiting for a new query");
+  d_state = State::idle;
+  t_downstreamTCPConnectionsManager.moveToIdle(conn);
+  return IOState::Done;
+}
+
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
   d_downstreamFailures = 0;
@@ -750,6 +772,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
     it->second.d_query.d_xfrStarted = true;
     done = isXFRFinished(response, it->second.d_query);
+    response.d_xfrFinished = done;
 
     if (done) {
       d_pendingResponses.erase(it);
@@ -763,9 +786,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
 
     sender->handleXFRResponse(now, std::move(response));
     if (done) {
-      d_state = State::idle;
-      t_downstreamTCPConnectionsManager.moveToIdle(conn);
-      return IOState::Done;
+      return nextStepAfterResponseSent(conn);
     }
 
     d_state = State::waitingForResponseFromBackend;
@@ -810,23 +831,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     sender->handleResponse(now, std::move(response));
   }
 
-  if (!d_pendingQueries.empty()) {
-    DEBUGLOG("still have some queries to send");
-    return queueNextQuery(shared);
-  }
-  if (d_state == State::sendingQueryToBackend) {
-    DEBUGLOG("still have a query to send");
-    return IOState::NeedWrite;
-  }
-  if (!d_pendingResponses.empty()) {
-    DEBUGLOG("still have some responses to read");
-    return IOState::NeedRead;
-  }
-
-  DEBUGLOG("nothing to do, waiting for a new query");
-  d_state = State::idle;
-  t_downstreamTCPConnectionsManager.moveToIdle(conn);
-  return IOState::Done;
+  return nextStepAfterResponseSent(conn);
 }
 
 uint16_t TCPConnectionToBackend::getQueryIdFromResponse() const
@@ -868,55 +873,50 @@ bool TCPConnectionToBackend::matchesTLVs(const std::unique_ptr<std::vector<Proxy
 
 bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery& query)
 {
-  bool done = false;
-
   try {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast
     MOADNSParser parser(true, reinterpret_cast<const char*>(response.d_buffer.data()), response.d_buffer.size());
 
     if (parser.d_header.rcode != 0U) {
-      done = true;
+      return true;
     }
-    else {
-      for (const auto& record : parser.d_answers) {
-        if (record.d_class != QClass::IN || record.d_type != QType::SOA) {
-          continue;
-        }
 
-        auto unknownContent = getRR<UnknownRecordContent>(record);
-        if (!unknownContent) {
-          continue;
-        }
-        const auto& raw = unknownContent->getRawContent();
-        auto serial = getSerialFromRawSOAContent(raw);
-        if (query.d_xfrPrimarySerial == 0) {
-          // store the first SOA in our client's connection metadata
-          query.d_xfrPrimarySerial = serial;
-          if (query.d_idstate.qtype == QType::IXFR && (query.d_xfrPrimarySerial == query.d_ixfrQuerySerial || rfc1982LessThan(query.d_xfrPrimarySerial, query.d_ixfrQuerySerial))) {
-            /* This is the first message with a primary SOA:
-               RFC 1995 Section 2:
-                 If an IXFR query with the same or newer version number
-                 than that of the server is received, it is replied to
-                 with a single SOA record of the server's current version.
-            */
-            done = true;
-            break;
-          }
-        }
+    for (const auto& record : parser.d_answers) {
+      if (record.d_class != QClass::IN || record.d_type != QType::SOA) {
+        continue;
+      }
 
-        ++query.d_xfrSerialCount;
-        if (serial == query.d_xfrPrimarySerial) {
-          ++query.d_xfrPrimarySerialCount;
-          // figure out if it's end when receiving primary's SOA again
-          if (query.d_xfrSerialCount == 2) {
-            // if there are only two SOA records marks a finished AXFR
-            done = true;
-            break;
-          }
-          if (query.d_xfrPrimarySerialCount == 3) {
-            // receiving primary's SOA 3 times marks a finished IXFR
-            done = true;
-            break;
-          }
+      auto unknownContent = getRR<UnknownRecordContent>(record);
+      if (!unknownContent) {
+        continue;
+      }
+      const auto& raw = unknownContent->getRawContent();
+      auto serial = getSerialFromRawSOAContent(raw);
+      if (query.d_xfrPrimarySerial == 0) {
+        // store the first SOA in our client's connection metadata
+        query.d_xfrPrimarySerial = serial;
+        if (query.d_idstate.qtype == QType::IXFR && (query.d_xfrPrimarySerial == query.d_ixfrQuerySerial || rfc1982LessThanOrEqual(query.d_xfrPrimarySerial, query.d_ixfrQuerySerial))) {
+          /* This is the first message with a primary SOA:
+             RFC 1995 Section 2:
+             If an IXFR query with the same or newer version number
+             than that of the server is received, it is replied to
+             with a single SOA record of the server's current version.
+          */
+          return true;
+        }
+      }
+
+      ++query.d_xfrSerialCount;
+      if (serial == query.d_xfrPrimarySerial) {
+        ++query.d_xfrPrimarySerialCount;
+        // figure out if it's end when receiving primary's SOA again
+        if (query.d_xfrSerialCount == 2) {
+          // if there are only two SOA records marks a finished AXFR
+          return true;
+        }
+        if (query.d_xfrPrimarySerialCount == 3) {
+          // receiving primary's SOA 3 times marks a finished IXFR
+          return true;
         }
       }
     }
@@ -925,7 +925,7 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
     DEBUGLOG("Exception when parsing TCPResponse to DNS: " << e.what());
     /* ponder what to do here, shall we close the connection? */
   }
-  return done;
+  return false;
 }
 
 bool TCPConnectionToBackend::reachedMaxStreamID() const
