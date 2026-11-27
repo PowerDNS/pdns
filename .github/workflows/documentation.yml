@@ -27,8 +27,22 @@ name: 'Documentation'
 on:
   push:
     branches: [master]
+    paths:
+      - 'docs/**'
+      - '**/docs/**'
+      - '**.py'
+      - '**.yml'
+      - '**/requirements.in'
+      - '**/requirements.txt'
   pull_request:
     branches: [master]
+    paths:
+      - 'docs/**'
+      - '**/docs/**'
+      - '**.py'
+      - '**.yml'
+      - '**/requirements.in'
+      - '**/requirements.txt'
   workflow_dispatch: {}
 
 permissions:
