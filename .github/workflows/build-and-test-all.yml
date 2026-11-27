@@ -8,12 +8,17 @@ on:
       - '**.cc'
       - '**.h'
       - '**.hh'
-      - '**.rs'
       - '**.py'
+      - '**.rs'
       - '**.yml'
+      - '**.l'
+      - '**.rl'
+      - '**.yy'
       - '**/configure.ac'
       - '**/Makefile.am'
       - '**/meson**'
+      - '**/requirements.in'
+      - '**/requirements.txt'
   pull_request:
     paths:
       - '**.c'
@@ -23,9 +28,14 @@ on:
       - '**.rs'
       - '**.py'
       - '**.yml'
+      - '**.l'
+      - '**.rl'
+      - '**.yy'
       - '**/configure.ac'
       - '**/Makefile.am'
       - '**/meson**'
+      - '**/requirements.in'
+      - '**/requirements.txt'
   workflow_call:
     inputs:
       branch-name:
