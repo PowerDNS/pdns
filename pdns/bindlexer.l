@@ -44,7 +44,6 @@ static void bindlexer_fatal_error(const char* msg)
 %x incl
 %x quoted
 %option stack
-%option nounput
 %option noyy_top_state
 %option noinput
 %option nodefault
@@ -99,9 +98,25 @@ include                 BEGIN(incl);
         yy_switch_to_buffer(yy_create_buffer(yyin,YY_BUF_SIZE));
 
    }
-<incl>.*|\n {
+<incl>. {
+        /* We reach this point in `incl' state if none of the above two
+           expressions matched - likely because the include directive either
+           lacks quotes around the filename, or a semicolon.
+
+           We can't match on more than `.' here, for matching on `.*' would
+           always win over the above two constructs. But this means that
+           printing *yytext will only give one character, which won't help
+           the user much, especially if this is a whitespace character.
+
+           So we backout that character, and search for the end of line.
+         */
+        char *eol;
         bindlexer_cleanup();
-        lexer_error( "Invalid include directive",yytext+1,-1);
+        unput(*yytext);
+        if ((eol = strchr(yytext, '\n')) != NULL) {
+          *eol = '\0';
+        }
+        lexer_error("Invalid include directive",yytext,-1);
    }
 
 
