@@ -172,6 +172,8 @@ public:
   static bool s_doEDNSSubnetProcessing;
   static bool s_doEDNSCookieProcessing;
   static NetmaskGroup s_ECS_ACL;
+  static uint8_t s_ECSscopeMaskIPv4;
+  static uint8_t s_ECSscopeMaskIPv6;
   static LockGuarded<string> s_EDNSCookieKey;
   static LockGuarded<std::vector<std::string>> s_OldEDNSCookieKeys;
   EDNSSubnetOpts d_eso;
